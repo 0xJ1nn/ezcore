@@ -15,8 +15,8 @@ migrate_working_dir/
 # Build outputs (reproducible via scripts/build_core.sh --fetch-headers + --tier1)
 build/
 native/
-bridge/build/
-bridge/external/
+runtime/build/
+runtime/external/
 *.dylib
 *.so
 *.dll
