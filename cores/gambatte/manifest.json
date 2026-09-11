@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "7e77130b76f03657bdbd40d6fc8c78d0671c5773e934c66923a0a2c755eadf3f"
+  }
 }

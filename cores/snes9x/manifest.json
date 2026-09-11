@@ -1,7 +1,7 @@
 {
   "id": "snes9x",
   "name": "Snes9x",
-  "version": "1.62.3",
+  "version": "1.63",
   "license": "Snes9x-custom (non-commercial, attribution required — free open-source use OK, paid closed forks NOT permitted)",
   "license_url": "https://github.com/snes9xgit/snes9x/blob/master/docs/snes9x-license.txt",
   "homepage": "https://github.com/snes9xgit/snes9x",
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "7e3b40f041627a59f18a880cb5e45dcbe1c859d53934c640166c1774dcd7ef05"
+  }
 }

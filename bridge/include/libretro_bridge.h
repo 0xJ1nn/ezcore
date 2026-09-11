@@ -25,7 +25,8 @@ bool huh_load_game(huh_session *s, const char *rom_path,
                    const void *data, size_t size);
 void huh_run_frame(huh_session *s);
 
-/* Introspection */
+/* Introspection (geometry requires a successfully loaded game — several
+ * cores crash on pre-load AV queries; the bridge returns zeros before). */
 const char *huh_core_name(huh_session *s);
 const char *huh_core_version(huh_session *s);
 void huh_system_geometry(huh_session *s, unsigned *w, unsigned *h,

@@ -1,7 +1,7 @@
 {
   "id": "dosbox_pure",
   "name": "DOSBox Pure",
-  "version": "0.24.0",
+  "version": "1.0-preview6",
   "license": "GPL-2.0",
   "license_url": "https://github.com/libretro/dosbox-pure/blob/main/LICENSE",
   "homepage": "https://github.com/libretro/dosbox-pure",
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "950cb26af808f34dcea3c6670587819548a51e2ed4ced7d174f100dd917ac53a"
+  }
 }

@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": ["bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "c17c2d6a623206ff4f67486a15cf62676e802c4aba947aaebe70f66249b5a8b8"
+  }
 }

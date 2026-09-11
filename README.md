@@ -13,10 +13,10 @@ none. See `TRADEMARKS.md`, `DMCA.md`, `CONTRIBUTING.md`.
 
 ## Layout
 
-- `app/` … actually `lib/` — Flutter shell (library, core manager, player, cheats, settings)
+- `lib/` — Flutter shell (library, core manager, player, cheats, settings)
 - `cores/<id>/manifest.json` + `cores/registry.json` — signed plugin index (21 entries: 18 real, 3 legal holds)
 - `bridge/` — Libretro C bridge (`libretro_bridge.h`, ABI v1) loaded over FFI
-- `scripts/build_core.sh` — reproducible core builds into `build/cores/<id>/`
+- `scripts/build_core.sh` — reproducible core builds into `native/cores/<id>/`
 - `test/` — `flutter test` (17 tests, green)
 
 ## Quick start (macOS dev)

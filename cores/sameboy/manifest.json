@@ -1,11 +1,11 @@
 {
   "id": "sameboy",
   "name": "SameBoy",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "license": "MIT",
-  "license_url": "https://github.com/SameBoy/SameBoy/blob/master/LICENSE",
-  "homepage": "https://github.com/SameBoy/SameBoy",
-  "upstream": "libretro/SameBoy",
+  "license_url": "https://github.com/LIJI32/SameBoy/blob/master/LICENSE",
+  "homepage": "https://github.com/LIJI32/SameBoy",
+  "upstream": "libretro/SameBoy (built from LIJI32/SameBoy)",
   "systems": ["gb", "gbc"],
   "extensions": ["gb", "gbc", "zip"],
   "cheats_supported": true,
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "9dfb1da7718f7a09a91903810312612cc8157e8209b95d3347d5f1f832f26795"
+  }
 }

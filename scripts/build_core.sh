@@ -9,8 +9,9 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SRC_DIR="$ROOT/build/src"
-OUT_DIR="$ROOT/build/cores"
+# NOTE: never use Flutter's build/ dir — `flutter clean` would wipe cores.
+SRC_DIR="$ROOT/native/src"
+OUT_DIR="$ROOT/native/cores"
 JOBS="$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)"
 
 clone() { # repo dest (shallow, pinned branch/tag when known)
@@ -39,7 +40,7 @@ stage() { # id file
 # ---------------- TIER 1: run-verified recipes (macOS arm64) ----------------
 
 build_sameboy() {
-  clone https://github.com/SameBoy/SameBoy.git "$SRC_DIR/SameBoy"
+  clone https://github.com/LIJI32/SameBoy.git "$SRC_DIR/SameBoy"
   make -C "$SRC_DIR/SameBoy" -j"$JOBS" libretro
   stage sameboy "$SRC_DIR/SameBoy/build/bin/sameboy_libretro.dylib"
 }
@@ -52,8 +53,13 @@ build_gambatte() {
 
 build_mgba() {
   clone https://github.com/libretro/mgba.git "$SRC_DIR/mgba-libretro"
-  make -C "$SRC_DIR/mgba-libretro" -f Makefile.libretro -j"$JOBS"
-  stage mgba "$SRC_DIR/mgba-libretro/mgba_libretro.dylib"
+  cmake -S "$SRC_DIR/mgba-libretro" -B "$SRC_DIR/mgba-libretro/build" \
+    -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_LIBRETRO=ON -DBUILD_QT=OFF -DBUILD_SDL=OFF -DBUILD_SUITE=OFF \
+    -DBUILD_TEST=OFF -DBUILD_PYTHON=OFF -DBUILD_EXAMPLE=OFF \
+    -DBUILD_PERF=OFF -DBUILD_CINEMA=OFF -DBUILD_HEADLESS=OFF
+  cmake --build "$SRC_DIR/mgba-libretro/build" --target mgba_libretro -j"$JOBS"
+  stage mgba "$SRC_DIR/mgba-libretro/build/mgba_libretro.dylib"
 }
 
 build_snes9x() {

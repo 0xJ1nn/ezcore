@@ -5,6 +5,7 @@
 #include "libretro_bridge.h"
 
 #include <dlfcn.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,26 +28,61 @@ struct huh_session {
   /* latest video frame (owned, XRGB8888) */
   uint32_t *frame;
   unsigned frame_w, frame_h;
+  enum retro_pixel_format pixfmt;
   /* audio ring (stereo s16) */
   int16_t *audio;
   size_t audio_cap, audio_len;
   char name[128];
   char version[64];
+  bool game_loaded;
 };
 
 static huh_session *g_active = NULL;
 
 /* ---- environment / callbacks (minimal v0 set; extended per TODO) ---- */
 
+static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
+  (void)level;
+  va_list args;
+  va_start(args, fmt);
+  vfprintf(stderr, fmt, args);
+  va_end(args);
+}
+
 static bool env_cb(unsigned cmd, void *data) {
-  (void)cmd;
-  (void)data;
-  return false;
+  switch (cmd) {
+    case RETRO_ENVIRONMENT_GET_CAN_DUPE:
+      /* We keep the last decoded frame, so dupes are free. */
+      if (data) *(bool *)data = true;
+      return true;
+    case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
+      enum retro_pixel_format fmt = *(const enum retro_pixel_format *)data;
+      if (fmt != RETRO_PIXEL_FORMAT_0RGB1555 &&
+          fmt != RETRO_PIXEL_FORMAT_XRGB8888 &&
+          fmt != RETRO_PIXEL_FORMAT_RGB565) {
+        return false;
+      }
+      if (g_active) g_active->pixfmt = fmt;
+      return true;
+    }
+    case RETRO_ENVIRONMENT_GET_LOG_INTERFACE: {
+      struct retro_log_callback *cb = data;
+      if (cb) cb->log = bridge_log;
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_MESSAGE: {
+      const struct retro_message *msg = data;
+      if (msg && msg->msg) fprintf(stderr, "[core] %s\n", msg->msg);
+      return true;
+    }
+    default:
+      return false;
+  }
 }
 
 static void video_cb(const void *data, unsigned width, unsigned height,
                      size_t pitch) {
-  if (!g_active || !data) return;
+  if (!g_active || !data || width == 0 || height == 0) return;
   huh_session *s = g_active;
   if (width != s->frame_w || height != s->frame_h) {
     free(s->frame);
@@ -55,10 +91,39 @@ static void video_cb(const void *data, unsigned width, unsigned height,
     s->frame_w = width;
     s->frame_h = height;
   }
+  if (s->pixfmt == RETRO_PIXEL_FORMAT_XRGB8888) {
+    const uint8_t *src = data;
+    for (unsigned y = 0; y < height; y++) {
+      memcpy(s->frame + (size_t)y * width,
+             src + (size_t)y * pitch, (size_t)width * 4);
+    }
+    return;
+  }
+  /* 0RGB1555 / RGB565 -> XRGB8888 expansion. */
   const uint8_t *src = data;
   for (unsigned y = 0; y < height; y++) {
-    memcpy(s->frame + (size_t)y * width,
-           src + (size_t)y * pitch, (size_t)width * 4);
+    const uint16_t *row = (const uint16_t *)(src + (size_t)y * pitch);
+    for (unsigned x = 0; x < width; x++) {
+      uint16_t p = row[x];
+      unsigned r, g, b;
+      if (s->pixfmt == RETRO_PIXEL_FORMAT_RGB565) {
+        r = (p >> 11) & 0x1F;
+        g = (p >> 5) & 0x3F;
+        b = p & 0x1F;
+        r = (r << 3) | (r >> 2);
+        g = (g << 2) | (g >> 4);
+        b = (b << 3) | (b >> 2);
+      } else {
+        r = (p >> 10) & 0x1F;
+        g = (p >> 5) & 0x1F;
+        b = p & 0x1F;
+        r = (r << 3) | (r >> 2);
+        g = (g << 3) | (g >> 2);
+        b = (b << 3) | (b >> 2);
+      }
+      s->frame[(size_t)y * width + x] =
+          (uint32_t)((r << 16) | (g << 8) | b);
+    }
   }
 }
 
@@ -152,6 +217,8 @@ huh_session *huh_load(const char *core_path, char *err, size_t err_len) {
 
   s->audio_cap = 8192;
   s->audio = malloc(s->audio_cap * 2 * sizeof(int16_t));
+  s->pixfmt = RETRO_PIXEL_FORMAT_0RGB1555; /* libretro default */
+  g_active = s;
   return s;
 }
 
@@ -176,7 +243,9 @@ bool huh_load_game(huh_session *s, const char *rom_path, const void *data,
                    size_t size) {
   if (!s) return false;
   struct retro_game_info info = {rom_path, data, size, NULL};
-  return s->retro_load_game(&info);
+  bool ok = s->retro_load_game(&info);
+  s->game_loaded = ok;
+  return ok;
 }
 
 void huh_run_frame(huh_session *s) {
@@ -188,9 +257,18 @@ void huh_run_frame(huh_session *s) {
 const char *huh_core_name(huh_session *s) { return s ? s->name : "?"; }
 const char *huh_core_version(huh_session *s) { return s ? s->version : "?"; }
 
+/* Requires a loaded game: several cores (e.g. mGBA) dereference active
+ * content here and segfault when called pre-load. Frontends must only
+ * query geometry after huh_load_game succeeds. */
 void huh_system_geometry(huh_session *s, unsigned *w, unsigned *h,
                          double *fps) {
   if (!s) return;
+  if (!s->game_loaded) {
+    if (w) *w = 0;
+    if (h) *h = 0;
+    if (fps) *fps = 0;
+    return;
+  }
   struct retro_system_av_info av;
   memset(&av, 0, sizeof(av));
   s->retro_get_system_av_info(&av);

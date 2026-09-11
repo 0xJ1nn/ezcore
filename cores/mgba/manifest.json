@@ -1,7 +1,7 @@
 {
   "id": "mgba",
   "name": "mGBA",
-  "version": "0.10.5",
+  "version": "0.11-dev",
   "license": "MPL-2.0",
   "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
   "homepage": "https://mgba.io",
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "8a256a29e19a9a2164f69000b77b6b8dc44a970b80d7ee332a6c3e3de5007670"
+  }
 }
