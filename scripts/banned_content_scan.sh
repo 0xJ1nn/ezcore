@@ -5,10 +5,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Extensions that must never be committed (allowlist: test fixtures dir only).
-PATTERN='\.(gb|gbc|gba|nds|3ds|nsp|xci|sfc|smc|iso|cso|chd|pbp|bin|keys)$'
+PATTERN='\.(gb|gbc|gba|nds|3ds|nsp|xci|sfc|smc|iso|cso|chd|pbp|keys)$'
+# BIOS/firmware blobs are caught by exact-name rules below, not by extension
+# (so compiler artifacts like CMakeDetermineCompilerABI_C.bin don't trip us).
+BIOS_NAMES='(bios|firmware|syscard|IPL|prod\.keys|title\.keys|dc_boot|dc_flash|scph)'
 ALLOWLIST='^test/fixtures/'
+# Build outputs are reproducible and untracked — never scan them.
+SKIP_DIRS='^(build/|bridge/build/|bridge/external/)'
 
-hits="$(git -C "$ROOT" ls-files | grep -Ei "$PATTERN" | grep -Ev "$ALLOWLIST" || true)"
+hits="$(git -C "$ROOT" ls-files | grep -Ev "$SKIP_DIRS" | grep -Ei "$PATTERN" | grep -Ev "$ALLOWLIST" || true)"
+hits="$hits$(git -C "$ROOT" ls-files | grep -Ev "$SKIP_DIRS" | grep -Ei "$BIOS_NAMES" | grep -Ev "$ALLOWLIST" || true)"
 if [ -n "$hits" ]; then
   echo "BANNED CONTENT IN REPO:"
   echo "$hits"

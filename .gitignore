@@ -12,6 +12,16 @@
 .swiftpm/
 migrate_working_dir/
 
+# Build outputs (reproducible via scripts/build_core.sh --fetch-headers + --tier1)
+build/
+bridge/build/
+bridge/external/
+*.dylib
+*.so
+*.dll
+*.o
+*.a
+
 # IntelliJ related
 *.iml
 *.ipr
