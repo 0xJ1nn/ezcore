@@ -13,5 +13,7 @@
   "bios_required": true,
   "bios_files": ["syscard3.pce (CD titles only, user-supplied, hash-gated)"],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "d0a5add1e15acff5bf315a78f679627e24f5acbf9d7482f565c76155787196b5"
+  }
 }

@@ -1,7 +1,7 @@
 {
   "id": "swanstation",
   "name": "SwanStation",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "license": "GPL-3.0",
   "license_url": "https://github.com/libretro/swanstation/blob/main/LICENSE",
   "homepage": "https://github.com/libretro/swanstation",
@@ -10,9 +10,11 @@
   "extensions": ["cue", "ccd", "chd", "pbp", "iso", "m3u"],
   "cheats_supported": true,
   "cheat_families": ["ps1_gameshark"],
-  "bios_required": true,
-  "bios_files": ["scph5500.bin", "scph5501.bin", "scph5502.bin (user-supplied, hash-gated)"],
+  "bios_required": false,
+  "bios_files": ["scph5500.bin / scph5501.bin / scph5502.bin (optional — OpenBIOS fallback built in; user-supplied files hash-gated)"],
   "notes": "Interpreter mode on iOS (no JIT). No HLE-BIOS piracy posture — import-only.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
+  }
 }

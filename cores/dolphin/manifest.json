@@ -5,7 +5,7 @@
   "license": "GPL-2.0-or-later",
   "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
   "homepage": "https://github.com/dolphin-emu/dolphin",
-  "upstream": "dolphin-emu/dolphin (libretro build target)",
+  "upstream": "libretro/dolphin",
   "systems": ["gc", "wii"],
   "extensions": ["iso", "gcm", "ciso", "wbfs", "rvz", "elf", "dol", "wad"],
   "cheats_supported": true,

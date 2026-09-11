@@ -1,11 +1,11 @@
 {
   "id": "mesen",
   "name": "Mesen",
-  "version": "2.0.0",
+  "version": "0.9.9",
   "license": "GPL-3.0",
-  "license_url": "https://github.com/SourMesen/Mesen2/blob/master/LICENSE",
+  "license_url": "https://github.com/libretro/Mesen/blob/master/LICENSE",
   "homepage": "https://github.com/SourMesen/Mesen2",
-  "upstream": "libretro/mesen",
+  "upstream": "libretro/Mesen",
   "systems": ["nes", "fds"],
   "extensions": ["nes", "fds", "unf", "zip"],
   "cheats_supported": true,
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": ["disksys.rom (FDS only, user-supplied, hash-gated)"],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "c5fea1421f45e802638f9caf8f975c7a8ebae5a4033568d9a57d4f203ea2b01c"
+  }
 }

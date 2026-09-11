@@ -84,18 +84,90 @@ build_dosbox_pure() {
 # Each exits 3 until its recipe has produced a dylib once on this machine.
 unverified() { echo "UNVERIFIED recipe: $1 — see script source"; exit 3; }
 
-build_mesen()            { unverified "mesen (Mesen2 libretro target TBD)"; }
-build_stella()           { unverified "stella (stella2014 libretro makefile TBD)"; }
-build_scummvm()          { unverified "scummvm (in-tree libretro backend configure TBD)"; }
-build_beetle_pce()       { unverified "beetle-pce-fast Makefile.libretro TBD"; }
-build_swanstation()      { unverified "swanstation cmake libretro target TBD"; }
-build_mupen64plus()      { unverified "mupen64plus-nx make target TBD"; }
-build_melonds()          { unverified "melonDS libretro source location TBD"; }
-build_ppsspp()           { unverified "ppsspp libretro build + submodules TBD"; }
-build_flycast()          { unverified "flycast libretro make flags TBD"; }
-build_dolphin()          { unverified "dolphin libretro cmake flags TBD"; }
-build_beetle_saturn()    { unverified "beetle-saturn Makefile.libretro TBD"; }
-build_fbneo()            { unverified "fbneo libretro makefile TBD + lawyer gate"; }
+build_swanstation() {
+  clone https://github.com/libretro/swanstation.git "$SRC_DIR/swanstation"
+  make -C "$SRC_DIR/swanstation" -f Makefile.libretro -j"$JOBS"
+  stage swanstation "$SRC_DIR/swanstation/swanstation_libretro.dylib"
+}
+
+build_ppsspp() {
+  clone https://github.com/hrydgard/ppsspp.git "$SRC_DIR/ppsspp"
+  (cd "$SRC_DIR/ppsspp" && git submodule update --init --depth 1 --recursive)
+  make -C "$SRC_DIR/ppsspp/libretro" -j"$JOBS"
+  stage ppsspp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.dylib"
+}
+
+build_mesen() {
+  clone https://github.com/libretro/Mesen.git "$SRC_DIR/Mesen"
+  make -C "$SRC_DIR/Mesen/Libretro" -j"$JOBS"
+  stage mesen "$SRC_DIR/Mesen/Libretro/mesen_libretro.dylib"
+}
+
+build_melonds() {
+  clone https://github.com/libretro/melonDS.git "$SRC_DIR/melonDS-libretro"
+  make -C "$SRC_DIR/melonDS-libretro" -j"$JOBS"
+  stage melonds "$SRC_DIR/melonDS-libretro/melonds_libretro.dylib"
+}
+
+build_stella() {
+  clone https://github.com/libretro/stella2023.git "$SRC_DIR/stella2023"
+  make -C "$SRC_DIR/stella2023/src/os/libretro" -j"$JOBS"
+  stage stella "$SRC_DIR/stella2023/src/os/libretro/stella2023_libretro.dylib"
+}
+
+build_beetle_pce() {
+  clone https://github.com/libretro/beetle-pce-fast-libretro.git "$SRC_DIR/beetle-pce"
+  # SYSTEM_ZLIB=1: vendored zlib-1.2.11 does not compile against the Xcode 27
+  # SDK (_stdio.h collision); macOS system zlib is API-compatible.
+  # Same posture as beetle-saturn's osx block.
+  make -C "$SRC_DIR/beetle-pce" -j"$JOBS" SYSTEM_ZLIB=1
+  stage beetle_pce "$SRC_DIR/beetle-pce/mednafen_pce_fast_libretro.dylib"
+}
+
+build_beetle_saturn() {
+  clone https://github.com/libretro/beetle-saturn-libretro.git "$SRC_DIR/beetle-saturn"
+  make -C "$SRC_DIR/beetle-saturn" -j"$JOBS"
+  stage beetle_saturn "$SRC_DIR/beetle-saturn/mednafen_saturn_libretro.dylib"
+}
+
+build_mupen64plus() {
+  clone https://github.com/libretro/mupen64plus-libretro-nx.git "$SRC_DIR/mupen64plus-nx"
+  # SYSTEM_LIBPNG/ZLIB: vendored libpng hits the TARGET_OS_MAC/fp.h SDK rot
+  # and vendored zlib-1.2.11 hits the _stdio.h rot (same as beetle-pce).
+  make -C "$SRC_DIR/mupen64plus-nx" -j"$JOBS" SYSTEM_LIBPNG=1 SYSTEM_ZLIB=1
+  stage mupen64plus "$SRC_DIR/mupen64plus-nx/mupen64plus_next_libretro.dylib"
+}
+
+build_flycast() {
+  clone https://github.com/flyinghead/flycast.git "$SRC_DIR/flycast"
+  (cd "$SRC_DIR/flycast" && git submodule update --init --depth 1 --recursive)
+  cmake -S "$SRC_DIR/flycast" -B "$SRC_DIR/flycast/build-libretro" \
+    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON
+  cmake --build "$SRC_DIR/flycast/build-libretro" -j"$JOBS"
+  stage flycast "$SRC_DIR/flycast/build-libretro/flycast_libretro.dylib"
+}
+
+build_fbneo() {
+  clone https://github.com/libretro/FBNeo.git "$SRC_DIR/FBNeo"
+  (cd "$SRC_DIR/FBNeo" && git submodule update --init --depth 1 --recursive)
+  make -C "$SRC_DIR/FBNeo/src/burner/libretro" -j"$JOBS"
+  stage fbneo "$SRC_DIR/FBNeo/src/burner/libretro/fbneo_libretro.dylib"
+}
+
+build_scummvm() {
+  clone https://github.com/scummvm/scummvm.git "$SRC_DIR/scummvm"
+  make -C "$SRC_DIR/scummvm/backends/platform/libretro" -j"$JOBS"
+  stage scummvm "$SRC_DIR/scummvm/backends/platform/libretro/scummvm_libretro.dylib"
+}
+
+build_dolphin() {
+  clone https://github.com/libretro/dolphin.git "$SRC_DIR/dolphin-libretro"
+  (cd "$SRC_DIR/dolphin-libretro" && git submodule update --init --depth 1 --recursive)
+  cmake -S "$SRC_DIR/dolphin-libretro" -B "$SRC_DIR/dolphin-libretro/build-libretro" \
+    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON
+  cmake --build "$SRC_DIR/dolphin-libretro/build-libretro" -j"$JOBS"
+  stage dolphin "$SRC_DIR/dolphin-libretro/build-libretro/dolphin_libretro.dylib"
+}
 
 # ---------------- Legal holds: always refuse ----------------
 hold() { echo "REFUSED: $1"; exit 4; }

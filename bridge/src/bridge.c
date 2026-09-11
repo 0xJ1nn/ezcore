@@ -35,6 +35,7 @@ struct huh_session {
   char name[128];
   char version[64];
   bool game_loaded;
+  bool inited;
 };
 
 static huh_session *g_active = NULL;
@@ -208,17 +209,30 @@ huh_session *huh_load(const char *core_path, char *err, size_t err_len) {
       dlsym(s->handle, "retro_set_input_poll");
   void (*set_state)(retro_input_state_t) =
       dlsym(s->handle, "retro_set_input_state");
-  if (set_env) set_env(env_cb);
-  if (set_video) set_video(video_cb);
-  if (set_audio) set_audio(audio_sample_cb);
-  if (set_audio_batch) set_audio_batch(audio_batch_cb);
-  if (set_poll) set_poll(input_poll_cb);
-  if (set_state) set_state(input_state_cb);
 
   s->audio_cap = 8192;
   s->audio = malloc(s->audio_cap * 2 * sizeof(int16_t));
   s->pixfmt = RETRO_PIXEL_FORMAT_0RGB1555; /* libretro default */
   g_active = s;
+
+  if (set_env) set_env(env_cb);
+
+  /* QUIRK init-before-callbacks: Mesen's retro_set_video_refresh
+   * dereferences its Console, which only exists after retro_init
+   * (spec-violating, verified in Mesen/Libretro/libretro.cpp).
+   * Every other core keeps the spec order. */
+  bool early_init = info.library_name &&
+                    strstr(info.library_name, "Mesen") != NULL;
+  if (early_init) {
+    s->retro_init();
+    s->inited = true;
+  }
+
+  if (set_video) set_video(video_cb);
+  if (set_audio) set_audio(audio_sample_cb);
+  if (set_audio_batch) set_audio_batch(audio_batch_cb);
+  if (set_poll) set_poll(input_poll_cb);
+  if (set_state) set_state(input_state_cb);
   return s;
 }
 
@@ -235,7 +249,10 @@ void huh_unload(huh_session *s) {
 bool huh_init(huh_session *s) {
   if (!s) return false;
   g_active = s;
-  s->retro_init();
+  if (!s->inited) {
+    s->retro_init();
+    s->inited = true;
+  }
   return true;
 }
 

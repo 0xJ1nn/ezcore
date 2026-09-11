@@ -1,11 +1,11 @@
 {
   "id": "stella",
   "name": "Stella",
-  "version": "6.7.0",
+  "version": "7.0-pre",
   "license": "GPL-2.0",
   "license_url": "https://github.com/stella-emu/stella/blob/master/License.txt",
   "homepage": "https://github.com/stella-emu/stella",
-  "upstream": "libretro/stella2014 or stella libretro port",
+  "upstream": "libretro/stella2023",
   "systems": ["atari2600"],
   "extensions": ["a26", "bin", "zip"],
   "cheats_supported": false,
@@ -13,5 +13,7 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "99f348275434c6d46338d498c1f4b63f636b5e4ad2bf8c84e16cd50beb697120"
+  }
 }

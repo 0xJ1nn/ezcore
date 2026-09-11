@@ -1,7 +1,7 @@
 {
   "id": "beetle_saturn",
   "name": "Beetle Saturn",
-  "version": "1.31.0",
+  "version": "1.32.1",
   "license": "GPL-2.0",
   "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
   "homepage": "https://github.com/libretro/beetle-saturn-libretro",
@@ -14,5 +14,7 @@
   "bios_files": ["sega_101.bin", "mpr-17933.bin (user-supplied, hash-gated)"],
   "notes": "Desktop/Android first — needs strong CPU. iOS absent at launch.",
   "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "18d49929f3a4a52029d3a93ef6cab528e02aa702e6f92c07fc7d2d640f12dc84"
+  }
 }
