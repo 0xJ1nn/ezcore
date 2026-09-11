@@ -1,0 +1,27 @@
+{
+  "registry_version": 1,
+  "signature": "dev-unsigned (scripts/sign_registry.py lands with release pipeline)",
+  "cores": [
+    "sameboy",
+    "dosbox_pure",
+    "mgba",
+    "gambatte",
+    "snes9x",
+    "mesen",
+    "genesis_plus_gx",
+    "stella",
+    "scummvm",
+    "beetle_pce",
+    "swanstation",
+    "mupen64plus",
+    "melonds",
+    "ppsspp",
+    "flycast",
+    "dolphin",
+    "beetle_saturn",
+    "fbneo",
+    "citra_hold",
+    "switch_hold",
+    "ps2_hold"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "id": "citra_hold",
+  "name": "Nintendo 3DS — legal hold",
+  "version": "0.0.0-blocked",
+  "license": "GPL-2.0 (upstream tainted — do not build from post-2024 forks)",
+  "homepage": "",
+  "upstream": "NONE — slot reserved only",
+  "systems": ["3ds"],
+  "extensions": [],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": true,
+  "bios_files": [],
+  "blocked_reason": "Citra was taken down March 2024 under the Nintendo/Yuzu settlement. 3DS emulation requires bootrom dumps + title-key decryption (DMCA 1201 anti-circumvention exposure). PabloMK7-era forks carry the same taint. DO NOT build or distribute a 3DS core until cleared by IP counsel. Architecture slot reserved for that day.",
+  "delivery": {"ios": "absent", "android": "absent", "macos": "absent", "windows": "absent"},
+  "artifacts": {}
+}

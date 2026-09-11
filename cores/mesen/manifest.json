@@ -1,0 +1,17 @@
+{
+  "id": "mesen",
+  "name": "Mesen",
+  "version": "2.0.0",
+  "license": "GPL-3.0",
+  "license_url": "https://github.com/SourMesen/Mesen2/blob/master/LICENSE",
+  "homepage": "https://github.com/SourMesen/Mesen2",
+  "upstream": "libretro/mesen",
+  "systems": ["nes", "fds"],
+  "extensions": ["nes", "fds", "unf", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["nes_gamegenie"],
+  "bios_required": false,
+  "bios_files": ["disksys.rom (FDS only, user-supplied, hash-gated)"],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

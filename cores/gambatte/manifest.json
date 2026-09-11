@@ -1,0 +1,17 @@
+{
+  "id": "gambatte",
+  "name": "Gambatte",
+  "version": "0.5.0",
+  "license": "GPL-2.0",
+  "license_url": "https://github.com/libretro/gambatte-libretro/blob/master/COPYING",
+  "homepage": "https://github.com/libretro/gambatte-libretro",
+  "upstream": "libretro/gambatte-libretro",
+  "systems": ["gb", "gbc"],
+  "extensions": ["gb", "gbc", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["gb_gameshark", "gb_gamegenie"],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

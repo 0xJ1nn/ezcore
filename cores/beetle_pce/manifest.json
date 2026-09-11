@@ -1,0 +1,17 @@
+{
+  "id": "beetle_pce",
+  "name": "Beetle PCE Fast",
+  "version": "1.31.0",
+  "license": "GPL-2.0",
+  "license_url": "https://github.com/libretro/beetle-pce-fast-libretro/blob/master/COPYING",
+  "homepage": "https://github.com/libretro/beetle-pce-fast-libretro",
+  "upstream": "libretro/beetle-pce-fast-libretro",
+  "systems": ["pce", "tg16", "pcecd"],
+  "extensions": ["pce", "sgx", "cue", "ccd", "chd", "zip"],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": true,
+  "bios_files": ["syscard3.pce (CD titles only, user-supplied, hash-gated)"],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

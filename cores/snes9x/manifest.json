@@ -1,0 +1,17 @@
+{
+  "id": "snes9x",
+  "name": "Snes9x",
+  "version": "1.62.3",
+  "license": "Snes9x-custom (non-commercial, attribution required — free open-source use OK, paid closed forks NOT permitted)",
+  "license_url": "https://github.com/snes9xgit/snes9x/blob/master/docs/snes9x-license.txt",
+  "homepage": "https://github.com/snes9xgit/snes9x",
+  "upstream": "libretro/snes9x",
+  "systems": ["snes"],
+  "extensions": ["sfc", "smc", "fig", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["snes_gamegenie", "snes_proactionreplay"],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

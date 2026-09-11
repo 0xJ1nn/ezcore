@@ -1,0 +1,17 @@
+{
+  "id": "dosbox_pure",
+  "name": "DOSBox Pure",
+  "version": "0.24.0",
+  "license": "GPL-2.0",
+  "license_url": "https://github.com/libretro/dosbox-pure/blob/main/LICENSE",
+  "homepage": "https://github.com/libretro/dosbox-pure",
+  "upstream": "libretro/dosbox-pure",
+  "systems": ["dos"],
+  "extensions": ["zip", "exe", "com", "bat", "iso", "img"],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

@@ -1,0 +1,18 @@
+{
+  "id": "beetle_saturn",
+  "name": "Beetle Saturn",
+  "version": "1.31.0",
+  "license": "GPL-2.0",
+  "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
+  "homepage": "https://github.com/libretro/beetle-saturn-libretro",
+  "upstream": "libretro/beetle-saturn-libretro",
+  "systems": ["saturn"],
+  "extensions": ["cue", "ccd", "chd", "iso", "m3u"],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": true,
+  "bios_files": ["sega_101.bin", "mpr-17933.bin (user-supplied, hash-gated)"],
+  "notes": "Desktop/Android first — needs strong CPU. iOS absent at launch.",
+  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

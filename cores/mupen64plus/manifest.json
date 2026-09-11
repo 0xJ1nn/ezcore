@@ -1,0 +1,18 @@
+{
+  "id": "mupen64plus",
+  "name": "Mupen64Plus-Next",
+  "version": "1.0.0",
+  "license": "GPL-2.0 (verify per-file at build time)",
+  "license_url": "https://github.com/libretro/mupen64plus-libretro-nx",
+  "homepage": "https://github.com/libretro/mupen64plus-libretro-nx",
+  "upstream": "libretro/mupen64plus-libretro-nx",
+  "systems": ["n64"],
+  "extensions": ["n64", "z64", "v64", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["n64_gameshark"],
+  "bios_required": false,
+  "bios_files": [],
+  "notes": "Dynarec on desktop/Android only. Interpreter on iOS — expect reduced speed.",
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

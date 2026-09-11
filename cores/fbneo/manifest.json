@@ -1,0 +1,18 @@
+{
+  "id": "fbneo",
+  "name": "FinalBurn Neo",
+  "version": "1.0.0.3",
+  "license": "FBNeo-custom (non-commercial — verify per-file terms at build time)",
+  "license_url": "https://github.com/libretro/FBNeo/blob/master/src/license.txt",
+  "homepage": "https://github.com/libretro/FBNeo",
+  "upstream": "libretro/FBNeo",
+  "systems": ["arcade", "neogeo"],
+  "extensions": ["zip"],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": true,
+  "bios_files": ["neogeo.zip and per-board BIOS (user-supplied, hash-gated)"],
+  "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only.",
+  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

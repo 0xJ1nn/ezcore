@@ -1,0 +1,17 @@
+{
+  "id": "mgba",
+  "name": "mGBA",
+  "version": "0.10.5",
+  "license": "MPL-2.0",
+  "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
+  "homepage": "https://mgba.io",
+  "upstream": "libretro/mgba",
+  "systems": ["gba", "gb", "gbc"],
+  "extensions": ["gba", "gb", "gbc", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["gba_actionreplay", "gba_codebreaker", "gba_gameshark", "gb_gameshark"],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

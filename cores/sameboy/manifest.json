@@ -1,0 +1,17 @@
+{
+  "id": "sameboy",
+  "name": "SameBoy",
+  "version": "1.0.0",
+  "license": "MIT",
+  "license_url": "https://github.com/SameBoy/SameBoy/blob/master/LICENSE",
+  "homepage": "https://github.com/SameBoy/SameBoy",
+  "upstream": "libretro/SameBoy",
+  "systems": ["gb", "gbc"],
+  "extensions": ["gb", "gbc", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["gb_gameshark", "gb_gamegenie"],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

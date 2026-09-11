@@ -1,0 +1,17 @@
+{
+  "id": "switch_hold",
+  "name": "Nintendo Switch — legal hold",
+  "version": "0.0.0-blocked",
+  "license": "GPL-3.0 (upstream tainted — do not build from Yuzu/Sudachi/Torzu/Eden forks)",
+  "homepage": "",
+  "upstream": "NONE — slot reserved only",
+  "systems": ["switch"],
+  "extensions": [],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": true,
+  "bios_files": [],
+  "blocked_reason": "Yuzu settled with Nintendo March 2024 ($2.4M) over TPM circumvention (prod.keys/title.keys) + pre-release piracy facilitation; Ryujinx received a DMCA takedown Oct 2024. Any Switch core needs user keys + decryption = DMCA 1201 exposure for distributor AND user. DO NOT build or distribute. Slot reserved.",
+  "delivery": {"ios": "absent", "android": "absent", "macos": "absent", "windows": "absent"},
+  "artifacts": {}
+}

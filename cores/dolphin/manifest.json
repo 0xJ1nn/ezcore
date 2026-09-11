@@ -1,0 +1,18 @@
+{
+  "id": "dolphin",
+  "name": "Dolphin",
+  "version": "2409.0",
+  "license": "GPL-2.0-or-later",
+  "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
+  "homepage": "https://github.com/dolphin-emu/dolphin",
+  "upstream": "dolphin-emu/dolphin (libretro build target)",
+  "systems": ["gc", "wii"],
+  "extensions": ["iso", "gcm", "ciso", "wbfs", "rvz", "elf", "dol", "wad"],
+  "cheats_supported": true,
+  "cheat_families": ["gc_gecko"],
+  "bios_required": false,
+  "bios_files": ["IPL.bin (optional, HLE default — user-supplied only, hash-gated)"],
+  "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices.",
+  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

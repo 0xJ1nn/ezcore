@@ -1,0 +1,18 @@
+{
+  "id": "melonds",
+  "name": "melonDS",
+  "version": "1.0.0",
+  "license": "GPL-3.0",
+  "license_url": "https://github.com/melonDS-emu/melonDS/blob/master/LICENSE",
+  "homepage": "https://github.com/melonDS-emu/melonDS",
+  "upstream": "melonDS-emu/melonDS (libretro core in-tree)",
+  "systems": ["nds"],
+  "extensions": ["nds", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["nds_actionreplay"],
+  "bios_required": true,
+  "bios_files": ["bios7.bin", "bios9.bin", "firmware.bin (user-supplied, hash-gated)"],
+  "notes": "Full speed on desktop. Mobile is playable but flagged slow — DSi mode off at launch.",
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}

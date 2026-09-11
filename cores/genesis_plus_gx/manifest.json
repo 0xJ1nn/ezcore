@@ -1,0 +1,17 @@
+{
+  "id": "genesis_plus_gx",
+  "name": "Genesis Plus GX",
+  "version": "1.7.4",
+  "license": "Genesis-Plus-GX-custom (non-commercial — verify per-file terms at build time)",
+  "license_url": "https://github.com/libretro/Genesis-Plus-GX",
+  "homepage": "https://github.com/libretro/Genesis-Plus-GX",
+  "upstream": "libretro/Genesis-Plus-GX",
+  "systems": ["genesis", "sms", "gg", "sg1000", "scd"],
+  "extensions": ["md", "gen", "sms", "gg", "sg", "iso", "cue", "chd", "zip"],
+  "cheats_supported": true,
+  "cheat_families": ["genesis_gamegenie", "genesis_actionreplay", "sms_actionreplay"],
+  "bios_required": false,
+  "bios_files": ["bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"],
+  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "artifacts": {}
+}
