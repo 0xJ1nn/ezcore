@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/cores/cheat_validators.dart';
+import 'package:ezcore/cores/cheat_validators.dart';
 
 void main() {
   test('known-good shapes validate', () {

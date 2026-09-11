@@ -105,16 +105,28 @@ class GameDetailScreen extends StatelessWidget {
                 ),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: selected == null
+                // Game → Play: when the user never picked a core, the first
+                // compatible installed core is used and remembered.
+                onPressed: compatible.isEmpty
                     ? null
-                    : () => Navigator.of(context).push(
+                    : () {
+                        final current =
+                            compatible.where((m) => m.id == game.coreId);
+                        final effective = current.isNotEmpty
+                            ? current.first
+                            : compatible.first;
+                        if (effective.id != game.coreId) {
+                          state.setCore(game.id, effective.id);
+                        }
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => PlayerScreen(
                               gameId: game.id,
                               state: state,
                             ),
                           ),
-                        ),
+                        );
+                      },
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Play'),
               ),

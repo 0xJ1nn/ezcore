@@ -5,7 +5,7 @@ import '../theme/tokens.dart';
 import 'cheats_screen.dart';
 
 /// Player chrome over the native canvas. The canvas itself is a Texture
-/// fed by bridge/video.c once a core is loaded; until then this screen
+/// fed by the ezCore runtime once a core is loaded; until then this screen
 /// shows the session HUD around a placeholder.
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key, required this.gameId, required this.state});
@@ -58,7 +58,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     style: const TextStyle(color: Tokens.muted),
                   ),
                   const Text(
-                    'Native canvas binds here (bridge/video.c → Texture)',
+                    'Native canvas binds here (runtime → Texture)',
                     style: TextStyle(color: Tokens.muted, fontSize: 11),
                   ),
                 ],

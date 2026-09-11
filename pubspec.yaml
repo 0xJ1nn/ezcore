@@ -1,4 +1,4 @@
-name: universal_emulator
+name: ezcore
 description: "Open-source multi-system emulator frontend (working title — rebrand pending)."
 publish_to: 'none'
 version: 0.1.0+1

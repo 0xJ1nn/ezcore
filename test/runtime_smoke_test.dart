@@ -2,7 +2,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/cores/native_bridge.dart';
+import 'package:ezcore/runtime/ezcore_runtime.dart';
 
 bool _exists(String path) => File(path).existsSync();
 
@@ -23,7 +23,7 @@ const _cores = <String, String>{
   'swanstation': 'SwanStation',
   'ppsspp': 'PPSSPP',
   'flycast': 'Flycast',
-  'dolphin': 'Dolphin',
+  'dolphin': 'dolphin-emu',
   'fbneo': 'FinalBurn Neo',
   'scummvm': 'ScummVM',
 };
@@ -40,14 +40,14 @@ String _dylib(String id) {
 }
 
 void main() {
-  const bridgeLib = 'bridge/build/libhuh_bridge.dylib';
+  const bridgeLib = 'runtime/build/libezcore_runtime.dylib';
   const blarggRom = 'native/test-roms/cpu_instrs.gb';
 
   test(
     'bridge ABI version is 1',
     skip: _exists(bridgeLib) ? null : 'bridge not built',
     () {
-      final bridge = NativeBridge.load(bridgePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
       expect(bridge.abiVersion(), 1);
     },
   );
@@ -56,7 +56,7 @@ void main() {
     'every staged core loads, inits, and identifies',
     skip: _exists(bridgeLib) ? null : 'bridge not built',
     () {
-      final bridge = NativeBridge.load(bridgePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
       var exercised = 0;
       for (final entry in _cores.entries) {
         final lib = _dylib(entry.key);
@@ -83,7 +83,7 @@ void main() {
     () {
       final lib = _dylib('sameboy');
       if (lib.isEmpty) return;
-      final bridge = NativeBridge.load(bridgePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
       final session = bridge.loadSession(lib);
       try {
         expect(bridge.init(session), isTrue);
@@ -98,6 +98,13 @@ void main() {
           bridge.runFrame(session);
         }
         expect(bridge.pixelSum(session), greaterThan(0));
+        // Save-state round trip through the runtime (same bytes back in).
+        final snap = bridge.saveState(session);
+        expect(snap, isNotNull);
+        for (var i = 0; i < 30; i++) {
+          bridge.runFrame(session);
+        }
+        expect(bridge.loadState(session, snap!), isTrue);
       } finally {
         bridge.unload(session);
       }

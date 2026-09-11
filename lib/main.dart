@@ -33,7 +33,7 @@ class _EmuAppState extends State<EmuApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Emulator',
+      title: 'ezCore',
       debugShowCheckedModeBanner: false,
       theme: Tokens.theme(),
       home: ListenableBuilder(
@@ -94,7 +94,7 @@ class _ShellState extends State<Shell> {
                 onPressed: () => setState(() => index = 0),
               )
             : null,
-        title: const Text('Emulator'),
+        title: const Text('ezCore'),
         actions: [
           ListenableBuilder(
             listenable: widget.state.registry,

@@ -7,6 +7,7 @@ import '../cores/core_registry.dart';
 import '../data/mock_library.dart';
 import '../models/cheat.dart';
 import '../models/game_entry.dart';
+import 'save_sync.dart';
 
 /// Ephemeral v0 state holder. Migration path: Riverpod + Drift (see plan).
 class AppState extends ChangeNotifier {
@@ -14,6 +15,10 @@ class AppState extends ChangeNotifier {
   List<GameEntry> games = List.of(mockGames);
   final Map<String, List<CheatEntry>> cheatsByGame = {};
   final Map<String, String> biosStatus = {};
+
+  /// Save/sync seam: memory by default; swap in LocalSaveSyncProvider
+  /// (or a future cloud provider) without touching callers.
+  SaveSyncProvider saves = MemorySaveSyncProvider();
 
   bool loaded = false;
   String? loadError;

@@ -1,4 +1,4 @@
-/* Replicates huh_load step by step with checkpoints. */
+/* Replicates ezcore_load step by step with checkpoints. */
 #include <dlfcn.h>
 #include <stdbool.h>
 #include <stdio.h>

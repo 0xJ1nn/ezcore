@@ -1,4 +1,4 @@
-/* SmokeLoad: dlopen a built core through the huh bridge, init it, print
+/* SmokeLoad: dlopen a built core through the ezCore runtime, init it, print
  * identity. Proves build -> verify -> load -> init with no ROM needed. */
 #include <stdbool.h>
 #include <stdint.h>
@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libretro_bridge.h"
+#include "ezcore_runtime.h"
 
 int main(int argc, char **argv) {
   if (argc < 2) {
@@ -14,12 +14,12 @@ int main(int argc, char **argv) {
     return 2;
   }
   char err[1024] = {0};
-  huh_session *s = huh_load(argv[1], err, sizeof(err));
+  ezcore_session *s = ezcore_load(argv[1], err, sizeof(err));
   if (!s) {
     fprintf(stderr, "LOAD FAIL: %s\n", err);
     return 1;
   }
-  if (!huh_init(s)) {
+  if (!ezcore_init(s)) {
     fprintf(stderr, "INIT FAIL\n");
     return 1;
   }
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     const void *payload = fullpath ? NULL : data;
     size_t payload_size = fullpath ? 0 : size;
     if ((!fullpath && (!data || got != size)) ||
-        !huh_load_game(s, rom_path, payload, payload_size)) {
+        !ezcore_load_game(s, rom_path, payload, payload_size)) {
       fprintf(stderr, "ROM LOAD FAIL: %s\n", rom_path);
       free(data);
       return 1;
@@ -69,24 +69,24 @@ int main(int argc, char **argv) {
   }
   unsigned w = 0, h = 0;
   double fps = 0;
-  huh_system_geometry(s, &w, &h, &fps);
+  ezcore_system_geometry(s, &w, &h, &fps);
   printf("STATUS core='%s' version='%s' geometry=%ux%u@%.2ffps\n",
-         huh_core_name(s), huh_core_version(s), w, h, fps);
+         ezcore_core_name(s), ezcore_core_version(s), w, h, fps);
   fflush(stdout);
   if (frames > 0) {
-    for (int i = 0; i < frames; i++) huh_run_frame(s);
+    for (int i = 0; i < frames; i++) ezcore_run_frame(s);
     unsigned fw = 0, fh = 0;
-    const uint32_t *px = huh_frame_pixels(s, &fw, &fh);
+    const uint32_t *px = ezcore_frame_pixels(s, &fw, &fh);
     uint64_t sum = 0;
     size_t total = (size_t)fw * fh;
     for (size_t i = 0; i < total; i++) sum += px[i];
     int16_t abuf[4096];
-    size_t got = huh_audio_drain(s, abuf, 2048);
+    size_t got = ezcore_audio_drain(s, abuf, 2048);
     int64_t asum = 0;
     for (size_t i = 0; i < got * 2; i++) asum += abuf[i] > 0 ? abuf[i] : -abuf[i];
     printf("FRAMES ran=%d frame=%ux%u pixelsum=%llu audioframes=%zu audioabs=%lld\n",
            frames, fw, fh, (unsigned long long)sum, got, (long long)asum);
   }
-  huh_unload(s);
+  ezcore_unload(s);
   return 0;
 }

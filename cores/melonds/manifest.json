@@ -12,6 +12,7 @@
   "cheat_families": ["nds_actionreplay"],
   "bios_required": true,
   "bios_files": ["bios7.bin", "bios9.bin", "firmware.bin (user-supplied, hash-gated)"],
+  "execution": {"ios": "interpreter"},
   "notes": "Full speed on desktop. Mobile is playable but flagged slow — DSi mode off at launch.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
   "artifacts": {

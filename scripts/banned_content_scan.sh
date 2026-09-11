@@ -11,7 +11,7 @@ PATTERN='\.(gb|gbc|gba|nds|3ds|nsp|xci|sfc|smc|iso|cso|chd|pbp|keys)$'
 BIOS_NAMES='(bios|firmware|syscard|IPL|prod\.keys|title\.keys|dc_boot|dc_flash|scph)'
 ALLOWLIST='^test/fixtures/'
 # Build outputs are reproducible and untracked — never scan them.
-SKIP_DIRS='^(build/|bridge/build/|bridge/external/)'
+SKIP_DIRS='^(build/|runtime/build/|runtime/external/)'
 
 hits="$(git -C "$ROOT" ls-files | grep -Ev "$SKIP_DIRS" | grep -Ei "$PATTERN" | grep -Ev "$ALLOWLIST" || true)"
 hits="$hits$(git -C "$ROOT" ls-files | grep -Ev "$SKIP_DIRS" | grep -Ei "$BIOS_NAMES" | grep -Ev "$ALLOWLIST" || true)"

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/models/core_manifest.dart';
+import 'package:ezcore/models/core_manifest.dart';
 
 CoreManifest _base() => const CoreManifest(
       id: 'mgba',
@@ -61,5 +61,21 @@ void main() {
       artifacts: {},
     );
     expect(m.validate().length, greaterThanOrEqualTo(5));
+  });
+
+  test('execution strategies validate, ios rejects dynarec', () {
+    final ok = CoreManifest.fromJson({
+      ..._base().toJson(),
+      'execution': {'ios': 'interpreter', 'android': 'dynarec'},
+    });
+    expect(ok.validate(), isEmpty);
+    expect(ok.executionFor('ios'), 'interpreter');
+    expect(ok.executionFor('windows'), 'unknown');
+
+    final badOs = CoreManifest.fromJson({
+      ..._base().toJson(),
+      'execution': {'ios': 'dynarec'},
+    });
+    expect(badOs.validate(), isNotEmpty);
   });
 }

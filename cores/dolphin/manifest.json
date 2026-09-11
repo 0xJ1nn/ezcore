@@ -1,7 +1,7 @@
 {
   "id": "dolphin",
   "name": "Dolphin",
-  "version": "2409.0",
+  "version": "rolling+git.fad480a",
   "license": "GPL-2.0-or-later",
   "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
   "homepage": "https://github.com/dolphin-emu/dolphin",
@@ -12,7 +12,10 @@
   "cheat_families": ["gc_gecko"],
   "bios_required": false,
   "bios_files": ["IPL.bin (optional, HLE default — user-supplied only, hash-gated)"],
-  "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices.",
+  "execution": {"android": "dynarec", "macos": "dynarec", "windows": "dynarec"},
+  "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
   "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
+  }
 }

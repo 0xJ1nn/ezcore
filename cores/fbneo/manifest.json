@@ -1,7 +1,7 @@
 {
   "id": "fbneo",
   "name": "FinalBurn Neo",
-  "version": "1.0.0.3",
+  "version": "1.0.0.03",
   "license": "FBNeo-custom (non-commercial — verify per-file terms at build time)",
   "license_url": "https://github.com/libretro/FBNeo/blob/master/src/license.txt",
   "homepage": "https://github.com/libretro/FBNeo",
@@ -12,7 +12,9 @@
   "cheat_families": [],
   "bios_required": true,
   "bios_files": ["neogeo.zip and per-board BIOS (user-supplied, hash-gated)"],
-  "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only.",
+  "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB — ship subset builds (neogeo/cps) to slim distribution.",
   "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "28f88a4a5c3aa80bf703ee1caeae8fe110ce8fed34b6690e7dc2d8448e1a11cc"
+  }
 }

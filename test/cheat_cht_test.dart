@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/models/cheat.dart';
+import 'package:ezcore/models/cheat.dart';
 
 const sample = '''
 cheats = 2

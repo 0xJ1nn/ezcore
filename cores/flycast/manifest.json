@@ -1,7 +1,7 @@
 {
   "id": "flycast",
   "name": "Flycast",
-  "version": "2.2.0",
+  "version": "2.2+git.eddf263",
   "license": "GPL-2.0",
   "license_url": "https://github.com/flyinghead/flycast/blob/master/LICENSE",
   "homepage": "https://github.com/flyinghead/flycast",
@@ -14,5 +14,7 @@
   "bios_files": ["dc_boot.bin", "dc_flash.bin (user-supplied, hash-gated)"],
   "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "11bf47b40e704d245128d46705848b803bf70f6dabde41ce763d664a604eadfb"
+  }
 }

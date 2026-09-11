@@ -12,6 +12,7 @@
   "cheat_families": ["ps1_gameshark"],
   "bios_required": false,
   "bios_files": ["scph5500.bin / scph5501.bin / scph5502.bin (optional — OpenBIOS fallback built in; user-supplied files hash-gated)"],
+  "execution": {"ios": "interpreter", "android": "dynarec", "macos": "dynarec", "windows": "dynarec"},
   "notes": "Interpreter mode on iOS (no JIT). No HLE-BIOS piracy posture — import-only.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
   "artifacts": {

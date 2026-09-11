@@ -1,8 +1,17 @@
-# Universal Emulator (working title — rebrand pending)
+# ezCore
 
-Open-source multi-system emulator frontend for macOS, Windows, iOS, Android.
-Pluggable libretro cores you can install, update, and remove. Full cheat
+One beautiful, unified emulator for as many systems as realistically
+possible. **Game → Play** — no core/renderer/BIOS thinking required.
+
+Open-source frontend for macOS, Windows, iOS, Android. Modular,
+replaceable emulator cores behind a small stable C ABI. Full cheat
 support. Zero bundled games, BIOS, keys, or cheat databases.
+
+```
+Flutter UI → C ABI / FFI → ezCore Runtime → modular cores
+```
+
+See `docs/ARCHITECTURE.md` for the layer rules.
 
 ## Bring your own dumps
 
@@ -11,20 +20,28 @@ public-domain homebrew samples used as test fixtures). It ships no ROMs,
 BIOS/firmware, decryption keys, game art, or cheat databases, and links to
 none. See `TRADEMARKS.md`, `DMCA.md`, `CONTRIBUTING.md`.
 
+ezCore is a standalone product, unrelated to any other brand.
+
 ## Layout
 
 - `lib/` — Flutter shell (library, core manager, player, cheats, settings)
-- `cores/<id>/manifest.json` + `cores/registry.json` — signed plugin index (21 entries: 18 real, 3 legal holds)
-- `bridge/` — Libretro C bridge (`libretro_bridge.h`, ABI v1) loaded over FFI
+- `lib/runtime/` — zero-dep Dart FFI bindings over the C ABI
+- `runtime/` — ezCore native runtime (session lifecycle, AV, saves,
+  cheats, quirks), ABI v1 (`runtime/include/ezcore_runtime.h`)
+- `cores/<id>/manifest.json` + `cores/registry.json` — signed plugin
+  index (21 entries: 18 real, 3 legal holds), incl. per-OS `execution`
+  strategy (interpreter vs dynarec; iOS never dynarec)
 - `scripts/build_core.sh` — reproducible core builds into `native/cores/<id>/`
-- `test/` — `flutter test` (17 tests, green)
+- `test/` — `flutter test` (22 tests, green)
 
 ## Quick start (macOS dev)
 
 ```bash
+scripts/prereqs.sh                      # one-shot toolchain (macOS/arm64)
 scripts/build_core.sh --fetch-headers   # vendor libretro.h
 scripts/build_core.sh --tier1           # build verified cores
 flutter analyze && flutter test         # gates
+scripts/dev_status.sh                   # core matrix: sha pins + live loads
 flutter run -d macos                    # run shell
 ```
 

@@ -1,4 +1,4 @@
-package com.emulator.universal_emulator
+package com.ezcore.app
 
 import io.flutter.embedding.android.FlutterActivity
 

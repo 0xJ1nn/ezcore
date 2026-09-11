@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/cores/core_registry.dart';
-import 'package:universal_emulator/models/core_manifest.dart';
+import 'package:ezcore/cores/core_registry.dart';
+import 'package:ezcore/models/core_manifest.dart';
 
 String _json(CoreManifest m) => json.encode(m.toJson());
 

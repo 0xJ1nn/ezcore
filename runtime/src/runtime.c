@@ -1,8 +1,8 @@
-/* huh bridge — loads a libretro core dylib and forwards the session API.
+/* ezCore runtime — loads a libretro core dylib and forwards the session API.
  * Desktop/Android path: dlopen at runtime after sha256 verification.
- * iOS path: cores are linked/bundled; huh_load resolves bundled symbols.
+ * iOS path: cores are linked/bundled; ezcore_load resolves bundled symbols.
  */
-#include "libretro_bridge.h"
+#include "ezcore_runtime.h"
 
 #include <dlfcn.h>
 #include <stdarg.h>
@@ -12,7 +12,7 @@
 
 #include "libretro.h"
 
-struct huh_session {
+struct ezcore_session {
   void *handle;
   char core_path[1024];
   /* libretro entry points */
@@ -25,6 +25,10 @@ struct huh_session {
   void (*retro_run)(void);
   void (*retro_cheat_reset)(void);
   void (*retro_cheat_set)(unsigned, bool, const char *);
+  /* Save states are core-optional: NULL-checked at every call. */
+  size_t (*retro_serialize_size)(void);
+  bool (*retro_serialize)(void *, size_t);
+  bool (*retro_unserialize)(const void *, size_t);
   /* latest video frame (owned, XRGB8888) */
   uint32_t *frame;
   unsigned frame_w, frame_h;
@@ -38,7 +42,7 @@ struct huh_session {
   bool inited;
 };
 
-static huh_session *g_active = NULL;
+static ezcore_session *g_active = NULL;
 
 /* ---- environment / callbacks (minimal v0 set; extended per TODO) ---- */
 
@@ -54,9 +58,9 @@ static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
 }
 
 /* Host-owned content directories. Defaults are CWD-relative; the embedding
- * app should call huh_set_dirs() before loading cores that save or need
+ * app should call ezcore_set_dirs() before loading cores that save or need
  * system files (BIOS lives in the app-managed vault, never here). */
-void huh_set_dirs(const char *system_dir, const char *save_dir) {
+void ezcore_set_dirs(const char *system_dir, const char *save_dir) {
   if (system_dir) snprintf(g_system_dir, sizeof(g_system_dir), "%s", system_dir);
   if (save_dir) snprintf(g_save_dir, sizeof(g_save_dir), "%s", save_dir);
 }
@@ -109,7 +113,7 @@ static bool env_cb(unsigned cmd, void *data) {
 static void video_cb(const void *data, unsigned width, unsigned height,
                      size_t pitch) {
   if (!g_active || !data || width == 0 || height == 0) return;
-  huh_session *s = g_active;
+  ezcore_session *s = g_active;
   if (width != s->frame_w || height != s->frame_h) {
     free(s->frame);
     s->frame = malloc((size_t)width * height * 4);
@@ -155,7 +159,7 @@ static void video_cb(const void *data, unsigned width, unsigned height,
 
 static void audio_sample_cb(int16_t left, int16_t right) {
   if (!g_active) return;
-  huh_session *s = g_active;
+  ezcore_session *s = g_active;
   if (s->audio_len + 1 > s->audio_cap) return; /* drop on overflow (v0) */
   s->audio[s->audio_len * 2] = left;
   s->audio[s->audio_len * 2 + 1] = right;
@@ -176,7 +180,7 @@ static int16_t input_state_cb(unsigned a, unsigned b, unsigned c, unsigned d) {
 
 /* ---- public API ---- */
 
-int huh_abi_version(void) { return HUH_ABI_VERSION; }
+int ezcore_abi_version(void) { return EZCORE_ABI_VERSION; }
 
 #define LOAD_SYM(s, field, sym)                                  \
   do {                                                           \
@@ -189,8 +193,8 @@ int huh_abi_version(void) { return HUH_ABI_VERSION; }
     }                                                            \
   } while (0)
 
-huh_session *huh_load(const char *core_path, char *err, size_t err_len) {
-  huh_session *s = calloc(1, sizeof(*s));
+ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
+  ezcore_session *s = calloc(1, sizeof(*s));
   if (!s) return NULL;
   snprintf(s->core_path, sizeof(s->core_path), "%s", core_path);
   s->handle = dlopen(core_path, RTLD_NOW | RTLD_LOCAL);
@@ -208,6 +212,10 @@ huh_session *huh_load(const char *core_path, char *err, size_t err_len) {
   LOAD_SYM(s, retro_run, "retro_run");
   LOAD_SYM(s, retro_cheat_reset, "retro_cheat_reset");
   LOAD_SYM(s, retro_cheat_set, "retro_cheat_set");
+  /* Save-state entry points are core-optional (older cores may omit them). */
+  s->retro_serialize_size = dlsym(s->handle, "retro_serialize_size");
+  s->retro_serialize = dlsym(s->handle, "retro_serialize");
+  s->retro_unserialize = dlsym(s->handle, "retro_unserialize");
 
   if (s->retro_api_version() != 1) {
     snprintf(err, err_len, "unsupported libretro API version");
@@ -261,7 +269,7 @@ huh_session *huh_load(const char *core_path, char *err, size_t err_len) {
   return s;
 }
 
-void huh_unload(huh_session *s) {
+void ezcore_unload(ezcore_session *s) {
   if (!s) return;
   if (g_active == s) g_active = NULL;
   s->retro_deinit();
@@ -271,7 +279,7 @@ void huh_unload(huh_session *s) {
   free(s);
 }
 
-bool huh_init(huh_session *s) {
+bool ezcore_init(ezcore_session *s) {
   if (!s) return false;
   g_active = s;
   if (!s->inited) {
@@ -281,7 +289,7 @@ bool huh_init(huh_session *s) {
   return true;
 }
 
-bool huh_load_game(huh_session *s, const char *rom_path, const void *data,
+bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
                    size_t size) {
   if (!s) return false;
   struct retro_game_info info = {rom_path, data, size, NULL};
@@ -290,19 +298,19 @@ bool huh_load_game(huh_session *s, const char *rom_path, const void *data,
   return ok;
 }
 
-void huh_run_frame(huh_session *s) {
+void ezcore_run_frame(ezcore_session *s) {
   if (!s) return;
   g_active = s;
   s->retro_run();
 }
 
-const char *huh_core_name(huh_session *s) { return s ? s->name : "?"; }
-const char *huh_core_version(huh_session *s) { return s ? s->version : "?"; }
+const char *ezcore_core_name(ezcore_session *s) { return s ? s->name : "?"; }
+const char *ezcore_core_version(ezcore_session *s) { return s ? s->version : "?"; }
 
 /* Requires a loaded game: several cores (e.g. mGBA) dereference active
  * content here and segfault when called pre-load. Frontends must only
- * query geometry after huh_load_game succeeds. */
-void huh_system_geometry(huh_session *s, unsigned *w, unsigned *h,
+ * query geometry after ezcore_load_game succeeds. */
+void ezcore_system_geometry(ezcore_session *s, unsigned *w, unsigned *h,
                          double *fps) {
   if (!s) return;
   if (!s->game_loaded) {
@@ -319,25 +327,25 @@ void huh_system_geometry(huh_session *s, unsigned *w, unsigned *h,
   if (fps) *fps = av.timing.fps;
 }
 
-void huh_cheat_reset(huh_session *s) {
+void ezcore_cheat_reset(ezcore_session *s) {
   if (s) s->retro_cheat_reset();
 }
 
-bool huh_cheat_set(huh_session *s, unsigned index, bool enabled,
+bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                    const char *code) {
   if (!s || !code) return false;
   s->retro_cheat_set(index, enabled, code);
   return true;
 }
 
-const uint32_t *huh_frame_pixels(huh_session *s, unsigned *w, unsigned *h) {
+const uint32_t *ezcore_frame_pixels(ezcore_session *s, unsigned *w, unsigned *h) {
   if (!s) return NULL;
   if (w) *w = s->frame_w;
   if (h) *h = s->frame_h;
   return s->frame;
 }
 
-size_t huh_audio_drain(huh_session *s, int16_t *out, size_t frames) {
+size_t ezcore_audio_drain(ezcore_session *s, int16_t *out, size_t frames) {
   if (!s || !out) return 0;
   size_t n = s->audio_len < frames ? s->audio_len : frames;
   memcpy(out, s->audio, n * 2 * sizeof(int16_t));
@@ -345,4 +353,22 @@ size_t huh_audio_drain(huh_session *s, int16_t *out, size_t frames) {
           (s->audio_len - n) * 2 * sizeof(int16_t));
   s->audio_len -= n;
   return n;
+}
+
+/* Save states live in the runtime (local vault today, sync providers
+ * tomorrow). All three require a loaded game and degrade to 0/false
+ * when the core omits the entry points. */
+size_t ezcore_serialize_size(ezcore_session *s) {
+  if (!s || !s->game_loaded || !s->retro_serialize_size) return 0;
+  return s->retro_serialize_size();
+}
+
+bool ezcore_serialize(ezcore_session *s, void *out, size_t size) {
+  if (!s || !s->game_loaded || !s->retro_serialize || !out) return false;
+  return s->retro_serialize(out, size);
+}
+
+bool ezcore_unserialize(ezcore_session *s, const void *data, size_t size) {
+  if (!s || !s->game_loaded || !s->retro_unserialize || !data) return false;
+  return s->retro_unserialize(data, size);
 }

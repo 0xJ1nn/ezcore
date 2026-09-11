@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Dev-machine verification matrix: for every staged core dylib, check
 # (1) sha256 matches the manifest pin, (2) load+init+identify via the
-# bridge harness. Exit nonzero on any failure. macOS dev only.
+# ezCore runtime harness. Exit nonzero on any failure. macOS dev only.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HARNESS=/tmp/test_load
 
 if [ ! -x "$HARNESS" ]; then
-  cc "$ROOT/bridge/test/test_load.c" -o "$HARNESS" \
-    -I"$ROOT/bridge/include" -L"$ROOT/bridge/build" -lhuh_bridge \
-    -Wl,-rpath,"$ROOT/bridge/build" || exit 2
+  cc "$ROOT/runtime/test/test_load.c" -o "$HARNESS" \
+    -I"$ROOT/runtime/include" -L"$ROOT/runtime/build" -lezcore_runtime \
+    -Wl,-rpath,"$ROOT/runtime/build" || exit 2
 fi
 
 fail=0

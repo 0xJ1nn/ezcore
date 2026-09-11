@@ -19,6 +19,7 @@ class CoreManifest {
     this.biosRequired = false,
     this.biosFiles = const [],
     this.blockedReason = '',
+    this.execution = const {},
   });
 
   final String id;
@@ -35,6 +36,10 @@ class CoreManifest {
   final bool biosRequired;
   final List<String> biosFiles;
   final String blockedReason;
+
+  /// Platform execution strategy: os -> 'interpreter' | 'dynarec'.
+  /// Absent entries mean 'unknown'. iOS must never resolve to dynarec.
+  final Map<String, String> execution;
 
   bool get blocked => blockedReason.isNotEmpty;
 
@@ -54,6 +59,7 @@ class CoreManifest {
       biosRequired: json['bios_required'] as bool? ?? false,
       biosFiles: _strList(json['bios_files']),
       blockedReason: json['blocked_reason'] as String? ?? '',
+      execution: _strMap(json['execution']),
     );
   }
 
@@ -74,6 +80,7 @@ class CoreManifest {
         'bios_required': biosRequired,
         'bios_files': biosFiles,
         if (blockedReason.isNotEmpty) 'blocked_reason': blockedReason,
+        if (execution.isNotEmpty) 'execution': execution,
       };
 
   /// Returns human-readable policy errors. Empty = valid.
@@ -91,8 +98,19 @@ class CoreManifest {
     if (blocked && artifacts.isNotEmpty) {
       errors.add('blocked core must not ship artifacts');
     }
+    for (final entry in execution.entries) {
+      if (entry.value != 'interpreter' && entry.value != 'dynarec') {
+        errors.add('bad execution strategy for ${entry.key}');
+      }
+      if (entry.key == 'ios' && entry.value == 'dynarec') {
+        errors.add('ios must never use dynarec (no JIT on App Store)');
+      }
+    }
     return errors;
   }
+
+  /// Execution strategy for [os], or 'unknown' when undeclared.
+  String executionFor(String os) => execution[os] ?? 'unknown';
 
   static List<String> _strList(dynamic v) =>
       (v as List?)?.map((e) => e.toString()).toList() ?? const [];

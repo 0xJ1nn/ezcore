@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.emulator" "\0"
-            VALUE "FileDescription", "universal_emulator" "\0"
+            VALUE "FileDescription", "ezCore" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "universal_emulator" "\0"
+            VALUE "InternalName", "ezCore" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.emulator. All rights reserved." "\0"
-            VALUE "OriginalFilename", "universal_emulator.exe" "\0"
-            VALUE "ProductName", "universal_emulator" "\0"
+            VALUE "OriginalFilename", "ezcore.exe" "\0"
+            VALUE "ProductName", "ezCore" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

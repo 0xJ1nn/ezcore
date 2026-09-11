@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:universal_emulator/screens/library_screen.dart';
-import 'package:universal_emulator/state/app_state.dart';
-import 'package:universal_emulator/theme/tokens.dart';
+import 'package:ezcore/screens/library_screen.dart';
+import 'package:ezcore/state/app_state.dart';
+import 'package:ezcore/theme/tokens.dart';
 
 void main() {
   testWidgets('library renders mock games and filters', (tester) async {

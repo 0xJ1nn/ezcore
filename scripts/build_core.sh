@@ -25,8 +25,8 @@ clone() { # repo dest (shallow, pinned branch/tag when known)
 
 fetch_headers() {
   clone https://github.com/libretro/libretro-common.git \
-    "$ROOT/bridge/external/libretro-common"
-  test -f "$ROOT/bridge/external/libretro-common/include/libretro.h"
+    "$ROOT/runtime/external/libretro-common"
+  test -f "$ROOT/runtime/external/libretro-common/include/libretro.h"
   echo "OK: libretro.h vendored"
 }
 
@@ -147,8 +147,10 @@ build_mupen64plus() {
 build_flycast() {
   clone https://github.com/flyinghead/flycast.git "$SRC_DIR/flycast"
   (cd "$SRC_DIR/flycast" && git submodule update --init --depth 1 --recursive)
+  # Thin arm64: upstream defaults to universal (x86_64 slice wasted).
   cmake -S "$SRC_DIR/flycast" -B "$SRC_DIR/flycast/build-libretro" \
-    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON
+    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON \
+    -DCMAKE_OSX_ARCHITECTURES=arm64
   cmake --build "$SRC_DIR/flycast/build-libretro" -j"$JOBS"
   stage flycast "$SRC_DIR/flycast/build-libretro/flycast_libretro.dylib"
 }
@@ -162,15 +164,27 @@ build_fbneo() {
 
 build_scummvm() {
   clone https://github.com/scummvm/scummvm.git "$SRC_DIR/scummvm"
-  make -C "$SRC_DIR/scummvm/backends/platform/libretro" -j"$JOBS"
+  # USE_SYSTEM_mad=1: vendored libmad ships an extensionless `version` stamp
+  # file that hijacks libc++'s <version> header (Xcode 27 libc++ includes it
+  # from <limits>). USE_SYSTEM_png=1: vendored libpng hits the
+  # TARGET_OS_MAC/fp.h rot (same as mupen64plus-nx). Requires:
+  # brew install mad libpng. LIBRARY_PATH/CPATH let the system-lib
+  # probes find Homebrew libs on Apple Silicon.
+  LIBRARY_PATH="$(brew --prefix)/lib" CPATH="$(brew --prefix)/include" \
+  make -C "$SRC_DIR/scummvm/backends/platform/libretro" -j"$JOBS" \
+    USE_SYSTEM_mad=1 USE_SYSTEM_png=1
   stage scummvm "$SRC_DIR/scummvm/backends/platform/libretro/scummvm_libretro.dylib"
 }
 
 build_dolphin() {
   clone https://github.com/libretro/dolphin.git "$SRC_DIR/dolphin-libretro"
   (cd "$SRC_DIR/dolphin-libretro" && git submodule update --init --depth 1 --recursive)
+  # Deployment target 27.0: bundled curl calls pipe2() (27+ SDK API) and the
+  # build sets -Werror=unguarded-availability. Artifact requires macOS 27+;
+  # revisit with an @available-guarded curl patch for wider distribution.
   cmake -S "$SRC_DIR/dolphin-libretro" -B "$SRC_DIR/dolphin-libretro/build-libretro" \
-    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON
+    -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=27.0
   cmake --build "$SRC_DIR/dolphin-libretro/build-libretro" -j"$JOBS"
   stage dolphin "$SRC_DIR/dolphin-libretro/build-libretro/dolphin_libretro.dylib"
 }
