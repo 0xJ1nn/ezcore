@@ -65,6 +65,23 @@ class NativeBridge {
         .asFunction<
             Pointer<Uint32> Function(
                 Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)>();
+    _cheatReset = _lib
+        .lookup<NativeFunction<Void Function(Pointer<Void>)>>(
+            'huh_cheat_reset')
+        .asFunction<void Function(Pointer<Void>)>();
+    _cheatSet = _lib
+        .lookup<
+            NativeFunction<
+                Bool Function(Pointer<Void>, Uint32, Bool,
+                    Pointer<Uint8>)>>('huh_cheat_set')
+        .asFunction<
+            bool Function(Pointer<Void>, int, bool, Pointer<Uint8>)>();
+    _setDirs = _lib
+        .lookup<
+            NativeFunction<
+                Void Function(Pointer<Uint8>, Pointer<Uint8>)>>(
+            'huh_set_dirs')
+        .asFunction<void Function(Pointer<Uint8>, Pointer<Uint8>)>();
   }
 
   final DynamicLibrary _lib;
@@ -81,6 +98,9 @@ class NativeBridge {
   late final void Function(Pointer<Void>) _runFrame;
   late final Pointer<Uint32> Function(
       Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>) _framePixels;
+  late final void Function(Pointer<Void>) _cheatReset;
+  late final bool Function(Pointer<Void>, int, bool, Pointer<Uint8>) _cheatSet;
+  late final void Function(Pointer<Uint8>, Pointer<Uint8>) _setDirs;
 
   int abiVersion() => _abiVersion();
 
@@ -132,6 +152,29 @@ class NativeBridge {
   }
 
   void runFrame(Pointer<Void> session) => _runFrame(session);
+
+  void setDirs(String systemDir, String saveDir) {
+    final sysPtr = _toNative(systemDir);
+    final savePtr = _toNative(saveDir);
+    try {
+      _setDirs(sysPtr, savePtr);
+    } finally {
+      _free(sysPtr);
+      _free(savePtr);
+    }
+  }
+
+  void cheatReset(Pointer<Void> session) => _cheatReset(session);
+
+  bool cheatSet(
+      Pointer<Void> session, int index, bool enabled, String code) {
+    final codePtr = _toNative(code);
+    try {
+      return _cheatSet(session, index, enabled, codePtr);
+    } finally {
+      _free(codePtr);
+    }
+  }
 
   /// Sums the current frame's pixels (0 when no frame yet).
   int pixelSum(Pointer<Void> session) {

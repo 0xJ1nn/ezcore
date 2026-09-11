@@ -42,6 +42,9 @@ static huh_session *g_active = NULL;
 
 /* ---- environment / callbacks (minimal v0 set; extended per TODO) ---- */
 
+static char g_system_dir[1024] = {0};
+static char g_save_dir[1024] = {0};
+
 static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
   (void)level;
   va_list args;
@@ -50,11 +53,33 @@ static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
   va_end(args);
 }
 
+/* Host-owned content directories. Defaults are CWD-relative; the embedding
+ * app should call huh_set_dirs() before loading cores that save or need
+ * system files (BIOS lives in the app-managed vault, never here). */
+void huh_set_dirs(const char *system_dir, const char *save_dir) {
+  if (system_dir) snprintf(g_system_dir, sizeof(g_system_dir), "%s", system_dir);
+  if (save_dir) snprintf(g_save_dir, sizeof(g_save_dir), "%s", save_dir);
+}
+
 static bool env_cb(unsigned cmd, void *data) {
   switch (cmd) {
     case RETRO_ENVIRONMENT_GET_CAN_DUPE:
       /* We keep the last decoded frame, so dupes are free. */
       if (data) *(bool *)data = true;
+      return true;
+    case RETRO_ENVIRONMENT_GET_SYSTEM_DIRECTORY:
+      /* Required at init by several cores (mupen64plus strncpy's this
+       * without a NULL check — returning false segfaults them). */
+      if (!g_system_dir[0]) snprintf(g_system_dir, sizeof(g_system_dir), ".");
+      if (data) *(const char **)data = g_system_dir;
+      return true;
+    case RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY:
+      if (!g_save_dir[0]) snprintf(g_save_dir, sizeof(g_save_dir), ".");
+      if (data) *(const char **)data = g_save_dir;
+      return true;
+    case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
+      if (!g_system_dir[0]) snprintf(g_system_dir, sizeof(g_system_dir), ".");
+      if (data) *(const char **)data = g_system_dir;
       return true;
     case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
       enum retro_pixel_format fmt = *(const enum retro_pixel_format *)data;

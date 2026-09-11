@@ -89,6 +89,11 @@ void main() {
         expect(bridge.init(session), isTrue);
         final rom = File(blarggRom).readAsBytesSync();
         expect(bridge.loadGame(session, blarggRom, rom), isTrue);
+        // Cheat + dir plumbing must not crash (SameBoy libretro build has
+        // cheats compiled out, so this exercises the path, not the effect).
+        bridge.setDirs('native/test-system', 'native/test-save');
+        bridge.cheatReset(session);
+        expect(bridge.cheatSet(session, 0, true, '0101ABCD'), isTrue);
         for (var i = 0; i < 30; i++) {
           bridge.runFrame(session);
         }

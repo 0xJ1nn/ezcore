@@ -17,6 +17,10 @@ typedef struct huh_session huh_session;
 /* ABI every core plugin must satisfy (== libretro API version 1). */
 int huh_abi_version(void);
 
+/* Host-owned content directories. Call before huh_load when cores need
+ * system/save paths (mupen64plus crashes without them). */
+void huh_set_dirs(const char *system_dir, const char *save_dir);
+
 /* Lifecycle */
 huh_session *huh_load(const char *core_path, char *err, size_t err_len);
 void huh_unload(huh_session *s);

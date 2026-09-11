@@ -93,7 +93,13 @@ build_swanstation() {
 build_ppsspp() {
   clone https://github.com/hrydgard/ppsspp.git "$SRC_DIR/ppsspp"
   (cd "$SRC_DIR/ppsspp" && git submodule update --init --depth 1 --recursive)
-  make -C "$SRC_DIR/ppsspp/libretro" -j"$JOBS"
+  # macOS-arm64 adaptation (Android-only adrenotools, dlfcn probe):
+  # scripts/apply_ppsspp_macos_fix.py is idempotent and refuses loudly
+  # when upstream drifts.
+  python3 "$ROOT/scripts/apply_ppsspp_macos_fix.py" "$SRC_DIR/ppsspp"
+  # TARGET_ARCH=arm64: the Makefile misdetects arm64 (contains "64") as
+  # x86_64 and injects -msse/-msse2. Command-line override wins.
+  make -C "$SRC_DIR/ppsspp/libretro" -j"$JOBS" TARGET_ARCH=arm64
   stage ppsspp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.dylib"
 }
 

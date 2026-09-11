@@ -1,7 +1,7 @@
 {
   "id": "ppsspp",
   "name": "PPSSPP",
-  "version": "1.17.1",
+  "version": "1.17+git.2e6fd06",
   "license": "GPL-2.0-or-later",
   "license_url": "https://github.com/hrydgard/ppsspp/blob/master/LICENSE.TXT",
   "homepage": "https://github.com/hrydgard/ppsspp",
@@ -14,5 +14,7 @@
   "bios_files": [],
   "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch — on-demand download only, never base-app payload. No PSN/DRM features.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "fafcda858b57319aa92bc72353a933bec4f0095e67aadaba5c6081f9954e4321"
+  }
 }

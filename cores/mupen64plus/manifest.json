@@ -1,7 +1,7 @@
 {
   "id": "mupen64plus",
   "name": "Mupen64Plus-Next",
-  "version": "1.0.0",
+  "version": "2.8",
   "license": "GPL-2.0 (verify per-file at build time)",
   "license_url": "https://github.com/libretro/mupen64plus-libretro-nx",
   "homepage": "https://github.com/libretro/mupen64plus-libretro-nx",
@@ -14,5 +14,7 @@
   "bios_files": [],
   "notes": "Dynarec on desktop/Android only. Interpreter on iOS — expect reduced speed.",
   "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "artifacts": {
+    "macos-arm64": "02433c40f5d9af5677e8dd60da1341d39f2737e5e851bbe9efc1ab4c99a6bcf1"
+  }
 }
