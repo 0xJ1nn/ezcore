@@ -1,3 +1,7 @@
+// Diagnostic prints are the point of this harness (it reports per-core
+// boot/render results when run locally); the lint is for production code.
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

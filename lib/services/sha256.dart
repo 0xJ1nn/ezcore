@@ -125,7 +125,6 @@ class Sha256Sink {
   int _pendingLength = 0;
   int _length = 0;
   bool _closed = false;
-  final _w = List<int>.filled(64, 0);
 
   void add(List<int> bytes) {
     if (_closed) throw StateError('Sha256Sink already closed');
