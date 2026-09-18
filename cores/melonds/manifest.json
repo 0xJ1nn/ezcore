@@ -39,7 +39,7 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "be8dc598de6fdd8bfccc5c59e393c00ef21194c8517bff4a52fcf452dcce3a9c"
+    "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5"
   },
   "bios_notes": "User-supplied; presence-gated at boot."
 }

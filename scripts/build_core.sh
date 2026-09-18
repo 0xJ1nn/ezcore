@@ -56,6 +56,13 @@ stage() { # id file [destname]
     windows) ;; # TODO: strip PE debug data when mingw strip is confirmed
   esac
   ios_fix_min_version "$OUT_DIR/$id/$dest"
+  # macOS: ad-hoc sign at stage time — the pins describe the signed bytes
+  # (what actually ships), and the app verifies the bundle against those
+  # pins before staging. Signing after pinning rewrites the bytes and
+  # breaks the app's verification; never re-sign a pinned artifact.
+  case "$PLATFORM" in
+    macos) codesign --force -s - "$OUT_DIR/$id/$dest" ;;
+  esac
   (cd "$OUT_DIR/$id" && { shasum -a 256 "$dest" 2>/dev/null || sha256sum "$dest"; } | tee SHA256SUMS)
 }
 

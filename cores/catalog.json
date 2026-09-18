@@ -1,7 +1,7 @@
 {
   "beetle_pce": {
     "artifacts": {
-      "macos-arm64": "d0a5add1e15acff5bf315a78f679627e24f5acbf9d7482f565c76155787196b5"
+      "macos-arm64": "00c2fcd421cce73754e4492233232ccede2428bcdbdb9553205fceda95fbb6a4"
     },
     "bios_files": [
       "syscard3.pce"
@@ -47,7 +47,7 @@
   },
   "beetle_saturn": {
     "artifacts": {
-      "macos-arm64": "18d49929f3a4a52029d3a93ef6cab528e02aa702e6f92c07fc7d2d640f12dc84"
+      "macos-arm64": "e532f134013e7922be38e8491b233fb0263c66d0632a6a01f93ccc3eb40bfb96"
     },
     "bios_files": [
       "sega_101.bin",
@@ -118,7 +118,7 @@
   },
   "dolphin": {
     "artifacts": {
-      "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
+      "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
     },
     "bios_files": [
       "IPL.bin"
@@ -208,7 +208,7 @@
   },
   "fbneo": {
     "artifacts": {
-      "macos-arm64": "28f88a4a5c3aa80bf703ee1caeae8fe110ce8fed34b6690e7dc2d8448e1a11cc"
+      "macos-arm64": "f262cb0e2613ef0f5627fed89c4387656a6b829bd97136014ddbbee70d9860af"
     },
     "bios_files": [
       "neogeo.zip"
@@ -249,7 +249,7 @@
   },
   "flycast": {
     "artifacts": {
-      "macos-arm64": "11bf47b40e704d245128d46705848b803bf70f6dabde41ce763d664a604eadfb"
+      "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327"
     },
     "bios_files": [
       "dc_boot.bin",
@@ -299,7 +299,7 @@
   },
   "gambatte": {
     "artifacts": {
-      "macos-arm64": "7e77130b76f03657bdbd40d6fc8c78d0671c5773e934c66923a0a2c755eadf3f"
+      "macos-arm64": "58ebd5cb81845f499188abb45c42d4a111f93a81994fc8fc0f64d84059faadde"
     },
     "bios_files": [],
     "bios_required": false,
@@ -341,7 +341,7 @@
   },
   "genesis_plus_gx": {
     "artifacts": {
-      "macos-arm64": "c17c2d6a623206ff4f67486a15cf62676e802c4aba947aaebe70f66249b5a8b8"
+      "macos-arm64": "a6d550ac7d1fed1262c632e910389b8a48b7f033c369fe8e8ca759e0b9e92b79"
     },
     "bios_files": [
       "bios_MD.bin",
@@ -397,7 +397,7 @@
   },
   "melonds": {
     "artifacts": {
-      "macos-arm64": "be8dc598de6fdd8bfccc5c59e393c00ef21194c8517bff4a52fcf452dcce3a9c"
+      "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5"
     },
     "bios_files": [
       "bios7.bin",
@@ -442,7 +442,7 @@
   },
   "mesen": {
     "artifacts": {
-      "macos-arm64": "c5fea1421f45e802638f9caf8f975c7a8ebae5a4033568d9a57d4f203ea2b01c"
+      "macos-arm64": "940e471244ce202441442748dcae5d207690f8b876de5e56fe165bda59e8527b"
     },
     "bios_files": [
       "disksys.rom"
@@ -487,7 +487,7 @@
   },
   "mgba": {
     "artifacts": {
-      "macos-arm64": "8a256a29e19a9a2164f69000b77b6b8dc44a970b80d7ee332a6c3e3de5007670"
+      "macos-arm64": "2d8029a2287b9b92b190812feb54c033c5624bb7b2a3713a974a3ea0f2a42fdb"
     },
     "bios_files": [],
     "bios_required": false,
@@ -533,7 +533,7 @@
   },
   "mupen64plus": {
     "artifacts": {
-      "macos-arm64": "02433c40f5d9af5677e8dd60da1341d39f2737e5e851bbe9efc1ab4c99a6bcf1"
+      "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222"
     },
     "bios_files": [],
     "bios_required": false,
@@ -575,7 +575,7 @@
   },
   "ppsspp": {
     "artifacts": {
-      "macos-arm64": "fafcda858b57319aa92bc72353a933bec4f0095e67aadaba5c6081f9954e4321"
+      "macos-arm64": "f3483b102dec93d484b8c10bdb2bb2fe1c5f12e7425ca800db2985b85a4d5d9f"
     },
     "bios_files": [],
     "bios_required": false,
@@ -642,7 +642,7 @@
   },
   "sameboy": {
     "artifacts": {
-      "macos-arm64": "9dfb1da7718f7a09a91903810312612cc8157e8209b95d3347d5f1f832f26795"
+      "macos-arm64": "f38c6ae0659c76651ea5b88b6168e219f86edf4e9264889cee9849619127d07e"
     },
     "bios_files": [],
     "bios_required": false,
@@ -722,7 +722,7 @@
   },
   "snes9x": {
     "artifacts": {
-      "macos-arm64": "7e3b40f041627a59f18a880cb5e45dcbe1c859d53934c640166c1774dcd7ef05"
+      "macos-arm64": "465b0613a6b03ebb570b10711a8681af45744a2e6a1111b07d07ec481f03b7d5"
     },
     "bios_files": [],
     "bios_required": false,
@@ -764,7 +764,7 @@
   },
   "stella": {
     "artifacts": {
-      "macos-arm64": "99f348275434c6d46338d498c1f4b63f636b5e4ad2bf8c84e16cd50beb697120"
+      "macos-arm64": "58787f7ffd33d45aacdc331e2e3751abc3ef4d4c2178937a947d77f904734b22"
     },
     "bios_files": [],
     "bios_required": false,
@@ -802,7 +802,7 @@
   },
   "swanstation": {
     "artifacts": {
-      "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
+      "macos-arm64": "35ef589500f399a15cec8474b6ad2c1b920441792fedd73890c45ecadd066ede"
     },
     "bios_files": [
       "scph5500.bin",

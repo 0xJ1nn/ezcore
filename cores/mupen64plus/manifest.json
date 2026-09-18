@@ -37,6 +37,6 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "02433c40f5d9af5677e8dd60da1341d39f2737e5e851bbe9efc1ab4c99a6bcf1"
+    "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222"
   }
 }

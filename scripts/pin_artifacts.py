@@ -4,17 +4,24 @@
 Usage: python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>]
        python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>] --check
 
-Reads <out>/<id>/SHA256SUMS (written by build_core.sh stage()), verifies
-each staged artifact, and writes artifacts[<platform-arch>] into
-cores/<id>/manifest.json, then regenerates cores/catalog.json.
+Hashes the staged artifact bytes directly — the SHA256SUMS sidecar is
+regenerated as a byproduct and never trusted (a stale sidecar once hid
+signed cores whose bytes no longer matched their pins).
 
---check verifies staged hashes against committed pins without writing
+Write mode: pins the staged bytes into cores/<id>/manifest.json, refreshes
+each SHA256SUMS, and regenerates cores/catalog.json.
+--check: verifies staged bytes against committed pins without writing
 (release gate: the bundle must match the reviewed pins exactly).
 
 Pins are build evidence, never aspirational: only run this after a real
 platform build + boot matrix pass (docs/MATRIX.md). Review the manifest
 diff before committing.
+
+macOS note: staged artifacts are ad-hoc signed at stage time (build_core.sh)
+and the pins describe the signed bytes — exactly what ships. Signing rewrites
+bytes, so never sign after pinning.
 """
+import hashlib
 import json
 import re
 import sys
@@ -28,6 +35,24 @@ def fail(msg: str) -> "NoReturn":
     sys.exit(1)
 
 
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def find_artifact(core_dir: Path) -> "Path | None":
+    """The staged artifact: <id>_libretro.<ext> preferred, else <id>.<ext>."""
+    cid = core_dir.name
+    candidates = sorted(core_dir.glob(f"{cid}_libretro.*")) + sorted(
+        core_dir.glob(f"{cid}.*")
+    )
+    candidates = [c for c in candidates if c.is_file() and c.suffix != ".ezpin"]
+    return candidates[0] if candidates else None
+
+
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--out")]
     check_only = "--check" in sys.argv
@@ -38,7 +63,7 @@ def main() -> None:
     if not args:
         fail("usage: pin_artifacts.py <platform-arch> [--out <dir>] [--check]")
     plat = args[0]
-    if not re.fullmatch(r"[a-z]+-[a-z0-9]+", plat):
+    if not re.fullmatch(r"[a-z]+-[a-z0-9-]+", plat):
         fail(f"bad platform-arch key: {plat!r}")
     out = (
         Path(sys.argv[out_idx + 1])
@@ -52,17 +77,11 @@ def main() -> None:
     for core_dir in sorted(out.iterdir()):
         if not core_dir.is_dir():
             continue
-        sums = core_dir / "SHA256SUMS"
-        if not sums.is_file():
-            print(f"pin_artifacts: skip {core_dir.name} (no SHA256SUMS)")
+        artifact = find_artifact(core_dir)
+        if artifact is None:
+            print(f"pin_artifacts: skip {core_dir.name} (no artifact)")
             continue
-        line = sums.read_text().strip().splitlines()[0]
-        sha, _, fname = line.partition("  ")
-        if len(sha) != 64:
-            fail(f"{sums}: unparseable sums line")
-        artifact = core_dir / fname.strip()
-        if not artifact.is_file():
-            fail(f"{sums}: missing artifact {fname.strip()}")
+        sha = sha256_file(artifact)
         manifest_path = ROOT / "cores" / core_dir.name / "manifest.json"
         if not manifest_path.is_file():
             fail(f"no manifest for staged core {core_dir.name}")
@@ -70,10 +89,16 @@ def main() -> None:
         if data.get("blocked_reason"):
             fail(f"refusing to pin blocked core {core_dir.name}")
         current = data.get("artifacts", {}).get(plat)
-        if current == sha:
-            continue
         if check_only:
-            mismatched.append(f"{core_dir.name} (staged {sha[:12]} != pinned {(current or 'absent')[:12]})")
+            if current != sha:
+                mismatched.append(
+                    f"{core_dir.name} (staged {sha[:12]} != pinned "
+                    f"{(current or 'absent')[:12]})"
+                )
+            continue
+        # Refresh the sidecar from real bytes, always (it must never lie).
+        (core_dir / "SHA256SUMS").write_text(f"{sha}  {artifact.name}\n")
+        if current == sha:
             continue
         data.setdefault("artifacts", {})[plat] = sha
         manifest_path.write_text(

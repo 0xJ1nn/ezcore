@@ -43,7 +43,7 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
+    "macos-arm64": "35ef589500f399a15cec8474b6ad2c1b920441792fedd73890c45ecadd066ede"
   },
   "bios_notes": "Optional — OpenBIOS fallback built in. Any one of the three. User-supplied."
 }

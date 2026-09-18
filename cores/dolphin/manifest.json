@@ -43,7 +43,7 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
+    "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
   },
   "bios_notes": "Optional — HLE default. User-supplied only."
 }
