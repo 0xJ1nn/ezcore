@@ -25,7 +25,9 @@
     "android": "bundled",
     "ios": "bundled"
   },
-  "artifacts": {},
+  "artifacts": {
+    "macos-arm64": "20027dbdfcea9f00aca8baeb4bf3a6f4f00cdc3a531cd3ae61239a753f299dc6"
+  },
   "execution": {
     "macos": "interpreter",
     "windows": "interpreter",
