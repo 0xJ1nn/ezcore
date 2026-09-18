@@ -1,6 +1,6 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-18 (this machine: macOS arm64, Xcode 27, NDK r27c)
+> **Last verified:** 2026-09-19 (macOS arm64 full desktop set — 18 cores built, 17 bundled; scummvm added this date)
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
 
@@ -33,7 +33,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | beetle_pce | IDENTIFIES | BUILT | BUILT | — | — | Android needed `-lrt` wrapper (NDK has no librt) |
 | dosbox_pure | IDENTIFIES | BUILT | BUILT | — | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
 | fbneo | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
-| scummvm | — | building | — | — | — | Xcode 27 `VERSION`-stamp shadow (see below); macOS never built before |
+| scummvm | IDENTIFIES | — | — | — | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); desktop only for now |
 | swanstation | IDENTIFIES | — | — | — | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
 | mupen64plus | IDENTIFIES | — | — | — | — | Same GL caveat (Angrylion path needs core options = ABI v2) |
 | melonds | IDENTIFIES | — | — | — | — | Same GL caveat (software renderer needs core options) |

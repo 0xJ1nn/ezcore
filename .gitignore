@@ -76,3 +76,7 @@ design/moonboard/
 
 # Stray vendor fetch from mupen64plus exploration (referenced by nothing).
 /Mupen64plus/
+
+# Release outputs (assembled by scripts/release.sh; attached to GitHub
+# Releases, never committed).
+dist/

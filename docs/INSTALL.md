@@ -47,6 +47,9 @@ signed, not notarized.
 ## First run
 
 1. The app opens on **Library** (empty on first launch).
+
+   ![Empty library on first launch](images/library-empty.png)
+
 2. Import your own dumps: tap **Import** in the top bar (or "Import a
    folder" in the empty state). In the Import screen you can **Browse
    files** or type a folder path and **Scan** it, then **Import scanned

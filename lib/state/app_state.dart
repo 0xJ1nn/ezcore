@@ -86,6 +86,17 @@ class AppState extends ChangeNotifier {
     return vault.path;
   }
 
+  /// Release-bundle cores — the read-only fallback when staging hasn't
+  /// populated the vault yet (or the vault was cleared):
+  /// macOS `<app>/Contents/Resources/ezcore/cores`, Windows/Linux
+  /// `<exeDir>/cores`.
+  String? _bundledCoresRoot() {
+    final roots = RepoLayout.bundledCoreRoots(
+      executablePath: Platform.resolvedExecutable,
+    );
+    return roots.isEmpty ? null : roots.first;
+  }
+
   Future<void> load() async {
     try {
       // Load the merged catalog (single file — reliable asset bundling)
@@ -115,6 +126,7 @@ class AppState extends ChangeNotifier {
       final coreRoot = _settings['coreDirectory'] as String? ??
           Platform.environment['EZCORE_CORES_DIR'] ??
           await _stagedVaultRoot() ??
+          _bundledCoresRoot() ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot() ?? 'native/cores';
       final discovery = CoreDiscovery(Directory(coreRoot));

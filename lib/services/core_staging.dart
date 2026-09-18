@@ -61,6 +61,9 @@ class CoreStagingService {
         }
       } catch (e) {
         errors[manifest.id] = e.toString();
+        // Visible in Console.app / terminal launches; staging failures are
+        // otherwise silent (the vault just stays empty).
+        stderr.writeln('ezcore: staging failed for ${manifest.id}: $e');
       }
     }
     return staged;

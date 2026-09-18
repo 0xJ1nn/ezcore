@@ -29,6 +29,9 @@ VERSION="${EZCORE_VERSION:-$(grep '^version:' "$ROOT/pubspec.yaml" | cut -d' ' -
 [ -z "$PLATFORM" ] && { echo "usage: release.sh <macos|windows|linux|android|ios> [--out dist/]" >&2; exit 2; }
 if [ "${2:-}" = "--out" ] && [ -n "${3:-}" ]; then OUT="$3"; fi
 mkdir -p "$OUT"
+# Normalize to an absolute path: bundle steps cd into build dirs before
+# writing $OUT, so a relative --out would land in the wrong place.
+OUT="$(cd "$OUT" && pwd)"
 
 gate() { echo "-- $*"; "$@"; }
 fail() { echo "release: ERROR: $*" >&2; exit 1; }
@@ -69,7 +72,7 @@ case "$PLATFORM" in
   macos)   PA=macos-arm64;   RUNTIME_OUT="$ROOT/runtime/build-macos"; CORES_OUT="$ROOT/native/cores" ;;
   windows) PA=windows-x64;   RUNTIME_OUT="$ROOT/runtime/build-windows"; CORES_OUT="$ROOT/native/cores-windows-x64" ;;
   linux)   PA=linux-x64;     RUNTIME_OUT="$ROOT/runtime/build-linux"; CORES_OUT="$ROOT/native/cores-linux-x64" ;;
-  android) PA=android-arm64; RUNTIME_OUT="$ROOT/runtime/build-android"; CORES_OUT="$ROOT/native/cores-android-arm64" ;;
+  android) PA=android-arm64; RUNTIME_OUT="$ROOT/runtime/build-android"; CORES_OUT="$ROOT/native/cores-android-arm64-v8a" ;;
   ios)     PA=ios-arm64;     RUNTIME_OUT="$ROOT/runtime/build-ios"; CORES_OUT="$ROOT/native/cores-ios-arm64" ;;
   *) fail "unknown platform $PLATFORM" ;;
 esac
@@ -121,7 +124,22 @@ case "$PLATFORM" in
     if [ -n "${EZCORE_CODESIGN_IDENTITY:-}" ]; then
       gate codesign --deep --force --options runtime -s "$EZCORE_CODESIGN_IDENTITY" "$APP"
     else
-      gate codesign --deep --force -s - "$APP"
+      # Ad-hoc sign, inside-out. Only the runtime dylib (a Frameworks/
+      # subcomponent, which must be signed) and the app itself (WITH
+      # Release.entitlements — signing without them silently drops the
+      # sandbox the app is designed for).
+      #
+      # The core dylibs in Contents/Resources/ are deliberately NOT signed:
+      # signing rewrites their bytes, which would break the sha256 pins the
+      # app verifies against before staging (ad-hoc signatures are not
+      # reproducible). Resources/ nested code isn't required to be signed,
+      # and there is no hardened runtime in the ad-hoc path, so dlopen of
+      # the unsigned cores works. (For a future notarized build: hardened
+      # runtime + library validation needs either the disable-library-
+      # validation entitlement or cores signed with the same team ID and
+      # re-pinned to the signed bytes.)
+      gate codesign --force -s - "$APP/Contents/Frameworks/libezcore_runtime.dylib"
+      gate codesign --force --entitlements "$ROOT/macos/Runner/Release.entitlements" -s - "$APP"
     fi
     (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$OUT/ezcore-$VERSION-macos-arm64.zip")
     ;;

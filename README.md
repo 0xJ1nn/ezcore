@@ -30,6 +30,16 @@ databases — you bring your dumps, ezCORE does the rest.
 Flutter UI → C ABI / FFI → ezCore Runtime → modular libretro cores
 ```
 
+## Screens
+
+| Library | Systems |
+|:---:|:---:|
+| ![Library — your collection](docs/images/library.png) | ![Systems — the core collection](docs/images/systems.png) |
+| **Time Capsule** | **Settings** |
+| ![Time Capsule — local save snapshots](docs/images/time-capsule.png) | ![Settings — six local tabs](docs/images/settings.png) |
+
+*(Real screenshots of the v0.1.0 build on macOS — not mockups.)*
+
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the layer rules and
 [`docs/MATRIX.md`](docs/MATRIX.md) for per-system verified status on each
 platform.

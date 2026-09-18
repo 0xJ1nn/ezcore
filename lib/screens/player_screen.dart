@@ -49,6 +49,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     final vault = CoreStagingService.vaultDir();
     return vault.existsSync() ? vault.path : null;
   }
+
+  /// Release-bundle cores — the read-only fallback when staging hasn't run
+  /// (or the vault was cleared): macOS `<app>/Contents/Resources/ezcore/cores`.
+  static String? _bundledCoresRoot() {
+    final roots = RepoLayout.bundledCoreRoots(
+        executablePath: Platform.resolvedExecutable);
+    return roots.isEmpty ? null : roots.first;
+  }
   bool get paused => player.paused;
   bool get fastForward => player.fastForward;
   bool padVisible = true;
@@ -101,6 +109,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       final root = widget.state.settings['coreDirectory'] as String? ??
           Platform.environment['EZCORE_CORES_DIR'] ??
           _vaultCoresRoot() ??
+          _bundledCoresRoot() ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot() ??
           'native/cores';

@@ -7,6 +7,7 @@ import 'package:ezcore/services/core_staging.dart';
 import 'package:ezcore/services/hash_verifier.dart';
 import 'package:ezcore/services/local_data_dir.dart';
 import 'package:ezcore/services/native_dirs.dart';
+import 'package:ezcore/services/repo_layout.dart';
 import 'package:ezcore/services/runtime_loader.dart';
 
 class _TempDirs implements LocalDataDirProvider {
@@ -121,6 +122,42 @@ void main() {
     final channel = MethodChannelNativeDirs();
     expect(await channel.bundledCoresDir(), isNull);
     await expectLater(channel.runtimeRef(), throwsStateError);
+  });
+
+  test('release-bundle core roots resolve from the executable path', () async {
+    // Regression: the release bundle ships cores at
+    // macOS `<app>/Contents/Resources/ezcore/cores` (and `<exeDir>/cores`
+    // on Windows/Linux). Nothing consulted these roots, so a downloaded
+    // release found zero cores.
+    final tmp = await Directory.systemTemp.createTemp('ezcore_bundle');
+    try {
+      final exeDir = Directory('${tmp.path}/ezCore.app/Contents/MacOS')
+        ..createSync(recursive: true);
+      final exe = File('${exeDir.path}/ezCore')..writeAsBytesSync([0]);
+      // macOS bundle layout
+      final bundled = Directory(
+          '${tmp.path}/ezCore.app/Contents/Resources/ezcore/cores/probe')
+        ..createSync(recursive: true);
+      File('${bundled.path}/probe_libretro.dylib').writeAsBytesSync([1]);
+      // Windows/Linux layout
+      final flat = Directory('${exeDir.path}/cores/probe')
+        ..createSync(recursive: true);
+      File('${flat.path}/probe_libretro.so').writeAsBytesSync([1]);
+
+      final roots = RepoLayout.bundledCoreRoots(executablePath: exe.path);
+      expect(roots, isNotEmpty);
+      final coresDir = Directory(roots.first);
+      expect(coresDir.existsSync(), isTrue);
+      expect(
+        coresDir
+            .listSync()
+            .whereType<Directory>()
+            .map((d) => d.path.split('/').last),
+        contains('probe'),
+      );
+    } finally {
+      await tmp.delete(recursive: true);
+    }
   });
 
   test('runtime ref round-trips through messages', () {
