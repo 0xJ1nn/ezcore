@@ -67,3 +67,12 @@ app.*.map.json
 *.keystore
 key.properties
 android/key.properties
+
+# Internal design exploration — boards that study other companies' design
+# languages are kept local-only; the shipped identity lives in
+# design/ezcore-orbit/. See TRADEMARKS.md.
+design/moonboard/
+/moonboard/
+
+# Stray vendor fetch from mupen64plus exploration (referenced by nothing).
+/Mupen64plus/

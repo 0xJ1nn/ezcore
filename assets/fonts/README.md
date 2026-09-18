@@ -7,8 +7,9 @@ The Orbit console interface uses two typefaces, both bundled here so the app
 - **Manrope** (body) — Copyright (c) Mikhail Sharanda
 
 Both are licensed under the **SIL Open Font License, Version 1.1**.
-Full license text: https://openfontlicense.org (also shipped with the
-upstream releases at https://github.com/google/fonts).
+Full license text (both fonts, with copyright notices): [`OFL.txt`](OFL.txt)
+in this directory. Upstream: https://github.com/google/fonts
+(`ofl/spacegrotesk`, `ofl/manrope`).
 
 Files were sourced from the Google Fonts static API (fonts.gstatic.com)
 in September 2026 and are unmodified. Weights included: Space Grotesk
