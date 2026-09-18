@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:convert';
 
 /// Dart FFI binding over `runtime/build/libezcore_runtime.dylib` (ABI v1).
 ///
@@ -12,8 +13,31 @@ class EzCoreRuntime {
       : _lib = DynamicLibrary.open(
           runtimePath ??
               Platform.environment['EZCORE_RUNTIME_LIB'] ??
-              'runtime/build/libezcore_bridge.dylib',
+              'runtime/build/libezcore_runtime.dylib',
         ) {
+    _bind();
+  }
+
+  /// Binds to an already-open handle. Used with [DynamicLibrary.process()]
+  /// on iOS (static link) and in tests with mock libraries.
+  EzCoreRuntime.fromHandle(DynamicLibrary lib) : _lib = lib {
+    _bind();
+  }
+
+  /// Opens from an isolate-safe marker (see NativeRuntimeRef): `process`
+  /// binds the current process, otherwise the path is dlopened.
+  factory EzCoreRuntime.fromMarker(Map marker) {
+    if (marker['kind'] == 'process') {
+      return EzCoreRuntime.fromHandle(DynamicLibrary.process());
+    }
+    final path = marker['path'] as String?;
+    if (path == null || path.isEmpty) {
+      throw StateError('Runtime marker has no path');
+    }
+    return EzCoreRuntime.load(runtimePath: path);
+  }
+
+  void _bind() {
     _abiVersion = _lib
         .lookup<NativeFunction<Int32 Function()>>('ezcore_abi_version')
         .asFunction<int Function()>();
@@ -30,6 +54,9 @@ class EzCoreRuntime {
     _init = _lib
         .lookup<NativeFunction<Bool Function(Pointer<Void>)>>('ezcore_init')
         .asFunction<bool Function(Pointer<Void>)>();
+    _reset = _lib
+        .lookup<NativeFunction<Void Function(Pointer<Void>)>>('ezcore_reset')
+        .asFunction<void Function(Pointer<Void>)>();
     _coreName = _lib
         .lookup<NativeFunction<Pointer<Uint8> Function(Pointer<Void>)>>(
             'ezcore_core_name')
@@ -46,6 +73,10 @@ class EzCoreRuntime {
         .asFunction<
             void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>,
                 Pointer<Double>)>();
+    _sampleRate = _lib
+        .lookup<NativeFunction<Double Function(Pointer<Void>)>>(
+            'ezcore_sample_rate')
+        .asFunction<double Function(Pointer<Void>)>();
     _loadGame = _lib
         .lookup<
             NativeFunction<
@@ -65,6 +96,19 @@ class EzCoreRuntime {
         .asFunction<
             Pointer<Uint32> Function(
                 Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)>();
+    _framePixelsCopy = _lib
+        .lookup<
+            NativeFunction<
+                IntPtr Function(Pointer<Void>, Pointer<Uint8>,
+                    IntPtr)>>('ezcore_frame_pixels_copy')
+        .asFunction<int Function(Pointer<Void>, Pointer<Uint8>, int)>();
+    _frameSize = _lib
+        .lookup<
+            NativeFunction<
+                Void Function(Pointer<Void>, Pointer<Uint32>,
+                    Pointer<Uint32>)>>('ezcore_frame_size')
+        .asFunction<
+            void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)>();
     _cheatReset = _lib
         .lookup<NativeFunction<Void Function(Pointer<Void>)>>(
             'ezcore_cheat_reset')
@@ -100,6 +144,26 @@ class EzCoreRuntime {
                     Pointer<Void>, Pointer<Uint8>, IntPtr)>>(
             'ezcore_unserialize')
         .asFunction<bool Function(Pointer<Void>, Pointer<Uint8>, int)>();
+    _audioDrain = _lib
+        .lookup<
+            NativeFunction<
+                IntPtr Function(Pointer<Void>, Pointer<Int16>, IntPtr)>>(
+            'ezcore_audio_drain')
+        .asFunction<int Function(Pointer<Void>, Pointer<Int16>, int)>();
+    _audioPending = _lib
+        .lookup<NativeFunction<IntPtr Function(Pointer<Void>)>>(
+            'ezcore_audio_pending')
+        .asFunction<int Function(Pointer<Void>)>();
+    _setButton = _lib
+        .lookup<
+            NativeFunction<
+                Void Function(Pointer<Void>, Uint32, Uint32, Bool)>>(
+            'ezcore_set_button')
+        .asFunction<void Function(Pointer<Void>, int, int, bool)>();
+    _clearButtons = _lib
+        .lookup<NativeFunction<Void Function(Pointer<Void>, Uint32)>>(
+            'ezcore_clear_buttons')
+        .asFunction<void Function(Pointer<Void>, int)>();
   }
 
   final DynamicLibrary _lib;
@@ -107,31 +171,40 @@ class EzCoreRuntime {
   late final Pointer<Void> Function(Pointer<Uint8>, Pointer<Uint8>, int) _load;
   late final void Function(Pointer<Void>) _unload;
   late final bool Function(Pointer<Void>) _init;
+  late final void Function(Pointer<Void>) _reset;
   late final Pointer<Uint8> Function(Pointer<Void>) _coreName;
   late final Pointer<Uint8> Function(Pointer<Void>) _coreVersion;
   late final void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>,
       Pointer<Double>) _geometry;
+  late final double Function(Pointer<Void>) _sampleRate;
   late final bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>, int)
       _loadGame;
   late final void Function(Pointer<Void>) _runFrame;
   late final Pointer<Uint32> Function(
       Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>) _framePixels;
+  late final int Function(Pointer<Void>, Pointer<Uint8>, int) _framePixelsCopy;
+  late final void Function(
+      Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>) _frameSize;
   late final void Function(Pointer<Void>) _cheatReset;
   late final bool Function(Pointer<Void>, int, bool, Pointer<Uint8>) _cheatSet;
   late final void Function(Pointer<Uint8>, Pointer<Uint8>) _setDirs;
   late final int Function(Pointer<Void>) _serializeSize;
   late final bool Function(Pointer<Void>, Pointer<Uint8>, int) _serialize;
   late final bool Function(Pointer<Void>, Pointer<Uint8>, int) _unserialize;
+  late final int Function(Pointer<Void>, Pointer<Int16>, int) _audioDrain;
+  late final int Function(Pointer<Void>) _audioPending;
+  late final void Function(Pointer<Void>, int, int, bool) _setButton;
+  late final void Function(Pointer<Void>, int) _clearButtons;
 
   int abiVersion() => _abiVersion();
 
   Pointer<Void> loadSession(String corePath) {
-    final pathPtr = _toNative(corePath);
-    final errPtr = calloc(1024);
+    final pathPtr = _toNativeUtf8(corePath);
+    final errPtr = _allocBytes(1024);
     try {
       final session = _load(pathPtr, errPtr, 1024);
       if (session.address == 0) {
-        throw StateError('ezcore_load failed: ${_fromNative(errPtr)}');
+        throw StateError('ezcore_load failed: ${_fromNativeUtf8(errPtr)}');
       }
       return session;
     } finally {
@@ -142,9 +215,10 @@ class EzCoreRuntime {
 
   void unload(Pointer<Void> session) => _unload(session);
   bool init(Pointer<Void> session) => _init(session);
-  String coreName(Pointer<Void> session) => _fromNative(_coreName(session));
+  void reset(Pointer<Void> session) => _reset(session);
+  String coreName(Pointer<Void> session) => _fromNativeUtf8(_coreName(session));
   String coreVersion(Pointer<Void> session) =>
-      _fromNative(_coreVersion(session));
+      _fromNativeUtf8(_coreVersion(session));
 
   ({int w, int h, double fps}) geometry(Pointer<Void> session) {
     final w = callocUint32();
@@ -160,9 +234,11 @@ class EzCoreRuntime {
     }
   }
 
+  double sampleRate(Pointer<Void> session) => _sampleRate(session);
+
   bool loadGame(Pointer<Void> session, String romPath, Uint8List data) {
-    final pathPtr = _toNative(romPath);
-    final dataPtr = calloc(data.length);
+    final pathPtr = _toNativeUtf8(romPath);
+    final dataPtr = _allocBytes(data.length);
     try {
       dataPtr.asTypedList(data.length).setAll(0, data);
       return _loadGame(session, pathPtr, dataPtr, data.length);
@@ -175,8 +251,8 @@ class EzCoreRuntime {
   void runFrame(Pointer<Void> session) => _runFrame(session);
 
   void setDirs(String systemDir, String saveDir) {
-    final sysPtr = _toNative(systemDir);
-    final savePtr = _toNative(saveDir);
+    final sysPtr = _toNativeUtf8(systemDir);
+    final savePtr = _toNativeUtf8(saveDir);
     try {
       _setDirs(sysPtr, savePtr);
     } finally {
@@ -189,12 +265,70 @@ class EzCoreRuntime {
 
   bool cheatSet(
       Pointer<Void> session, int index, bool enabled, String code) {
-    final codePtr = _toNative(code);
+    final codePtr = _toNativeUtf8(code);
     try {
       return _cheatSet(session, index, enabled, codePtr);
     } finally {
       _free(codePtr);
     }
+  }
+
+  /// Copies the latest frame's pixels as RGBA bytes.
+  /// Returns null when no frame is available.
+  /// The returned buffer is exactly width*height*4 bytes.
+  Uint8List? frameBytes(Pointer<Void> session) {
+    final w = callocUint32();
+    final h = callocUint32();
+    try {
+      _frameSize(session, w, h);
+      final width = w.value;
+      final height = h.value;
+      if (width == 0 || height == 0) return null;
+      final size = width * height * 4;
+      final buf = _allocBytes(size);
+      try {
+        final copied = _framePixelsCopy(session, buf, size);
+        if (copied != size) return null;
+        return Uint8List.fromList(buf.asTypedList(copied));
+      } finally {
+        _free(buf);
+      }
+    } finally {
+      _free(w);
+      _free(h);
+    }
+  }
+
+  /// Drains up to [frames] audio frames (stereo s16) into a PCM buffer.
+  /// Returns the actual number of frames drained (0 if none available).
+  /// Each frame is 4 bytes (2 channels × 2 bytes).
+  int drainAudio(Pointer<Void> session, int frames, ByteBuffer buffer) {
+    final maxSamples = frames * 2;
+    final bufPtr = _allocBytes(maxSamples * 2);
+    try {
+      final drained = _audioDrain(session, bufPtr.cast<Int16>(), frames);
+      if (drained > 0) {
+        final byteCount = drained * 2 * 2;
+        final view = bufPtr.asTypedList(byteCount);
+        buffer.asUint8List().setAll(0, view);
+      }
+      return drained;
+    } finally {
+      _free(bufPtr);
+    }
+  }
+
+  /// Returns the number of audio frames currently queued in the ring buffer.
+  int audioPending(Pointer<Void> session) => _audioPending(session);
+
+  /// Sets a button state for a given port. buttonId is RETRO_DEVICE_ID_JOYPAD_*.
+  void setButton(Pointer<Void> session, int port, int buttonId, bool pressed) {
+    _setButton(session, port, buttonId, pressed);
+  }
+
+  /// Clears all buttons for a port.
+  void clearButtons(Pointer<Void> session, int port) {
+    _clearButtons(session, port);
   }
 
   /// Captures a save state via the runtime. Null when the core has no
@@ -203,7 +337,7 @@ class EzCoreRuntime {
   Uint8List? saveState(Pointer<Void> session) {
     final size = _serializeSize(session);
     if (size <= 0) return null;
-    final buf = calloc(size);
+    final buf = _allocBytes(size);
     try {
       if (!_serialize(session, buf, size)) return null;
       return Uint8List.fromList(buf.asTypedList(size));
@@ -214,10 +348,21 @@ class EzCoreRuntime {
 
   bool loadState(Pointer<Void> session, Uint8List bytes) {
     if (bytes.isEmpty) return false;
-    final buf = calloc(bytes.length);
+    final buf = _allocBytes(bytes.length);
     try {
       buf.asTypedList(bytes.length).setAll(0, bytes);
       return _unserialize(session, buf, bytes.length);
+    } finally {
+      _free(buf);
+    }
+  }
+
+  /// Drains up to [frames] audio frames from the ring buffer (legacy API).
+  /// Returns the number of frames actually drained.
+  int audioFrames(Pointer<Void> session, {int frames = 1024}) {
+    final buf = _allocBytes(frames * 4); // stereo s16: 4 bytes per frame
+    try {
+      return _audioDrain(session, buf.cast<Int16>(), frames);
     } finally {
       _free(buf);
     }
@@ -243,25 +388,28 @@ class EzCoreRuntime {
   }
 
   // --- minimal native memory helpers (no package:ffi) ---
-  Pointer<Uint8> _toNative(String s) {
-    final units = s.codeUnits;
-    final ptr = _allocBytes(units.length + 1);
-    for (var i = 0; i < units.length; i++) {
-      ptr[i] = units[i] & 0xFF;
+
+  /// Encodes a Dart string as UTF-8 with null terminator.
+  Pointer<Uint8> _toNativeUtf8(String s) {
+    final encoded = utf8.encode(s);
+    final ptr = _allocBytes(encoded.length + 1);
+    for (var i = 0; i < encoded.length; i++) {
+      ptr[i] = encoded[i];
     }
-    ptr[units.length] = 0;
+    ptr[encoded.length] = 0;
     return ptr;
   }
 
-  String _fromNative(Pointer<Uint8> ptr) {
+  /// Decodes a null-terminated UTF-8 native string.
+  String _fromNativeUtf8(Pointer<Uint8> ptr) {
     if (ptr.address == 0) return '';
     final bytes = <int>[];
     var i = 0;
-    while (ptr[i] != 0 && i < 4096) {
+    while (ptr[i] != 0 && i < 8192) {
       bytes.add(ptr[i]);
       i++;
     }
-    return String.fromCharCodes(bytes);
+    return utf8.decode(bytes);
   }
 
   Pointer<Uint8> _allocBytes(int bytes) {

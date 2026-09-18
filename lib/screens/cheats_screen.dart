@@ -5,11 +5,20 @@ import '../cores/cheat_validators.dart';
 import '../models/cheat.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/orbit_widgets.dart';
 
+/// Cheats keeps validate/import/export logic; chrome now matches final-01.
+/// Codes apply to the live session through [onCheatsChanged] when the game
+/// is running (player), and at next boot otherwise.
 class CheatsScreen extends StatefulWidget {
-  const CheatsScreen({super.key, required this.gameId, required this.state});
+  const CheatsScreen(
+      {super.key,
+      required this.gameId,
+      required this.state,
+      this.onCheatsChanged});
   final String gameId;
   final AppState state;
+  final Future<void> Function()? onCheatsChanged;
 
   @override
   State<CheatsScreen> createState() => _CheatsScreenState();
@@ -29,76 +38,105 @@ class _CheatsScreenState extends State<CheatsScreen> {
         final cheats = widget.state.cheatsFor(game.id);
         final on = cheats.where((c) => c.enabled).length;
         return Scaffold(
-          appBar: AppBar(title: Text('Cheats ($on on)')),
+          backgroundColor: Tokens.bg,
+          appBar: AppBar(
+            backgroundColor: Tokens.bg,
+            title: Text('Cheats ($on on)',
+                style:
+                    Tokens.display(size: 18, weight: FontWeight.w500, ls: -0.4)),
+          ),
           body: ListView(
-            padding: const EdgeInsets.all(Tokens.pad),
+            padding: const EdgeInsets.all(24),
             children: [
               if (core == null || !core.cheatsSupported)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Text(
-                      'This core does not expose cheat hooks — codes are stored but cannot apply.',
-                      style: TextStyle(color: Tokens.coin),
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Tokens.panel,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: Tokens.line),
+                  ),
+                  child: Text(
+                    'This core exposes no cheat hooks — codes are kept with the game and apply if you switch to a core that supports them.',
+                    style: Tokens.body(size: 11, color: Tokens.accent),
                   ),
                 )
               else
                 Text(
-                  'Families: ${core.cheatFamilies.join(', ')}',
-                  style: const TextStyle(color: Tokens.muted, fontSize: 12),
+                  'Families: ${core.cheatFamilies.join(', ')} — codes apply at boot, and immediately while playing.',
+                  style: Tokens.body(size: 12, color: Tokens.muted),
                 ),
               const SizedBox(height: 8),
               if (cheats.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: Text('No cheats yet — add one below.')),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                      child: Text('No cheats yet — add one below.',
+                          style: Tokens.body(
+                              size: 12, color: Tokens.muted))),
                 ),
               for (final cheat in cheats)
-                SwitchListTile(
-                  value: cheat.enabled,
-                  title: Text(cheat.desc),
-                  subtitle: Text(
-                    cheat.code,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      color: Tokens.muted,
-                    ),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Tokens.panel,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: Tokens.line),
                   ),
-                  onChanged: (_) =>
-                      widget.state.toggleCheat(game.id, cheat.index),
-                  secondary: IconButton(
-                    tooltip: 'Delete',
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    onPressed: () =>
-                        widget.state.deleteCheat(game.id, cheat.index),
+                  child: SwitchListTile(
+                    value: cheat.enabled,
+                    activeThumbColor: Tokens.accent,
+                    title: Text(cheat.desc, style: Tokens.body(size: 13)),
+                    subtitle: Text(
+                      cheat.code,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Tokens.muted,
+                      ),
+                    ),
+                    onChanged: (_) async {
+                      widget.state.toggleCheat(game.id, cheat.index);
+                      await widget.onCheatsChanged?.call();
+                    },
+                    secondary: IconButton(
+                      tooltip: 'Delete',
+                      icon: const Icon(Icons.delete_outline,
+                          size: 20, color: Tokens.muted),
+                      onPressed: () {
+                        widget.state.deleteCheat(game.id, cheat.index);
+                        widget.onCheatsChanged?.call();
+                      },
+                    ),
                   ),
                 ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () => _addSheet(context, core?.cheatFamilies),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
+                    child: OrbitPrimary(
+                      label: 'Add',
+                      icon: Icons.add,
+                      minHeight: 46,
+                      expanded: true,
+                      onPressed: () =>
+                          _addSheet(context, core?.cheatFamilies),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OrbitSecondary(
+                      label: 'Import .cht',
+                      icon: Icons.upload,
                       onPressed: () => _importSheet(context),
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Import .cht'),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OrbitSecondary(
+                      label: 'Export',
+                      icon: Icons.download,
                       onPressed: () => _exportSheet(context, cheats),
-                      icon: const Icon(Icons.download),
-                      label: const Text('Export'),
                     ),
                   ),
                 ],
@@ -119,40 +157,42 @@ class _CheatsScreenState extends State<CheatsScreen> {
     String? error;
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Tokens.panel,
       isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Tokens.radiusDialog),
+        side: const BorderSide(color: Tokens.line),
+      ),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheet) => Padding(
           padding: EdgeInsets.only(
-            left: Tokens.pad,
-            right: Tokens.pad,
-            top: Tokens.pad,
-            bottom: MediaQuery.of(context).viewInsets.bottom + Tokens.pad,
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Add cheat',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              Text('Add cheat',
+                  style: Tokens.display(
+                      size: 18, weight: FontWeight.w500, ls: -0.4)),
               const SizedBox(height: 8),
               TextField(
                 controller: name,
+                style: Tokens.body(size: 13),
                 decoration: const InputDecoration(hintText: 'Name'),
               ),
               const SizedBox(height: 8),
-              DropdownButton<String>(
+              OrbitSelect<String>(
                 value: family,
-                isExpanded: true,
-                items: [
-                  for (final f in (families ?? CheatValidators.families))
-                    DropdownMenuItem(value: f, child: Text(f)),
-                ],
+                options: (families ?? CheatValidators.families).toList(),
                 onChanged: (v) {
                   if (v != null) setSheet(() => family = v);
                 },
               ),
+              const SizedBox(height: 8),
               TextField(
                 controller: code,
                 maxLines: 4,
@@ -163,14 +203,15 @@ class _CheatsScreenState extends State<CheatsScreen> {
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    error!,
-                    style: const TextStyle(color: Tokens.danger),
-                  ),
+                  child: Text(error!,
+                      style: Tokens.body(size: 12, color: Tokens.danger)),
                 ),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed: () {
+              OrbitPrimary(
+                label: 'Validate & save',
+                icon: Icons.check,
+                expanded: true,
+                onPressed: () async {
                   final problem =
                       CheatValidators.validate(family, code.text);
                   if (problem != null) {
@@ -195,9 +236,9 @@ class _CheatsScreenState extends State<CheatsScreen> {
                       enabled: true,
                     ),
                   );
-                  Navigator.of(context).pop();
+                  await widget.onCheatsChanged?.call();
+                  if (context.mounted) Navigator.of(context).pop();
                 },
-                child: const Text('Validate & save'),
               ),
             ],
           ),
@@ -210,22 +251,26 @@ class _CheatsScreenState extends State<CheatsScreen> {
     final pasted = TextEditingController();
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Tokens.panel,
       isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Tokens.radiusDialog),
+        side: const BorderSide(color: Tokens.line),
+      ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
-          left: Tokens.pad,
-          right: Tokens.pad,
-          top: Tokens.pad,
-          bottom: MediaQuery.of(context).viewInsets.bottom + Tokens.pad,
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Paste .cht text to import',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            Text('Paste .cht text to import',
+                style: Tokens.display(
+                    size: 18, weight: FontWeight.w500, ls: -0.4)),
             const SizedBox(height: 8),
             TextField(
               controller: pasted,
@@ -233,12 +278,15 @@ class _CheatsScreenState extends State<CheatsScreen> {
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
             ),
             const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
+            OrbitPrimary(
+              label: 'Import',
+              icon: Icons.upload,
+              expanded: true,
+              onPressed: () async {
                 widget.state.importCheats(widget.gameId, pasted.text);
-                Navigator.of(context).pop();
+                await widget.onCheatsChanged?.call();
+                if (context.mounted) Navigator.of(context).pop();
               },
-              child: const Text('Import'),
             ),
           ],
         ),
@@ -250,16 +298,20 @@ class _CheatsScreenState extends State<CheatsScreen> {
     final text = serializeCht(cheats);
     showModalBottomSheet<void>(
       context: context,
+      backgroundColor: Tokens.panel,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Tokens.radiusDialog),
+        side: const BorderSide(color: Tokens.line),
+      ),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(Tokens.pad),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              '.cht export (copy it somewhere safe)',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            Text('.cht export (copy it somewhere safe)',
+                style: Tokens.display(
+                    size: 16, weight: FontWeight.w500, ls: -0.4)),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(8),
@@ -273,13 +325,14 @@ class _CheatsScreenState extends State<CheatsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton.icon(
+            OrbitPrimary(
+              label: 'Copy',
+              icon: Icons.copy,
+              expanded: true,
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: text));
                 Navigator.of(context).pop();
               },
-              icon: const Icon(Icons.copy),
-              label: const Text('Copy'),
             ),
           ],
         ),

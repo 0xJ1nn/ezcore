@@ -23,6 +23,8 @@ abstract final class CheatValidators {
     'genesis_actionreplay': [RegExp(r'^[0-9A-Fa-f]{10}$')],
     // PlayStation
     'ps1_gameshark': [RegExp(r'^[0-9A-Fa-f]{12}$')],
+    // Sega Saturn (Mednafen GameShark: 8+4 hex pairs, + joined in .cht DBs)
+    'saturn_gameshark': [RegExp(r'^[0-9A-Fa-f]{12}$')],
     // Nintendo 64
     'n64_gameshark': [RegExp(r'^[0-9A-Fa-f]{12}$')],
     // NES
@@ -44,6 +46,11 @@ abstract final class CheatValidators {
 
   /// Returns error text, or null when every non-empty line of [code]
   /// matches at least one pattern of [family]. Unknown families fail closed.
+  ///
+  /// Lines may join multiple codes with `+` (the libretro-database `.cht`
+  /// convention, also produced by [joinCheatCode]): each `+`-separated
+  /// segment must then be a 4/8-hex GameShark-style chunk (wildcards `?`
+  /// allowed, matching DB joker codes like `D00ABA60+????`).
   static String? validate(String family, String code) {
     final patterns = _patterns[family];
     if (patterns == null) return 'Unknown cheat family: $family';
@@ -53,10 +60,22 @@ abstract final class CheatValidators {
     var lineNo = 0;
     for (final line in lines) {
       lineNo++;
-      final normalized = line.replaceAll(' ', '');
-      final ok = patterns.any((p) => p.hasMatch(line) || p.hasMatch(normalized));
-      if (!ok) return 'Line $lineNo is not a valid $family code';
+      if (_matchesLine(patterns, line)) continue;
+      return 'Line $lineNo is not a valid $family code';
     }
     return null;
+  }
+
+  static final RegExp _multiSegment = RegExp(r'^[0-9A-Fa-f?]{4}$|^[0-9A-Fa-f?]{8}$');
+
+  static bool _matchesLine(List<RegExp> patterns, String line) {
+    final normalized = line.replaceAll(' ', '');
+    if (patterns.any((p) => p.hasMatch(line) || p.hasMatch(normalized))) {
+      return true;
+    }
+    if (!normalized.contains('+')) return false;
+    final segments = normalized.split('+').where((s) => s.isNotEmpty);
+    if (segments.isEmpty) return false;
+    return segments.every((s) => _multiSegment.hasMatch(s));
   }
 }

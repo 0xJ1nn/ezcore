@@ -52,4 +52,57 @@ class GameEntry {
       stateCount: stateCount ?? this.stateCount,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'system': system,
+        'filePath': filePath,
+        'extension': extension,
+        'fileSize': fileSize,
+        'sha1': sha1,
+        'favorite': favorite,
+        'coreId': coreId,
+        'lastPlayedMs': lastPlayedMs,
+        'cheatsOn': cheatsOn,
+        'stateCount': stateCount,
+      };
+
+  factory GameEntry.fromJson(Map<String, dynamic> json) => GameEntry(
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        system: json['system'] as String? ?? '',
+        filePath: json['filePath'] as String? ?? '',
+        extension: json['extension'] as String? ?? '',
+        fileSize: json['fileSize'] as int? ?? 0,
+        sha1: json['sha1'] as String? ?? '',
+        favorite: json['favorite'] as bool? ?? false,
+        coreId: json['coreId'] as String? ?? '',
+        lastPlayedMs: json['lastPlayedMs'] as int? ?? 0,
+        cheatsOn: json['cheatsOn'] as int? ?? 0,
+        stateCount: json['stateCount'] as int? ?? 0,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameEntry &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          system == other.system &&
+          filePath == other.filePath &&
+          extension == other.extension &&
+          fileSize == other.fileSize &&
+          sha1 == other.sha1 &&
+          favorite == other.favorite &&
+          coreId == other.coreId &&
+          lastPlayedMs == other.lastPlayedMs &&
+          cheatsOn == other.cheatsOn &&
+          stateCount == other.stateCount;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, system, filePath, extension, fileSize, sha1,
+          favorite, coreId, lastPlayedMs, cheatsOn, stateCount);
 }
