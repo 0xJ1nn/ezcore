@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # v1 platform matrix (docs/MATRIX.md). Per-PR legs stay under ~30 min;
 # the full core matrix builds on schedule (see .github/workflows/matrix.yml).
 jobs:

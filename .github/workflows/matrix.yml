@@ -5,6 +5,10 @@ on:
     - cron: '0 6 * * 1' # Mondays: full core matrix, not per-PR
   workflow_dispatch:
 
+concurrency:
+  group: full-matrix
+  cancel-in-progress: false
+
 # Builds EVERYTHING and records pins. Failures here never block PRs;
 # results go to docs/MATRIX.md via reviewed PRs (pin diffs are evidence).
 jobs:

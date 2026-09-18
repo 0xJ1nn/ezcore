@@ -1,0 +1,22 @@
+# Normalize line endings for text files; leave binaries untouched.
+* text=auto
+
+# Binaries
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ttf binary
+*.otf binary
+*.keystore binary
+*.jks binary
+*.dylib binary
+*.so binary
+*.dll binary
+*.a binary
+*.o binary
+
+# Language stats: docs and design material are not "code".
+*.md linguist-documentation
+design/** linguist-documentation
+docs/** linguist-documentation
