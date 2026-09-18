@@ -33,7 +33,8 @@
     "ios": "bundled"
   },
   "artifacts": {
-    "macos-arm64": "00c2fcd421cce73754e4492233232ccede2428bcdbdb9553205fceda95fbb6a4"
+    "macos-arm64": "00c2fcd421cce73754e4492233232ccede2428bcdbdb9553205fceda95fbb6a4",
+    "android-arm64": "87edabceae53679b026a54dfd1420301be500d9a3e82e24998ab31047a1ee7b7"
   },
   "execution": {
     "macos": "interpreter",

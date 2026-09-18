@@ -100,7 +100,9 @@ case "$PLATFORM" in
       esac
     done
     [ -z "${EZCORE_KEYSTORE_FILE:-}" ] && echo "WARN: no keystore env; debug-signed APK (not for stores)"
-    gate flutter build apk --release
+    # arm64-only: the cores are arm64-v8a; a fat APK would claim 32-bit and
+    # x86_64 device support it cannot deliver (no cores for those ABIs).
+    gate flutter build apk --release --target-platform android-arm64
     ;;
   ios)
     # No codesign path yet (needs EZCORE_IOS_SIGNING_IDENTITY + embedded

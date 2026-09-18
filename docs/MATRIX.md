@@ -33,7 +33,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | beetle_pce | IDENTIFIES | BUILT | BUILT | — | — | Android needed `-lrt` wrapper (NDK has no librt) |
 | dosbox_pure | IDENTIFIES | BUILT | BUILT | — | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
 | fbneo | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
-| scummvm | IDENTIFIES | — | — | — | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); desktop only for now |
+| scummvm | IDENTIFIES | — | BUILT | — | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
 | swanstation | IDENTIFIES | — | — | — | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
 | mupen64plus | IDENTIFIES | — | — | — | — | Same GL caveat (Angrylion path needs core options = ABI v2) |
 | melonds | IDENTIFIES | — | — | — | — | Same GL caveat (software renderer needs core options) |
