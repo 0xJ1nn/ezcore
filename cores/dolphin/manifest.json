@@ -26,7 +26,7 @@
   ],
   "bios_required": false,
   "bios_files": [
-    "IPL.bin (optional, HLE default — user-supplied only, hash-gated)"
+    "IPL.bin"
   ],
   "execution": {
     "macos": "dynarec",
@@ -44,5 +44,6 @@
   },
   "artifacts": {
     "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
-  }
+  },
+  "bios_notes": "Optional — HLE default. User-supplied only."
 }

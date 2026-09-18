@@ -26,7 +26,7 @@
   "bios_required": true,
   "bios_files": [
     "dc_boot.bin",
-    "dc_flash.bin (user-supplied, hash-gated)"
+    "dc_flash.bin"
   ],
   "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
   "delivery": {
@@ -45,5 +45,6 @@
     "linux": "dynarec",
     "android": "dynarec",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "User-supplied; presence-gated at boot."
 }

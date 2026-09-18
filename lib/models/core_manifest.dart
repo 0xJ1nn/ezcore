@@ -57,11 +57,22 @@ class CoreManifest {
       artifacts: _strMap(json['artifacts']),
       homepage: json['homepage'] as String? ?? '',
       biosRequired: json['bios_required'] as bool? ?? false,
-      biosFiles: _strList(json['bios_files']),
+      biosFiles: _biosNames(json['bios_files']),
       blockedReason: json['blocked_reason'] as String? ?? '',
       execution: _strMap(json['execution']),
     );
   }
+
+  /// BIOS entries are filenames. Manifests may carry a human note in
+  /// parentheses after the name (e.g. `sega_101.bin (user-supplied)`) —
+  /// the app checks for real files on disk, so keep only the bare name.
+  static List<String> _biosNames(dynamic v) => _strList(v)
+      .map((e) {
+        final i = e.indexOf(' (');
+        return (i > 0 ? e.substring(0, i) : e).trim();
+      })
+      .where((e) => e.isNotEmpty)
+      .toList();
 
   Map<String, dynamic> toJson() => {
         'id': id,

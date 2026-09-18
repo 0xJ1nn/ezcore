@@ -33,6 +33,30 @@ mkdir -p "$OUT"
 gate() { echo "-- $*"; "$@"; }
 fail() { echo "release: ERROR: $*" >&2; exit 1; }
 
+# Prints the ids whose manifest promises this OS a bundled artifact.
+# release.sh ships exactly the delivery map — a core that is staged but
+# marked absent for this OS (e.g. fbneo, held pending review) stays out
+# of the bundle even though its artifact is present locally.
+bundled_ids() { # $1 = os key
+  python3 - "$1" "$ROOT" <<'PY'
+import glob, json, os, sys
+osname, root = sys.argv[1], sys.argv[2]
+for f in sorted(glob.glob(os.path.join(root, "cores", "*", "manifest.json"))):
+    m = json.load(open(f))
+    if m.get("delivery", {}).get(osname) == "bundled":
+        print(m["id"])
+PY
+}
+
+stage_bundled() { # $1 = cores_out dir, $2 = os key, $3 = dest dir
+  local out="$1" os="$2" dest="$3" id
+  for id in $(bundled_ids "$os"); do
+    [ -d "$out/$id" ] || fail "delivery promises $os bundle for $id but it is not staged"
+    gate cp -R "$out/$id" "$dest/"
+  done
+  echo "  bundled for $os: $(bundled_ids "$os" | tr '\n' ' ')"
+}
+
 echo "== ezCORE $VERSION for $PLATFORM =="
 
 # 1. data gates
@@ -65,8 +89,12 @@ case "$PLATFORM" in
     gate cp "$RUNTIME_OUT/libezcore_runtime.so" \
       "$ROOT/android/app/src/main/jniLibs/arm64-v8a/"
     for d in "$CORES_OUT"/*/; do
-      gate cp "$d"*_libretro.so \
-        "$ROOT/android/app/src/main/jniLibs/arm64-v8a/" 2>/dev/null || true
+      id="$(basename "$d")"
+      case " $(bundled_ids android | tr '\n' ' ') " in
+        *" $id "*) gate cp "$d"*_libretro.so \
+          "$ROOT/android/app/src/main/jniLibs/arm64-v8a/" 2>/dev/null || true ;;
+        *) echo "  skip $id (not promised for android)" ;;
+      esac
     done
     [ -z "${EZCORE_KEYSTORE_FILE:-}" ] && echo "WARN: no keystore env; debug-signed APK (not for stores)"
     gate flutter build apk --release
@@ -89,7 +117,7 @@ case "$PLATFORM" in
     [ -d "$APP" ] || fail "missing $APP"
     gate cp "$RUNTIME_OUT/libezcore_runtime.dylib" "$APP/Contents/Frameworks/"
     gate mkdir -p "$APP/Contents/Resources/ezcore/cores"
-    gate cp -R "$CORES_OUT/" "$APP/Contents/Resources/ezcore/cores/"
+    stage_bundled "$CORES_OUT" macos "$APP/Contents/Resources/ezcore/cores"
     if [ -n "${EZCORE_CODESIGN_IDENTITY:-}" ]; then
       gate codesign --deep --force --options runtime -s "$EZCORE_CODESIGN_IDENTITY" "$APP"
     else
@@ -101,14 +129,14 @@ case "$PLATFORM" in
     DIST="$ROOT/build/windows/x64/runner/Release"
     [ -d "$DIST" ] || fail "missing $DIST"
     gate cp "$RUNTIME_OUT/libezcore_runtime.dll" "$DIST/"
-    gate mkdir -p "$DIST/cores" && gate cp -R "$CORES_OUT/" "$DIST/cores/"
+    gate mkdir -p "$DIST/cores" && stage_bundled "$CORES_OUT" windows "$DIST/cores"
     (cd "$ROOT/build/windows/x64/runner" && zip -qr "$OUT/ezcore-$VERSION-windows-x64.zip" Release)
     ;;
   linux)
     DIST="$ROOT/build/linux/x64/release/bundle"
     [ -d "$DIST" ] || fail "missing $DIST"
     gate cp "$RUNTIME_OUT/libezcore_runtime.so" "$DIST/"
-    gate mkdir -p "$DIST/cores" && gate cp -R "$CORES_OUT/" "$DIST/cores/"
+    gate mkdir -p "$DIST/cores" && stage_bundled "$CORES_OUT" linux "$DIST/cores"
     (cd "$ROOT/build/linux/x64/release" && tar -czf "$OUT/ezcore-$VERSION-linux-x64.tar.gz" bundle)
     ;;
   android)

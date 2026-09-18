@@ -84,13 +84,15 @@ def _delivery(cid: str) -> "dict[str, str] | None":
     if cid.endswith("_hold"):
         return None
     if cid == "fbneo":
-        # Manifest-gated: desktop/Android installable only, and only after
-        # the review/posture conditions in gated_reason are met.
+        # Held from shipping for v0.1.0: its gated_reason requires IP-lawyer
+        # review + compat-allowlist + no-CHD posture first (see manifest and
+        # docs/MATRIX.md). Staged + pinned for CI, but no OS promises a
+        # bundle until those conditions are met.
         return {
-            "macos": "bundled",
-            "windows": "bundled",
-            "linux": "bundled",
-            "android": "bundled",
+            "macos": "absent",
+            "windows": "absent",
+            "linux": "absent",
+            "android": "absent",
             "ios": "absent",
         }
     return {

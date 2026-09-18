@@ -15,16 +15,16 @@
   ],
   "cheats_supported": false,
   "cheat_families": [],
-  "bios_required": true,
+  "bios_required": false,
   "bios_files": [
-    "neogeo.zip and per-board BIOS (user-supplied, hash-gated)"
+    "neogeo.zip"
   ],
   "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB — ship subset builds (neogeo/cps) to slim distribution.",
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
-    "android": "bundled",
+    "macos": "absent",
+    "windows": "absent",
+    "linux": "absent",
+    "android": "absent",
     "ios": "absent"
   },
   "artifacts": {
@@ -36,5 +36,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "Neo Geo sets need neogeo.zip plus per-board BIOS; plain arcade sets boot without BIOS. User-supplied."
 }

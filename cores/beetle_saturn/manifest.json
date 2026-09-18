@@ -23,7 +23,7 @@
   "bios_required": true,
   "bios_files": [
     "sega_101.bin",
-    "mpr-17933.bin (user-supplied, hash-gated)"
+    "mpr-17933.bin"
   ],
   "notes": "Desktop/Android first — needs strong CPU. iOS absent at launch.",
   "delivery": {
@@ -42,5 +42,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "User-supplied; presence-gated at boot."
 }

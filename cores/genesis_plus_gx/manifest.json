@@ -32,7 +32,8 @@
   ],
   "bios_required": false,
   "bios_files": [
-    "bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"
+    "bios_MD.bin",
+    "bios_SMS.bin"
   ],
   "delivery": {
     "macos": "bundled",
@@ -50,5 +51,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "Optional. User-supplied."
 }

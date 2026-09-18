@@ -21,7 +21,7 @@
   "bios_files": [
     "bios7.bin",
     "bios9.bin",
-    "firmware.bin (user-supplied, hash-gated)"
+    "firmware.bin"
   ],
   "execution": {
     "macos": "dynarec",
@@ -40,5 +40,6 @@
   },
   "artifacts": {
     "macos-arm64": "be8dc598de6fdd8bfccc5c59e393c00ef21194c8517bff4a52fcf452dcce3a9c"
-  }
+  },
+  "bios_notes": "User-supplied; presence-gated at boot."
 }

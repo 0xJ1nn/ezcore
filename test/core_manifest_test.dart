@@ -19,6 +19,25 @@ void main() {
     expect(_base().validate(), isEmpty);
   });
 
+  test('bios entries are normalized to bare filenames', () {
+    // Manifests historically carried notes in parentheses after the name;
+    // those can never match a file on disk, so parsing strips them.
+    final m = CoreManifest.fromJson({
+      'id': 'probe',
+      'name': 'Probe',
+      'version': '1',
+      'license': 'MIT',
+      'systems': ['pce'],
+      'extensions': ['pce'],
+      'bios_required': true,
+      'bios_files': [
+        'syscard3.pce (CD titles only, user-supplied, hash-gated)',
+        'sega_101.bin',
+      ],
+    });
+    expect(m.biosFiles, ['syscard3.pce', 'sega_101.bin']);
+  });
+
   test('round-trips through json', () {
     final m = CoreManifest.fromJson(_base().toJson());
     expect(m.id, 'mgba');

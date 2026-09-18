@@ -21,9 +21,9 @@
   ],
   "cheats_supported": false,
   "cheat_families": [],
-  "bios_required": true,
+  "bios_required": false,
   "bios_files": [
-    "syscard3.pce (CD titles only, user-supplied, hash-gated)"
+    "syscard3.pce"
   ],
   "delivery": {
     "macos": "bundled",
@@ -41,5 +41,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "PC Engine CD titles need syscard3.pce (user-supplied). HuCard titles boot without it; the core reports missing firmware at load."
 }

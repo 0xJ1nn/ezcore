@@ -23,7 +23,9 @@
   ],
   "bios_required": false,
   "bios_files": [
-    "scph5500.bin / scph5501.bin / scph5502.bin (optional — OpenBIOS fallback built in; user-supplied files hash-gated)"
+    "scph5500.bin",
+    "scph5501.bin",
+    "scph5502.bin"
   ],
   "execution": {
     "macos": "dynarec",
@@ -42,5 +44,6 @@
   },
   "artifacts": {
     "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
-  }
+  },
+  "bios_notes": "Optional — OpenBIOS fallback built in. Any one of the three. User-supplied."
 }

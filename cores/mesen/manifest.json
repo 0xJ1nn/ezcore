@@ -22,7 +22,7 @@
   ],
   "bios_required": false,
   "bios_files": [
-    "disksys.rom (FDS only, user-supplied, hash-gated)"
+    "disksys.rom"
   ],
   "delivery": {
     "macos": "bundled",
@@ -40,5 +40,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "bios_notes": "FDS only, optional. User-supplied."
 }

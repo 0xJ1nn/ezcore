@@ -4,9 +4,10 @@
       "macos-arm64": "d0a5add1e15acff5bf315a78f679627e24f5acbf9d7482f565c76155787196b5"
     },
     "bios_files": [
-      "syscard3.pce (CD titles only, user-supplied, hash-gated)"
+      "syscard3.pce"
     ],
-    "bios_required": true,
+    "bios_notes": "PC Engine CD titles need syscard3.pce (user-supplied). HuCard titles boot without it; the core reports missing firmware at load.",
+    "bios_required": false,
     "cheat_families": [],
     "cheats_supported": false,
     "delivery": {
@@ -50,8 +51,9 @@
     },
     "bios_files": [
       "sega_101.bin",
-      "mpr-17933.bin (user-supplied, hash-gated)"
+      "mpr-17933.bin"
     ],
+    "bios_notes": "User-supplied; presence-gated at boot.",
     "bios_required": true,
     "cheat_families": [
       "saturn_gameshark"
@@ -119,8 +121,9 @@
       "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
     },
     "bios_files": [
-      "IPL.bin (optional, HLE default \u2014 user-supplied only, hash-gated)"
+      "IPL.bin"
     ],
+    "bios_notes": "Optional \u2014 HLE default. User-supplied only.",
     "bios_required": false,
     "cheat_families": [
       "gc_gecko"
@@ -208,17 +211,18 @@
       "macos-arm64": "28f88a4a5c3aa80bf703ee1caeae8fe110ce8fed34b6690e7dc2d8448e1a11cc"
     },
     "bios_files": [
-      "neogeo.zip and per-board BIOS (user-supplied, hash-gated)"
+      "neogeo.zip"
     ],
-    "bios_required": true,
+    "bios_notes": "Neo Geo sets need neogeo.zip plus per-board BIOS; plain arcade sets boot without BIOS. User-supplied.",
+    "bios_required": false,
     "cheat_families": [],
     "cheats_supported": false,
     "delivery": {
-      "android": "bundled",
+      "android": "absent",
       "ios": "absent",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "linux": "absent",
+      "macos": "absent",
+      "windows": "absent"
     },
     "execution": {
       "android": "interpreter",
@@ -249,8 +253,9 @@
     },
     "bios_files": [
       "dc_boot.bin",
-      "dc_flash.bin (user-supplied, hash-gated)"
+      "dc_flash.bin"
     ],
+    "bios_notes": "User-supplied; presence-gated at boot.",
     "bios_required": true,
     "cheat_families": [
       "dc_codebreaker"
@@ -339,8 +344,10 @@
       "macos-arm64": "c17c2d6a623206ff4f67486a15cf62676e802c4aba947aaebe70f66249b5a8b8"
     },
     "bios_files": [
-      "bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"
+      "bios_MD.bin",
+      "bios_SMS.bin"
     ],
+    "bios_notes": "Optional. User-supplied.",
     "bios_required": false,
     "cheat_families": [
       "genesis_gamegenie",
@@ -395,8 +402,9 @@
     "bios_files": [
       "bios7.bin",
       "bios9.bin",
-      "firmware.bin (user-supplied, hash-gated)"
+      "firmware.bin"
     ],
+    "bios_notes": "User-supplied; presence-gated at boot.",
     "bios_required": true,
     "cheat_families": [
       "nds_actionreplay"
@@ -437,8 +445,9 @@
       "macos-arm64": "c5fea1421f45e802638f9caf8f975c7a8ebae5a4033568d9a57d4f203ea2b01c"
     },
     "bios_files": [
-      "disksys.rom (FDS only, user-supplied, hash-gated)"
+      "disksys.rom"
     ],
+    "bios_notes": "FDS only, optional. User-supplied.",
     "bios_required": false,
     "cheat_families": [
       "nes_gamegenie"
@@ -794,8 +803,11 @@
       "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
     },
     "bios_files": [
-      "scph5500.bin / scph5501.bin / scph5502.bin (optional \u2014 OpenBIOS fallback built in; user-supplied files hash-gated)"
+      "scph5500.bin",
+      "scph5501.bin",
+      "scph5502.bin"
     ],
+    "bios_notes": "Optional \u2014 OpenBIOS fallback built in. Any one of the three. User-supplied.",
     "bios_required": false,
     "cheat_families": [
       "ps1_gameshark"
