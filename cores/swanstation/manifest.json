@@ -6,15 +6,40 @@
   "license_url": "https://github.com/libretro/swanstation/blob/main/LICENSE",
   "homepage": "https://github.com/libretro/swanstation",
   "upstream": "libretro/swanstation",
-  "systems": ["psx"],
-  "extensions": ["cue", "ccd", "chd", "pbp", "iso", "m3u"],
+  "systems": [
+    "psx"
+  ],
+  "extensions": [
+    "cue",
+    "ccd",
+    "chd",
+    "pbp",
+    "iso",
+    "m3u"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["ps1_gameshark"],
+  "cheat_families": [
+    "ps1_gameshark"
+  ],
   "bios_required": false,
-  "bios_files": ["scph5500.bin / scph5501.bin / scph5502.bin (optional — OpenBIOS fallback built in; user-supplied files hash-gated)"],
-  "execution": {"ios": "interpreter", "android": "dynarec", "macos": "dynarec", "windows": "dynarec"},
+  "bios_files": [
+    "scph5500.bin / scph5501.bin / scph5502.bin (optional — OpenBIOS fallback built in; user-supplied files hash-gated)"
+  ],
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
   "notes": "Interpreter mode on iOS (no JIT). No HLE-BIOS piracy posture — import-only.",
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
   }

@@ -6,15 +6,37 @@
   "license_url": "https://github.com/hrydgard/ppsspp/blob/master/LICENSE.TXT",
   "homepage": "https://github.com/hrydgard/ppsspp",
   "upstream": "hrydgard/ppsspp (libretro build target)",
-  "systems": ["psp"],
-  "extensions": ["iso", "cso", "pbp", "elf", "prx"],
+  "systems": [
+    "psp"
+  ],
+  "extensions": [
+    "iso",
+    "cso",
+    "pbp",
+    "elf",
+    "prx"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["psp_cwcheat"],
+  "cheat_families": [
+    "psp_cwcheat"
+  ],
   "bios_required": false,
   "bios_files": [],
-  "execution": {"ios": "interpreter", "android": "dynarec", "macos": "dynarec", "windows": "dynarec"},
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
   "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch — on-demand download only, never base-app payload. No PSN/DRM features.",
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "fafcda858b57319aa92bc72353a933bec4f0095e67aadaba5c6081f9954e4321"
   }

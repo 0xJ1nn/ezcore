@@ -6,14 +6,37 @@
   "license_url": "https://github.com/LIJI32/SameBoy/blob/master/LICENSE",
   "homepage": "https://github.com/LIJI32/SameBoy",
   "upstream": "libretro/SameBoy (built from LIJI32/SameBoy)",
-  "systems": ["gb", "gbc"],
-  "extensions": ["gb", "gbc", "zip"],
+  "systems": [
+    "gb",
+    "gbc"
+  ],
+  "extensions": [
+    "gb",
+    "gbc",
+    "zip"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["gb_gameshark", "gb_gamegenie"],
+  "cheat_families": [
+    "gb_gameshark",
+    "gb_gamegenie"
+  ],
   "bios_required": false,
   "bios_files": [],
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
   "artifacts": {
     "macos-arm64": "9dfb1da7718f7a09a91903810312612cc8157e8209b95d3347d5f1f832f26795"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }

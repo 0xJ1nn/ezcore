@@ -6,14 +6,37 @@
   "license_url": "https://github.com/libretro/gambatte-libretro/blob/master/COPYING",
   "homepage": "https://github.com/libretro/gambatte-libretro",
   "upstream": "libretro/gambatte-libretro",
-  "systems": ["gb", "gbc"],
-  "extensions": ["gb", "gbc", "zip"],
+  "systems": [
+    "gb",
+    "gbc"
+  ],
+  "extensions": [
+    "gb",
+    "gbc",
+    "zip"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["gb_gameshark", "gb_gamegenie"],
+  "cheat_families": [
+    "gb_gameshark",
+    "gb_gamegenie"
+  ],
   "bios_required": false,
   "bios_files": [],
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
   "artifacts": {
     "macos-arm64": "7e77130b76f03657bdbd40d6fc8c78d0671c5773e934c66923a0a2c755eadf3f"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }

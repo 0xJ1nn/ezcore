@@ -6,15 +6,41 @@
   "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
   "homepage": "https://github.com/libretro/beetle-saturn-libretro",
   "upstream": "libretro/beetle-saturn-libretro",
-  "systems": ["saturn"],
-  "extensions": ["cue", "ccd", "chd", "iso", "m3u"],
-  "cheats_supported": false,
-  "cheat_families": [],
+  "systems": [
+    "saturn"
+  ],
+  "extensions": [
+    "cue",
+    "ccd",
+    "chd",
+    "iso",
+    "m3u"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "saturn_gameshark"
+  ],
   "bios_required": true,
-  "bios_files": ["sega_101.bin", "mpr-17933.bin (user-supplied, hash-gated)"],
+  "bios_files": [
+    "sega_101.bin",
+    "mpr-17933.bin (user-supplied, hash-gated)"
+  ],
   "notes": "Desktop/Android first — needs strong CPU. iOS absent at launch.",
-  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "18d49929f3a4a52029d3a93ef6cab528e02aa702e6f92c07fc7d2d640f12dc84"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }

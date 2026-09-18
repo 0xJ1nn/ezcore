@@ -6,15 +6,42 @@
   "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
   "homepage": "https://github.com/dolphin-emu/dolphin",
   "upstream": "libretro/dolphin",
-  "systems": ["gc", "wii"],
-  "extensions": ["iso", "gcm", "ciso", "wbfs", "rvz", "elf", "dol", "wad"],
+  "systems": [
+    "gc",
+    "wii"
+  ],
+  "extensions": [
+    "iso",
+    "gcm",
+    "ciso",
+    "wbfs",
+    "rvz",
+    "elf",
+    "dol",
+    "wad"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["gc_gecko"],
+  "cheat_families": [
+    "gc_gecko"
+  ],
   "bios_required": false,
-  "bios_files": ["IPL.bin (optional, HLE default — user-supplied only, hash-gated)"],
-  "execution": {"android": "dynarec", "macos": "dynarec", "windows": "dynarec"},
+  "bios_files": [
+    "IPL.bin (optional, HLE default — user-supplied only, hash-gated)"
+  ],
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec"
+  },
   "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
-  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
   }

@@ -6,14 +6,37 @@
   "license_url": "https://github.com/snes9xgit/snes9x/blob/master/docs/snes9x-license.txt",
   "homepage": "https://github.com/snes9xgit/snes9x",
   "upstream": "libretro/snes9x",
-  "systems": ["snes"],
-  "extensions": ["sfc", "smc", "fig", "zip"],
+  "systems": [
+    "snes"
+  ],
+  "extensions": [
+    "sfc",
+    "smc",
+    "fig",
+    "zip"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["snes_gamegenie", "snes_proactionreplay"],
+  "cheat_families": [
+    "snes_gamegenie",
+    "snes_proactionreplay"
+  ],
   "bios_required": false,
   "bios_files": [],
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
   "artifacts": {
     "macos-arm64": "7e3b40f041627a59f18a880cb5e45dcbe1c859d53934c640166c1774dcd7ef05"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }

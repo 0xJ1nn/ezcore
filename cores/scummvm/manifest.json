@@ -6,13 +6,31 @@
   "license_url": "https://github.com/scummvm/scummvm/blob/master/COPYING",
   "homepage": "https://github.com/scummvm/scummvm",
   "upstream": "scummvm/scummvm (libretro port in-tree)",
-  "systems": ["scumm"],
-  "extensions": ["scummvm", "zip"],
+  "systems": [
+    "scumm"
+  ],
+  "extensions": [
+    "scummvm",
+    "zip"
+  ],
   "cheats_supported": false,
   "cheat_families": [],
   "bios_required": false,
   "bios_files": [],
   "notes": "Needs user-owned game data files. Great iOS citizen, zero console-IP surface.",
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
-  "artifacts": {}
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
+  "artifacts": {},
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  }
 }

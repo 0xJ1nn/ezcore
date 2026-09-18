@@ -6,15 +6,44 @@
   "license_url": "https://github.com/flyinghead/flycast/blob/master/LICENSE",
   "homepage": "https://github.com/flyinghead/flycast",
   "upstream": "flyinghead/flycast (libretro build target)",
-  "systems": ["dc", "naomi"],
-  "extensions": ["cdi", "gdi", "chd", "cue", "zip", "lst", "bin"],
+  "systems": [
+    "dc",
+    "naomi"
+  ],
+  "extensions": [
+    "cdi",
+    "gdi",
+    "chd",
+    "cue",
+    "zip",
+    "lst",
+    "bin"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["dc_codebreaker"],
+  "cheat_families": [
+    "dc_codebreaker"
+  ],
   "bios_required": true,
-  "bios_files": ["dc_boot.bin", "dc_flash.bin (user-supplied, hash-gated)"],
+  "bios_files": [
+    "dc_boot.bin",
+    "dc_flash.bin (user-supplied, hash-gated)"
+  ],
   "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "11bf47b40e704d245128d46705848b803bf70f6dabde41ce763d664a604eadfb"
+  },
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
   }
 }

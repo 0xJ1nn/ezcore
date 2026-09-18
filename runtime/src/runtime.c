@@ -1,10 +1,10 @@
 /* ezCore runtime — loads a libretro core dylib and forwards the session API.
- * Desktop/Android path: dlopen at runtime after sha256 verification.
+ * Desktop/Android path: dynload seam at runtime after sha256 verification.
  * iOS path: cores are linked/bundled; ezcore_load resolves bundled symbols.
  */
 #include "ezcore_runtime.h"
 
-#include <dlfcn.h>
+#include "dynload.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +23,7 @@ struct ezcore_session {
   void (*retro_get_system_av_info)(struct retro_system_av_info *);
   bool (*retro_load_game)(const struct retro_game_info *);
   void (*retro_run)(void);
+  void (*retro_reset)(void);
   void (*retro_cheat_reset)(void);
   void (*retro_cheat_set)(unsigned, bool, const char *);
   /* Save states are core-optional: NULL-checked at every call. */
@@ -36,6 +37,8 @@ struct ezcore_session {
   /* audio ring (stereo s16) */
   int16_t *audio;
   size_t audio_cap, audio_len;
+  /* input state: per-port button bitmask (up to 4 ports) */
+  uint32_t input_buttons[4];
   char name[128];
   char version[64];
   bool game_loaded;
@@ -173,8 +176,16 @@ static size_t audio_batch_cb(const int16_t *data, size_t frames) {
 }
 
 static void input_poll_cb(void) {}
-static int16_t input_state_cb(unsigned a, unsigned b, unsigned c, unsigned d) {
-  (void)a; (void)b; (void)c; (void)d;
+
+/* Reads from g_active->input_buttons[port] so the host can drive input. */
+static int16_t input_state_cb(unsigned port, unsigned device,
+                              unsigned index, unsigned id) {
+  (void)index;
+  if (!g_active || device != RETRO_DEVICE_JOYPAD || port >= 4) return 0;
+  uint32_t mask = g_active->input_buttons[port];
+  if (id < 16) return (int16_t)((mask >> id) & 1);
+  /* RETRO_DEVICE_ID_JOYPAD_MASK: return full bitmask */
+  if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return (int16_t)mask;
   return 0;
 }
 
@@ -184,10 +195,10 @@ int ezcore_abi_version(void) { return EZCORE_ABI_VERSION; }
 
 #define LOAD_SYM(s, field, sym)                                  \
   do {                                                           \
-    s->field = dlsym(s->handle, sym);                            \
+    s->field = ez_dyn_sym(s->handle, sym);                       \
     if (!s->field) {                                             \
       snprintf(err, err_len, "core missing symbol: %s", sym);    \
-      dlclose(s->handle);                                        \
+      ez_dyn_close(s->handle);                                   \
       free(s);                                                   \
       return NULL;                                               \
     }                                                            \
@@ -197,9 +208,8 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   ezcore_session *s = calloc(1, sizeof(*s));
   if (!s) return NULL;
   snprintf(s->core_path, sizeof(s->core_path), "%s", core_path);
-  s->handle = dlopen(core_path, RTLD_NOW | RTLD_LOCAL);
+  s->handle = ez_dyn_open(core_path, err, err_len);
   if (!s->handle) {
-    snprintf(err, err_len, "dlopen failed: %s", dlerror());
     free(s);
     return NULL;
   }
@@ -210,16 +220,17 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   LOAD_SYM(s, retro_get_system_av_info, "retro_get_system_av_info");
   LOAD_SYM(s, retro_load_game, "retro_load_game");
   LOAD_SYM(s, retro_run, "retro_run");
+  LOAD_SYM(s, retro_reset, "retro_reset");
   LOAD_SYM(s, retro_cheat_reset, "retro_cheat_reset");
   LOAD_SYM(s, retro_cheat_set, "retro_cheat_set");
   /* Save-state entry points are core-optional (older cores may omit them). */
-  s->retro_serialize_size = dlsym(s->handle, "retro_serialize_size");
-  s->retro_serialize = dlsym(s->handle, "retro_serialize");
-  s->retro_unserialize = dlsym(s->handle, "retro_unserialize");
+  s->retro_serialize_size = ez_dyn_sym(s->handle, "retro_serialize_size");
+  s->retro_serialize = ez_dyn_sym(s->handle, "retro_serialize");
+  s->retro_unserialize = ez_dyn_sym(s->handle, "retro_unserialize");
 
   if (s->retro_api_version() != 1) {
     snprintf(err, err_len, "unsupported libretro API version");
-    dlclose(s->handle);
+    ez_dyn_close(s->handle);
     free(s);
     return NULL;
   }
@@ -231,20 +242,28 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
            info.library_version ? info.library_version : "?");
 
   void (*set_env)(retro_environment_t) =
-      dlsym(s->handle, "retro_set_environment");
+      ez_dyn_sym(s->handle, "retro_set_environment");
   void (*set_video)(retro_video_refresh_t) =
-      dlsym(s->handle, "retro_set_video_refresh");
+      ez_dyn_sym(s->handle, "retro_set_video_refresh");
   void (*set_audio)(retro_audio_sample_t) =
-      dlsym(s->handle, "retro_set_audio_sample");
+      ez_dyn_sym(s->handle, "retro_set_audio_sample");
   void (*set_audio_batch)(retro_audio_sample_batch_t) =
-      dlsym(s->handle, "retro_set_audio_sample_batch");
+      ez_dyn_sym(s->handle, "retro_set_audio_sample_batch");
   void (*set_poll)(retro_input_poll_t) =
-      dlsym(s->handle, "retro_set_input_poll");
+      ez_dyn_sym(s->handle, "retro_set_input_poll");
   void (*set_state)(retro_input_state_t) =
-      dlsym(s->handle, "retro_set_input_state");
+      ez_dyn_sym(s->handle, "retro_set_input_state");
 
+  /* audio_cap is in FRAMES (stereo frame = 2 int16_t = 4 bytes).
+   * Buffer bytes = audio_cap * 2 * sizeof(int16_t) = audio_cap * 4. */
   s->audio_cap = 8192;
   s->audio = malloc(s->audio_cap * 2 * sizeof(int16_t));
+  if (!s->audio) {
+    snprintf(err, err_len, "audio buffer alloc failed");
+    ez_dyn_close(s->handle);
+    free(s);
+    return NULL;
+  }
   s->pixfmt = RETRO_PIXEL_FORMAT_0RGB1555; /* libretro default */
   g_active = s;
 
@@ -272,8 +291,11 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
 void ezcore_unload(ezcore_session *s) {
   if (!s) return;
   if (g_active == s) g_active = NULL;
-  s->retro_deinit();
-  dlclose(s->handle);
+  if (s->inited) {
+    s->retro_deinit();
+    s->inited = false;
+  }
+  ez_dyn_close(s->handle);
   free(s->frame);
   free(s->audio);
   free(s);
@@ -304,6 +326,12 @@ void ezcore_run_frame(ezcore_session *s) {
   s->retro_run();
 }
 
+/* Reset the currently loaded game. Safe to call only after load_game. */
+void ezcore_reset(ezcore_session *s) {
+  if (!s || !s->game_loaded || !s->retro_reset) return;
+  s->retro_reset();
+}
+
 const char *ezcore_core_name(ezcore_session *s) { return s ? s->name : "?"; }
 const char *ezcore_core_version(ezcore_session *s) { return s ? s->version : "?"; }
 
@@ -327,6 +355,15 @@ void ezcore_system_geometry(ezcore_session *s, unsigned *w, unsigned *h,
   if (fps) *fps = av.timing.fps;
 }
 
+/* Sample rate from AV timing (valid after load_game). Returns 0 if unavailable. */
+double ezcore_sample_rate(ezcore_session *s) {
+  if (!s || !s->game_loaded) return 0.0;
+  struct retro_system_av_info av;
+  memset(&av, 0, sizeof(av));
+  s->retro_get_system_av_info(&av);
+  return av.timing.sample_rate;
+}
+
 void ezcore_cheat_reset(ezcore_session *s) {
   if (s) s->retro_cheat_reset();
 }
@@ -338,6 +375,50 @@ bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
   return true;
 }
 
+void ezcore_set_button(ezcore_session *s, unsigned port, unsigned button_id,
+                    bool pressed) {
+  if (!s || port >= 4 || button_id >= 16) return;
+  if (pressed)
+    s->input_buttons[port] |= (1u << button_id);
+  else
+    s->input_buttons[port] &= ~(1u << button_id);
+}
+
+/* Clear all buttons for a port. */
+void ezcore_clear_buttons(ezcore_session *s, unsigned port) {
+  if (!s || port >= 4) return;
+  s->input_buttons[port] = 0;
+}
+
+/* --- Safe frame/audio access (copies) --- */
+
+/* Copies the latest frame's pixels into `out` as RGBA bytes.
+ * `out` must be at least width*height*4 bytes.
+ * Returns the number of bytes copied (width*height*4), or 0 if no frame yet. */
+size_t ezcore_frame_pixels_copy(ezcore_session *s, uint8_t *out,
+                             size_t out_size) {
+  if (!s || !out) return 0;
+  size_t need = (size_t)s->frame_w * s->frame_h * 4;
+  if (need == 0 || need > out_size) return 0;
+  for (size_t i = 0; i < need / 4; ++i) {
+    uint32_t pixel = s->frame[i];
+    out[i * 4] = (uint8_t)(pixel >> 16);
+    out[i * 4 + 1] = (uint8_t)(pixel >> 8);
+    out[i * 4 + 2] = (uint8_t)pixel;
+    out[i * 4 + 3] = 255;
+  }
+  return need;
+}
+
+/* Returns width/height of latest frame. 0 when no frame yet. */
+void ezcore_frame_size(ezcore_session *s, unsigned *w, unsigned *h) {
+  if (!s) { if (w) *w = 0; if (h) *h = 0; return; }
+  if (w) *w = s->frame_w;
+  if (h) *h = s->frame_h;
+}
+
+/* Returns a const pointer to the latest frame (XRGB8888). Use for fast access
+ * when the frame is only read. Do NOT free. */
 const uint32_t *ezcore_frame_pixels(ezcore_session *s, unsigned *w, unsigned *h) {
   if (!s) return NULL;
   if (w) *w = s->frame_w;
@@ -345,6 +426,7 @@ const uint32_t *ezcore_frame_pixels(ezcore_session *s, unsigned *w, unsigned *h)
   return s->frame;
 }
 
+/* Audio: frames appended by the audio batch callback; drained by player. */
 size_t ezcore_audio_drain(ezcore_session *s, int16_t *out, size_t frames) {
   if (!s || !out) return 0;
   size_t n = s->audio_len < frames ? s->audio_len : frames;
@@ -353,6 +435,19 @@ size_t ezcore_audio_drain(ezcore_session *s, int16_t *out, size_t frames) {
           (s->audio_len - n) * 2 * sizeof(int16_t));
   s->audio_len -= n;
   return n;
+}
+
+/* Drains up to `max_frames` stereo s16 samples into `out`.
+ * `out` must be at least max_frames * 2 * sizeof(int16_t) bytes.
+ * Returns number of frames actually drained. */
+size_t ezcore_audio_drain_copy(ezcore_session *s, int16_t *out,
+                            size_t max_frames) {
+  return ezcore_audio_drain(s, out, max_frames);
+}
+
+/* Current number of audio frames queued in the ring buffer. */
+size_t ezcore_audio_pending(ezcore_session *s) {
+  return s ? s->audio_len : 0;
 }
 
 /* Save states live in the runtime (local vault today, sync providers

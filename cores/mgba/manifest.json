@@ -6,14 +6,41 @@
   "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
   "homepage": "https://mgba.io",
   "upstream": "libretro/mgba",
-  "systems": ["gba", "gb", "gbc"],
-  "extensions": ["gba", "gb", "gbc", "zip"],
+  "systems": [
+    "gba",
+    "gb",
+    "gbc"
+  ],
+  "extensions": [
+    "gba",
+    "gb",
+    "gbc",
+    "zip"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["gba_actionreplay", "gba_codebreaker", "gba_gameshark", "gb_gameshark"],
+  "cheat_families": [
+    "gba_actionreplay",
+    "gba_codebreaker",
+    "gba_gameshark",
+    "gb_gameshark"
+  ],
   "bios_required": false,
   "bios_files": [],
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "8a256a29e19a9a2164f69000b77b6b8dc44a970b80d7ee332a6c3e3de5007670"
+  },
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
   }
 }

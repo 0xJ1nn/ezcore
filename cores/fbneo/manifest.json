@@ -6,15 +6,35 @@
   "license_url": "https://github.com/libretro/FBNeo/blob/master/src/license.txt",
   "homepage": "https://github.com/libretro/FBNeo",
   "upstream": "libretro/FBNeo",
-  "systems": ["arcade", "neogeo"],
-  "extensions": ["zip"],
+  "systems": [
+    "arcade",
+    "neogeo"
+  ],
+  "extensions": [
+    "zip"
+  ],
   "cheats_supported": false,
   "cheat_families": [],
   "bios_required": true,
-  "bios_files": ["neogeo.zip and per-board BIOS (user-supplied, hash-gated)"],
+  "bios_files": [
+    "neogeo.zip and per-board BIOS (user-supplied, hash-gated)"
+  ],
   "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB — ship subset builds (neogeo/cps) to slim distribution.",
-  "delivery": {"ios": "absent", "android": "download", "macos": "download", "windows": "download"},
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "absent"
+  },
   "artifacts": {
     "macos-arm64": "28f88a4a5c3aa80bf703ee1caeae8fe110ce8fed34b6690e7dc2d8448e1a11cc"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }

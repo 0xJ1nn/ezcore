@@ -6,14 +6,49 @@
   "license_url": "https://github.com/libretro/Genesis-Plus-GX",
   "homepage": "https://github.com/libretro/Genesis-Plus-GX",
   "upstream": "libretro/Genesis-Plus-GX",
-  "systems": ["genesis", "sms", "gg", "sg1000", "scd"],
-  "extensions": ["md", "gen", "sms", "gg", "sg", "iso", "cue", "chd", "zip"],
+  "systems": [
+    "genesis",
+    "sms",
+    "gg",
+    "sg1000",
+    "scd"
+  ],
+  "extensions": [
+    "md",
+    "gen",
+    "sms",
+    "gg",
+    "sg",
+    "iso",
+    "cue",
+    "chd",
+    "zip"
+  ],
   "cheats_supported": true,
-  "cheat_families": ["genesis_gamegenie", "genesis_actionreplay", "sms_actionreplay"],
+  "cheat_families": [
+    "genesis_gamegenie",
+    "genesis_actionreplay",
+    "sms_actionreplay"
+  ],
   "bios_required": false,
-  "bios_files": ["bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"],
-  "delivery": {"ios": "bundled", "android": "download", "macos": "download", "windows": "download"},
+  "bios_files": [
+    "bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"
+  ],
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
   "artifacts": {
     "macos-arm64": "c17c2d6a623206ff4f67486a15cf62676e802c4aba947aaebe70f66249b5a8b8"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
   }
 }
