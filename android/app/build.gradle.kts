@@ -20,6 +20,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // arm64-v8a only: the emulator cores ship for arm64 alone, so the
+        // APK must not advertise armeabi-v7a/x86_64 support (stray
+        // libdartjni copies would otherwise claim it, and an armv7 device
+        // would install an app whose flutter lib isn't there). Cores are
+        // arm64-only by design; the Android dev loop targets arm64
+        // emulators (Apple Silicon) or devices.
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     // Cores + runtime dlopen by absolute path from the native library dir,
@@ -27,6 +36,18 @@ android {
     packagingOptions {
         jniLibs {
             useLegacyPackaging = true
+            // arm64-v8a only: the emulator cores ship for arm64 alone. AAR
+            // dependencies drag in stray non-arm64 copies (libdartjni.so)
+            // that make the APK advertise armeabi-v7a/x86_64 device
+            // support it cannot deliver — an armv7 device would install an
+            // app whose Flutter libs aren't there. abiFilters is not
+            // reliably applied to dependency jniLibs, so exclude by path.
+            excludes += listOf(
+                "lib/armeabi-v7a/**",
+                "lib/x86_64/**",
+                "**/armeabi-v7a/**",
+                "**/x86_64/**",
+            )
         }
     }
 

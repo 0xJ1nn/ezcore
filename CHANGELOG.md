@@ -21,10 +21,10 @@ at the top of [`README.md`](README.md).
   buffers, input, save states, SRAM handoff, cheats; POSIX/Win32 dynload
   seam with sha256 verification before load; `fork()`-isolated native boot
   tests with a synthetic core (no ROMs needed).
-- **Modular core system** — 18 shippable libretro cores with per-core
+- **Modular core system** — 18 built libretro cores with per-core
   manifests (license, pins, execution policy, BIOS policy); merged
   `cores/catalog.json` asset; sha256 pins verified at staging and release.
-- **Platform builds** — macOS arm64 (app + 17 cores built, 16 bundled);
+- **Platform builds** — macOS arm64 (app + 18 cores built, 17 bundled);
   Android arm64 (APK, release keystore signing); Windows/Linux shells in the
   CI matrix (no binaries yet).
 - **Docs** — INSTALL, BUILDING, ARCHITECTURE (as-built), CORE_SYSTEM,
@@ -59,8 +59,7 @@ at the top of [`README.md`](README.md).
 - iOS: not distributed (no Apple identity yet).
 - Core verification: 3 cores boot-and-render verified (SameBoy, Gambatte,
   mGBA); the rest load and identify — render verification in progress.
-- FBNeo held from shipping (compatibility review); ScummVM macOS build in
-  progress.
+- FBNeo held from shipping (compatibility review).
 - macOS sandbox: typed-path import of arbitrary folders stays limited to
   what the system picker / security-scoped bookmarks allow.
 
