@@ -356,9 +356,13 @@ build_scummvm() {
     sed -i.bak 's/#if !defined(MACOS) \&\& !defined(TARGET_OS_MAC)/#if 1 \/* ezCORE: Byte is identical (unsigned char) on all targets *\//' "$fzconf" && rm -f "$fzconf.bak"
   fi
   if [ "$PLATFORM" = macos ]; then
+    # DEBUG_ALLOW_DIRTY_SUBMODULES=1: same reason as the mobile branch —
+    # their configure_submodules.sh git-reset --hard's any dirty dep at
+    # make-parse time, which silently reverted the zconf.h patch above
+    # (that's why macOS never got past freetype's gzip).
     LIBRARY_PATH="$(brew --prefix)/lib" CPATH="$(brew --prefix)/include" \
     core_make "$SRC_DIR/scummvm/backends/platform/libretro" \
-      USE_SYSTEM_mad=1 USE_SYSTEM_png=1
+      USE_SYSTEM_mad=1 USE_SYSTEM_png=1 DEBUG_ALLOW_DIRTY_SUBMODULES=1
   else
     # Xcode 27 SDK rot, two parts (both predate it upstream):
     # 1. The pinned libretro-deps mirror ships deps/.../libmad/VERSION,
