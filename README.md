@@ -113,6 +113,14 @@ docs/                   # All documentation
 
 App shell: GPL-3.0-only ([`LICENSE`](LICENSE)). Each core keeps its upstream license — see `cores/<id>/manifest.json` (`license`, `license_url`).
 
+## Brand Protection
+
+**The ezCORE name, logo, and brand assets are trademarked and NOT licensed for reuse.** See [`TRADEMARKS.md`](TRADEMARKS.md) for details.
+
+- Code: GPL-3.0 — fork, modify, build freely
+- Brand: **All Rights Reserved** — only official maintainer may publish "ezCORE" to app stores
+- Forks must use different name, icon, and bundle ID
+
 ## Support & Community
 
 - [GitHub Discussions](../../discussions) — questions, ideas, community help
