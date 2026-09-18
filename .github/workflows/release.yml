@@ -1,0 +1,198 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g., v0.1.0)"
+        required: true
+        type: string
+      platforms:
+        description: "Comma-separated platforms to build"
+        required: false
+        default: "macos,windows,linux,android"
+        type: string
+
+  # Allow tagging to trigger (optional - manual dispatch preferred for first releases)
+  # push:
+  #   tags:
+  #     - 'v*'
+
+permissions:
+  contents: write  # needed for gh release create
+  packages: read
+
+jobs:
+  # ============ macOS ============
+  release-macos:
+    if: contains(github.event.inputs.platforms, 'macos') || github.event.inputs.platforms == ''
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prereqs
+        run: brew install cmake ninja pkg-config make rgbds libpng mad || true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Setup
+        run: |
+          python3 scripts/fill_manifest_data.py --check
+          python3 scripts/build_catalog.py
+          scripts/build_core.sh --fetch-headers
+          scripts/build_runtime.sh macos
+          scripts/build_core.sh --tier1
+      - name: Release build
+        env:
+          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
+          EZCORE_CODESIGN_IDENTITY: ${{ secrets.EZCORE_CODESIGN_IDENTITY }}
+        run: scripts/release.sh macos --out dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ezcore-macos
+          path: dist/ezcore-*-macos-arm64.zip
+          retention-days: 30
+
+  # ============ Windows ============
+  release-windows:
+    if: contains(github.event.inputs.platforms, 'windows') || github.event.inputs.platforms == ''
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: make mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja python
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Setup
+        shell: msys2 {0}
+        run: |
+          python scripts/fill_manifest_data.py --check
+          python scripts/build_catalog.py
+          scripts/build_runtime.sh windows
+          EZCORE_PLATFORM=windows scripts/build_core.sh --tier-desktop
+      - name: Release build
+        shell: msys2 {0}
+        env:
+          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
+        run: scripts/release.sh windows --out dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ezcore-windows
+          path: dist/ezcore-*-windows-x64.zip
+          retention-days: 30
+
+  # ============ Linux ============
+  release-linux:
+    if: contains(github.event.inputs.platforms, 'linux') || github.event.inputs.platforms == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config libpng-dev libgtk-3-dev clang
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Setup
+        run: |
+          python3 scripts/fill_manifest_data.py --check
+          python3 scripts/build_catalog.py
+          scripts/build_core.sh --fetch-headers
+          scripts/build_runtime.sh linux
+          EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop
+      - name: Release build
+        env:
+          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
+        run: scripts/release.sh linux --out dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ezcore-linux
+          path: dist/ezcore-*-linux-x64.tar.gz
+          retention-days: 30
+
+  # ============ Android ============
+  release-android:
+    if: contains(github.event.inputs.platforms, 'android') || github.event.inputs.platforms == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: NDK + CMake
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-34"
+      - name: Setup
+        run: |
+          python3 scripts/fill_manifest_data.py --check
+          python3 scripts/build_catalog.py
+          scripts/build_runtime.sh android
+          EZCORE_PLATFORM=android scripts/build_core.sh --tier-android
+      - name: Release build
+        env:
+          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
+          EZCORE_KEYSTORE_FILE: ${{ secrets.EZCORE_KEYSTORE_FILE }}
+          EZCORE_KEYSTORE_PASSWORD: ${{ secrets.EZCORE_KEYSTORE_PASSWORD }}
+          EZCORE_KEY_ALIAS: ${{ secrets.EZCORE_KEY_ALIAS }}
+          EZCORE_KEY_PASSWORD: ${{ secrets.EZCORE_KEY_PASSWORD }}
+        run: scripts/release.sh android --out dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ezcore-android
+          path: dist/ezcore-*-android-arm64.apk
+          retention-days: 30
+
+  # ============ Create GitHub Release ============
+  create-release:
+    needs: [release-macos, release-windows, release-linux, release-android]
+    if: always() && (needs.release-macos.result == 'success' || needs.release-windows.result == 'success' || needs.release-linux.result == 'success' || needs.release-android.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          pattern: ezcore-*
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --title "$VERSION" \
+            --generate-notes \
+            --latest \
+            dist/ezcore-*-macos-arm64.zip \
+            dist/ezcore-*-windows-x64.zip \
+            dist/ezcore-*-linux-x64.tar.gz \
+            dist/ezcore-*-android-arm64.apk \
+            || echo "Some assets may be missing if platform builds failed"
+
+      - name: Verify Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: gh release view "$VERSION"

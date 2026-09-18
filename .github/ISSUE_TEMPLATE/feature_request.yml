@@ -1,0 +1,98 @@
+name: Feature Request
+description: Suggest a new feature or improvement for ezCORE
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe your idea clearly.
+
+        **Before submitting:**
+        - Check the [Roadmap](docs/ROADMAP.md) and [Release Plan](docs/RELEASE_PLAN.md) — it may already be planned
+        - Search existing issues/PRs for similar requests
+        - For core additions: see CONTRIBUTING.md (legal holds apply)
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: One-sentence summary of what you want
+      placeholder: "Add support for [system] via [core]"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation / Use Case
+      description: Why would this be valuable? Who benefits?
+      placeholder: |
+        Explain the problem this solves or the experience it improves.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: How should this work? Technical details welcome.
+      placeholder: |
+        - New core: upstream repo, license, systems supported
+        - UI change: which screen, what interaction
+        - Backend: API, storage, sync strategy
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you thought of (and why they're less ideal)
+      placeholder: |
+        - Alternative 1: ...
+        - Alternative 2: ...
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Core addition (new system)
+        - Core update (version bump)
+        - UI/UX improvement
+        - Platform support (new OS)
+        - Cheat/save state feature
+        - Import/library management
+        - Settings/preferences
+        - Performance optimization
+        - Documentation
+        - CI/build infrastructure
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: legal
+    attributes:
+      label: Legal / Compliance (required for core additions)
+      options:
+        - label: 'If adding a core: upstream is open-source, no DMCA 1201 exposure, no Nintendo/Sony/Sega IP in code/assets'
+          required: false
+        - label: 'If adding a core: license is compatible with GPL-3.0 (MPL-2.0, MIT, BSD, GPL-2.0+, LGPL — NOT custom non-commercial)'
+          required: false
+        - label: 'This is NOT a Switch/3DS/PS2 core request (legal holds, never built)'
+          required: true
+        - label: 'This does NOT request ROM/BIOS/key bundling or downloaders'
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Links, mockups, references, anything else
+      placeholder: |
+        - Upstream repo:
+        - License file:
+        - Related issues:
+        - Mockups:

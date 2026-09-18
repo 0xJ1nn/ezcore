@@ -1,0 +1,14 @@
+# Android Release Signing Configuration
+# Copy this to android/key.properties and fill in your values
+# NEVER commit the real key.properties (in .gitignore)
+
+storeFile=../ezcore-release.keystore
+storePassword=YOUR_STORE_PASSWORD
+keyAlias=ezcore
+keyPassword=YOUR_KEY_PASSWORD
+
+# For CI/CD, set these as GitHub Secrets:
+# EZCORE_KEYSTORE_FILE (base64-encoded keystore)
+# EZCORE_KEYSTORE_PASSWORD
+# EZCORE_KEY_ALIAS
+# EZCORE_KEY_PASSWORD

@@ -1,0 +1,53 @@
+# CODEOWNERS
+# These users/groups will be automatically requested for review on matching PRs.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - all PRs require at least one approval from these
+* @JinUltimate1995
+
+# Core emulator runtime (C/FFI) - deep knowledge required
+/runtime/ @JinUltimate1995
+
+# Core build scripts and manifests
+/scripts/build_core.sh @JinUltimate1995
+/scripts/build_runtime.sh @JinUltimate1995
+/scripts/core_platform.sh @JinUltimate1995
+/scripts/pin_artifacts.py @JinUltimate1995
+/scripts/fill_manifest_data.py @JinUltimate1995
+/scripts/build_catalog.py @JinUltimate1995
+/scripts/release.sh @JinUltimate1995
+/cores/ @JinUltimate1995
+
+# Flutter UI layers
+/lib/emu/ @JinUltimate1995
+/lib/services/ @JinUltimate1995
+/lib/widgets/ @JinUltimate1995
+/lib/screens/ @JinUltimate1995
+/lib/state/ @JinUltimate1995
+/lib/theme/ @JinUltimate1995
+/lib/runtime/ @JinUltimate1995
+
+# Platform-specific
+/macos/ @JinUltimate1995
+/ios/ @JinUltimate1995
+/android/ @JinUltimate1995
+/linux/ @JinUltimate1995
+/windows/ @JinUltimate1995
+
+# CI/CD and release automation
+/.github/workflows/ @JinUltimate1995
+
+# Documentation
+/docs/ @JinUltimate1995
+/README.md @JinUltimate1995
+
+# Design system and brand
+/design/ezcore-orbit/ @JinUltimate1995
+/assets/branding/ @JinUltimate1995
+/assets/fonts/ @JinUltimate1995
+
+# Legal/compliance - changes need explicit approval
+/CONTRIBUTING.md @JinUltimate1995
+/DMCA.md @JinUltimate1995
+/TRADEMARKS.md @JinUltimate1995
+/LICENSE @JinUltimate1995

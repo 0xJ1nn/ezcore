@@ -1,0 +1,66 @@
+# labeler.yml - Auto-label PRs based on changed files
+# See https://github.com/actions/labeler
+
+runtime:
+  - "runtime/**"
+
+build-system:
+  - "scripts/build_core.sh"
+  - "scripts/build_runtime.sh"
+  - "scripts/core_platform.sh"
+  - "scripts/pin_artifacts.py"
+  - "scripts/fill_manifest_data.py"
+  - "scripts/build_catalog.py"
+  - "scripts/release.sh"
+  - "cores/**/manifest.json"
+
+ui:
+  - "lib/screens/**"
+  - "lib/widgets/**"
+  - "lib/theme/**"
+  - "lib/state/**"
+
+emulation:
+  - "lib/emu/**"
+  - "lib/services/emulation_service.dart"
+  - "lib/services/core_discovery.dart"
+  - "lib/services/core_path_resolver.dart"
+  - "lib/services/runtime_loader.dart"
+  - "lib/runtime/**"
+
+macos:
+  - "macos/**"
+
+ios:
+  - "ios/**"
+
+android:
+  - "android/**"
+
+linux:
+  - "linux/**"
+
+windows:
+  - "windows/**"
+
+ci:
+  - ".github/workflows/**"
+
+documentation:
+  - "docs/**"
+  - "README.md"
+
+design:
+  - "design/ezcore-orbit/**"
+  - "assets/branding/**"
+  - "assets/fonts/**"
+
+legal:
+  - "CONTRIBUTING.md"
+  - "DMCA.md"
+  - "TRADEMARKS.md"
+  - "LICENSE"
+
+tests:
+  - "test/**"
+  - "integration_test/**"

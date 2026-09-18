@@ -1,0 +1,46 @@
+# dependabot.yml
+# Automated dependency updates for ezCORE
+# See https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Flutter/Dart dependencies (pubspec.yaml)
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "dart"
+    commit-message:
+      prefix: "chore(deps):"
+      include: "scope"
+    groups:
+      flutter-sdk:
+        patterns:
+          - "flutter*"
+      lints:
+        patterns:
+          - "flutter_lints*"
+    # Ignore major version upgrades that might break the build
+    ignore:
+      - dependency-name: "flutter"
+        versions: [">=4.0.0"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci(deps):"
+      include: "scope"
