@@ -46,6 +46,7 @@ class CoreStagingService {
     final sources = await _sources();
     if (sources.isEmpty) return staged;
     final key = CorePathResolver.currentPlatformKey();
+    final osKey = key.split('-').first;
     final ext = Platform.isWindows
         ? 'dll'
         : (Platform.isMacOS || Platform.isIOS)
@@ -53,6 +54,11 @@ class CoreStagingService {
         : 'so';
     for (final manifest in catalog) {
       if (manifest.blocked) continue;
+      // Cores this OS must not carry (delivery: 'absent' — legal holds and
+      // pending-review cores) never stage. Without this, a dev checkout
+      // sitting next to the app makes staging log noise for cores that
+      // cannot ship here anyway.
+      if (manifest.delivery[osKey] == 'absent') continue;
       final pin = manifest.artifacts[key];
       if (pin == null) continue;
       try {

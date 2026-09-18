@@ -4,5 +4,14 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Import reads the user's own dumps via the open panel; the app only
+	     ever reads these files (copies land in the app's own vault), so
+	     read-only is the tightest grant that works. -->
+	<key>com.apple.security.files.user-selected.read-only</key>
+	<true/>
+	<!-- BookmarkStore keeps app-scoped security bookmarks so an imported
+	     ROM stays readable across launches (MainFlutterWindow.swift). -->
+	<key>com.apple.security.files.bookmarks.app-scope</key>
+	<true/>
 </dict>
 </plist>
