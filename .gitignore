@@ -16,7 +16,13 @@ migrate_working_dir/
 build/
 native/
 runtime/build/
+runtime/build-*/
+runtime/Testing/
+runtime/build-*/Testing/
 runtime/external/
+
+# Verified-artifact sidecars (see verifyPinnedFile): regenerated on stage.
+*.ezpin
 *.dylib
 *.so
 *.dll
@@ -54,3 +60,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Release signing material must never be committed (see android signing
+# config: EZCORE_KEYSTORE_* env). Local debug keystores are auto-created.
+*.jks
+*.keystore
+key.properties
+android/key.properties

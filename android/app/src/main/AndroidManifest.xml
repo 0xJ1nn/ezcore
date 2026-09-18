@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Haptics on the touch pad (Settings → Controllers). No storage or
+         network permissions: files arrive via the system picker, cores and
+         the runtime ship inside the APK. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:label="ezCore"
         android:name="${applicationName}"
