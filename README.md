@@ -1,129 +1,194 @@
-# ezCORE
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/lockup-light.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/branding/lockup-dark.png">
+    <img alt="ezCORE" src="assets/branding/lockup-dark.png" width="380">
+  </picture>
+</p>
 
-[![Build Status](https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml/badge.svg)](https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml)
-[![Matrix Build](https://github.com/JinUltimate1995/ezcore/actions/workflows/matrix.yml/badge.svg)](https://github.com/JinUltimate1995/ezcore/actions/workflows/matrix.yml)
-[![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg)](LICENSE)
-[![Platform: macOS](https://img.shields.io/badge/platform-macOS%20(arm64)-lightgrey.svg)](docs/INSTALL.md)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows%20(x64)-lightgrey.svg)](docs/INSTALL.md)
-[![Platform: Linux](https://img.shields.io/badge/platform-Linux%20(x64)-lightgrey.svg)](docs/INSTALL.md)
-[![Platform: Android](https://img.shields.io/badge/platform-Android%20(arm64)-green.svg)](docs/INSTALL.md)
-[![iOS: TestFlight](https://img.shields.io/badge/iOS-TestFlight%20only-lightgrey.svg)](docs/RELEASE_PLAN.md)
-[![Core Matrix](https://img.shields.io/badge/core%20matrix-docs%2FMATRIX.md-blue.svg)](docs/MATRIX.md)
-[![Release Plan](https://img.shields.io/badge/release%20plan-docs%2FRELEASE__PLAN.md-orange.svg)](docs/RELEASE_PLAN.md)
+<p align="center">
+  <strong>One beautiful, unified emulator.</strong><br>
+  <em>Game → Play</em> — pick a game and play; cores, saves and cheats stay out of the way.
+</p>
 
-One beautiful, unified emulator for as many systems as realistically possible. **Game → Play** — pick a game and play; cores, saves and cheats stay out of the way. (Bring your own BIOS dumps where a core needs them — the app tells you exactly which file is missing and where it goes.)
+<p align="center">
+  <a href="https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml"><img alt="ci" src="https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/JinUltimate1995/ezcore/releases"><img alt="release" src="https://img.shields.io/github/v/release/JinUltimate1995/ezcore?include_prereleases&color=007BFF"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0--only-blue"></a>
+  <a href="docs/MATRIX.md"><img alt="core matrix" src="https://img.shields.io/badge/core%20matrix-docs%2FMATRIX.md-informational"></a>
+  <img alt="macOS arm64" src="https://img.shields.io/badge/macOS-arm64-success">
+  <img alt="Android arm64" src="https://img.shields.io/badge/Android-arm64-success">
+  <img alt="Windows · Linux · iOS" src="https://img.shields.io/badge/Windows%20·%20Linux%20·%20iOS-from%20source-lightgrey">
+</p>
 
-Open-source frontend for macOS, Windows, Linux, iOS and Android. Modular, replaceable emulator cores behind a small stable C ABI. Full cheat support. Zero bundled games, BIOS, keys, or cheat databases.
+An open-source frontend for your own game dumps: modular emulator cores
+behind a small stable C ABI, a polished console-style interface, full cheat
+support, and local save snapshots. Zero bundled games, BIOS, keys, or cheat
+databases — you bring your dumps, ezCORE does the rest.
 
 ```
 Flutter UI → C ABI / FFI → ezCore Runtime → modular libretro cores
 ```
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the layer rules and [`docs/MATRIX.md`](docs/MATRIX.md) for per-system verified status on each platform.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the layer rules and
+[`docs/MATRIX.md`](docs/MATRIX.md) for per-system verified status on each
+platform.
 
-## ⚠️ First Release Notice
+## ⚠️ First release (v0.1.0) — please read
 
-**This is v0.1.0 — an early public release. Things may not work as expected.**
+**This is an early public build. Things may not work as expected.** We ship
+it because it's already genuinely fun, and because the fastest way to make
+it better is in the open.
 
-- Some cores are verified only on macOS (see [MATRIX.md](docs/MATRIX.md))
-- Windows/Linux/Android builds are from CI; limited local verification
-- iOS is TestFlight-only (no GitHub Release artifact)
-- Known issues: typed folder import in macOS sandbox, some GL cores need core options (ABI v2)
-- **Found a bug?** [Open an issue](../../issues/new/choose) — use the bug template
-- **Want a feature?** [Open a feature request](../../issues/new/choose) — use the feature template
-- **Want to help?** [Contributing](CONTRIBUTING.md) — PRs welcome!
+What we know going in:
 
-## Bring Your Own Dumps
+- **macOS arm64** is the most verified target: the app runs, imports, plays,
+  saves; 17 cores are built and load-and-identify on this machine (3 of them
+  are boot-and-render verified with test content — see [MATRIX.md](docs/MATRIX.md)).
+- **Android arm64** builds and installs; cores are cross-compiled and
+  symbol-verified, but on-device boot verification is still pending a device
+  lab.
+- **Windows and Linux** have no release binaries yet — the CI matrix that
+  builds them is currently paused (GitHub Actions billing on the maintainer
+  account), so for now they are build-from-source platforms.
+- **iOS** support exists in the codebase (interpreter-only policy enforced
+  in manifests) but is not distributed yet — it needs an Apple Developer
+  identity. There is no TestFlight, no App Store, no iOS artifact.
+- **FBNeo (arcade)** is held from this release: its own manifest requires
+  compatibility-allowlist review before shipping.
+- **ScummVM** is in the build matrix but not in this release on macOS.
 
-This app plays **only** files you supply yourself. It ships no ROMs, BIOS/firmware, decryption keys, game art, or cheat databases, and links to none. See [`TRADEMARKS.md`](TRADEMARKS.md), [`DMCA.md`](DMCA.md), [`CONTRIBUTING.md`](CONTRIBUTING.md).
+**Found a bug?** [Open an issue](https://github.com/JinUltimate1995/ezcore/issues/new/choose) — the bug template asks for exactly what we need.
+**Already fixed it?** PRs are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+**Want a feature?** Use the feature template; small and honest beats big and
+vague.
 
-ezCORE is a standalone product, unrelated to any other brand.
+## Bring your own dumps
 
-## Interface (Orbit Console)
+ezCORE plays **only** files you supply yourself. It ships no ROMs,
+BIOS/firmware, decryption keys, game art, or cheat databases, and links to
+none. Game imports stay where you keep them — the library references your
+folders; nothing leaves your device. See [`TRADEMARKS.md`](TRADEMARKS.md),
+[`DMCA.md`](DMCA.md), [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+ezCORE is a standalone product, unrelated to any console maker or publisher.
+
+## Interface (Orbit console)
 
 Four spaces, one viewport budget — no page scroll, only rails scroll:
 
-- **Library** — CoverFlow browser + bottom game dock (or grid view), collection strip (Time Capsule → Favorites → All Systems → per core), search (`/`), keyboard browse (`←→`, `↵` for details, `1–4` to switch space). Game hub: core picker, Play, cheats, snapshot slots (resume & load).
-- **Systems** — 3D core browser with per-hardware silhouettes + bottom core dock (All / Added / Available), sha-pinned install, remove (games & saves kept), per-core licenses.
-- **Time Capsule** — local save-snapshot vault across every game; tapping a snapshot resumes the game and loads it.
-- **Player** — verified-core launch, worker frames, pause, quick-save, fast-forward speed, screenshot (also pinned as the game's cover), touch pad with haptics, live cheats, slot save/load, reset, Take-a-breather session overlay with autosave.
-- **Settings** — six local-preference tabs (Appearance, Emulation, Controllers, Audio, Library & Storage, About). Every control does something; nothing leaves the device.
+- **Library** — CoverFlow browser + bottom game dock (or grid view),
+  collection strip (All systems → Favorites → per-core), search (`/`),
+  keyboard browse (`←→` browse, `↵` details, `1–4` switch space). Game hub:
+  core picker, Play, cheats, snapshot slots.
+- **Systems** — core browser with per-hardware silhouettes + bottom core
+  dock (All / Added / Available). Cores ship inside the app (nothing is
+  downloaded); add/remove only changes what's active, and removal keeps your
+  games and saves. Per-core license is shown in-app.
+- **Time Capsule** — local save-snapshot vault across every game; tapping a
+  snapshot resumes the game and loads it.
+- **Player** — pause, quick-save, fast-forward, screenshot (pinned as the
+  game's cover), touch pad with haptics, live cheats, slot save/load, reset,
+  and a "Take a breather" overlay that autosaves on exit.
+- **Settings** — six local-preference tabs (Appearance, Emulation,
+  Controllers, Audio, Library & storage, About). Every control does
+  something; nothing leaves the device.
 
-Landscape ≥700px docks navigation to a left command rail; portrait uses a top command dock. Dark only: near-black `#0A0A0A`, electric blue `#007BFF`, silver-white `#DDE6F4`. Display type Space Grotesk, body Manrope — both bundled offline under `assets/fonts` (SIL OFL 1.1, see `assets/fonts/README.md`).
+Landscape ≥700px docks navigation to a left command rail; portrait uses a
+top command dock. Dark only: near-black `#0A0A0A`, electric blue `#007BFF`,
+silver-white `#DDE6F4`. Display type Space Grotesk, body Manrope — both
+bundled offline under `assets/fonts` (SIL OFL 1.1, see
+[`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).
 
-No game art ships with the app: every import gets a deterministic generative cover in the app identity, and player screenshots are pinned as that game's cover automatically. Hardware cards use the finalized per-system silhouette artwork.
+No game art ships with the app: every import gets a deterministic generative
+cover in the app identity, and player screenshots can be pinned as that
+game's cover.
 
-Cheats apply live: stored codes push into the running session on toggle/add/import (reset-first, rejected indices reported), and at boot otherwise.
+## Systems & cores
 
-## Quick Links
+Built and load-verified on macOS arm64 (16 bundled in v0.1.0; FBNeo held,
+ScummVM pending its first macOS build):
 
-| Document | Description |
-|----------|-------------|
-| [`docs/INSTALL.md`](docs/INSTALL.md) | User installation guide (all platforms) |
-| [`docs/BUILDING.md`](docs/BUILDING.md) | Developer build guide (from source) |
-| [`docs/MATRIX.md`](docs/MATRIX.md) | Core × Platform verification matrix |
-| [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md) | v1 release checklist and status |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layer rules, ABI, data flow |
-| [`docs/CORE_SYSTEM.md`](docs/CORE_SYSTEM.md) | Core plugin system deep dive |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution rules (hard + normal) |
-| [`SECURITY.md`](SECURITY.md) | Vulnerability reporting |
-| [`SUPPORT.md`](SUPPORT.md) | FAQ, support channels |
+GB/GBC (SameBoy, Gambatte) · GBA (mGBA) · NES/FDS (Mesen) · SNES (Snes9x) ·
+Genesis/SMS/GG/SG-1000 (Genesis Plus GX) · Atari 2600 (Stella) ·
+DOS (DOSBox Pure) · TG-16 / PC Engine (Beetle PCE) · PS1 (SwanStation) ·
+N64 (Mupen64Plus) · DS (melonDS) · PSP (PPSSPP) · Dreamcast (Flycast) ·
+GameCube/Wii (Dolphin, desktop/Android) · Saturn (Beetle Saturn).
 
-## Quick Start (macOS Dev)
+Scope is intent; [`docs/MATRIX.md`](docs/MATRIX.md) records what is actually
+verified per system per platform (built → pinned → identifies → renders →
+shipped). A few cores boot-and-render verified today; the rest load and
+identify, with render verification in progress — the matrix is the honest
+source.
+
+**Legal holds (reserved slots, never built):** 3DS, Switch, PS2. Reasons live
+in `cores/*_hold/manifest.json` — in short: the 3DS/Switch upstreams fell to
+Nintendo's 2024 anti-circumvention actions, and no shippable open PS2
+libretro core exists. This protects the project and its users.
+
+## Install
+
+| Platform | Artifact | How |
+|---|---|---|
+| macOS (Apple Silicon) | `ezcore-<version>-macos-arm64.zip` | [Releases](https://github.com/JinUltimate1995/ezcore/releases) → [`docs/INSTALL.md`](docs/INSTALL.md) |
+| Android (arm64) | `ezcore-<version>-android-arm64.apk` | [Releases](https://github.com/JinUltimate1995/ezcore/releases) → [`docs/INSTALL.md`](docs/INSTALL.md) |
+| Windows / Linux | — | build from source for now (see below) |
+| iOS | — | not distributed yet (needs an Apple identity) |
+
+The macOS build is ad-hoc signed (not notarized): first launch needs the
+usual `xattr -cr /Applications/ezCore.app` dance — details in
+[`docs/INSTALL.md`](docs/INSTALL.md).
+
+## Build from source (macOS quick start)
 
 ```bash
 git clone https://github.com/JinUltimate1995/ezcore.git
 cd ezcore
 scripts/prereqs.sh                      # one-shot toolchain (macOS/arm64)
 scripts/build_core.sh --fetch-headers   # vendor libretro.h
-scripts/build_runtime.sh macos          # runtime + CTest (4/4)
-scripts/build_core.sh --tier1           # run-verified cores
+scripts/build_runtime.sh macos          # runtime + CTest
+scripts/build_core.sh --tier1           # first six cores
 python3 scripts/build_catalog.py        # merge manifests (required asset)
-flutter analyze && flutter test         # gates (incl. core matrix)
-python3 scripts/pin_artifacts.py macos-arm64 --out native/cores --check
-flutter run -d macos                    # run shell
+flutter analyze && flutter test         # gates
+flutter run -d macos                    # run the app
 ```
 
-Core artifacts are verified (sha256 vs manifest pin) before `dlopen`. iOS cores are bundled at build time only — never downloaded (App Review 2.5.2/4.7).
+Full platform matrix, tiers and release assembly:
+[`docs/BUILDING.md`](docs/BUILDING.md). Maintainer release checklist:
+[`docs/RELEASING.md`](docs/RELEASING.md).
 
-## Systems at Launch Scope
+## Documentation
 
-GB/GBC (SameBoy, Gambatte) · GBA (mGBA) · NES (Mesen) · SNES (Snes9x) · Genesis/SMS/GG (Genesis Plus GX) · Atari 2600 (Stella) · DOS (DOSBox Pure) · TG-16 (Beetle PCE) · PS1 (SwanStation) · N64 (Mupen64Plus) · DS (melonDS) · PSP (PPSSPP) · Dreamcast (Flycast) · GameCube/Wii (Dolphin, desktop/Android) · Saturn (Beetle Saturn) · Arcade (FBNeo, gated) · ScummVM.
+| Document | What's in it |
+|---|---|
+| [`docs/INSTALL.md`](docs/INSTALL.md) | User install guide (per platform) + BIOS placement |
+| [`docs/BUILDING.md`](docs/BUILDING.md) | Developer build guide (all platforms, tiers, gates) |
+| [`docs/RELEASING.md`](docs/RELEASING.md) | How releases are cut (local + CI, secrets, checksums) |
+| [`docs/MATRIX.md`](docs/MATRIX.md) | Core × platform verification matrix |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Layers, ABI, data flow (as-built) |
+| [`docs/CORE_SYSTEM.md`](docs/CORE_SYSTEM.md) | Core plugin system deep dive |
+| [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md) | v1 scope, decisions, what's excluded |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) | Every bundled component + its license |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution rules (hard rules + normal) |
+| [`SECURITY.md`](SECURITY.md) · [`SUPPORT.md`](SUPPORT.md) | Vulnerability reporting · FAQ |
+| [`TRADEMARKS.md`](TRADEMARKS.md) · [`DMCA.md`](DMCA.md) | Brand policy · takedown policy |
 
-Scope is intent; [`docs/MATRIX.md`](docs/MATRIX.md) records what is actually verified per system per platform (built → pinned → identifies → renders → shipped).
+## License & credits
 
-**Legal holds (reserved slots, never built):** 3DS, Switch, PS2. Reasons live in `cores/*_hold/manifest.json`. In short: Citra/Yuzu fell to Nintendo's 2024 anti-circumvention actions, and no shippable open PS2 libretro core exists. This protects the project and its users.
+- **App shell + runtime:** GPL-3.0-only ([`LICENSE`](LICENSE)).
+- **Emulator cores:** each keeps its upstream license — see
+  `cores/<id>/manifest.json` and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- **Fonts:** Space Grotesk (Florian Karsten) and Manrope (Mikhail Sharanda),
+  SIL OFL 1.1.
+- **Brand:** the ezCORE name, logo and brand assets are **not** licensed for
+  reuse — [`TRADEMARKS.md`](TRADEMARKS.md).
 
-## Layout
+ezCORE stands on the shoulders of the [libretro](https://www.libretro.com/)
+ecosystem and the emulator projects behind each core. Thank you.
 
-```
-lib/                    # Orbit shell, screens, widgets, services, theme, FFI
-assets/fonts/           # Space Grotesk + Manrope (OFL 1.1)
-assets/branding/        # App icon, lockups
-runtime/                # ezCore native runtime (C99, ABI v1)
-cores/                  # Per-core manifest.json + registry.json
-scripts/                # Build, pin, catalog, release automation
-test/                   # Dart tests (unit + integration)
-integration_test/       # Flutter integration tests
-design/ezcore-orbit/    # Brand system + Playwright verification (36-state)
-docs/                   # All documentation
-```
+## Support
 
-## License
-
-App shell: GPL-3.0-only ([`LICENSE`](LICENSE)). Each core keeps its upstream license — see `cores/<id>/manifest.json` (`license`, `license_url`).
-
-## Brand Protection
-
-**The ezCORE name, logo, and brand assets are trademarked and NOT licensed for reuse.** See [`TRADEMARKS.md`](TRADEMARKS.md) for details.
-
-- Code: GPL-3.0 — fork, modify, build freely
-- Brand: **All Rights Reserved** — only official maintainer may publish "ezCORE" to app stores
-- Forks must use different name, icon, and bundle ID
-
-## Support & Community
-
-- [GitHub Discussions](../../discussions) — questions, ideas, community help
-- [GitHub Issues](../../issues) — bugs, feature requests (use templates)
-- [Security Advisories](../../security/advisories) — vulnerability reporting
-- [SUPPORT.md](SUPPORT.md) — detailed FAQ
+- [GitHub Discussions](https://github.com/JinUltimate1995/ezcore/discussions) — questions, ideas, community help
+- [GitHub Issues](https://github.com/JinUltimate1995/ezcore/issues) — bugs and feature requests (use the templates)
+- [SECURITY.md](SECURITY.md) — vulnerabilities, privately

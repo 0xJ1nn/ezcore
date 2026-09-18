@@ -1,36 +1,41 @@
-# ezCore Architecture
+# ezCORE Architecture
 
-> **Version:** 2.0
-> **Date:** 2026-09-16
-> **Stack:** C++ (runtime) + Flutter/Dart (UI) + C/C++ (libretro cores)
+> **Version:** 3.0 — rewritten against the shipping code (v0.1.0)
+> **Stack:** Flutter/Dart (UI) · C11 runtime, ABI v1 (no external deps) ·
+> libretro cores (C/C++)
 
 ---
 
-## Architecture Diagram
+## The whole picture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Flutter UI (Dart)                     │
-│  3D rendering (Flutter 3D / custom shaders)                  │
-│  State management (Riverpod)                                 │
-│  Cloud sync client                                           │
-│  Auto-scan / auto-cheat engine                               │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ dart:ffi
-┌──────────────────────────▼──────────────────────────────────┐
-│                   C++ Runtime (ezcore_runtime)                │
-│  Session lifecycle  │  AV plumbing  │  Input  │  Saves       │
-│  Core loader (dlopen/dlsym)  │  Cheat engine                 │
-│  Cloud sync bridge  │  Auto-scan bridge                      │
-│  Exports C ABI (ezcore_runtime.h)                           │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ C ABI
-┌──────────────────────────▼──────────────────────────────────┐
-│                    Modular Cores (C/C++)                      │
-│  cores/<id>/manifest.json  │  cores/<id>/libretro_core.so     │
-│  Versioned, sha-pinned, sandboxed                           │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                     Flutter UI  (Dart)                        │
+│  Orbit console: screens · theme (final-01) · widgets          │
+│  AppState (ChangeNotifier) · services · player controller     │
+│  Import via system picker → hash-identify → library           │
+└──────────────────────────┬────────────────────────────────────┘
+                           │ dart:ffi  (lib/runtime/ezcore_runtime.dart)
+┌──────────────────────────▼────────────────────────────────────┐
+│                ezCore Runtime  (C11, ABI v1)                  │
+│  runtime/src/runtime.c        session lifecycle · frame loop  │
+│  runtime/src/dynload_*.c      dlopen / LoadLibrary seam       │
+│  AV buffers · input · save states · SRAM handoff · cheats     │
+│  Exports: runtime/include/ezcore_runtime.h                    │
+└──────────────────────────┬────────────────────────────────────┘
+                           │ libretro C API
+┌──────────────────────────▼────────────────────────────────────┐
+│                    Modular cores (C/C++)                      │
+│  cores/<id>/manifest.json     metadata · pins · policy        │
+│  staged artifact (dylib/so/dll) sha256-verified vs manifest   │
+│  delivered: bundled with the app (v1 — no download infra)     │
+└───────────────────────────────────────────────────────────────┘
 ```
+
+The runtime has **no external library dependencies** — the only headers it
+uses beyond the C standard library are the vendored `libretro-common`
+headers (`scripts/build_core.sh --fetch-headers`), and its CMake build fails
+loudly if they are missing.
 
 ---
 
@@ -43,7 +48,7 @@
 2. **The runtime owns execution.** Lifecycle, game loading, frame
    execution, video/audio plumbing, input, save states, cheats,
    host directories, and core quirks live in `runtime/src/`.
-   The frontend only drives sessions and renders textures.
+   The frontend drives sessions and renders frames — nothing else.
 
 3. **Platform execution strategy lives in data, not code.**
    Each core manifest declares `execution`: per-OS `interpreter` or
@@ -53,115 +58,98 @@
 
 4. **Save bytes are opaque.** `ezcore_serialize` produces bytes the
    frontend never interprets. `lib/state/save_sync.dart` defines the
-   `SaveSyncProvider` seam: `MemorySaveSyncProvider` (default),
-   `LocalSaveSyncProvider` (vault), and future cloud providers
-   (iCloud / OneDrive / account sync) implement the same four methods.
+   `SaveSyncProvider` seam: `MemorySaveSyncProvider` (tests),
+   `LocalSaveSyncProvider` (the Time Capsule vault — the v1 default),
+   and future cloud providers implement the same methods.
 
 5. **Game → Play.** The library resolves a game to a core
    (`CoreRegistry.compatibleCores`); when the user never picked one,
    the first compatible installed core is used and remembered.
    No core/renderer/BIOS thinking required.
 
-6. **C++ runtime, C ABI boundary.** The runtime is written in C++ but
-   exports a pure C ABI (`ezcore_runtime.h`). Dart's FFI binds to the
-   C ABI — it never sees C++ types. This keeps the boundary simple
-   and portable.
+6. **C ABI boundary, verified before load.** The runtime is C11 and
+   exports a pure C ABI; Dart's FFI binds to it. Desktop/Android load
+   cores through the dynload seam only after the artifact's sha256 is
+   verified against the manifest pin. iOS ships cores as frameworks
+   embedded at build time and never downloads anything.
 
 ---
 
-## Layer Map
+## Layer map
 
 | Layer | Dir | Language | Owns |
 |---|---|---|---|
-| UI | `lib/screens`, `lib/theme` | Dart | Library, player chrome, settings, import |
-| State | `lib/state` | Dart | `AppState`, `SaveSyncProvider` seam |
-| Core catalog | `lib/models`, `lib/cores` | Dart | Manifests, install/update/remove, cheat formats |
-| FFI | `lib/runtime/ezcore_runtime.dart` | Dart | Zero-dep Dart bindings over the C ABI |
-| Runtime | `runtime/` | C++ | Session lifecycle, AV plumbing, cheats, saves, quirks |
-| Cores | `cores/<id>/manifest.json`, `native/` | C/C++ | Versioned plugins, sha-pinned artifacts |
+| UI | `lib/screens`, `lib/theme`, `lib/widgets` | Dart | Library, systems, player chrome, vault, settings, import |
+| State | `lib/state` | Dart | `AppState` (ChangeNotifier), `SaveSyncProvider` seam |
+| Catalog | `lib/models`, `lib/cores` | Dart | Manifests, add/remove/update bookkeeping, cheat formats |
+| Emulation | `lib/emu` | Dart | `EmulationService` + worker, player controller, PCM sinks |
+| Services | `lib/services` | Dart | Import, discovery, sha256, BIOS check, dirs, gamepads, covers |
+| FFI | `lib/runtime/ezcore_runtime.dart` | Dart | Dependency-free bindings over the C ABI |
+| Runtime | `runtime/` | C11 | Session lifecycle, AV plumbing, cheats, saves, quirks |
+| Cores | `cores/<id>/manifest.json`, staged artifacts | C/C++ | Versioned plugins, sha-pinned builds |
 
----
-
-## C++ Runtime Structure
+## Runtime structure (as built)
 
 ```
 runtime/
-├── CMakeLists.txt
+├── CMakeLists.txt              # C11, no external deps
 ├── include/
-│   └── ezcore_runtime.h       # C ABI header (the contract)
+│   └── ezcore_runtime.h        # C ABI v1 (the contract)
 ├── src/
-│   ├── runtime.cpp            # Main runtime, C ABI exports
-│   ├── session.cpp            # Session management (ezcore_session)
-│   ├── session.hpp
-│   ├── audio.cpp              # Audio ring buffer
-│   ├── audio.hpp
-│   ├── video.cpp              # Frame buffer management
-│   ├── video.hpp
-│   ├── input.cpp              # Input handling
-│   ├── input.hpp
-│   ├── saves.cpp              # Save state management
-│   ├── saves.hpp
-│   ├── cheats.cpp             # Cheat engine
-│   ├── cheats.hpp
-│   ├── core_loader.cpp        # dlopen/dlsym wrapper
-│   ├── core_loader.hpp
-│   └── cloud_bridge.cpp       # Cloud sync bridge
-│   └── cloud_bridge.hpp
+│   ├── runtime.c               # session, frame loop, AV, cheats, saves
+│   ├── dynload.h               # one seam, two implementations
+│   ├── dynload_posix.c         # dlopen / dlsym
+│   └── dynload_win32.c         # LoadLibrary / GetProcAddress
 └── test/
-    ├── test_session.cpp
-    ├── test_audio.cpp
-    ├── test_saves.cpp
-    └── test_cheats.cpp
+    ├── test_abi.c              # ABI surface checks
+    ├── test_load.c             # load/init/unload
+    ├── test_core_boot.c        # fork()-isolated core boot (synth core)
+    ├── test_core_player.c      # frames + audio + saves against synth core
+    └── synth_core/             # deterministic synthetic libretro core
 ```
 
-### C++ Design Principles
+CTest runs the native suite (`cd runtime/build-<platform> && ctest`); the
+synthetic core means boot/player tests need no game content. Per-core boot
+tests fork() a child so a native crash can't take down the harness.
 
-- **RAII everywhere** — no raw `new`/`delete` in application code
-- **Smart pointers** — `std::unique_ptr` for ownership, `std::shared_ptr` for shared
-- **Error handling** — `std::expected` (C++23) or `Result<T, E>` pattern
-- **No exceptions across ABI boundary** — C ABI returns error codes
-- **Thread-safe** — audio/video threads use `std::mutex` and `std::atomic`
-- **Platform abstraction** — `#ifdef` only in platform-specific files
+## Cores: manifests and pins
 
----
+- `cores/<id>/manifest.json` — id, version, license + license URL,
+  upstream, systems, extensions, cheat support, BIOS requirements,
+  `delivery` (bundled in v1), `execution` policy per OS, artifact sha256
+  pins per platform.
+- `cores/catalog.json` — merged index the app loads as an asset
+  (`scripts/build_catalog.py`; nested per-core manifest assets are not
+  reliably bundled by Flutter, so the catalog is the single source).
+- Staged artifacts live in `native/` (gitignored) and are produced by
+  `scripts/build_core.sh`; `scripts/pin_artifacts.py --check` verifies the
+  staged set matches the committed pins before any release.
+- Legal holds (`cores/*_hold/`) are manifests without build recipes —
+  reserved slots that never build and never ship.
 
-## What stays out (for now, by design)
+## Build system
 
-3D/spatial library, cloud providers, cheat database, achievements,
-metadata/artwork service, account sync — all have reserved seams
-(`SaveSyncProvider`, `execution`, per-game `coreId`/cheat counts),
-none is implemented ahead of need.
-
----
-
-## Build System
+CMake (runtime) + shell/Python scripts (cores, catalog, pins, release) +
+the Flutter toolchain. There is no package manager involved beyond
+Homebrew (macOS) / distro packages (Linux) / MSYS2 (Windows) for
+compilers and headers.
 
 ```
-CMake (top-level)
-├── runtime/           # C++ runtime → libezcore_runtime.so/dylib/dll
-├── cores/<id>/        # Individual core builds
-├── flutter/           # Flutter project
-└── platform/          # Platform-specific configs
-    ├── windows/
-    ├── macos/
-    ├── linux/
-    ├── android/
-    └── ios/
+scripts/
+├── prereqs.sh            # macOS toolchain install
+├── build_core.sh         # fetch headers, build single core or tiers
+├── build_runtime.sh      # per-platform runtime + CTest
+├── build_catalog.py      # merge manifests → cores/catalog.json
+├── pin_artifacts.py      # record/verify sha256 pins
+├── fill_manifest_data.py # policy maps (execution/delivery/cheats)
+├── core_platform.sh      # per-core build recipes
+└── release.sh            # assemble a shippable release per platform
 ```
 
-Package management: **vcpkg** (desktop) + **Conan** (mobile)
+## What stays out (by design, for now)
 
----
-
-## Migration from C to C++
-
-The existing `runtime/src/runtime.c` is functional and tested. The
-migration to C++ is incremental:
-
-1. **Phase 1:** Create C++ project structure, CMake build
-2. **Phase 2:** Port `runtime.c` → `runtime.cpp` function by function
-3. **Phase 3:** Add C++ features (RAII, smart pointers, error handling)
-4. **Phase 4:** Delete `runtime.c`, keep only C++ implementation
-
-The C ABI (`ezcore_runtime.h`) remains unchanged throughout — Dart
-FFI bindings don't need to be rewritten.
+Cloud sync, achievements, metadata/artwork services, account sync,
+netplay, rewind, per-game core options (ABI v2) — all have reserved seams
+(`SaveSyncProvider`, `execution`, per-game `coreId`), none is implemented
+ahead of need. See `docs/RELEASE_PLAN.md` for what v1 deliberately
+excludes and why.

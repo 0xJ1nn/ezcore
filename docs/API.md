@@ -3,7 +3,7 @@
 > **Version:** 1.0
 > **Date:** 2026-09-16
 > **Header:** `runtime/include/ezcore_runtime.h`
-> **Language:** C++ (exports C ABI)
+> **Language:** C11 (pure C ABI)
 
 ---
 
@@ -11,7 +11,9 @@
 
 The ezCore runtime exports a pure C ABI that Flutter/Dart binds to via `dart:ffi`. The ABI is versioned (`EZCORE_ABI_VERSION`) and stable — once a function is exported, its signature never changes.
 
-The runtime is written in C++ but the ABI boundary is C. Dart never sees C++ types.
+The runtime is written in C11 and its ABI is plain C. Dart never sees any
+other language's types — the FFI bindings and the header are the whole
+contract.
 
 ---
 
@@ -410,7 +412,6 @@ The Flutter layer checks all return values and surfaces errors to the user.
 When new features are added, the ABI version is bumped and new functions are appended. Existing functions never change signature.
 
 Planned for ABI v2:
-- `ezcore_get_input_state` — poll input state
-- `ezcore_set_input` — set input state
 - `ezcore_get_log` — retrieve core log messages
 - `ezcore_get_perf` — performance counters (frame time, audio latency)
+- per-game core options (GL-renderer cores currently need them)

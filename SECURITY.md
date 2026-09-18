@@ -15,13 +15,12 @@ We only provide security updates for the latest release.
 
 Instead, please report them via one of these channels:
 
-1. **GitHub Security Advisories** (preferred):
-   - Go to the [Security tab](../../security/advisories)
-   - Click "Report a vulnerability"
-   - Fill in the details privately
-
-2. **Email** (fallback):
-   - Send to: security@ezcore.app (if configured) or via GitHub's private vulnerability reporting
+1. **GitHub private vulnerability reporting** (preferred):
+   - Go to the [Security tab](../../security) → "Report a vulnerability"
+   - This opens a private advisory visible only to maintainers
+2. **Fallback:** if private reporting is unavailable to you, open a
+   minimal public issue that says only "security — request private
+   channel" (no details), and a maintainer will follow up privately.
 
 ## What to Include
 

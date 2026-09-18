@@ -4,7 +4,7 @@
 
 ### macOS (Apple Silicon)
 ```bash
-# Xcode 15+ (Xcode 27 for macOS 15.0+ deployment)
+# Xcode 26+ (macOS deployment target is 12.0+)
 xcode-select --install
 
 # Homebrew
@@ -54,7 +54,7 @@ cd ezcore
 scripts/prereqs.sh                    # installs toolchain via Homebrew
 scripts/build_core.sh --fetch-headers # vendors libretro.h
 scripts/build_runtime.sh macos        # builds runtime + CTest
-scripts/build_core.sh --tier1         # builds 6 verified cores (GB/GBC/GBA/NES/SNES/Genesis)
+scripts/build_core.sh --tier1         # first six cores (GB/GBC, GBA, SNES, Genesis, DOS)
 python3 scripts/build_catalog.py      # merges manifests → cores/catalog.json (required asset)
 flutter analyze && flutter test       # gates
 flutter run -d macos                  # debug run
@@ -72,14 +72,17 @@ flutter run -d macos                  # debug run
 
 ## Core Tiers
 
-| Tier | Systems | Platforms |
+| Tier | Cores | Platforms |
 |------|---------|-----------|
-| `--tier1` | GB/GBC/GBA/NES/SNES/Genesis | All (fast, verified) |
+| `--tier1` | GB/GBC, GBA, SNES, Genesis, DOS (6 cores, run-verified) | All |
 | `--tier-desktop` | All desktop cores (18) | macOS, Linux, Windows |
-| `--tier-android` | Mobile-verified (10) | Android |
-| `--tier-ios` | Interpreter-only (9) | iOS |
+| `--tier-android` | Mobile tier (11 cores) | Android |
+| `--tier-ios` | Interpreter-only tier (10 cores) | iOS |
 
 ## Release Build
+
+Full maintainer checklist (secrets, checksums, notes, publish):
+[`RELEASING.md`](RELEASING.md).
 
 ```bash
 # Requires: all cores built + pinned for target platform
@@ -94,9 +97,9 @@ scripts/release.sh windows --out dist/
 # Linux:
 scripts/release.sh linux --out dist/
 
-# Android (needs keystore env vars):
-EZCORE_KEYSTORE_FILE=keystore.jks EZCORE_KEYSTORE_PASSWORD=... \
-EZCORE_KEY_ALIAS=... EZCORE_KEY_PASSWORD=... \
+# Android (needs the release keystore; see docs/RELEASING.md):
+EZCORE_KEYSTORE_FILE="$PWD/ezcore-release.keystore" \
+EZCORE_KEYSTORE_PASSWORD=... EZCORE_KEY_ALIAS=ezcore EZCORE_KEY_PASSWORD=... \
 scripts/release.sh android --out dist/
 
 # iOS (needs signing identity + embedded frameworks):
@@ -117,7 +120,8 @@ python3 scripts/fill_manifest_data.py --check
 python3 scripts/build_catalog.py
 bash scripts/banned_content_scan.sh
 
-# Native pins (must match committed manifest.json)
+# Native pins (must match committed manifest.json; requires the full
+# desktop tier staged — a tier1-only checkout will (correctly) fail this)
 python3 scripts/pin_artifacts.py macos-arm64 --out native/cores --check
 
 # Dart

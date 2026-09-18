@@ -27,13 +27,13 @@
 
 ### Installation & Setup
 **Q: Where do I download ezCORE?**
-A: [GitHub Releases](../../releases) — macOS (.zip), Windows (.zip), Linux (.tar.gz), Android (.apk)
+A: [GitHub Releases](../../releases) — v0.1.0 ships macOS (Apple Silicon, `.zip`) and Android (arm64, `.apk`). Windows/Linux have no binaries yet (build from source); iOS is not distributed yet.
 
 **Q: macOS says "ezCore.app is damaged" or won't open**
-A: The release is ad-hoc signed. Run: `xattr -cr /Applications/ezCore.app` then open. For notarized builds, we need an Apple Developer identity (see RELEASE_PLAN.md).
+A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity — see RELEASE_PLAN.md.)
 
 **Q: Android APK won't install**
-A: Enable "Install unknown apps" for your browser/file manager. The APK is debug-signed; release signing requires a keystore.
+A: Enable "Install unknown apps" for your browser/file manager, and make sure any older ezCORE debug build is uninstalled first (debug and release signatures can't upgrade each other). Release APKs are signed with the project's release keystore.
 
 ### Emulation
 **Q: My game won't load / black screen / crashes**
@@ -44,7 +44,7 @@ A:
 4. File a bug with logs if it should work
 
 **Q: How do I add BIOS files?**
-A: Systems screen → tap a core → "BIOS Required" row shows exact filenames. Place in the app's `bios/` folder (Settings → Library & Storage → Open Data Folder).
+A: Place them in the app's `system/` folder inside the app data directory — macOS: `~/Library/Application Support/ezcore/system/`, Windows: `%APPDATA%\ezcore\system\`, Linux: `~/.local/share/ezcore/system/`. The Systems screen and the player name the exact files a core is missing. (On Android the folder is app-private in v0.1.0 — mobile placement is planned.) See [INSTALL.md](docs/INSTALL.md#bios--firmware).
 
 **Q: Cheats don't work**
 A: 

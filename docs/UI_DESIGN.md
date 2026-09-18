@@ -1,9 +1,12 @@
 # ezCore UI Design Specification
 
+> **Status:** planning draft (2026-09-16) — **superseded.** The shipped
+> identity is the final-01 Orbit console (see `design/ezcore-orbit/` and
+> `lib/theme/tokens.dart`), not the directions sketched below. Kept for
+> history.
+
 > **Version:** 1.0
-> **Date:** 2026-09-16
-> **Status:** Draft
-> **Design language:** Linear / Vercel / Stripe standard
+> **Design language as written:** Linear / Vercel / Stripe standard
 
 ---
 

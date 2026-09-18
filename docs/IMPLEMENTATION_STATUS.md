@@ -1,5 +1,9 @@
 # Functional release verification checkpoint
 
+> **Status:** point-in-time checkpoint (2026-09-18) from the all-platforms
+> push. Current verified status lives in [`MATRIX.md`](MATRIX.md); live v1
+> scope in [`RELEASE_PLAN.md`](RELEASE_PLAN.md).
+
 ## All-platforms push (2026-09-18): macOS + Linux + Windows + Android + iOS
 
 Dart seams (all unit-tested, `analyze lib/` clean):
