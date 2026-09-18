@@ -1,0 +1,862 @@
+{
+  "beetle_pce": {
+    "artifacts": {
+      "macos-arm64": "d0a5add1e15acff5bf315a78f679627e24f5acbf9d7482f565c76155787196b5"
+    },
+    "bios_files": [
+      "syscard3.pce (CD titles only, user-supplied, hash-gated)"
+    ],
+    "bios_required": true,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "pce",
+      "sgx",
+      "cue",
+      "ccd",
+      "chd",
+      "zip"
+    ],
+    "homepage": "https://github.com/libretro/beetle-pce-fast-libretro",
+    "id": "beetle_pce",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/libretro/beetle-pce-fast-libretro/blob/master/COPYING",
+    "name": "Beetle PCE Fast",
+    "systems": [
+      "pce",
+      "tg16",
+      "pcecd"
+    ],
+    "upstream": "libretro/beetle-pce-fast-libretro",
+    "version": "1.31.0"
+  },
+  "beetle_saturn": {
+    "artifacts": {
+      "macos-arm64": "18d49929f3a4a52029d3a93ef6cab528e02aa702e6f92c07fc7d2d640f12dc84"
+    },
+    "bios_files": [
+      "sega_101.bin",
+      "mpr-17933.bin (user-supplied, hash-gated)"
+    ],
+    "bios_required": true,
+    "cheat_families": [
+      "saturn_gameshark"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "cue",
+      "ccd",
+      "chd",
+      "iso",
+      "m3u"
+    ],
+    "homepage": "https://github.com/libretro/beetle-saturn-libretro",
+    "id": "beetle_saturn",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
+    "name": "Beetle Saturn",
+    "notes": "Desktop/Android first \u2014 needs strong CPU. iOS absent at launch.",
+    "systems": [
+      "saturn"
+    ],
+    "upstream": "libretro/beetle-saturn-libretro",
+    "version": "1.32.1"
+  },
+  "citra_hold": {
+    "artifacts": {},
+    "bios_files": [],
+    "bios_required": true,
+    "blocked_reason": "Citra was taken down March 2024 under the Nintendo/Yuzu settlement. 3DS emulation requires bootrom dumps + title-key decryption (DMCA 1201 anti-circumvention exposure). PabloMK7-era forks carry the same taint. DO NOT build or distribute a 3DS core until cleared by IP counsel. Architecture slot reserved for that day.",
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "macos": "absent",
+      "windows": "absent"
+    },
+    "extensions": [],
+    "homepage": "",
+    "id": "citra_hold",
+    "license": "GPL-2.0 (upstream tainted \u2014 do not build from post-2024 forks)",
+    "name": "Nintendo 3DS \u2014 legal hold",
+    "systems": [
+      "3ds"
+    ],
+    "upstream": "NONE \u2014 slot reserved only",
+    "version": "0.0.0-blocked"
+  },
+  "dolphin": {
+    "artifacts": {
+      "macos-arm64": "da8339b75575164f0bd3c77180bc76cd89076006192016b1d9fca8cf6c6f3004"
+    },
+    "bios_files": [
+      "IPL.bin (optional, HLE default \u2014 user-supplied only, hash-gated)"
+    ],
+    "bios_required": false,
+    "cheat_families": [
+      "gc_gecko"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "iso",
+      "gcm",
+      "ciso",
+      "wbfs",
+      "rvz",
+      "elf",
+      "dol",
+      "wad"
+    ],
+    "homepage": "https://github.com/dolphin-emu/dolphin",
+    "id": "dolphin",
+    "license": "GPL-2.0-or-later",
+    "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
+    "name": "Dolphin",
+    "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU \u2014 on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
+    "systems": [
+      "gc",
+      "wii"
+    ],
+    "upstream": "libretro/dolphin",
+    "version": "rolling+git.fad480a"
+  },
+  "dosbox_pure": {
+    "artifacts": {
+      "macos-arm64": "950cb26af808f34dcea3c6670587819548a51e2ed4ced7d174f100dd917ac53a"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "zip",
+      "exe",
+      "com",
+      "bat",
+      "iso",
+      "img"
+    ],
+    "homepage": "https://github.com/libretro/dosbox-pure",
+    "id": "dosbox_pure",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/libretro/dosbox-pure/blob/main/LICENSE",
+    "name": "DOSBox Pure",
+    "systems": [
+      "dos"
+    ],
+    "upstream": "libretro/dosbox-pure",
+    "version": "1.0-preview6"
+  },
+  "fbneo": {
+    "artifacts": {
+      "macos-arm64": "28f88a4a5c3aa80bf703ee1caeae8fe110ce8fed34b6690e7dc2d8448e1a11cc"
+    },
+    "bios_files": [
+      "neogeo.zip and per-board BIOS (user-supplied, hash-gated)"
+    ],
+    "bios_required": true,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "bundled",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "zip"
+    ],
+    "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
+    "homepage": "https://github.com/libretro/FBNeo",
+    "id": "fbneo",
+    "license": "FBNeo-custom (non-commercial \u2014 verify per-file terms at build time)",
+    "license_url": "https://github.com/libretro/FBNeo/blob/master/src/license.txt",
+    "name": "FinalBurn Neo",
+    "systems": [
+      "arcade",
+      "neogeo"
+    ],
+    "upstream": "libretro/FBNeo",
+    "version": "1.0.0.03"
+  },
+  "flycast": {
+    "artifacts": {
+      "macos-arm64": "11bf47b40e704d245128d46705848b803bf70f6dabde41ce763d664a604eadfb"
+    },
+    "bios_files": [
+      "dc_boot.bin",
+      "dc_flash.bin (user-supplied, hash-gated)"
+    ],
+    "bios_required": true,
+    "cheat_families": [
+      "dc_codebreaker"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "cdi",
+      "gdi",
+      "chd",
+      "cue",
+      "zip",
+      "lst",
+      "bin"
+    ],
+    "homepage": "https://github.com/flyinghead/flycast",
+    "id": "flycast",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/flyinghead/flycast/blob/master/LICENSE",
+    "name": "Flycast",
+    "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS \u2014 flagged slow.",
+    "systems": [
+      "dc",
+      "naomi"
+    ],
+    "upstream": "flyinghead/flycast (libretro build target)",
+    "version": "2.2+git.eddf263"
+  },
+  "gambatte": {
+    "artifacts": {
+      "macos-arm64": "7e77130b76f03657bdbd40d6fc8c78d0671c5773e934c66923a0a2c755eadf3f"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "gb_gameshark",
+      "gb_gamegenie"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "gb",
+      "gbc",
+      "zip"
+    ],
+    "homepage": "https://github.com/libretro/gambatte-libretro",
+    "id": "gambatte",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/libretro/gambatte-libretro/blob/master/COPYING",
+    "name": "Gambatte",
+    "systems": [
+      "gb",
+      "gbc"
+    ],
+    "upstream": "libretro/gambatte-libretro",
+    "version": "0.5.0"
+  },
+  "genesis_plus_gx": {
+    "artifacts": {
+      "macos-arm64": "c17c2d6a623206ff4f67486a15cf62676e802c4aba947aaebe70f66249b5a8b8"
+    },
+    "bios_files": [
+      "bios_MD.bin / bios_SMS.bin (optional, user-supplied, hash-gated)"
+    ],
+    "bios_required": false,
+    "cheat_families": [
+      "genesis_gamegenie",
+      "genesis_actionreplay",
+      "sms_actionreplay"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "md",
+      "gen",
+      "sms",
+      "gg",
+      "sg",
+      "iso",
+      "cue",
+      "chd",
+      "zip"
+    ],
+    "homepage": "https://github.com/libretro/Genesis-Plus-GX",
+    "id": "genesis_plus_gx",
+    "license": "Genesis-Plus-GX-custom (non-commercial \u2014 verify per-file terms at build time)",
+    "license_url": "https://github.com/libretro/Genesis-Plus-GX",
+    "name": "Genesis Plus GX",
+    "systems": [
+      "genesis",
+      "sms",
+      "gg",
+      "sg1000",
+      "scd"
+    ],
+    "upstream": "libretro/Genesis-Plus-GX",
+    "version": "1.7.4"
+  },
+  "melonds": {
+    "artifacts": {
+      "macos-arm64": "be8dc598de6fdd8bfccc5c59e393c00ef21194c8517bff4a52fcf452dcce3a9c"
+    },
+    "bios_files": [
+      "bios7.bin",
+      "bios9.bin",
+      "firmware.bin (user-supplied, hash-gated)"
+    ],
+    "bios_required": true,
+    "cheat_families": [
+      "nds_actionreplay"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "nds",
+      "zip"
+    ],
+    "homepage": "https://github.com/melonDS-emu/melonDS",
+    "id": "melonds",
+    "license": "GPL-3.0",
+    "license_url": "https://github.com/libretro/melonDS/blob/master/LICENSE",
+    "name": "melonDS",
+    "notes": "Full speed on desktop. Mobile is playable but flagged slow \u2014 DSi mode off at launch.",
+    "systems": [
+      "nds"
+    ],
+    "upstream": "libretro/melonDS",
+    "version": "0.9.3"
+  },
+  "mesen": {
+    "artifacts": {
+      "macos-arm64": "c5fea1421f45e802638f9caf8f975c7a8ebae5a4033568d9a57d4f203ea2b01c"
+    },
+    "bios_files": [
+      "disksys.rom (FDS only, user-supplied, hash-gated)"
+    ],
+    "bios_required": false,
+    "cheat_families": [
+      "nes_gamegenie"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "nes",
+      "fds",
+      "unf",
+      "zip"
+    ],
+    "homepage": "https://github.com/SourMesen/Mesen2",
+    "id": "mesen",
+    "license": "GPL-3.0",
+    "license_url": "https://github.com/libretro/Mesen/blob/master/LICENSE",
+    "name": "Mesen",
+    "systems": [
+      "nes",
+      "fds"
+    ],
+    "upstream": "libretro/Mesen",
+    "version": "0.9.9"
+  },
+  "mgba": {
+    "artifacts": {
+      "macos-arm64": "8a256a29e19a9a2164f69000b77b6b8dc44a970b80d7ee332a6c3e3de5007670"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "gba_actionreplay",
+      "gba_codebreaker",
+      "gba_gameshark",
+      "gb_gameshark"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "gba",
+      "gb",
+      "gbc",
+      "zip"
+    ],
+    "homepage": "https://mgba.io",
+    "id": "mgba",
+    "license": "MPL-2.0",
+    "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
+    "name": "mGBA",
+    "systems": [
+      "gba",
+      "gb",
+      "gbc"
+    ],
+    "upstream": "libretro/mgba",
+    "version": "0.11-dev"
+  },
+  "mupen64plus": {
+    "artifacts": {
+      "macos-arm64": "02433c40f5d9af5677e8dd60da1341d39f2737e5e851bbe9efc1ab4c99a6bcf1"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "n64_gameshark"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "n64",
+      "z64",
+      "v64",
+      "zip"
+    ],
+    "homepage": "https://github.com/libretro/mupen64plus-libretro-nx",
+    "id": "mupen64plus",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/libretro/mupen64plus-libretro-nx",
+    "name": "Mupen64Plus-Next",
+    "notes": "Dynarec on desktop/Android only. Interpreter on iOS \u2014 expect reduced speed.",
+    "systems": [
+      "n64"
+    ],
+    "upstream": "libretro/mupen64plus-libretro-nx",
+    "version": "2.8"
+  },
+  "ppsspp": {
+    "artifacts": {
+      "macos-arm64": "fafcda858b57319aa92bc72353a933bec4f0095e67aadaba5c6081f9954e4321"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "psp_cwcheat"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "iso",
+      "cso",
+      "pbp",
+      "elf",
+      "prx"
+    ],
+    "homepage": "https://github.com/hrydgard/ppsspp",
+    "id": "ppsspp",
+    "license": "GPL-2.0-or-later",
+    "license_url": "https://github.com/hrydgard/ppsspp/blob/master/LICENSE.TXT",
+    "name": "PPSSPP",
+    "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch \u2014 on-demand download only, never base-app payload. No PSN/DRM features.",
+    "systems": [
+      "psp"
+    ],
+    "upstream": "hrydgard/ppsspp (libretro build target)",
+    "version": "1.17+git.2e6fd06"
+  },
+  "ps2_hold": {
+    "artifacts": {},
+    "bios_files": [],
+    "bios_required": true,
+    "blocked_reason": "Engineering + legal: AetherSX2 is proprietary (cannot legally ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "macos": "absent",
+      "windows": "absent"
+    },
+    "extensions": [],
+    "homepage": "",
+    "id": "ps2_hold",
+    "license": "NONE \u2014 no viable open libretro core exists",
+    "name": "PlayStation 2 \u2014 no shippable core",
+    "systems": [
+      "ps2"
+    ],
+    "upstream": "NONE \u2014 slot reserved only",
+    "version": "0.0.0-blocked"
+  },
+  "sameboy": {
+    "artifacts": {
+      "macos-arm64": "9dfb1da7718f7a09a91903810312612cc8157e8209b95d3347d5f1f832f26795"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "gb_gameshark",
+      "gb_gamegenie"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "gb",
+      "gbc",
+      "zip"
+    ],
+    "homepage": "https://github.com/LIJI32/SameBoy",
+    "id": "sameboy",
+    "license": "MIT",
+    "license_url": "https://github.com/LIJI32/SameBoy/blob/master/LICENSE",
+    "name": "SameBoy",
+    "systems": [
+      "gb",
+      "gbc"
+    ],
+    "upstream": "libretro/SameBoy (built from LIJI32/SameBoy)",
+    "version": "1.0.3"
+  },
+  "scummvm": {
+    "artifacts": {},
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "scummvm",
+      "zip"
+    ],
+    "homepage": "https://github.com/scummvm/scummvm",
+    "id": "scummvm",
+    "license": "GPL-3.0",
+    "license_url": "https://github.com/scummvm/scummvm/blob/master/COPYING",
+    "name": "ScummVM",
+    "notes": "Needs user-owned game data files. Great iOS citizen, zero console-IP surface.",
+    "systems": [
+      "scumm"
+    ],
+    "upstream": "scummvm/scummvm (libretro port in-tree)",
+    "version": "2.8.0"
+  },
+  "snes9x": {
+    "artifacts": {
+      "macos-arm64": "7e3b40f041627a59f18a880cb5e45dcbe1c859d53934c640166c1774dcd7ef05"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [
+      "snes_gamegenie",
+      "snes_proactionreplay"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "sfc",
+      "smc",
+      "fig",
+      "zip"
+    ],
+    "homepage": "https://github.com/snes9xgit/snes9x",
+    "id": "snes9x",
+    "license": "Snes9x-custom (non-commercial, attribution required \u2014 free open-source use OK, paid closed forks NOT permitted)",
+    "license_url": "https://github.com/snes9xgit/snes9x/blob/master/docs/snes9x-license.txt",
+    "name": "Snes9x",
+    "systems": [
+      "snes"
+    ],
+    "upstream": "libretro/snes9x",
+    "version": "1.63"
+  },
+  "stella": {
+    "artifacts": {
+      "macos-arm64": "99f348275434c6d46338d498c1f4b63f636b5e4ad2bf8c84e16cd50beb697120"
+    },
+    "bios_files": [],
+    "bios_required": false,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "bundled",
+      "ios": "bundled",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "interpreter",
+      "ios": "interpreter",
+      "linux": "interpreter",
+      "macos": "interpreter",
+      "windows": "interpreter"
+    },
+    "extensions": [
+      "a26",
+      "bin",
+      "zip"
+    ],
+    "homepage": "https://github.com/stella-emu/stella",
+    "id": "stella",
+    "license": "GPL-2.0",
+    "license_url": "https://github.com/stella-emu/stella/blob/master/License.txt",
+    "name": "Stella",
+    "systems": [
+      "atari2600"
+    ],
+    "upstream": "libretro/stella2023",
+    "version": "7.0-pre"
+  },
+  "swanstation": {
+    "artifacts": {
+      "macos-arm64": "450cf317c0e86f7fa544ad29c7db4a3601b3adcb5fbc7a85db952c5bf0f5aac9"
+    },
+    "bios_files": [
+      "scph5500.bin / scph5501.bin / scph5502.bin (optional \u2014 OpenBIOS fallback built in; user-supplied files hash-gated)"
+    ],
+    "bios_required": false,
+    "cheat_families": [
+      "ps1_gameshark"
+    ],
+    "cheats_supported": true,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "bundled",
+      "windows": "bundled"
+    },
+    "execution": {
+      "android": "dynarec",
+      "ios": "interpreter",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "cue",
+      "ccd",
+      "chd",
+      "pbp",
+      "iso",
+      "m3u"
+    ],
+    "homepage": "https://github.com/libretro/swanstation",
+    "id": "swanstation",
+    "license": "GPL-3.0",
+    "license_url": "https://github.com/libretro/swanstation/blob/main/LICENSE",
+    "name": "SwanStation",
+    "notes": "Interpreter mode on iOS (no JIT). No HLE-BIOS piracy posture \u2014 import-only.",
+    "systems": [
+      "psx"
+    ],
+    "upstream": "libretro/swanstation",
+    "version": "1.0.0"
+  },
+  "switch_hold": {
+    "artifacts": {},
+    "bios_files": [],
+    "bios_required": true,
+    "blocked_reason": "Yuzu settled with Nintendo March 2024 ($2.4M) over TPM circumvention (prod.keys/title.keys) + pre-release piracy facilitation; Ryujinx received a DMCA takedown Oct 2024. Any Switch core needs user keys + decryption = DMCA 1201 exposure for distributor AND user. DO NOT build or distribute. Slot reserved.",
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "macos": "absent",
+      "windows": "absent"
+    },
+    "extensions": [],
+    "homepage": "",
+    "id": "switch_hold",
+    "license": "GPL-3.0 (upstream tainted \u2014 do not build from Yuzu/Sudachi/Torzu/Eden forks)",
+    "name": "Nintendo Switch \u2014 legal hold",
+    "systems": [
+      "switch"
+    ],
+    "upstream": "NONE \u2014 slot reserved only",
+    "version": "0.0.0-blocked"
+  }
+}

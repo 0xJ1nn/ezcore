@@ -1,0 +1,87 @@
+name: full-matrix
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays: full core matrix, not per-PR
+  workflow_dispatch:
+
+# Builds EVERYTHING and records pins. Failures here never block PRs;
+# results go to docs/MATRIX.md via reviewed PRs (pin diffs are evidence).
+jobs:
+  desktop-matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja pkg-config make rgbds libpng mad || true
+      - name: toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: >
+          sudo apt-get update &&
+          sudo apt-get install -y cmake ninja-build pkg-config libpng-dev
+          libgtk-3-dev clang
+      - run: scripts/build_core.sh --fetch-headers
+      - run: scripts/build_runtime.sh ${{ runner.os == 'macOS' && 'macos' || 'linux' }}
+      - run: flutter pub get
+      - name: full desktop tier
+        run: |
+          PLAT=$([ "${{ runner.os }}" = "macOS" ] && echo macos || echo linux)
+          EZCORE_PLATFORM=$PLAT scripts/build_core.sh --tier-desktop
+      - name: native CTest
+        run: |
+          PLAT=$([ "${{ runner.os }}" = "macOS" ] && echo macos || echo linux)
+          (cd runtime/build-$PLAT && ctest --output-on-failure)
+      - name: Dart matrix
+        run: |
+          python3 scripts/build_catalog.py
+          flutter test test/core_matrix_test.dart
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cores-${{ runner.os }}
+          path: |
+            native/cores*/
+            runtime/build-*/
+          retention-days: 7
+
+  mobile-matrix:
+    runs-on: macos-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+      - name: host tooling (gmake for SameBoy BootROMs, cmake/ninja)
+        run: brew install cmake ninja pkg-config make rgbds
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: NDK + cmake
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-34"
+      - run: scripts/build_core.sh --fetch-headers
+      - run: scripts/build_runtime.sh android
+      - run: scripts/build_runtime.sh ios
+      - name: android tier
+        run: EZCORE_PLATFORM=android scripts/build_core.sh --tier-android
+      - name: ios tier
+        run: EZCORE_PLATFORM=ios scripts/build_core.sh --tier-ios
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cores-mobile
+          path: |
+            native/cores-android-*
+            native/cores-ios-*
+            runtime/build-android
+            runtime/build-ios
+          retention-days: 7

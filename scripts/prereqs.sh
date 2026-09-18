@@ -10,6 +10,9 @@ fi
 
 # Build system.
 brew install cmake ninja pkg-config
+# GNU make 4+: SameBoy BootROM rules use $(realpath) (Apple make 3.81
+# lacks it) and race its pb12 link step under parallel make.
+brew install make
 # SameBoy boot ROMs are compiled from source with RGBDS (clean-room,
 # no Nintendo binaries involved).
 brew install rgbds

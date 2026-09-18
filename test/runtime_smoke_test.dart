@@ -3,8 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/runtime/ezcore_runtime.dart';
-
-bool _exists(String path) => File(path).existsSync();
+import 'test_paths.dart' as paths;
 
 /// id -> expected core name substring. Grows as cores land in native/cores/.
 const _cores = <String, String>{
@@ -28,35 +27,26 @@ const _cores = <String, String>{
   'scummvm': 'ScummVM',
 };
 
-String _dylib(String id) {
-  final dir = Directory('native/cores/$id');
-  if (!dir.existsSync()) return '';
-  final hits = dir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('_libretro.dylib'))
-      .toList();
-  return hits.isEmpty ? '' : hits.first.path;
-}
+String _dylib(String id) => paths.stagedCoreLib(id) ?? '';
 
 void main() {
-  const bridgeLib = 'runtime/build/libezcore_runtime.dylib';
-  const blarggRom = 'native/test-roms/cpu_instrs.gb';
+  final bridgeLib = paths.bridgeLib();
+  final blarggRom = paths.fixture('cpu_instrs.gb');
 
   test(
     'bridge ABI version is 1',
-    skip: _exists(bridgeLib) ? null : 'bridge not built',
+    skip: bridgeLib != null ? null : 'bridge not built',
     () {
-      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib!);
       expect(bridge.abiVersion(), 1);
     },
   );
 
   test(
     'every staged core loads, inits, and identifies',
-    skip: _exists(bridgeLib) ? null : 'bridge not built',
+    skip: bridgeLib != null ? null : 'bridge not built',
     () {
-      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib!);
       var exercised = 0;
       for (final entry in _cores.entries) {
         final lib = _dylib(entry.key);
@@ -79,15 +69,15 @@ void main() {
 
   test(
     'sameboy boots blargg and renders pixels',
-    skip: (_exists(bridgeLib) && _exists(blarggRom)) ? null : 'no rom',
+    skip: (bridgeLib != null && blarggRom != null) ? null : 'no rom',
     () {
       final lib = _dylib('sameboy');
       if (lib.isEmpty) return;
-      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib);
+      final bridge = EzCoreRuntime.load(runtimePath: bridgeLib!);
       final session = bridge.loadSession(lib);
       try {
         expect(bridge.init(session), isTrue);
-        final rom = File(blarggRom).readAsBytesSync();
+        final rom = File(blarggRom!).readAsBytesSync();
         expect(bridge.loadGame(session, blarggRom, rom), isTrue);
         // Cheat + dir plumbing must not crash (SameBoy libretro build has
         // cheats compiled out, so this exercises the path, not the effect).

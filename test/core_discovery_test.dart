@@ -1,0 +1,41 @@
+import 'dart:convert';
+import 'package:ezcore/state/app_state.dart';
+import 'dart:io';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ezcore/cores/core_registry.dart';
+import 'package:ezcore/services/core_discovery.dart';
+import 'package:ezcore/services/core_path_resolver.dart';
+import 'test_paths.dart' as paths;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test('application startup discovers staged cores', () async {
+    if (paths.stagedCoreLib('mgba') == null) {
+      markTestSkipped('mGBA not staged on this host');
+      return;
+    }
+    final state = AppState.ephemeral();
+    await state.load();
+    expect(state.registry.isInstalled('mgba'), isTrue);
+    state.dispose();
+  });
+  test('discovers and hashes staged mGBA before registering it', () async {
+    final registry = CoreRegistry();
+    registry.loadCatalog({
+      'mgba': await File('cores/mgba/manifest.json').readAsString(),
+    });
+    final discovery = CoreDiscovery(Directory('native/cores'));
+    final found = await discovery.discover(registry);
+    expect(found['mgba'], endsWith("mgba_libretro.${paths.hostLibExt}"));
+    expect(registry.isInstalled('mgba'), isTrue);
+    final raw =
+        jsonDecode(await File('cores/mgba/manifest.json').readAsString())
+            as Map<String, dynamic>;
+    raw['artifacts'] = {CorePathResolver.currentPlatformKey(): '0' * 64};
+    final wrong = CoreRegistry()..loadCatalog({'mgba': jsonEncode(raw)});
+    expect(await discovery.discover(wrong), isEmpty);
+    expect(paths.stagedCoreLib('mgba'), isNotNull);
+    expect(wrong.installedCores, isEmpty);
+    expect(discovery.errors['mgba'], contains('SHA-256'));
+  });
+}

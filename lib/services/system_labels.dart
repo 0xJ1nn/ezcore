@@ -1,0 +1,37 @@
+/// Human-readable labels for system IDs.
+///
+/// Sourced from core manifest `systems` entries and common shorthand.
+/// Purely a display concern — never used for core matching logic.
+const systemLabels = <String, String>{
+  'gb': 'Game Boy',
+  'gbc': 'Game Boy Color',
+  'gba': 'Game Boy Advance',
+  'snes': 'Super Nintendo',
+  'nds': 'Nintendo DS',
+  'psx': 'PlayStation',
+  'psp': 'PlayStation Portable',
+  'gc': 'GameCube',
+  'dos': 'DOS',
+  'nes': 'Nintendo Entertainment System',
+  'genesis': 'Genesis / Mega Drive',
+  'n64': 'Nintendo 64',
+  'dc': 'Dreamcast',
+  'atari2600': 'Atari 2600',
+  'pce': 'PC Engine / TurboGrafx-16',
+  'tg16': 'TurboGrafx-16',
+  'pcecd': 'PC Engine CD',
+  'saturn': 'Saturn',
+  'arcade': 'Arcade',
+  'neogeo': 'Neo Geo',
+  'sms': 'Master System',
+  'gg': 'Game Gear',
+  'sg1000': 'SG-1000',
+  'scd': 'Mega CD',
+  'scumm': 'SCUMM',
+  '3ds': 'Nintendo 3DS',
+  'switch': 'Nintendo Switch',
+  'ps2': 'PlayStation 2',
+  'wii': 'Wii',
+  'naomi': 'NAOMI',
+  'fds': 'Famicom Disk System',
+};

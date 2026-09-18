@@ -40,4 +40,28 @@ void main() {
     );
     expect(CheatValidators.validate('gb_gameshark', '   '), contains('empty'));
   });
+
+  test('plus-joined database codes validate per segment', () {
+    expect(
+      CheatValidators.validate('ps1_gameshark', '800B8B94+FFFF'),
+      isNull,
+    );
+    expect(
+      CheatValidators.validate('ps1_gameshark', 'D00ABA60+????'),
+      isNull,
+    );
+    expect(
+      CheatValidators.validate(
+          'ps1_gameshark', '80097EF0+FFFF+30097EF2+001F'),
+      isNull,
+    );
+    expect(
+      CheatValidators.validate('ps1_gameshark', '800B8B94+ZZZZ'),
+      contains('Line 1'),
+    );
+    expect(
+      CheatValidators.validate('saturn_gameshark', 'D0065BCE+FFEE'),
+      isNull,
+    );
+  });
 }

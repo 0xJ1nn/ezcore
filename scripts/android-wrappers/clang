@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""NDK compiler wrapper: drops `-lrt` (bionic libc already provides
+clock_gettime et al; the NDK ships no librt, and several upstream
+libretro makefiles unconditionally add it).
+
+argv is preserved byte-exact (unlike shell filtering); REAL_CC selects
+the underlying compiler. Any other missing library still fails loudly
+at link time. Used via CC/CXX on Android core builds (core_platform.sh).
+"""
+import os
+import sys
+
+
+def main() -> None:
+    me = os.path.basename(sys.argv[0])
+    key = "REAL_CXX" if "++" in me else "REAL_CC"
+    real = os.environ.get(key)
+    if not real:
+        print(f"android-wrappers/clang: {key} not set", file=sys.stderr)
+        sys.exit(2)
+    args = [a for a in sys.argv[1:] if a != "-lrt"]
+    os.execv(real, [real, *args])
+
+
+if __name__ == "__main__":
+    main()

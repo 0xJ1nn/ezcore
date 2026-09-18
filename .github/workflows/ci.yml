@@ -1,0 +1,137 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+# v1 platform matrix (docs/MATRIX.md). Per-PR legs stay under ~30 min;
+# the full core matrix builds on schedule (see .github/workflows/matrix.yml).
+jobs:
+  dart-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter --version
+      - run: python3 scripts/fill_manifest_data.py --check
+      - run: python3 scripts/build_catalog.py
+      - run: flutter pub get
+      - run: flutter analyze lib/ test/
+      - run: flutter test
+      - run: bash scripts/banned_content_scan.sh
+
+  native-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: toolchain
+        run: >
+          sudo apt-get update &&
+          sudo apt-get install -y cmake ninja-build pkg-config libpng-dev
+          libgtk-3-dev clang
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: python3 scripts/fill_manifest_data.py --check
+      - run: python3 scripts/build_catalog.py
+      - run: scripts/build_core.sh --fetch-headers
+      - run: scripts/build_runtime.sh linux
+      - run: flutter pub get
+      # SameBoy excluded: its BootROMs need rgbds (unavailable via apt).
+      # Covered on macOS CI + MATRIX.md.
+      - name: tier1 cores (unix, minus sameboy)
+        run: |
+          for c in gambatte mgba snes9x genesis_plus_gx dosbox_pure; do
+            EZCORE_PLATFORM=linux scripts/build_core.sh $c
+          done
+      - name: core matrix (Dart-driven, fork-isolated harness)
+        run: flutter test test/core_matrix_test.dart
+      - run: flutter build linux --debug
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: prereqs
+        run: brew install cmake ninja pkg-config make rgbds libpng mad
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: python3 scripts/fill_manifest_data.py --check
+      - run: python3 scripts/build_catalog.py
+      - run: scripts/build_core.sh --fetch-headers
+      - run: scripts/build_runtime.sh macos
+      - run: flutter pub get
+      - run: scripts/build_core.sh --tier1
+      - run: flutter analyze lib/ test/
+      - run: flutter test
+      - run: flutter build macos --debug
+      - run: bash scripts/banned_content_scan.sh
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          install: make mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja python
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: python scripts/fill_manifest_data.py --check
+      - run: python scripts/build_catalog.py
+      - run: scripts/build_runtime.sh windows
+        shell: msys2 {0}
+      - name: proof core (msys2 mingw, windows target)
+        shell: msys2 {0}
+        run: EZCORE_PLATFORM=windows scripts/build_core.sh snes9x
+      - run: flutter pub get
+      - run: flutter analyze lib/ test/
+      - run: flutter test
+      - run: flutter build windows --debug
+
+  android:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: NDK + cmake
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-34"
+      - run: python3 scripts/fill_manifest_data.py --check
+      - run: python3 scripts/build_catalog.py
+      - name: runtime (NDK)
+        run: scripts/build_runtime.sh android
+      - name: tier1 core (NDK cross)
+        run: EZCORE_PLATFORM=android scripts/build_core.sh gambatte
+      - run: flutter pub get
+      - run: flutter build apk --debug
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: prereqs (Xcode-side tooling for core builds)
+        run: brew install cmake ninja pkg-config make rgbds
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: python3 scripts/fill_manifest_data.py --check
+      - run: python3 scripts/build_catalog.py
+      - run: scripts/build_core.sh --fetch-headers
+      - run: scripts/build_runtime.sh ios
+      - name: interpreter-tier core (no-JIT toolchain proof)
+        run: EZCORE_PLATFORM=ios scripts/build_core.sh sameboy
+      - run: flutter pub get
+      - run: flutter build ios --no-codesign
