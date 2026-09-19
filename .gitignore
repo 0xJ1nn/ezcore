@@ -80,3 +80,7 @@ design/moonboard/
 # Release outputs (assembled by scripts/release.sh; attached to GitHub
 # Releases, never committed).
 dist/
+
+# Local ROM drop folder for development. ROMs are never committed — see
+# CONTRIBUTING.md hard rule 1; the pre-commit hook blocks them anyway.
+roms/
