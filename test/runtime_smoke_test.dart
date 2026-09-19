@@ -7,24 +7,24 @@ import 'test_paths.dart' as paths;
 
 /// id -> expected core name substring. Grows as cores land in native/cores/.
 const _cores = <String, String>{
-  'sameboy': 'SameBoy',
+  'pocketbit': 'SameBoy',
   'gambatte': 'Gambatte',
-  'mgba': 'mGBA',
-  'snes9x': 'Snes9x',
-  'genesis_plus_gx': 'Genesis Plus GX',
-  'dosbox_pure': 'DOSBox-pure',
-  'mesen': 'Mesen',
-  'melonds': 'melonDS',
-  'stella': 'Stella',
-  'beetle_pce': 'Beetle',
-  'beetle_saturn': 'Beetle',
-  'mupen64plus': 'Mupen64Plus',
-  'swanstation': 'SwanStation',
-  'ppsspp': 'PPSSPP',
-  'flycast': 'Flycast',
-  'dolphin': 'dolphin-emu',
-  'fbneo': 'FinalBurn Neo',
-  'scummvm': 'ScummVM',
+  'advancebit': 'mGBA',
+  'superfx': 'Snes9x',
+  'blastproc': 'Genesis Plus GX',
+  'realmode': 'DOSBox-pure',
+  'nesbyte': 'Mesen',
+  'dualscreen': 'melonDS',
+  'joystick': 'Stella',
+  'cardcon': 'Beetle',
+  'twinsh': 'Beetle',
+  'rcp64': 'Mupen64Plus',
+  'geometry1': 'SwanStation',
+  'portcomp': 'PPSSPP',
+  'dreamarc': 'Flycast',
+  'powercube': 'dolphin-emu',
+  'coinbox': 'FinalBurn Neo',
+  'pointclick': 'ScummVM',
 };
 
 String _dylib(String id) => paths.stagedCoreLib(id) ?? '';
@@ -71,7 +71,7 @@ void main() {
     'sameboy boots blargg and renders pixels',
     skip: (bridgeLib != null && blarggRom != null) ? null : 'no rom',
     () {
-      final lib = _dylib('sameboy');
+      final lib = _dylib('pocketbit');
       if (lib.isEmpty) return;
       final bridge = EzCoreRuntime.load(runtimePath: bridgeLib!);
       final session = bridge.loadSession(lib);

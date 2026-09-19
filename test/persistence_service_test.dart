@@ -48,7 +48,7 @@ void main() {
           filePath: '/foo/bar.gb',
           extension: 'gb',
           favorite: true,
-          coreId: 'sameboy',
+          coreId: 'pocketbit',
         ),
       ];
       await service.saveGames(games);

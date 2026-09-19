@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/core_manifest.dart';
 
 CoreManifest _base() => const CoreManifest(
-      id: 'mgba',
+      id: 'advancebit',
       name: 'mGBA',
       version: '0.10.5',
       license: 'MPL-2.0',
@@ -40,7 +40,7 @@ void main() {
 
   test('round-trips through json', () {
     final m = CoreManifest.fromJson(_base().toJson());
-    expect(m.id, 'mgba');
+    expect(m.id, 'advancebit');
     expect(m.systems, contains('gba'));
     expect(m.validate(), isEmpty);
   });

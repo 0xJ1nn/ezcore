@@ -16,7 +16,7 @@ void main() {
         system: 'gba',
         filePath: '~/Games/gba/mydump.gba',
         extension: 'gba',
-        coreId: 'mgba',
+        coreId: 'advancebit',
       ),
       GameEntry(
         id: 'g4',
@@ -24,7 +24,7 @@ void main() {
         system: 'snes',
         filePath: '~/Games/snes/mydump.sfc',
         extension: 'sfc',
-        coreId: 'snes9x',
+        coreId: 'superfx',
       ),
     ];
 
@@ -56,7 +56,7 @@ void main() {
         system: 'gba',
         filePath: '~/Games/gba/mydump.gba',
         extension: 'gba',
-        coreId: 'mgba',
+        coreId: 'advancebit',
       ),
     ];
 

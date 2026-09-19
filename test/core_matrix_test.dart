@@ -49,10 +49,10 @@ List<String> _catalogIds() {
 /// Fixture ROMs (public-domain / test-suite content under test/fixtures
 /// once sourced; local-only paths until then — see docs/MATRIX.md).
 const _fullBoot = {
-  'sameboy': 'native/test-roms/cpu_instrs.gb',
+  'pocketbit': 'native/test-roms/cpu_instrs.gb',
   'gambatte': 'native/test-roms/cpu_instrs.gb',
-  'mgba': 'native/test-roms/test.gba',
-  'mesen': 'native/test-roms/ezcore_nes_minimal.nes',
+  'advancebit': 'native/test-roms/test.gba',
+  'nesbyte': 'native/test-roms/ezcore_nes_minimal.nes',
 };
 
 void main() {

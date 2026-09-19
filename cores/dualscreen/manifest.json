@@ -1,0 +1,50 @@
+{
+  "id": "dualscreen",
+  "name": "DualScreen",
+  "version": "0.9.3",
+  "license": "GPL-3.0",
+  "license_url": "https://github.com/libretro/melonDS/blob/master/LICENSE",
+  "homepage": "https://github.com/melonDS-emu/melonDS",
+  "upstream": "libretro/melonDS",
+  "systems": [
+    "nds"
+  ],
+  "extensions": [
+    "nds",
+    "zip"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "nds_actionreplay"
+  ],
+  "bios_required": true,
+  "bios_files": [
+    "bios7.bin",
+    "bios9.bin",
+    "firmware.bin"
+  ],
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
+  "notes": "Full speed on desktop. Mobile is playable but flagged slow \u2014 DSi mode off at launch.",
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5"
+  },
+  "bios_notes": "User-supplied; presence-gated at boot.",
+  "provenance": {
+    "built_from": "https://github.com/libretro/melonDS",
+    "upstream_license": "GPL-3.0",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
+  }
+}

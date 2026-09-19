@@ -369,12 +369,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   String _shortFor(String id) {
     const shorts = {
-      'sameboy': 'GB', 'gambatte': 'GBC', 'mgba': 'GBA', 'mesen': 'NES',
-      'snes9x': 'SNES', 'genesis_plus_gx': 'MD', 'stella': '2600',
-      'dosbox_pure': 'DOS', 'beetle_pce': 'PCE', 'swanstation': 'PS',
-      'mupen64plus': 'N64', 'melonds': 'DS', 'ppsspp': 'PSP',
-      'flycast': 'DC', 'dolphin': 'GC', 'beetle_saturn': 'SAT',
-      'fbneo': 'ARC', 'scummvm': 'ADV',
+      'pocketbit': 'GB', 'gambatte': 'GBC', 'advancebit': 'GBA', 'nesbyte': 'NES',
+      'superfx': 'SNES', 'blastproc': 'MD', 'joystick': '2600',
+      'realmode': 'DOS', 'cardcon': 'PCE', 'geometry1': 'PS',
+      'rcp64': 'N64', 'dualscreen': 'DS', 'portcomp': 'PSP',
+      'dreamarc': 'DC', 'powercube': 'GC', 'twinsh': 'SAT',
+      'coinbox': 'ARC', 'pointclick': 'ADV',
     };
     return shorts[id] ?? id.substring(0, math.min(3, id.length)).toUpperCase();
   }

@@ -1,0 +1,55 @@
+{
+  "id": "powercube",
+  "name": "PowerCube",
+  "version": "rolling+git.fad480a",
+  "license": "GPL-2.0-or-later",
+  "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
+  "homepage": "https://github.com/dolphin-emu/dolphin",
+  "upstream": "libretro/dolphin",
+  "systems": [
+    "gc",
+    "wii"
+  ],
+  "extensions": [
+    "iso",
+    "gcm",
+    "ciso",
+    "wbfs",
+    "rvz",
+    "elf",
+    "dol",
+    "wad"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "gc_gecko"
+  ],
+  "bios_required": false,
+  "bios_files": [
+    "IPL.bin"
+  ],
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec"
+  },
+  "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU \u2014 on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
+  },
+  "bios_notes": "Optional \u2014 HLE default. User-supplied only.",
+  "provenance": {
+    "upstream_license": "GPL-2.0-or-later",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "license_note": "COPYING states GPLv2+ and 'in aggregate \u2026 compatible with the GPLv3 license'. 2 files grant v2-only; project's own aggregate statement governs.",
+    "built_from": "https://github.com/libretro/dolphin"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "id": "cardcon",
+  "name": "CardCon",
+  "version": "1.31.0",
+  "license": "GPL-2.0-or-later",
+  "license_url": "https://github.com/libretro/beetle-pce-fast-libretro/blob/master/COPYING",
+  "homepage": "https://github.com/libretro/beetle-pce-fast-libretro",
+  "upstream": "libretro/beetle-pce-fast-libretro",
+  "systems": [
+    "pce",
+    "tg16",
+    "pcecd"
+  ],
+  "extensions": [
+    "pce",
+    "sgx",
+    "cue",
+    "ccd",
+    "chd",
+    "zip"
+  ],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [
+    "syscard3.pce"
+  ],
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
+  "artifacts": {
+    "macos-arm64": "00c2fcd421cce73754e4492233232ccede2428bcdbdb9553205fceda95fbb6a4",
+    "android-arm64": "87edabceae53679b026a54dfd1420301be500d9a3e82e24998ab31047a1ee7b7"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  },
+  "bios_notes": "PC Engine CD titles need syscard3.pce (user-supplied). HuCard titles boot without it; the core reports missing firmware at load.",
+  "provenance": {
+    "upstream_license": "GPL-2.0-or-later",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "built_from": "https://github.com/libretro/beetle-pce-fast-libretro"
+  }
+}

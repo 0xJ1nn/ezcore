@@ -6,8 +6,8 @@ import 'package:ezcore/models/core_manifest.dart';
 
 String _json(CoreManifest m) => json.encode(m.toJson());
 
-CoreManifest _mgba() => const CoreManifest(
-      id: 'mgba',
+CoreManifest _advancebit() => const CoreManifest(
+      id: 'advancebit',
       name: 'mGBA',
       version: '0.10.5',
       license: 'MPL-2.0',
@@ -16,7 +16,7 @@ CoreManifest _mgba() => const CoreManifest(
       cheatFamilies: ['gba_actionreplay'],
       cheatsSupported: true,
       delivery: {'ios': 'bundled'},
-      artifacts: {'macos-arm64': 'sha-mgba'},
+      artifacts: {'macos-arm64': 'sha-advancebit'},
     );
 
 CoreManifest _blocked() => const CoreManifest(
@@ -36,32 +36,32 @@ CoreManifest _blocked() => const CoreManifest(
 void main() {
   test('install / update / remove round-trip', () {
     final reg = CoreRegistry();
-    final errors = reg.loadCatalog({'mgba': _json(_mgba())});
+    final errors = reg.loadCatalog({'advancebit': _json(_advancebit())});
     expect(errors, isEmpty);
-    expect(reg.statusOf(_mgba()), CoreStatus.notInstalled);
+    expect(reg.statusOf(_advancebit()), CoreStatus.notInstalled);
 
-    reg.install(_mgba(), expectedSha256: 'sha-mgba');
-    expect(reg.isInstalled('mgba'), isTrue);
+    reg.install(_advancebit(), expectedSha256: 'sha-advancebit');
+    expect(reg.isInstalled('advancebit'), isTrue);
 
     final newer = CoreManifest.fromJson({
-      ..._mgba().toJson(),
+      ..._advancebit().toJson(),
       'version': '0.10.6',
-      'artifacts': {'macos-arm64': 'sha-mgba2'},
+      'artifacts': {'macos-arm64': 'sha-advancebit2'},
     });
-    reg.loadCatalog({'mgba': json.encode(newer.toJson())});
+    reg.loadCatalog({'advancebit': json.encode(newer.toJson())});
     expect(reg.statusOf(newer), CoreStatus.updateAvailable);
-    reg.update(newer, expectedSha256: 'sha-mgba2');
+    reg.update(newer, expectedSha256: 'sha-advancebit2');
     expect(reg.statusOf(newer), CoreStatus.installed);
 
-    expect(reg.remove('mgba'), 0);
-    expect(reg.isInstalled('mgba'), isFalse);
+    expect(reg.remove('advancebit'), 0);
+    expect(reg.isInstalled('advancebit'), isFalse);
   });
 
   test('unpinned hash is refused', () {
     final reg = CoreRegistry();
-    reg.loadCatalog({'mgba': _json(_mgba())});
+    reg.loadCatalog({'advancebit': _json(_advancebit())});
     expect(
-      () => reg.install(_mgba(), expectedSha256: 'evil'),
+      () => reg.install(_advancebit(), expectedSha256: 'evil'),
       throwsStateError,
     );
   });
@@ -78,10 +78,10 @@ void main() {
 
   test('compatibleCores matches installed extensions only', () {
     final reg = CoreRegistry();
-    reg.loadCatalog({'mgba': _json(_mgba())});
+    reg.loadCatalog({'advancebit': _json(_advancebit())});
     expect(reg.compatibleCores('gba'), isEmpty);
-    reg.install(_mgba(), expectedSha256: 'sha-mgba');
-    expect(reg.compatibleCores('.GBA').map((m) => m.id), ['mgba']);
+    reg.install(_advancebit(), expectedSha256: 'sha-advancebit');
+    expect(reg.compatibleCores('.GBA').map((m) => m.id), ['advancebit']);
     expect(reg.compatibleCores('sfc'), isEmpty);
   });
 

@@ -1,0 +1,52 @@
+{
+  "id": "advancebit",
+  "name": "AdvanceBit",
+  "version": "0.11-dev",
+  "license": "MPL-2.0",
+  "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
+  "homepage": "https://mgba.io",
+  "upstream": "libretro/mgba",
+  "systems": [
+    "gba",
+    "gb",
+    "gbc"
+  ],
+  "extensions": [
+    "gba",
+    "gb",
+    "gbc",
+    "zip"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "gba_actionreplay",
+    "gba_codebreaker",
+    "gba_gameshark",
+    "gb_gameshark"
+  ],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "2d8029a2287b9b92b190812feb54c033c5624bb7b2a3713a974a3ea0f2a42fdb",
+    "android-arm64": "441611bd198a78feab5e41e668433b6783240d706ef3944abcbce98d9bbe0c10"
+  },
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
+  "provenance": {
+    "built_from": "https://github.com/libretro/mgba",
+    "upstream_license": "MPL-2.0",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
+  }
+}

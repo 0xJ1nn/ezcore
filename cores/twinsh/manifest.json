@@ -1,0 +1,52 @@
+{
+  "id": "twinsh",
+  "name": "TwinSH",
+  "version": "1.32.1",
+  "license": "GPL-2.0-or-later",
+  "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
+  "homepage": "https://github.com/libretro/beetle-saturn-libretro",
+  "upstream": "libretro/beetle-saturn-libretro",
+  "systems": [
+    "saturn"
+  ],
+  "extensions": [
+    "cue",
+    "ccd",
+    "chd",
+    "iso",
+    "m3u"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "saturn_gameshark"
+  ],
+  "bios_required": true,
+  "bios_files": [
+    "sega_101.bin",
+    "mpr-17933.bin"
+  ],
+  "notes": "Desktop/Android first \u2014 needs strong CPU. iOS absent at launch.",
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "e532f134013e7922be38e8491b233fb0263c66d0632a6a01f93ccc3eb40bfb96"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  },
+  "bios_notes": "User-supplied; presence-gated at boot.",
+  "provenance": {
+    "upstream_license": "GPL-2.0-or-later",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "built_from": "https://github.com/libretro/beetle-saturn-libretro"
+  }
+}

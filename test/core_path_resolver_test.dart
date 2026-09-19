@@ -20,7 +20,7 @@ class FakeHashVerifier implements HashVerifier {
 }
 
 CoreManifest _mgba() => const CoreManifest(
-      id: 'mgba',
+      id: 'advancebit',
       name: 'mGBA',
       version: '0.11-dev',
       license: 'MPL-2.0',
@@ -29,7 +29,7 @@ CoreManifest _mgba() => const CoreManifest(
       cheatFamilies: ['gba_actionreplay'],
       cheatsSupported: true,
       delivery: {'ios': 'bundled', 'macos': 'download'},
-      artifacts: {'macos-arm64': 'sha-mgba'},
+      artifacts: {'macos-arm64': 'sha-advancebit'},
     );
 
 CoreManifest _blocked() => const CoreManifest(
@@ -69,12 +69,12 @@ void main() {
 
   test('resolve returns null when artifact missing from manifest', () async {
     final manifest = const CoreManifest(
-      id: 'scummvm',
+      id: 'pointclick',
       name: 'ScummVM',
       version: '2.8.0',
       license: 'GPL-3.0',
       systems: ['scumm'],
-      extensions: ['scummvm'],
+      extensions: ['pointclick'],
       cheatFamilies: [],
       cheatsSupported: false,
       delivery: {},
@@ -96,15 +96,15 @@ void main() {
       markTestSkipped('Core artifact path test is host-specific');
       return;
     }
-    final artifactDir = Directory('${tmpDir.path}/cores/mgba');
+    final artifactDir = Directory('${tmpDir.path}/cores/advancebit');
     await artifactDir.create(recursive: true);
-    final artifactFile = File('${artifactDir.path}/mgba.dylib');
+    final artifactFile = File('${artifactDir.path}/advancebit.dylib');
     await artifactFile.writeAsString('fake artifact');
 
     final resolved = await resolver.resolve(_mgba());
     expect(resolved, isNotNull);
     expect(resolved!.path, artifactFile.path);
-    expect(resolved.sha256, 'sha-mgba');
+    expect(resolved.sha256, 'sha-advancebit');
     expect(resolved.platformKey, key);
   });
 
@@ -138,9 +138,9 @@ void main() {
         markTestSkipped('Core artifact path test is host-specific');
         return;
       }
-      final artifactDir = Directory('${tmpDir.path}/cores/mgba');
+      final artifactDir = Directory('${tmpDir.path}/cores/advancebit');
       await artifactDir.create(recursive: true);
-      final artifactFile = File('${artifactDir.path}/mgba.dylib');
+      final artifactFile = File('${artifactDir.path}/advancebit.dylib');
       await artifactFile.writeAsString('fake artifact');
 
       // Wrong hash
@@ -162,15 +162,15 @@ void main() {
         markTestSkipped('Core artifact path test is host-specific');
         return;
       }
-      final artifactDir = Directory('${tmpDir.path}/cores/mgba');
+      final artifactDir = Directory('${tmpDir.path}/cores/advancebit');
       await artifactDir.create(recursive: true);
-      final artifactFile = File('${artifactDir.path}/mgba.dylib');
+      final artifactFile = File('${artifactDir.path}/advancebit.dylib');
       await artifactFile.writeAsString('fake artifact');
 
-      hashVerifier._hashes[artifactFile.path] = 'sha-mgba';
+      hashVerifier._hashes[artifactFile.path] = 'sha-advancebit';
 
       final hash = await resolver.verifyPin(_mgba());
-      expect(hash, 'sha-mgba');
+      expect(hash, 'sha-advancebit');
     });
   });
 }

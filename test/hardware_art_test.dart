@@ -5,10 +5,10 @@ import 'package:ezcore/widgets/hardware_art.dart';
 
 void main() {
   const cores = [
-    'sameboy', 'gambatte', 'mgba', 'mesen', 'snes9x', 'mupen64plus',
-    'melonds', 'dolphin', 'swanstation', 'ppsspp', 'genesis_plus_gx',
-    'beetle_saturn', 'flycast', 'beetle_pce', 'stella', 'fbneo',
-    'dosbox_pure', 'scummvm',
+    'pocketbit', 'gambatte', 'advancebit', 'nesbyte', 'superfx', 'rcp64',
+    'dualscreen', 'powercube', 'geometry1', 'portcomp', 'blastproc',
+    'twinsh', 'dreamarc', 'cardcon', 'joystick', 'coinbox',
+    'realmode', 'pointclick',
   ];
 
   test('renderer count matches the finalized set', () {
@@ -33,8 +33,8 @@ void main() {
 
   testWidgets('silhouettes parse and render without errors', (tester) async {
     for (final id in [
-      'sameboy', 'mgba', 'snes9x', 'mupen64plus', 'dolphin', 'swanstation',
-      'ppsspp', 'flycast', 'stella', 'fbneo', 'dosbox_pure', 'scummvm',
+      'pocketbit', 'advancebit', 'superfx', 'rcp64', 'powercube', 'geometry1',
+      'portcomp', 'dreamarc', 'joystick', 'coinbox', 'realmode', 'pointclick',
       'citra_hold',
     ]) {
       await tester.pumpWidget(

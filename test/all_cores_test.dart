@@ -14,28 +14,28 @@ String _dylib(String id) => paths.stagedCoreLib(id) ?? '';
 
 /// Cores with test ROMs available for full boot + render + save test.
 const _coresWithRom = <String, ({String name, String romPath})>{
-  'sameboy': (name: 'SameBoy', romPath: 'native/test-roms/cpu_instrs.gb'),
+  'pocketbit': (name: 'SameBoy', romPath: 'native/test-roms/cpu_instrs.gb'),
   'gambatte': (name: 'Gambatte', romPath: 'native/test-roms/cpu_instrs.gb'),
-  'mgba': (name: 'mGBA', romPath: 'native/test-roms/test.gba'),
+  'advancebit': (name: 'mGBA', romPath: 'native/test-roms/test.gba'),
 };
 
 /// Cores without test ROMs — load + identify only.
 const _coresNoRom = <String, String>{
-  'snes9x': 'Snes9x',
-  'mesen': 'Mesen',
-  'genesis_plus_gx': 'Genesis Plus GX',
-  'dosbox_pure': 'DOSBox-pure',
-  'melonds': 'melonDS',
-  'stella': 'Stella',
-  'beetle_pce': 'Beetle',
-  'beetle_saturn': 'Beetle',
-  'mupen64plus': 'Mupen64Plus',
-  'swanstation': 'SwanStation',
-  'ppsspp': 'PPSSPP',
-  'flycast': 'Flycast',
-  'dolphin': 'dolphin-emu',
-  'fbneo': 'FinalBurn Neo',
-  'scummvm': 'ScummVM',
+  'superfx': 'Snes9x',
+  'nesbyte': 'Mesen',
+  'blastproc': 'Genesis Plus GX',
+  'realmode': 'DOSBox-pure',
+  'dualscreen': 'melonDS',
+  'joystick': 'Stella',
+  'cardcon': 'Beetle',
+  'twinsh': 'Beetle',
+  'rcp64': 'Mupen64Plus',
+  'geometry1': 'SwanStation',
+  'portcomp': 'PPSSPP',
+  'dreamarc': 'Flycast',
+  'powercube': 'dolphin-emu',
+  'coinbox': 'FinalBurn Neo',
+  'pointclick': 'ScummVM',
 };
 
 void main() {

@@ -19,7 +19,7 @@ class FakeHashVerifier implements HashVerifier {
 }
 
 CoreManifest _mgba() => const CoreManifest(
-      id: 'mgba',
+      id: 'advancebit',
       name: 'mGBA',
       version: '0.11-dev',
       license: 'MPL-2.0',
@@ -28,7 +28,7 @@ CoreManifest _mgba() => const CoreManifest(
       cheatFamilies: ['gba_actionreplay'],
       cheatsSupported: true,
       delivery: {'ios': 'bundled'},
-      artifacts: {'macos-arm64': 'sha-mgba'},
+      artifacts: {'macos-arm64': 'sha-advancebit'},
     );
 
 CoreManifest _blockedSwitch() => const CoreManifest(
@@ -46,7 +46,7 @@ CoreManifest _blockedSwitch() => const CoreManifest(
     );
 
 Map<String, CoreManifest> _catalog() => {
-      'mgba': _mgba(),
+      'advancebit': _mgba(),
       'switch_hold': _blockedSwitch(),
     };
 
@@ -131,7 +131,7 @@ void main() {
       expect(result.game!.system, 'gba');
       expect(result.game!.extension, 'gba');
       expect(result.game!.filePath, file.path);
-      expect(result.game!.coreId, 'mgba');
+      expect(result.game!.coreId, 'advancebit');
     });
 
     test('validates file existence and manifest match before import', () async {

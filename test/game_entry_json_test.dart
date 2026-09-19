@@ -16,7 +16,7 @@ void main() {
         fileSize: 131072,
         sha1: 'abc123',
         favorite: true,
-        coreId: 'sameboy',
+        coreId: 'pocketbit',
         lastPlayedMs: 1725900000000,
         cheatsOn: 2,
         stateCount: 3,

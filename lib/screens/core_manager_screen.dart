@@ -443,37 +443,37 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
 
   String _eraFor(CoreManifest m) {
     const eras = {
-      'stella': '1977', 'dosbox_pure': '1981 onward', 'mesen': '1983',
-      'genesis_plus_gx': '1985 — 1991', 'beetle_pce': '1987',
-      'sameboy': '1989 — 1998', 'gambatte': '1989 — 1998',
-      'snes9x': '1990', 'swanstation': '1994', 'beetle_saturn': '1994',
-      'mupen64plus': '1996', 'flycast': '1998 — 2003',
-      'mgba': '2001', 'dolphin': '2001 — 2006', 'melonds': '2004',
-      'ppsspp': '2004', 'fbneo': 'Multi-era', 'scummvm': 'Multi-era',
+      'joystick': '1977', 'realmode': '1981 onward', 'nesbyte': '1983',
+      'blastproc': '1985 — 1991', 'cardcon': '1987',
+      'pocketbit': '1989 — 1998', 'gambatte': '1989 — 1998',
+      'superfx': '1990', 'geometry1': '1994', 'twinsh': '1994',
+      'rcp64': '1996', 'dreamarc': '1998 — 2003',
+      'advancebit': '2001', 'powercube': '2001 — 2006', 'dualscreen': '2004',
+      'portcomp': '2004', 'coinbox': 'Multi-era', 'pointclick': 'Multi-era',
     };
     return eras[m.id] ?? m.version;
   }
 
   String _aboutFor(CoreManifest m) {
     const about = {
-      'sameboy': 'Pocket-sized worlds from Nintendo\u2019s original handhelds.',
-      'mgba': 'A golden era, in your hands — vivid pixel worlds.',
+      'pocketbit': 'Pocket-sized worlds from Nintendo\u2019s original handhelds.',
+      'advancebit': 'A golden era, in your hands — vivid pixel worlds.',
       'gambatte': 'An alternative engine for the Game Boy family.',
-      'mesen': 'Where so many adventures began — clean pixels.',
-      'snes9x': 'Sixteen bits. Infinite feeling.',
-      'mupen64plus': 'The leap into three dimensions.',
-      'melonds': 'Two screens, twice the possibility.',
-      'dolphin': 'Two generations of playful invention.',
-      'swanstation': 'A new dimension of storytelling.',
-      'ppsspp': 'Console ambition, pocket form.',
-      'genesis_plus_gx': 'The many shades of Sega.',
-      'beetle_saturn': 'Arcade ambition at home.',
-      'flycast': 'A future ahead of schedule.',
-      'beetle_pce': 'Small hardware. Outsized imagination.',
-      'stella': 'The first living-room legends.',
-      'fbneo': 'One more credit — the arcade, at home.',
-      'dosbox_pure': 'Command prompts to impossible worlds.',
-      'scummvm': 'Take your time. Talk to everyone.',
+      'nesbyte': 'Where so many adventures began — clean pixels.',
+      'superfx': 'Sixteen bits. Infinite feeling.',
+      'rcp64': 'The leap into three dimensions.',
+      'dualscreen': 'Two screens, twice the possibility.',
+      'powercube': 'Two generations of playful invention.',
+      'geometry1': 'A new dimension of storytelling.',
+      'portcomp': 'Console ambition, pocket form.',
+      'blastproc': 'The many shades of Sega.',
+      'twinsh': 'Arcade ambition at home.',
+      'dreamarc': 'A future ahead of schedule.',
+      'cardcon': 'Small hardware. Outsized imagination.',
+      'joystick': 'The first living-room legends.',
+      'coinbox': 'One more credit — the arcade, at home.',
+      'realmode': 'Command prompts to impossible worlds.',
+      'pointclick': 'Take your time. Talk to everyone.',
     };
     return about[m.id] ?? '${m.systems.join(' · ')} — ${m.license}.';
   }
@@ -685,12 +685,12 @@ class _CoreCard extends StatelessWidget {
 
   String _shortFor(String id) {
     const shorts = {
-      'sameboy': 'GB', 'gambatte': 'GBC', 'mgba': 'GBA', 'mesen': 'NES',
-      'snes9x': 'SNES', 'genesis_plus_gx': 'MD', 'stella': '2600',
-      'dosbox_pure': 'DOS', 'beetle_pce': 'PCE', 'swanstation': 'PS',
-      'mupen64plus': 'N64', 'melonds': 'DS', 'ppsspp': 'PSP',
-      'flycast': 'DC', 'dolphin': 'GC', 'beetle_saturn': 'SAT',
-      'fbneo': 'ARC', 'scummvm': 'ADV',
+      'pocketbit': 'GB', 'gambatte': 'GBC', 'advancebit': 'GBA', 'nesbyte': 'NES',
+      'superfx': 'SNES', 'blastproc': 'MD', 'joystick': '2600',
+      'realmode': 'DOS', 'cardcon': 'PCE', 'geometry1': 'PS',
+      'rcp64': 'N64', 'dualscreen': 'DS', 'portcomp': 'PSP',
+      'dreamarc': 'DC', 'powercube': 'GC', 'twinsh': 'SAT',
+      'coinbox': 'ARC', 'pointclick': 'ADV',
     };
     return shorts[id] ?? id.toUpperCase();
   }

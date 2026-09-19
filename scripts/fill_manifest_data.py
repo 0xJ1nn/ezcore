@@ -30,51 +30,51 @@ JIT_DESKTOP = {
 JIT_NO_IOS = {k: v for k, v in JIT_DESKTOP.items() if k != "ios"}
 
 EXECUTION = {
-    "sameboy": INTERP_ALL,
+    "pocketbit": INTERP_ALL,
     "gambatte": INTERP_ALL,
-    "mgba": JIT_DESKTOP,
-    "mesen": INTERP_ALL,
-    "snes9x": INTERP_ALL,
-    "genesis_plus_gx": INTERP_ALL,
-    "stella": INTERP_ALL,
-    "dosbox_pure": INTERP_ALL,  # ARM/PPC ships the normal core; see MATRIX.md
-    "beetle_pce": INTERP_ALL,
-    "swanstation": JIT_DESKTOP,
-    "mupen64plus": JIT_DESKTOP,
-    "melonds": JIT_DESKTOP,
-    "ppsspp": JIT_DESKTOP,
-    "flycast": JIT_DESKTOP,
-    "dolphin": JIT_NO_IOS,  # ios delivery absent; do not declare it
-    "beetle_saturn": INTERP_ALL,  # Mednafen Saturn: SH-2 interpreter
+    "advancebit": JIT_DESKTOP,
+    "nesbyte": INTERP_ALL,
+    "superfx": INTERP_ALL,
+    "blastproc": INTERP_ALL,
+    "joystick": INTERP_ALL,
+    "realmode": INTERP_ALL,  # ARM/PPC ships the normal core; see MATRIX.md
+    "cardcon": INTERP_ALL,
+    "geometry1": JIT_DESKTOP,
+    "rcp64": JIT_DESKTOP,
+    "dualscreen": JIT_DESKTOP,
+    "portcomp": JIT_DESKTOP,
+    "dreamarc": JIT_DESKTOP,
+    "powercube": JIT_NO_IOS,  # ios delivery absent; do not declare it
+    "twinsh": INTERP_ALL,  # Mednafen Saturn: SH-2 interpreter
     # Verified 2026-09-18: USE_CYCLONE=0 by default and only enabled for
     # 32-bit ARM (rpi1/rpi2/rpi3-32); all 64-bit builds use the Musashi C
     # interpreter. No JIT anywhere we ship.
-    "fbneo": INTERP_ALL,
-    "scummvm": INTERP_ALL,
+    "coinbox": INTERP_ALL,
+    "pointclick": INTERP_ALL,
 }
 
 # Verified against libretro docs/.info (cheats = "true"); families must exist
 # in lib/cores/cheat_validators.dart (CI cross-checks).
 CHEATS = {
-    "beetle_saturn": ["saturn_gameshark"],
+    "twinsh": ["saturn_gameshark"],
 }
 
 # Delivery = what release.sh ships per OS (bundled), or absent. There is
 # no download infrastructure in v1 (see delivery_note in CoreManifest):
 # desktop and mobile apps carry their tier, verified by MATRIX.md.
 _TIER_DESKTOP = [
-    "sameboy", "gambatte", "mgba", "mesen", "snes9x", "genesis_plus_gx",
-    "stella", "beetle_pce", "beetle_saturn", "fbneo", "scummvm",
-    "dosbox_pure", "swanstation", "mupen64plus", "melonds", "ppsspp",
-    "flycast", "dolphin",
+    "pocketbit", "gambatte", "advancebit", "nesbyte", "superfx", "blastproc",
+    "joystick", "cardcon", "twinsh", "coinbox", "pointclick",
+    "realmode", "geometry1", "rcp64", "dualscreen", "portcomp",
+    "dreamarc", "powercube",
 ]
 _TIER_ANDROID = [
-    "sameboy", "gambatte", "mgba", "mesen", "snes9x", "genesis_plus_gx",
-    "stella", "beetle_pce", "dosbox_pure", "scummvm", "fbneo",
+    "pocketbit", "gambatte", "advancebit", "nesbyte", "superfx", "blastproc",
+    "joystick", "cardcon", "realmode", "pointclick", "coinbox",
 ]
 _TIER_IOS = [
-    "sameboy", "gambatte", "mesen", "snes9x", "genesis_plus_gx",
-    "stella", "beetle_pce", "dosbox_pure", "scummvm",
+    "pocketbit", "gambatte", "nesbyte", "superfx", "blastproc",
+    "joystick", "cardcon", "realmode", "pointclick",
     # fbneo excluded: its gated_reason requires IP-lawyer review +
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]
@@ -83,7 +83,7 @@ _TIER_IOS = [
 def _delivery(cid: str) -> "dict[str, str] | None":
     if cid.endswith("_hold"):
         return None
-    if cid in ("fbneo", "snes9x", "genesis_plus_gx"):
+    if cid in ("coinbox", "superfx", "blastproc"):
         # Non-commercial upstream licenses: never distributed in any binary,
         # free or paid — kept as build recipes only. See gated_reason in each
         # manifest + docs/MONETIZATION.md.

@@ -1,0 +1,54 @@
+{
+  "id": "geometry1",
+  "name": "Geometry1",
+  "version": "1.0.0",
+  "license": "GPL-3.0",
+  "license_url": "https://github.com/libretro/swanstation/blob/main/LICENSE",
+  "homepage": "https://github.com/libretro/swanstation",
+  "upstream": "libretro/swanstation",
+  "systems": [
+    "psx"
+  ],
+  "extensions": [
+    "cue",
+    "ccd",
+    "chd",
+    "pbp",
+    "iso",
+    "m3u"
+  ],
+  "cheats_supported": true,
+  "cheat_families": [
+    "ps1_gameshark"
+  ],
+  "bios_required": false,
+  "bios_files": [
+    "scph5500.bin",
+    "scph5501.bin",
+    "scph5502.bin"
+  ],
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
+  "notes": "Interpreter mode on iOS (no JIT). No HLE-BIOS piracy posture \u2014 import-only.",
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "35ef589500f399a15cec8474b6ad2c1b920441792fedd73890c45ecadd066ede"
+  },
+  "bios_notes": "Optional \u2014 OpenBIOS fallback built in. Any one of the three. User-supplied.",
+  "provenance": {
+    "built_from": "https://github.com/libretro/swanstation",
+    "upstream_license": "GPL-3.0",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
+  }
+}

@@ -124,7 +124,7 @@ core_reset() { # srcdir
   done < <(find "$1" -name .git -print 2>/dev/null | head -n 64)
 }
 
-build_sameboy() {
+build_pocketbit() {
   clone https://github.com/LIJI32/SameBoy.git "$SRC_DIR/SameBoy"
   core_reset "$SRC_DIR/SameBoy"
   # GNU make 4+ required: BootROM rules use $(realpath) (make 3.81 lacks it).
@@ -138,9 +138,9 @@ build_sameboy() {
   MAKEBIN="gmake" JOBS=1 \
     core_make "$SRC_DIR/SameBoy" libretro
   if [ "$PLATFORM" = ios ]; then
-    stage sameboy "$SRC_DIR/SameBoy/build/bin/sameboy_libretro_ios.dylib"
+    stage pocketbit "$SRC_DIR/SameBoy/build/bin/sameboy_libretro_ios.dylib"
   else
-    stage sameboy "$SRC_DIR/SameBoy/build/bin/sameboy_libretro.$LIB_SUFFIX"
+    stage pocketbit "$SRC_DIR/SameBoy/build/bin/sameboy_libretro.$LIB_SUFFIX"
   fi
 }
 
@@ -154,10 +154,10 @@ build_gambatte() {
   stage gambatte "$SRC_DIR/gambatte-libretro/$out"
 }
 
-build_mgba() {
+build_advancebit() {
   clone https://github.com/libretro/mgba.git "$SRC_DIR/mgba-libretro"
   core_reset "$SRC_DIR/mgba-libretro"
-  require_interpreter_ios mgba
+  require_interpreter_ios advancebit
   if [ "$PLATFORM" = android ]; then
     android_toolchain
     # NDK r27 (Clang 18) promotes implicit declarations to errors; mGBA's
@@ -171,7 +171,7 @@ build_mgba() {
       -DBUILD_TEST=OFF -DBUILD_PYTHON=OFF -DBUILD_EXAMPLE=OFF \
       -DBUILD_PERF=OFF -DBUILD_CINEMA=OFF -DBUILD_HEADLESS=OFF
     cmake --build "$SRC_DIR/mgba-libretro/build-android" --target mgba_libretro -j"$JOBS"
-    stage mgba "$SRC_DIR/mgba-libretro/build-android/mgba_libretro.so"
+    stage advancebit "$SRC_DIR/mgba-libretro/build-android/mgba_libretro.so"
     return
   fi
   cmake -S "$SRC_DIR/mgba-libretro" -B "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH" \
@@ -180,28 +180,28 @@ build_mgba() {
     -DBUILD_TEST=OFF -DBUILD_PYTHON=OFF -DBUILD_EXAMPLE=OFF \
     -DBUILD_PERF=OFF -DBUILD_CINEMA=OFF -DBUILD_HEADLESS=OFF
   cmake --build "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH" --target mgba_libretro -j"$JOBS"
-  stage mgba "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH/mgba_libretro.$LIB_SUFFIX"
+  stage advancebit "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH/mgba_libretro.$LIB_SUFFIX"
 }
 
-build_snes9x() {
+build_superfx() {
   clone https://github.com/snes9xgit/snes9x.git "$SRC_DIR/snes9x"
   core_reset "$SRC_DIR/snes9x"
   core_make "$SRC_DIR/snes9x/libretro"
   out="snes9x_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="snes9x_libretro_ios.dylib"
-  stage snes9x "$SRC_DIR/snes9x/libretro/$out"
+  stage superfx "$SRC_DIR/snes9x/libretro/$out"
 }
 
-build_genesis_plus_gx() {
+build_blastproc() {
   clone https://github.com/libretro/Genesis-Plus-GX.git "$SRC_DIR/Genesis-Plus-GX"
   core_reset "$SRC_DIR/Genesis-Plus-GX"
   core_make "$SRC_DIR/Genesis-Plus-GX" -f Makefile.libretro
   out="genesis_plus_gx_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="genesis_plus_gx_libretro_ios.dylib"
-  stage genesis_plus_gx "$SRC_DIR/Genesis-Plus-GX/$out"
+  stage blastproc "$SRC_DIR/Genesis-Plus-GX/$out"
 }
 
-build_dosbox_pure() {
+build_realmode() {
   clone https://github.com/libretro/dosbox-pure.git "$SRC_DIR/dosbox-pure"
   core_reset "$SRC_DIR/dosbox-pure"
   # Android NDK has no libpthread (bionic libc covers it). ISMAC= defeats
@@ -214,22 +214,22 @@ build_dosbox_pure() {
   core_make "$SRC_DIR/dosbox-pure" $extra
   out="dosbox_pure_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="dosbox_pure_libretro_ios.dylib"
-  stage dosbox_pure "$SRC_DIR/dosbox-pure/$out"
+  stage realmode "$SRC_DIR/dosbox-pure/$out"
 }
 
 # ------------- TIER 2: scripted, awaiting first verified run -------------
 # Each exits 3 until its recipe has produced a dylib once on this machine.
 unverified() { echo "UNVERIFIED recipe: $1 — see script source"; exit 3; }
 
-build_swanstation() {
+build_geometry1() {
   clone https://github.com/libretro/swanstation.git "$SRC_DIR/swanstation"
   core_reset "$SRC_DIR/swanstation"
-  require_interpreter_ios swanstation
+  require_interpreter_ios geometry1
   core_make "$SRC_DIR/swanstation" -f Makefile.libretro
-  stage swanstation "$SRC_DIR/swanstation/swanstation_libretro.$LIB_SUFFIX"
+  stage geometry1 "$SRC_DIR/swanstation/swanstation_libretro.$LIB_SUFFIX"
 }
 
-build_ppsspp() {
+build_portcomp() {
   clone https://github.com/hrydgard/ppsspp.git "$SRC_DIR/ppsspp"
   core_reset "$SRC_DIR/ppsspp"
   (cd "$SRC_DIR/ppsspp" && git submodule update --init --depth 1 --recursive)
@@ -237,34 +237,34 @@ build_ppsspp() {
   # scripts/apply_ppsspp_macos_fix.py is idempotent and refuses loudly
   # when upstream drifts.
   python3 "$ROOT/scripts/apply_ppsspp_macos_fix.py" "$SRC_DIR/ppsspp"
-  require_interpreter_ios ppsspp
+  require_interpreter_ios portcomp
   # TARGET_ARCH=arm64 (macOS only): the Makefile misdetects arm64
   # (contains "64") as x86_64 and injects -msse/-msse2. Override wins.
   extra=""
   [ "$PLATFORM" = macos ] && extra="TARGET_ARCH=arm64"
   # shellcheck disable=SC2086
   core_make "$SRC_DIR/ppsspp/libretro" $extra
-  stage ppsspp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.$LIB_SUFFIX"
+  stage portcomp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.$LIB_SUFFIX"
 }
 
-build_mesen() {
+build_nesbyte() {
   clone https://github.com/libretro/Mesen.git "$SRC_DIR/Mesen"
   core_reset "$SRC_DIR/Mesen"
   core_make "$SRC_DIR/Mesen/Libretro"
   out="mesen_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="mesen_libretro_ios.dylib"
-  stage mesen "$SRC_DIR/Mesen/Libretro/$out"
+  stage nesbyte "$SRC_DIR/Mesen/Libretro/$out"
 }
 
-build_melonds() {
+build_dualscreen() {
   clone https://github.com/libretro/melonDS.git "$SRC_DIR/melonDS-libretro"
   core_reset "$SRC_DIR/melonDS-libretro"
-  require_interpreter_ios melonds
+  require_interpreter_ios dualscreen
   core_make "$SRC_DIR/melonDS-libretro"
-  stage melonds "$SRC_DIR/melonDS-libretro/melonds_libretro.$LIB_SUFFIX"
+  stage dualscreen "$SRC_DIR/melonDS-libretro/melonds_libretro.$LIB_SUFFIX"
 }
 
-build_stella() {
+build_joystick() {
   clone https://github.com/libretro/stella2023.git "$SRC_DIR/stella2023"
   core_reset "$SRC_DIR/stella2023"
   # Android NDK has no libpthread (pthread lives in bionic libc).
@@ -274,10 +274,10 @@ build_stella() {
   core_make "$SRC_DIR/stella2023/src/os/libretro" $extra
   out="stella2023_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="stella2023_libretro_ios.dylib"
-  stage stella "$SRC_DIR/stella2023/src/os/libretro/$out"
+  stage joystick "$SRC_DIR/stella2023/src/os/libretro/$out"
 }
 
-build_beetle_pce() {
+build_cardcon() {
   clone https://github.com/libretro/beetle-pce-fast-libretro.git "$SRC_DIR/beetle-pce"
   core_reset "$SRC_DIR/beetle-pce"
   # SYSTEM_ZLIB=1: vendored zlib-1.2.11 does not compile against the Xcode 27
@@ -295,31 +295,31 @@ build_beetle_pce() {
   core_make "$SRC_DIR/beetle-pce" $extra
   out="mednafen_pce_fast_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="mednafen_pce_fast_libretro_ios.dylib"
-  stage beetle_pce "$SRC_DIR/beetle-pce/$out"
+  stage cardcon "$SRC_DIR/beetle-pce/$out"
 }
 
-build_beetle_saturn() {
+build_twinsh() {
   clone https://github.com/libretro/beetle-saturn-libretro.git "$SRC_DIR/beetle-saturn"
   core_reset "$SRC_DIR/beetle-saturn"
   core_make "$SRC_DIR/beetle-saturn"
-  stage beetle_saturn "$SRC_DIR/beetle-saturn/mednafen_saturn_libretro.$LIB_SUFFIX"
+  stage twinsh "$SRC_DIR/beetle-saturn/mednafen_saturn_libretro.$LIB_SUFFIX"
 }
 
-build_mupen64plus() {
+build_rcp64() {
   clone https://github.com/libretro/mupen64plus-libretro-nx.git "$SRC_DIR/mupen64plus-nx"
   core_reset "$SRC_DIR/mupen64plus-nx"
   # SYSTEM_LIBPNG/ZLIB: vendored libpng hits the TARGET_OS_MAC/fp.h SDK rot
   # and vendored zlib-1.2.11 hits the _stdio.h rot (same as beetle-pce).
-  require_interpreter_ios mupen64plus
+  require_interpreter_ios rcp64
   core_make "$SRC_DIR/mupen64plus-nx" SYSTEM_LIBPNG=1 SYSTEM_ZLIB=1
-  stage mupen64plus "$SRC_DIR/mupen64plus-nx/mupen64plus_next_libretro.$LIB_SUFFIX"
+  stage rcp64 "$SRC_DIR/mupen64plus-nx/mupen64plus_next_libretro.$LIB_SUFFIX"
 }
 
-build_flycast() {
+build_dreamarc() {
   clone https://github.com/flyinghead/flycast.git "$SRC_DIR/flycast"
   core_reset "$SRC_DIR/flycast"
   (cd "$SRC_DIR/flycast" && git submodule update --init --depth 1 --recursive)
-  require_interpreter_ios flycast
+  require_interpreter_ios dreamarc
   # Thin arm64 on macOS: upstream defaults to universal (x86_64 slice wasted).
   extra=""
   [ "$PLATFORM" = macos ] && extra="-DCMAKE_OSX_ARCHITECTURES=arm64"
@@ -327,10 +327,10 @@ build_flycast() {
   cmake -S "$SRC_DIR/flycast" -B "$SRC_DIR/flycast/build-$PLATFORM-$ARCH" \
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
   cmake --build "$SRC_DIR/flycast/build-$PLATFORM-$ARCH" -j"$JOBS"
-  stage flycast "$SRC_DIR/flycast/build-$PLATFORM-$ARCH/flycast_libretro.$LIB_SUFFIX"
+  stage dreamarc "$SRC_DIR/flycast/build-$PLATFORM-$ARCH/flycast_libretro.$LIB_SUFFIX"
 }
 
-build_fbneo() {
+build_coinbox() {
   clone https://github.com/libretro/FBNeo.git "$SRC_DIR/FBNeo"
   core_reset "$SRC_DIR/FBNeo"
   (cd "$SRC_DIR/FBNeo" && git submodule update --init --depth 1 --recursive)
@@ -341,10 +341,10 @@ build_fbneo() {
   core_make "$SRC_DIR/FBNeo/src/burner/libretro" $extra
   out="fbneo_libretro.$LIB_SUFFIX"
   [ "$PLATFORM" = ios ] && out="fbneo_libretro_ios.dylib"
-  stage fbneo "$SRC_DIR/FBNeo/src/burner/libretro/$out"
+  stage coinbox "$SRC_DIR/FBNeo/src/burner/libretro/$out"
 }
 
-build_scummvm() {
+build_pointclick() {
   clone https://github.com/scummvm/scummvm.git "$SRC_DIR/scummvm"
   core_reset "$SRC_DIR/scummvm"
   # USE_SYSTEM_mad=1: vendored libmad ships an extensionless `version` stamp
@@ -389,14 +389,14 @@ build_scummvm() {
       core_make "$SRC_DIR/scummvm/backends/platform/libretro" \
       DEBUG_ALLOW_DIRTY_SUBMODULES=1
   fi
-  stage scummvm "$SRC_DIR/scummvm/backends/platform/libretro/scummvm_libretro.$LIB_SUFFIX"
+  stage pointclick "$SRC_DIR/scummvm/backends/platform/libretro/scummvm_libretro.$LIB_SUFFIX"
 }
 
-build_dolphin() {
+build_powercube() {
   clone https://github.com/libretro/dolphin.git "$SRC_DIR/dolphin-libretro"
   core_reset "$SRC_DIR/dolphin-libretro"
   (cd "$SRC_DIR/dolphin-libretro" && git submodule update --init --depth 1 --recursive)
-  require_interpreter_ios dolphin
+  require_interpreter_ios powercube
   # Deployment target 27.0 (macOS only): bundled curl calls pipe2()
   # (27+ SDK API) and the build sets -Werror=unguarded-availability.
   # Artifact requires macOS 27+; revisit with an @available-guarded curl
@@ -407,7 +407,7 @@ build_dolphin() {
   cmake -S "$SRC_DIR/dolphin-libretro" -B "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH" \
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
   cmake --build "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH" -j"$JOBS"
-  stage dolphin "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
+  stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
 }
 
 # ---------------- Legal holds: always refuse ----------------
@@ -416,16 +416,16 @@ build_citra_hold()  { hold "3DS core on legal hold (see cores/citra_hold/manifes
 build_switch_hold() { hold "Switch core on legal hold (see cores/switch_hold/manifest.json)"; }
 build_ps2_hold()    { hold "No shippable PS2 core (see cores/ps2_hold/manifest.json)"; }
 
-TIER1="sameboy gambatte mgba snes9x genesis_plus_gx dosbox_pure"
+TIER1="pocketbit advancebit superfx blastproc realmode"
 
 # Platform tiers (docs/MATRIX.md records per-core results).
 # Android: dynarec allowed; software + JIT-capable make/cmake cores.
-TIER_ANDROID="sameboy gambatte mgba mesen snes9x genesis_plus_gx stella beetle_pce dosbox_pure scummvm fbneo"
+TIER_ANDROID="pocketbit advancebit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
 # iOS: pure-interpreter make cores only. mgba/melonds/JIT-default cores stay
 # out until an explicit interpreter flag is verified (manifest rule).
-TIER_IOS="sameboy gambatte mesen snes9x genesis_plus_gx stella beetle_pce dosbox_pure scummvm fbneo"
+TIER_IOS="pocketbit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
 # Desktop (linux/windows native): everything shippable.
-TIER_DESKTOP="sameboy gambatte mgba mesen snes9x genesis_plus_gx stella beetle_pce beetle_saturn fbneo scummvm dosbox_pure swanstation mupen64plus melonds ppsspp flycast dolphin"
+TIER_DESKTOP="pocketbit advancebit nesbyte superfx blastproc joystick cardcon twinsh coinbox pointclick realmode geometry1 rcp64 dualscreen portcomp dreamarc powercube"
 
 cmd="${1:-}"
 case "$PLATFORM" in

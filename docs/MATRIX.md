@@ -23,24 +23,24 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Notes |
 |---|---|---|---|---|---|---|
-| sameboy | RENDERS | BUILT | BUILT | — | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race) |
+| pocketbit | RENDERS | BUILT | BUILT | — | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race) |
 | gambatte | RENDERS | BUILT | BUILT | — | — | Android via `unix` (no android branch upstream) |
-| mgba | RENDERS | — | BUILT | — | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
-| mesen | IDENTIFIES | BUILT | BUILT | — | — | iOS needed `ios-arm64` (TLS requires minos 9+) |
-| snes9x | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |
-| genesis_plus_gx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
-| stella | IDENTIFIES | BUILT | BUILT | — | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |
-| beetle_pce | IDENTIFIES | BUILT | BUILT | — | — | Android needed `-lrt` wrapper (NDK has no librt) |
-| dosbox_pure | IDENTIFIES | BUILT | BUILT | — | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
-| fbneo | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
-| scummvm | IDENTIFIES | — | BUILT | — | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
-| swanstation | IDENTIFIES | — | — | — | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
-| mupen64plus | IDENTIFIES | — | — | — | — | Same GL caveat (Angrylion path needs core options = ABI v2) |
-| melonds | IDENTIFIES | — | — | — | — | Same GL caveat (software renderer needs core options) |
-| ppsspp | IDENTIFIES | — | — | — | — | Same GL caveat |
-| flycast | IDENTIFIES | — | — | — | — | Same GL caveat |
-| dolphin | IDENTIFIES | — (delivery absent) | — | — | — | No software renderer exists: blocked on GPU context (post-v1), not attempted |
-| beetle_saturn | IDENTIFIES | — | — | — | — | SH-2 interpreter; slow by nature, frames unverified |
+| advancebit | RENDERS | — | BUILT | — | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
+| nesbyte | IDENTIFIES | BUILT | BUILT | — | — | iOS needed `ios-arm64` (TLS requires minos 9+) |
+| superfx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |
+| blastproc | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
+| joystick | IDENTIFIES | BUILT | BUILT | — | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |
+| cardcon | IDENTIFIES | BUILT | BUILT | — | — | Android needed `-lrt` wrapper (NDK has no librt) |
+| realmode | IDENTIFIES | BUILT | BUILT | — | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
+| coinbox | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
+| pointclick | IDENTIFIES | — | BUILT | — | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
+| geometry1 | IDENTIFIES | — | — | — | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
+| rcp64 | IDENTIFIES | — | — | — | — | Same GL caveat (Angrylion path needs core options = ABI v2) |
+| dualscreen | IDENTIFIES | — | — | — | — | Same GL caveat (software renderer needs core options) |
+| portcomp | IDENTIFIES | — | — | — | — | Same GL caveat |
+| dreamarc | IDENTIFIES | — | — | — | — | Same GL caveat |
+| powercube | IDENTIFIES | — (delivery absent) | — | — | — | No software renderer exists: blocked on GPU context (post-v1), not attempted |
+| twinsh | IDENTIFIES | — | — | — | — | SH-2 interpreter; slow by nature, frames unverified |
 | citra/switch/ps2 | holds | holds | holds | holds | holds | Legal blocks, never built |
 
 ## Platform shells & app builds

@@ -1,0 +1,44 @@
+{
+  "id": "pointclick",
+  "name": "PointClick",
+  "version": "2.8.0",
+  "license": "GPL-3.0",
+  "license_url": "https://github.com/scummvm/scummvm/blob/master/COPYING",
+  "homepage": "https://github.com/scummvm/scummvm",
+  "upstream": "scummvm/scummvm (libretro port in-tree)",
+  "systems": [
+    "scumm"
+  ],
+  "extensions": [
+    "scummvm",
+    "zip"
+  ],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [],
+  "notes": "Needs user-owned game data files. Great iOS citizen, zero console-IP surface.",
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "bundled"
+  },
+  "artifacts": {
+    "macos-arm64": "20027dbdfcea9f00aca8baeb4bf3a6f4f00cdc3a531cd3ae61239a753f299dc6",
+    "android-arm64": "c23d31ab19d927e812befa12ed2ae521ada87f760d45d20c8ad026e74af97f36"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  },
+  "provenance": {
+    "built_from": "https://github.com/scummvm/scummvm (libretro port in-tree)",
+    "upstream_license": "GPL-3.0",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
+  }
+}

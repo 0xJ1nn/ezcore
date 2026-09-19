@@ -47,15 +47,15 @@ void main() {
     final dir = await Directory.systemTemp.createTemp('ezcore_worker_mgba');
     try {
       final bridge = paths.bridgeLib();
-      final mgba = paths.stagedCoreLib('mgba');
+      final core = paths.stagedCoreLib('advancebit');
       final rom = paths.fixture('test.gba');
-      if (bridge == null || mgba == null || rom == null) {
+      if (bridge == null || core == null || rom == null) {
         markTestSkipped('mGBA artifact or fixture missing');
         return;
       }
       await worker.open(
         runtimeRef: {'kind': 'path', 'path': File(bridge).absolute.path},
-        corePath: File(mgba).absolute.path,
+        corePath: File(core).absolute.path,
         contentPath: File(rom).absolute.path,
         systemDir: dir.path, saveDir: dir.path,
       );

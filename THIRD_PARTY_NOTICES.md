@@ -30,24 +30,24 @@ remain in-tree as build recipes. Licenses and upstream sources:
 
 | Core | Project | License | Upstream |
 |---|---|---|---|
-| `beetle_pce` | Beetle PCE Fast | GPL-2.0-or-later | libretro/beetle-pce-fast-libretro |
-| `beetle_saturn` | Beetle Saturn | GPL-2.0-or-later | libretro/beetle-saturn-libretro |
-| `dolphin` | Dolphin | GPL-2.0-or-later | libretro/dolphin |
-| `dosbox_pure` | DOSBox Pure | GPL-2.0-or-later | libretro/dosbox-pure |
-| `fbneo` | FinalBurn Neo | FBNeo-custom (non-commercial) — **not distributed in any binary** | libretro/FBNeo |
-| `flycast` | Flycast | GPL-2.0-or-later | flyinghead/flycast (libretro build target) |
+| `cardcon` | Beetle PCE Fast | GPL-2.0-or-later | libretro/beetle-pce-fast-libretro |
+| `twinsh` | Beetle Saturn | GPL-2.0-or-later | libretro/beetle-saturn-libretro |
+| `powercube` | Dolphin | GPL-2.0-or-later | libretro/dolphin |
+| `realmode` | DOSBox Pure | GPL-2.0-or-later | libretro/dosbox-pure |
+| `coinbox` | FinalBurn Neo | FBNeo-custom (non-commercial) — **not distributed in any binary** | libretro/FBNeo |
+| `dreamarc` | Flycast | GPL-2.0-or-later | flyinghead/flycast (libretro build target) |
 | `gambatte` | Gambatte | GPL-2.0-**only** — **not distributed in any binary** (cannot form a combined work with our GPL-3.0-only app) | libretro/gambatte-libretro |
-| `genesis_plus_gx` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial) — **not distributed in any binary** | libretro/Genesis-Plus-GX |
-| `melonds` | melonDS | GPL-3.0 | libretro/melonDS |
-| `mesen` | Mesen | GPL-3.0 | libretro/Mesen |
-| `mgba` | mGBA | MPL-2.0 | libretro/mgba |
-| `mupen64plus` | Mupen64Plus-Next | GPL-2.0-or-later | libretro/mupen64plus-libretro-nx |
-| `ppsspp` | PPSSPP | GPL-2.0-or-later | hrydgard/ppsspp (libretro build target) |
-| `sameboy` | SameBoy | MIT | libretro/SameBoy (built from LIJI32/SameBoy) |
-| `scummvm` | ScummVM | GPL-3.0 | scummvm/scummvm (libretro port in-tree) |
-| `snes9x` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
-| `stella` | Stella | GPL-2.0-or-later | libretro/stella2023 |
-| `swanstation` | SwanStation | GPL-3.0 | libretro/swanstation |
+| `blastproc` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial) — **not distributed in any binary** | libretro/Genesis-Plus-GX |
+| `dualscreen` | melonDS | GPL-3.0 | libretro/melonDS |
+| `nesbyte` | Mesen | GPL-3.0 | libretro/Mesen |
+| `advancebit` | mGBA | MPL-2.0 | libretro/mgba |
+| `rcp64` | Mupen64Plus-Next | GPL-2.0-or-later | libretro/mupen64plus-libretro-nx |
+| `portcomp` | PPSSPP | GPL-2.0-or-later | hrydgard/ppsspp (libretro build target) |
+| `pocketbit` | SameBoy | MIT | libretro/SameBoy (built from LIJI32/SameBoy) |
+| `pointclick` | ScummVM | GPL-3.0 | scummvm/scummvm (libretro port in-tree) |
+| `superfx` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
+| `joystick` | Stella | GPL-2.0-or-later | libretro/stella2023 |
+| `geometry1` | SwanStation | GPL-3.0 | libretro/swanstation |
 
 Notes:
 
@@ -57,7 +57,7 @@ Notes:
   everyone. They remain in-tree as build recipes for users who compile
   their own. Enforced by `scripts/legal_audit.py` (removed from
   distribution 2026-09-19; see `CHANGELOG.md`).
-- **`mupen64plus`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
+- **`rcp64`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
   the classic Mupen64Plus project license text is included in that tree.
 - **Holds (never built, never distributed):** `citra_hold` (3DS),
   `switch_hold` (Switch), `ps2_hold` (PS2). Their manifests explain the

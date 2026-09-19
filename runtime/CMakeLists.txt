@@ -69,17 +69,17 @@ target_include_directories(test_core_boot PRIVATE include)
 # Fixture-gated: skipped when native/test-roms/ is absent (fresh clones, CI
 # without fixtures). Suffix follows the host platform (.so/.dylib/.dll).
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
-  add_test(NAME boot_sameboy COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/sameboy/sameboy_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  add_test(NAME boot_pocketbit COMMAND test_core_boot
+    "${CMAKE_SOURCE_DIR}/../native/cores/pocketbit/pocketbit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
 endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/test.gba")
-  add_test(NAME boot_mgba COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/mgba/mgba_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  add_test(NAME boot_advancebit COMMAND test_core_boot
+    "${CMAKE_SOURCE_DIR}/../native/cores/advancebit/advancebit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/test.gba")
 endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
-  add_test(NAME boot_mesen COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/mesen/mesen_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  add_test(NAME boot_nesbyte COMMAND test_core_boot
+    "${CMAKE_SOURCE_DIR}/../native/cores/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
 endif()

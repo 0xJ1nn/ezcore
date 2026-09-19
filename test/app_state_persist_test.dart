@@ -46,7 +46,7 @@ void main() {
           system: 'gb',
           filePath: '/foo/bar.gb',
           extension: 'gb',
-          coreId: 'sameboy',
+          coreId: 'pocketbit',
         ),
       ];
       await state1.persist();
@@ -123,7 +123,7 @@ void main() {
           system: 'gb',
           filePath: '/foo/bar.gb',
           extension: 'gb',
-          coreId: 'sameboy',
+          coreId: 'pocketbit',
         ),
       ];
       await state1.persist();
@@ -133,7 +133,7 @@ void main() {
         saves: LocalSaveSyncProvider(tmpDir),
       );
       final loaded = await state2.persistence!.load();
-      expect(loaded.games.first.coreId, 'sameboy');
+      expect(loaded.games.first.coreId, 'pocketbit');
     });
   });
 

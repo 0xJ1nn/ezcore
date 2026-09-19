@@ -38,7 +38,7 @@ void main() {
         system: 'gba',
         filePath: '~/Games/gba/mydump.gba',
         extension: 'gba',
-        coreId: 'mgba',
+        coreId: 'advancebit',
       ),
     ];
     await pumpPhone(tester, LibraryScreen(state: state));
