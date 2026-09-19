@@ -21,10 +21,11 @@
   <img alt="Windows · Linux · iOS" src="https://img.shields.io/badge/Windows%20·%20Linux%20·%20iOS-from%20source-lightgrey">
 </p>
 
-An open-source frontend for your own game dumps: modular emulator cores
-behind a small stable C ABI, a polished console-style interface, full cheat
-support, and local save snapshots. Zero bundled games, BIOS, keys, or cheat
-databases — you bring your dumps, ezCORE does the rest.
+An open-source multi-system emulator for your own game dumps: modular
+libretro cores behind a small stable C ABI, a polished console-style
+interface, full cheat support, and local save snapshots. Zero bundled
+games, BIOS, keys, or cheat databases — you bring your dumps, ezCORE does
+the rest.
 
 ```
 Flutter UI → C ABI / FFI → ezCore Runtime → modular libretro cores
