@@ -83,11 +83,10 @@ _TIER_IOS = [
 def _delivery(cid: str) -> "dict[str, str] | None":
     if cid.endswith("_hold"):
         return None
-    if cid == "fbneo":
-        # Held from shipping for v0.1.0: its gated_reason requires IP-lawyer
-        # review + compat-allowlist + no-CHD posture first (see manifest and
-        # docs/MATRIX.md). Staged + pinned for CI, but no OS promises a
-        # bundle until those conditions are met.
+    if cid in ("fbneo", "snes9x", "genesis_plus_gx"):
+        # Non-commercial upstream licenses: never distributed in any binary,
+        # free or paid — kept as build recipes only. See gated_reason in each
+        # manifest + docs/MONETIZATION.md.
         return {
             "macos": "absent",
             "windows": "absent",
