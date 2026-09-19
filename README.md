@@ -53,9 +53,10 @@ it better is in the open.
 What we know going in:
 
 - **macOS arm64** is the most verified target: the app runs, imports your
-  dumps, and stages all 17 bundled cores for the player; 3 systems are
-  boot-and-render verified end-to-end in the harness — in-app play-through
-  verification is in progress (see [MATRIX.md](docs/MATRIX.md)).
+  dumps, and stages all bundled cores for the player (v0.1.0 shipped 17;
+  the next build ships 15 — see [CHANGELOG.md](CHANGELOG.md)); 3 systems
+  are boot-and-render verified end-to-end in the harness — in-app
+  play-through verification is in progress (see [MATRIX.md](docs/MATRIX.md)).
 - **Android arm64** builds and installs; cores are cross-compiled and
   symbol-verified, but on-device boot verification is still pending a device
   lab.
@@ -116,14 +117,15 @@ game's cover.
 
 ## Systems & cores
 
-Built and load-verified on macOS arm64 (17 bundled in v0.1.0; FBNeo held):
+Built and load-verified on macOS arm64 (15 bundled from the next build —
+v0.1.0 shipped 17; Snes9x and Genesis Plus GX are build recipes only,
+their upstream licenses are non-commercial):
 
-GB/GBC (SameBoy, Gambatte) · GBA (mGBA) · NES/FDS (Mesen) · SNES (Snes9x) ·
-Genesis/SMS/GG/SG-1000 (Genesis Plus GX) · Atari 2600 (Stella) ·
-DOS (DOSBox Pure) · ScummVM (adventure games) · TG-16 / PC Engine (Beetle PCE) ·
-PS1 (SwanStation) · N64 (Mupen64Plus) · DS (melonDS) · PSP (PPSSPP) ·
-Dreamcast (Flycast) · GameCube/Wii (Dolphin, desktop/Android) ·
-Saturn (Beetle Saturn).
+GB/GBC (SameBoy, Gambatte) · GBA (mGBA) · NES/FDS (Mesen) ·
+Atari 2600 (Stella) · DOS (DOSBox Pure) · ScummVM (adventure games) ·
+TG-16 / PC Engine (Beetle PCE) · PS1 (SwanStation) · N64 (Mupen64Plus) ·
+DS (melonDS) · PSP (PPSSPP) · Dreamcast (Flycast) ·
+GameCube/Wii (Dolphin, desktop/Android) · Saturn (Beetle Saturn).
 
 Scope is intent; [`docs/MATRIX.md`](docs/MATRIX.md) records what is actually
 verified per system per platform (built → pinned → identifies → renders →

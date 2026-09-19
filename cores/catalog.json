@@ -361,11 +361,11 @@
     ],
     "cheats_supported": true,
     "delivery": {
-      "android": "bundled",
-      "ios": "bundled",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "android": "absent",
+      "ios": "absent",
+      "linux": "absent",
+      "macos": "absent",
+      "windows": "absent"
     },
     "execution": {
       "android": "interpreter",
@@ -385,6 +385,7 @@
       "chd",
       "zip"
     ],
+    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
     "homepage": "https://github.com/libretro/Genesis-Plus-GX",
     "id": "genesis_plus_gx",
     "license": "Genesis-Plus-GX-custom (non-commercial \u2014 verify per-file terms at build time)",
@@ -742,11 +743,11 @@
     ],
     "cheats_supported": true,
     "delivery": {
-      "android": "bundled",
-      "ios": "bundled",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "android": "absent",
+      "ios": "absent",
+      "linux": "absent",
+      "macos": "absent",
+      "windows": "absent"
     },
     "execution": {
       "android": "interpreter",
@@ -761,6 +762,7 @@
       "fig",
       "zip"
     ],
+    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
     "homepage": "https://github.com/snes9xgit/snes9x",
     "id": "snes9x",
     "license": "Snes9x-custom (non-commercial, attribution required \u2014 free open-source use OK, paid closed forks NOT permitted)",

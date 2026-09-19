@@ -23,11 +23,11 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
-    "android": "bundled",
-    "ios": "bundled"
+    "macos": "absent",
+    "windows": "absent",
+    "linux": "absent",
+    "android": "absent",
+    "ios": "absent"
   },
   "artifacts": {
     "macos-arm64": "465b0613a6b03ebb570b10711a8681af45744a2e6a1111b07d07ec481f03b7d5",
@@ -39,5 +39,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid — kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md."
 }

@@ -24,8 +24,9 @@ Full text: [`LICENSE`](LICENSE). SPDX: `GPL-3.0-only`.
 ## 2. Emulator cores
 
 Each core is an independent upstream project, built from source by
-`scripts/build_core.sh` and shipped as a separate binary (sha256-pinned in
-its manifest). Licenses and upstream sources:
+`scripts/build_core.sh`. Only cores whose licenses permit distribution are
+shipped as separate binaries (sha256-pinned in their manifests); the rest
+remain in-tree as build recipes. Licenses and upstream sources:
 
 | Core | Project | License | Upstream |
 |---|---|---|---|
@@ -33,10 +34,10 @@ its manifest). Licenses and upstream sources:
 | `beetle_saturn` | Beetle Saturn | GPL-2.0 | libretro/beetle-saturn-libretro |
 | `dolphin` | Dolphin | GPL-2.0-or-later | libretro/dolphin |
 | `dosbox_pure` | DOSBox Pure | GPL-2.0 | libretro/dosbox-pure |
-| `fbneo` | FinalBurn Neo | FBNeo-custom (non-commercial — verify per-file terms at build time) | libretro/FBNeo |
+| `fbneo` | FinalBurn Neo | FBNeo-custom (non-commercial) — **not distributed in any binary** | libretro/FBNeo |
 | `flycast` | Flycast | GPL-2.0 | flyinghead/flycast (libretro build target) |
 | `gambatte` | Gambatte | GPL-2.0 | libretro/gambatte-libretro |
-| `genesis_plus_gx` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial — verify per-file terms at build time) | libretro/Genesis-Plus-GX |
+| `genesis_plus_gx` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial) — **not distributed in any binary** | libretro/Genesis-Plus-GX |
 | `melonds` | melonDS | GPL-3.0 | libretro/melonDS |
 | `mesen` | Mesen | GPL-3.0 | libretro/Mesen |
 | `mgba` | mGBA | MPL-2.0 | libretro/mgba |
@@ -44,16 +45,18 @@ its manifest). Licenses and upstream sources:
 | `ppsspp` | PPSSPP | GPL-2.0-or-later | hrydgard/ppsspp (libretro build target) |
 | `sameboy` | SameBoy | MIT | libretro/SameBoy (built from LIJI32/SameBoy) |
 | `scummvm` | ScummVM | GPL-3.0 | scummvm/scummvm (libretro port in-tree) |
-| `snes9x` | Snes9x | Snes9x-custom (non-commercial, attribution required — free open-source use OK, paid closed forks NOT permitted) | libretro/snes9x |
+| `snes9x` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
 | `stella` | Stella | GPL-2.0 | libretro/stella2023 |
 | `swanstation` | SwanStation | GPL-3.0 | libretro/swanstation |
 
 Notes:
 
-- **Non-commercial cores** (FBNeo, Genesis Plus GX, Snes9x) are used under
-  their open-source non-commercial terms. ezCORE itself is free software;
-  no paid distribution is made. FBNeo is additionally held from shipping
-  until its compatibility-allowlist review completes.
+- **Non-commercial cores** (FBNeo, Genesis Plus GX, Snes9x) are **not
+  distributed in any binary — free or paid**. Their upstream licenses
+  forbid commercial redistribution, and ezCORE ships one artifact for
+  everyone. They remain in-tree as build recipes for users who compile
+  their own. Enforced by `scripts/legal_audit.py` (removed from
+  distribution 2026-09-19; see `CHANGELOG.md`).
 - **`mupen64plus`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
   the classic Mupen64Plus project license text is included in that tree.
 - **Holds (never built, never distributed):** `citra_hold` (3DS),

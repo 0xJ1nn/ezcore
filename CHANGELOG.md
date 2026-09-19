@@ -4,6 +4,29 @@ All notable changes to ezCORE are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed
+
+- **Snes9x and Genesis Plus GX are no longer distributed in any binary.**
+  Their upstream licenses are non-commercial and ezCORE ships one artifact
+  for everyone (free or paid), so they stay in-tree as build recipes only —
+  compile your own if you want them. v0.1.0, already published, was a free
+  distribution under those licenses' free-use terms and is unaffected.
+- `roms/` — a stray commit had added failed Internet Archive downloads of
+  commercial games under their commercial filenames (plus copies of the two
+  homebrew fixtures, which already live in the gitignored `native/test-roms/`).
+  `roms/` is now gitignored.
+
+### Added
+
+- `scripts/legal_audit.py` — machine check for the licensing rules
+  (non-commercial cores never bundled, holds stay empty, bundled cores are
+  attributed and pinned). Wired into `scripts/release.sh` and the new
+  pre-commit hook.
+- `.githooks/pre-commit` + `scripts/install-hooks.sh` — commits are blocked
+  when the banned-content scan or the legal audit fails.
+
 ## [0.1.0] — 2026-09-19
 
 **First public release.** Early build — expect rough edges; see the notice

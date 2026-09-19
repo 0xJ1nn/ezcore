@@ -1,6 +1,6 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-19 (macOS arm64 full desktop set — 18 cores built, 17 bundled; scummvm added this date)
+> **Last verified:** 2026-09-19 (macOS arm64 full desktop set — 18 cores built, 15 bundled; scummvm added this date; Snes9x and Genesis Plus GX removed from distribution — non-commercial licenses)
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
 
@@ -27,8 +27,8 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | gambatte | RENDERS | BUILT | BUILT | — | — | Android via `unix` (no android branch upstream) |
 | mgba | RENDERS | — | BUILT | — | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
 | mesen | IDENTIFIES | BUILT | BUILT | — | — | iOS needed `ios-arm64` (TLS requires minos 9+) |
-| snes9x | IDENTIFIES | BUILT | BUILT | — | — | Android via `unix` (no android branch upstream) |
-| genesis_plus_gx | IDENTIFIES | BUILT | BUILT | — | — | Android via `unix` |
+| snes9x | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |
+| genesis_plus_gx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
 | stella | IDENTIFIES | BUILT | BUILT | — | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |
 | beetle_pce | IDENTIFIES | BUILT | BUILT | — | — | Android needed `-lrt` wrapper (NDK has no librt) |
 | dosbox_pure | IDENTIFIES | BUILT | BUILT | — | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |

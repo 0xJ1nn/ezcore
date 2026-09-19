@@ -36,11 +36,11 @@
     "bios_SMS.bin"
   ],
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
-    "android": "bundled",
-    "ios": "bundled"
+    "macos": "absent",
+    "windows": "absent",
+    "linux": "absent",
+    "android": "absent",
+    "ios": "absent"
   },
   "artifacts": {
     "macos-arm64": "a6d550ac7d1fed1262c632e910389b8a48b7f033c369fe8e8ca759e0b9e92b79",
@@ -53,5 +53,6 @@
     "android": "interpreter",
     "ios": "interpreter"
   },
-  "bios_notes": "Optional. User-supplied."
+  "bios_notes": "Optional. User-supplied.",
+  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid — kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md."
 }
