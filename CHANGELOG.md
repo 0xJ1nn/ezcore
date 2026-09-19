@@ -36,7 +36,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 [0.1.1]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.1
 
-## [0.1.0] — 2026-09-19
+## [0.1.0] — 2026-09-19 (original public release)
 
 ### Removed (from the codebase, not the release)
 

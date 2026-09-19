@@ -52,6 +52,7 @@ const _fullBoot = {
   'sameboy': 'native/test-roms/cpu_instrs.gb',
   'gambatte': 'native/test-roms/cpu_instrs.gb',
   'mgba': 'native/test-roms/test.gba',
+  'mesen': 'native/test-roms/ezcore_nes_minimal.nes',
 };
 
 void main() {
