@@ -1,6 +1,6 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-19 (macOS arm64 full desktop set — 18 cores built, 15 bundled; scummvm added this date; Snes9x and Genesis Plus GX removed from distribution — non-commercial licenses)
+> **Last verified:** 2026-09-19 (macOS arm64 release build — v0.1.1: 15 cores bundled, NC cores removed; play-through verified: app launches, Library empty-state renders, core staging + pin check enforced at runtime)
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
 

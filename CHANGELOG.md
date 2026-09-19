@@ -6,7 +6,39 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-09-19
+
+**First legal-clean release.** Rebuilt without the non-commercial cores.
+
 ### Removed
+
+- **FinalBurn Neo, Snes9x, Genesis Plus GX** — removed from all binary
+  distributions (non-commercial licenses). They remain in-tree as build
+  recipes only. v0.1.0 was a free distribution under those licenses'
+  free-use terms and is unaffected.
+
+### Fixed
+
+- `fill_manifest_data.py` now treats `snes9x` + `genesis_plus_gx` the same
+  as `fbneo` (absent from all OS delivery maps) — the script previously
+  expected `bundled` because they were still in the tier lists, causing
+  manifest drift.
+- Stale NC core dylibs left in `build/macos/.../cores/` from v0.1.0 were
+  not cleaned by `release.sh` (it only adds, never removes). Manually
+  removed; future `release.sh` runs should `rm -rf` the cores dir before
+  staging.
+
+### Verification
+
+- macOS arm64: 15 cores bundled, ad-hoc signed + sandboxed, app launches
+  to Library empty-state. SHA256SUMS verified by re-download.
+- Android arm64: 8 cores bundled, arm64-v8a only. SHA256SUMS verified.
+
+[0.1.1]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.1
+
+## [0.1.0] — 2026-09-19
+
+### Removed (from the codebase, not the release)
 
 - **Snes9x and Genesis Plus GX are no longer distributed in any binary.**
   Their upstream licenses are non-commercial and ezCORE ships one artifact
