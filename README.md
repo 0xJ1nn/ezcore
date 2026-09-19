@@ -202,3 +202,15 @@ ecosystem and the emulator projects behind each core. Thank you.
 - [GitHub Discussions](https://github.com/JinUltimate1995/ezcore/discussions) — questions, ideas, community help
 - [GitHub Issues](https://github.com/JinUltimate1995/ezcore/issues) — bugs and feature requests (use the templates)
 - [SECURITY.md](SECURITY.md) — vulnerabilities, privately
+
+### Support the project
+
+ezCORE is free and open source and stays that way — **no ads, no closed
+cores, no paywalled features.** Paid options are additive only:
+
+- **[Sponsor on GitHub](https://github.com/sponsors/JinUltimate1995)** — donations fund development; sponsors get early access to features and builds.
+- **ezCORE Platinum** *(planned)* — a paid convenience build on Google Play: same engine, premium icon/theme, and your purchase funds development.
+- **ezCORE Cloud** *(planned, v1.1+)* — an optional sync & backup service.
+
+The full plan, including what we will never do, is in
+[`docs/MONETIZATION.md`](docs/MONETIZATION.md).

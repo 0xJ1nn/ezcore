@@ -57,7 +57,27 @@ Forks must:
 
 ### Enforcement
 
-Unauthorized store publications will be reported to the platform for trademark infringement. The GPL-3.0 license on the code does not grant trademark rights.
+™ rights arise from **use** — registration is planned but is not required
+to enforce them. Unauthorized store publications will be reported to the
+platform for trademark infringement. The GPL-3.0 license on the code does
+not grant trademark rights.
+
+**Official builds are only these:** GitHub Releases
+(`JinUltimate1995/ezcore`) and, once live, the Play Store listings for
+ezCORE (free) and ezCORE Platinum. Anything else is a fork or a copycat.
+
+If you find a copycat, help by capturing evidence (store URL, screenshots,
+package id, date) and reporting it through the platform's IP form:
+
+| Platform | Where |
+|---|---|
+| Google Play | Play Console help → "Report infringement / impersonation" |
+| Apple App Store | Apple's "Report a Concern" form (App Store content) |
+| Microsoft Store | Store policies → "Report an app" |
+| GitHub | `github.com/contact/report-abuse` |
+
+Then note it in the repo's Discussions so users know which listings are
+official.
 
 ### Requesting Permission
 
