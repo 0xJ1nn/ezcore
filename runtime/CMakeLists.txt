@@ -73,11 +73,6 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
     "${CMAKE_SOURCE_DIR}/../native/cores/sameboy/sameboy_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
 endif()
-if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
-  add_test(NAME boot_gambatte COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/gambatte/gambatte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
-    "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
-endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/test.gba")
   add_test(NAME boot_mgba COMMAND test_core_boot
     "${CMAKE_SOURCE_DIR}/../native/cores/mgba/mgba_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"

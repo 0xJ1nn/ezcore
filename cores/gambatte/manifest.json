@@ -2,10 +2,16 @@
   "id": "gambatte",
   "name": "Gambatte",
   "version": "0.5.0",
-  "license": "GPL-2.0",
+  "license": "GPL-2.0-only",
   "license_url": "https://github.com/libretro/gambatte-libretro/blob/master/COPYING",
   "homepage": "https://github.com/libretro/gambatte-libretro",
   "upstream": "libretro/gambatte-libretro",
+  "provenance": {
+    "built_from": "https://github.com/libretro/gambatte-libretro",
+    "upstream_license": "GPL-2.0-only",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "modifications": "none beyond build configuration"
+  },
   "systems": [
     "gb",
     "gbc"
@@ -23,11 +29,11 @@
   "bios_required": false,
   "bios_files": [],
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
-    "android": "bundled",
-    "ios": "bundled"
+    "macos": "absent",
+    "windows": "absent",
+    "linux": "absent",
+    "android": "absent",
+    "ios": "absent"
   },
   "artifacts": {
     "macos-arm64": "58ebd5cb81845f499188abb45c42d4a111f93a81994fc8fc0f64d84059faadde",
@@ -39,5 +45,6 @@
     "linux": "interpreter",
     "android": "interpreter",
     "ios": "interpreter"
-  }
+  },
+  "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat) per docs/CORE_NAMING.md. Recipe retained for local experimentation only."
 }

@@ -35,9 +35,13 @@
     ],
     "homepage": "https://github.com/libretro/beetle-pce-fast-libretro",
     "id": "beetle_pce",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/libretro/beetle-pce-fast-libretro/blob/master/COPYING",
     "name": "Beetle PCE Fast",
+    "provenance": {
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "pce",
       "tg16",
@@ -83,10 +87,14 @@
     ],
     "homepage": "https://github.com/libretro/beetle-saturn-libretro",
     "id": "beetle_saturn",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/libretro/beetle-saturn-libretro/blob/master/COPYING",
     "name": "Beetle Saturn",
     "notes": "Desktop/Android first \u2014 needs strong CPU. iOS absent at launch.",
+    "provenance": {
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "saturn"
     ],
@@ -159,6 +167,11 @@
     "license_url": "https://github.com/dolphin-emu/dolphin/blob/master/LICENSE",
     "name": "Dolphin",
     "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU \u2014 on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
+    "provenance": {
+      "license_note": "COPYING states GPLv2+ and 'in aggregate \u2026 compatible with the GPLv3 license'. 2 files grant v2-only; project's own aggregate statement governs.",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "gc",
       "wii"
@@ -199,9 +212,13 @@
     ],
     "homepage": "https://github.com/libretro/dosbox-pure",
     "id": "dosbox_pure",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/libretro/dosbox-pure/blob/main/LICENSE",
     "name": "DOSBox Pure",
+    "provenance": {
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "dos"
     ],
@@ -289,10 +306,15 @@
     ],
     "homepage": "https://github.com/flyinghead/flycast",
     "id": "flycast",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/flyinghead/flycast/blob/master/LICENSE",
     "name": "Flycast",
     "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS \u2014 flagged slow.",
+    "provenance": {
+      "license_note": "Source grants verified: 527 files 'or later', 0 v2-only.",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "dc",
       "naomi"
@@ -313,11 +335,11 @@
     ],
     "cheats_supported": true,
     "delivery": {
-      "android": "bundled",
-      "ios": "bundled",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "android": "absent",
+      "ios": "absent",
+      "linux": "absent",
+      "macos": "absent",
+      "windows": "absent"
     },
     "execution": {
       "android": "interpreter",
@@ -331,11 +353,18 @@
       "gbc",
       "zip"
     ],
+    "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat) per docs/CORE_NAMING.md. Recipe retained for local experimentation only.",
     "homepage": "https://github.com/libretro/gambatte-libretro",
     "id": "gambatte",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-only",
     "license_url": "https://github.com/libretro/gambatte-libretro/blob/master/COPYING",
     "name": "Gambatte",
+    "provenance": {
+      "built_from": "https://github.com/libretro/gambatte-libretro",
+      "modifications": "none beyond build configuration",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-only"
+    },
     "systems": [
       "gb",
       "gbc"
@@ -571,10 +600,14 @@
     ],
     "homepage": "https://github.com/libretro/mupen64plus-libretro-nx",
     "id": "mupen64plus",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/libretro/mupen64plus-libretro-nx",
     "name": "Mupen64Plus-Next",
     "notes": "Dynarec on desktop/Android only. Interpreter on iOS \u2014 expect reduced speed.",
+    "provenance": {
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "n64"
     ],
@@ -618,6 +651,11 @@
     "license_url": "https://github.com/hrydgard/ppsspp/blob/master/LICENSE.TXT",
     "name": "PPSSPP",
     "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch \u2014 on-demand download only, never base-app payload. No PSN/DRM features.",
+    "provenance": {
+      "license_note": "Source grants verified: 5236 files 'or later', 0 v2-only.",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "psp"
     ],
@@ -804,9 +842,14 @@
     ],
     "homepage": "https://github.com/stella-emu/stella",
     "id": "stella",
-    "license": "GPL-2.0",
+    "license": "GPL-2.0-or-later",
     "license_url": "https://github.com/stella-emu/stella/blob/master/License.txt",
     "name": "Stella",
+    "provenance": {
+      "license_note": "Only 4 files grant 'or later' (thin evidence), but 0 grant v2-only. Worth a per-file pass before release.",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-2.0-or-later"
+    },
     "systems": [
       "atari2600"
     ],

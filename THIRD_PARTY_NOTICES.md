@@ -30,23 +30,23 @@ remain in-tree as build recipes. Licenses and upstream sources:
 
 | Core | Project | License | Upstream |
 |---|---|---|---|
-| `beetle_pce` | Beetle PCE Fast | GPL-2.0 | libretro/beetle-pce-fast-libretro |
-| `beetle_saturn` | Beetle Saturn | GPL-2.0 | libretro/beetle-saturn-libretro |
+| `beetle_pce` | Beetle PCE Fast | GPL-2.0-or-later | libretro/beetle-pce-fast-libretro |
+| `beetle_saturn` | Beetle Saturn | GPL-2.0-or-later | libretro/beetle-saturn-libretro |
 | `dolphin` | Dolphin | GPL-2.0-or-later | libretro/dolphin |
-| `dosbox_pure` | DOSBox Pure | GPL-2.0 | libretro/dosbox-pure |
+| `dosbox_pure` | DOSBox Pure | GPL-2.0-or-later | libretro/dosbox-pure |
 | `fbneo` | FinalBurn Neo | FBNeo-custom (non-commercial) — **not distributed in any binary** | libretro/FBNeo |
-| `flycast` | Flycast | GPL-2.0 | flyinghead/flycast (libretro build target) |
-| `gambatte` | Gambatte | GPL-2.0 | libretro/gambatte-libretro |
+| `flycast` | Flycast | GPL-2.0-or-later | flyinghead/flycast (libretro build target) |
+| `gambatte` | Gambatte | GPL-2.0-**only** — **not distributed in any binary** (cannot form a combined work with our GPL-3.0-only app) | libretro/gambatte-libretro |
 | `genesis_plus_gx` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial) — **not distributed in any binary** | libretro/Genesis-Plus-GX |
 | `melonds` | melonDS | GPL-3.0 | libretro/melonDS |
 | `mesen` | Mesen | GPL-3.0 | libretro/Mesen |
 | `mgba` | mGBA | MPL-2.0 | libretro/mgba |
-| `mupen64plus` | Mupen64Plus-Next | GPL-2.0 | libretro/mupen64plus-libretro-nx |
+| `mupen64plus` | Mupen64Plus-Next | GPL-2.0-or-later | libretro/mupen64plus-libretro-nx |
 | `ppsspp` | PPSSPP | GPL-2.0-or-later | hrydgard/ppsspp (libretro build target) |
 | `sameboy` | SameBoy | MIT | libretro/SameBoy (built from LIJI32/SameBoy) |
 | `scummvm` | ScummVM | GPL-3.0 | scummvm/scummvm (libretro port in-tree) |
 | `snes9x` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
-| `stella` | Stella | GPL-2.0 | libretro/stella2023 |
+| `stella` | Stella | GPL-2.0-or-later | libretro/stella2023 |
 | `swanstation` | SwanStation | GPL-3.0 | libretro/swanstation |
 
 Notes:

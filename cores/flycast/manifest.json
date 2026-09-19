@@ -2,7 +2,7 @@
   "id": "flycast",
   "name": "Flycast",
   "version": "2.2+git.eddf263",
-  "license": "GPL-2.0",
+  "license": "GPL-2.0-or-later",
   "license_url": "https://github.com/flyinghead/flycast/blob/master/LICENSE",
   "homepage": "https://github.com/flyinghead/flycast",
   "upstream": "flyinghead/flycast (libretro build target)",
@@ -28,7 +28,7 @@
     "dc_boot.bin",
     "dc_flash.bin"
   ],
-  "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
+  "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS \u2014 flagged slow.",
   "delivery": {
     "macos": "bundled",
     "windows": "bundled",
@@ -46,5 +46,10 @@
     "android": "dynarec",
     "ios": "interpreter"
   },
-  "bios_notes": "User-supplied; presence-gated at boot."
+  "bios_notes": "User-supplied; presence-gated at boot.",
+  "provenance": {
+    "upstream_license": "GPL-2.0-or-later",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "license_note": "Source grants verified: 527 files 'or later', 0 v2-only."
+  }
 }
