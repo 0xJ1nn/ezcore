@@ -17,7 +17,7 @@ updates:
       - "dependencies"
       - "dart"
     commit-message:
-      prefix: "chore(deps):"
+      prefix: "chore"
       include: "scope"
     groups:
       flutter-sdk:
@@ -44,7 +44,7 @@ updates:
       - "dependencies"
       - "ci"
     commit-message:
-      prefix: "ci(deps):"
+      prefix: "ci"
       include: "scope"
     groups:
       actions:
