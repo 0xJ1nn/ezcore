@@ -5,8 +5,8 @@ name: Release
 # that file exists (else generated notes). iOS is intentionally absent —
 # no signing identity yet (see docs/RELEASE_PLAN.md).
 #
-# CI is currently paused on the maintainer account (Actions billing); the
-# local path in docs/RELEASING.md is the working alternative.
+# CI is not running yet; the local path in docs/RELEASING.md is the
+# working alternative until it is.
 
 on:
   workflow_dispatch:

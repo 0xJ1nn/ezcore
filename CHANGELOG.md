@@ -55,7 +55,7 @@ at the top of [`README.md`](README.md).
   ad-hoc signed (not notarized).
 - Android: builds + installs; on-device boot verification pending a device
   lab.
-- Windows/Linux: no binaries (CI paused on Actions billing).
+- Windows/Linux: no binaries yet — build from source for now.
 - iOS: not distributed (no Apple identity yet).
 - Core verification: 3 cores boot-and-render verified (SameBoy, Gambatte,
   mGBA); the rest load and identify — render verification in progress.

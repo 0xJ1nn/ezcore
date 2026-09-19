@@ -12,7 +12,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml"><img alt="ci" src="https://github.com/JinUltimate1995/ezcore/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/JinUltimate1995/ezcore/releases"><img alt="release" src="https://img.shields.io/github/v/release/JinUltimate1995/ezcore?include_prereleases&color=007BFF"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0--only-blue"></a>
   <a href="docs/MATRIX.md"><img alt="core matrix" src="https://img.shields.io/badge/core%20matrix-docs%2FMATRIX.md-informational"></a>
@@ -60,9 +59,9 @@ What we know going in:
 - **Android arm64** builds and installs; cores are cross-compiled and
   symbol-verified, but on-device boot verification is still pending a device
   lab.
-- **Windows and Linux** have no release binaries yet — the CI matrix that
-  builds them is currently paused (GitHub Actions billing on the maintainer
-  account), so for now they are build-from-source platforms.
+- **Windows and Linux** have no release binaries yet — for now they are
+  build-from-source platforms; the CI matrix that will build them is still
+  being brought up.
 - **iOS** support exists in the codebase (interpreter-only policy enforced
   in manifests) but is not distributed yet — it needs an Apple Developer
   identity. There is no TestFlight, no App Store, no iOS artifact.
