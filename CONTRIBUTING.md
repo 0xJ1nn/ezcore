@@ -1,5 +1,10 @@
 # Contributing
 
+> **Canonical engineering rules:** [`project.md`](project.md) defines the full
+> ezCORE development system — read it before contributing. This file covers
+> contribution-specific policy (legal, licensing, DCO); everything else lives
+> in `project.md`.
+
 ## Hard rules (instant close, no discussion)
 
 1. **No ROMs, BIOS/firmware, keys, or game files in PRs.** Any PR adding
