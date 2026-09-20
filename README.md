@@ -30,7 +30,7 @@
 
 ---
 
-ezCORE is a **free, open-source, multi-system emulator** built on a modular libretro core architecture and a polished console-style UI called **Orbit**. It ships no ROMs, BIOS images, decryption keys, or cheat databases — you bring your own legal dumps; ezCORE does the rest.
+ezCORE is a **free, open-source, multi-system emulator** built on a modular libretro core architecture and a polished console-style UI called **Orbit**. It ships no ROMs, BIOS images, or decryption keys — you bring your own legal dumps. Cheat codes ship built-in (agent-curated and verified to actually work); no ROM content is ever bundled.
 
 ```
 Flutter UI (Orbit)  →  C ABI / FFI  →  ezCore Runtime (C11)  →  modular libretro cores
@@ -81,28 +81,30 @@ ezCORE uses its own codenames for all cores — upstream engines are credited in
 
 ### Bundled Cores
 
-These ship inside the app binary on the platforms marked.
+These ship inside the app binary on the platforms marked. "Cheat Engine" means the core exposes the libretro cheat API — codes from the built-in database are applied automatically for these cores.
 
-| System | ezCORE Core | Upstream Engine | macOS | Android | iOS | BIOS? | Cheats? |
+| System | ezCORE Core | Upstream Engine | macOS | Android | iOS | BIOS? | Cheat Engine |
 |---|---|---|:---:|:---:|:---:|:---:|:---:|
-| **Game Boy / GBC** | PocketBit | [SameBoy](https://github.com/LIJI32/SameBoy) (MIT) | 🎮 RENDERS | 🔨 BUILT | 🔨 BUILT | No | Yes |
-| **Game Boy Advance** | AdvanceBit | [mGBA](https://mgba.io) (MPL-2.0) | 🎮 RENDERS | 🔨 BUILT | — ¹ | No | Yes |
-| **NES / FDS** | NesByte | [Mesen](https://github.com/libretro/Mesen) (GPL-3.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | Yes |
-| **Atari 2600** | Joystick | [Stella](https://stella-emu.github.io) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | No |
-| **PC Engine / TG-16** | CardCon | [Beetle PCE Fast](https://github.com/libretro/beetle-pce-fast-libretro) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | Optional | No |
-| **DOS** | RealMode | [DOSBox Pure](https://github.com/libretro/dosbox-pure) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | No |
-| **SCUMM / Adventure** | PointClick | [ScummVM](https://www.scummvm.org) (GPL-3.0+) | ✅ IDENTIFIES | 🔨 BUILT | — | No | No |
-| **PS1** | Geometry1 | [SwanStation](https://github.com/libretro/swanstation) (GPL-3.0) | ✅ IDENTIFIES ² | — | — | **Required** | No |
-| **Nintendo 64** | RCP64 | [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | No |
-| **Nintendo DS** | DualScreen | [melonDS](https://melonds.kuribo64.net) (GPL-3.0) | ✅ IDENTIFIES ² | — | — | Optional | No |
-| **PSP** | PortComp | [PPSSPP](https://www.ppsspp.org) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | No |
-| **Dreamcast** | DreamArc | [Flycast](https://github.com/flyinghead/flycast) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | **Required** | No |
-| **GameCube / Wii** | PowerCube | [Dolphin](https://dolphin-emu.org) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | No |
-| **Saturn** | TwinSH | [Beetle Saturn](https://github.com/libretro/beetle-saturn-libretro) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | **Required** | No |
+| **Game Boy / GBC** | PocketBit | [SameBoy](https://github.com/LIJI32/SameBoy) (MIT) | 🎮 RENDERS | 🔨 BUILT | 🔨 BUILT | No | ✅ GS · GG |
+| **Game Boy Advance** | AdvanceBit | [mGBA](https://mgba.io) (MPL-2.0) | 🎮 RENDERS | 🔨 BUILT | — ¹ | No | ✅ AR · CB · GS |
+| **NES / FDS** | NesByte | [Mesen](https://github.com/libretro/Mesen) (GPL-3.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | ✅ Game Genie |
+| **PS1** | Geometry1 | [SwanStation](https://github.com/libretro/swanstation) (GPL-3.0) | ✅ IDENTIFIES ² | — | — | **Required** | ✅ GameShark |
+| **Nintendo 64** | RCP64 | [Mupen64Plus-Next](https://github.com/libretro/mupen64plus-libretro-nx) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | ✅ GameShark |
+| **Nintendo DS** | DualScreen | [melonDS](https://melonds.kuribo64.net) (GPL-3.0) | ✅ IDENTIFIES ² | — | — | Optional | ✅ Action Replay |
+| **PSP** | PortComp | [PPSSPP](https://www.ppsspp.org) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | ✅ CWCheat |
+| **Dreamcast** | DreamArc | [Flycast](https://github.com/flyinghead/flycast) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | **Required** | ✅ CodeBreaker |
+| **GameCube / Wii** | PowerCube | [Dolphin](https://dolphin-emu.org) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | No | ✅ Gecko |
+| **Saturn** | TwinSH | [Beetle Saturn](https://github.com/libretro/beetle-saturn-libretro) (GPL-2.0+) | ✅ IDENTIFIES ² | — | — | **Required** | ✅ GameShark |
+| **Atari 2600** | Joystick | [Stella](https://stella-emu.github.io) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | — |
+| **PC Engine / TG-16** | CardCon | [Beetle PCE Fast](https://github.com/libretro/beetle-pce-fast-libretro) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | Optional | — |
+| **DOS** | RealMode | [DOSBox Pure](https://github.com/libretro/dosbox-pure) (GPL-2.0+) | ✅ IDENTIFIES | 🔨 BUILT | 🔨 BUILT | No | — |
+| **SCUMM / Adventure** | PointClick | [ScummVM](https://www.scummvm.org) (GPL-3.0+) | ✅ IDENTIFIES | 🔨 BUILT | — | No | — |
 
 > **¹ AdvanceBit / iOS:** dynarec default is unverified on iOS; excluded until interpreter flags are confirmed.
 >
 > **² GL-dependent cores** (Geometry1, RCP64, DualScreen, PortComp, DreamArc, PowerCube, TwinSH): identify cleanly in the test harness but frame rendering requires an OpenGL context the current runtime doesn't yet provide outside the running app. End-to-end in-app frame verification is in progress.
+>
+> **Cheat abbreviations:** GS = GameShark · GG = Game Genie · AR = Action Replay · CB = CodeBreaker
 
 ### Build-Recipe Cores (not bundled — compile your own)
 
@@ -148,9 +150,14 @@ No game art ships with the app: every import gets a deterministic generative cov
 
 ## Bring Your Own Dumps
 
-ezCORE plays **only files you supply yourself.** It ships no ROMs, BIOS/firmware, decryption keys, game art, or cheat databases, and links to none. Your imports stay on your device — the library references your folders; nothing leaves. See [`TRADEMARKS.md`](TRADEMARKS.md) and [`DMCA.md`](DMCA.md).
+ezCORE plays **only files you supply yourself.** It ships no ROMs, BIOS/firmware, or decryption keys, and links to none. Your imports stay on your device — the library references your folders; nothing leaves. See [`TRADEMARKS.md`](TRADEMARKS.md) and [`DMCA.md`](DMCA.md).
 
-For cores that require BIOS files (PS1 / Geometry1, Dreamcast / DreamArc, Saturn / TwinSH, optionally PC Engine / CardCon and DS / DualScreen), you must source and place these yourself. Full file names and placement paths are in [`docs/INSTALL.md`](docs/INSTALL.md).
+**What ezCORE ships built-in:**
+- **Cheat codes** — a curated, agent-verified database of cheat codes that are tested to actually work on each core. Codes are toggled per-game in the Player; the engine applies them at boot or live while playing. No ROM content whatsoever is included.
+
+**What you supply:**
+- **Your game dumps** — ROMs and disc images you own
+- **BIOS files** (only for cores that require them: PS1 / Geometry1, Dreamcast / DreamArc, Saturn / TwinSH, optionally PC Engine / CardCon and DS / DualScreen). Full file names and placement paths: [`docs/INSTALL.md`](docs/INSTALL.md)
 
 ---
 
@@ -241,12 +248,17 @@ Full platform matrix (Windows, Linux, Android, iOS), all tiers, and release asse
 
 ## Contributing
 
-Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — there are a few hard rules (no ROMs, no BIOS, no commercial game content, one task at a time). Beyond that, contributions are welcome.
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — there are a few hard rules (no ROMs, no BIOS, no commercial game content, one task at a time). Beyond that, contributions are genuinely welcome.
 
-**Found a bug?** [Open an issue](https://github.com/JinUltimate1995/ezcore/issues/new/choose) using the bug template.  
+**Found a bug?** [Open an issue](https://github.com/JinUltimate1995/ezcore/issues/new/choose) using the bug template — it asks for exactly what we need.  
 **Already fixed it?** PRs are welcome. Branch from `main`, one logical change per PR.  
 **Want a feature?** Use the feature request template; small and specific beats big and vague.  
-**Want to add a core?** Read [`docs/CORE_SYSTEM.md`](docs/CORE_SYSTEM.md) and [`docs/CORE_NAMING.md`](docs/CORE_NAMING.md) first — there are licensing and naming rules.
+**Want to add a core?** Read [`docs/CORE_SYSTEM.md`](docs/CORE_SYSTEM.md) and [`docs/CORE_NAMING.md`](docs/CORE_NAMING.md) first — there are licensing and naming rules.  
+**Want to discuss first?** [GitHub Discussions](https://github.com/JinUltimate1995/ezcore/discussions) is the right place.
+
+### Recognition
+
+**Contributors and sponsors are credited inside the app itself** — in the About tab in Settings, by GitHub username. If you ship a merged PR or sponsor the project, your name is in the product, not just the commit log.
 
 ---
 
@@ -269,10 +281,13 @@ ezCORE stands on the shoulders of the [libretro](https://www.libretro.com/) ecos
 
 ### Support the Project
 
-ezCORE is free and open source and **stays that way** — no ads, no closed cores, no paywalled features. Paid options are additive only:
+ezCORE is free and open source and **stays that way** — no ads, no closed cores, no paywalled features. Every feature (fast-forward, save states, cheats, themes — all of it) is free, forever. Paid options are additive only:
 
-- **[Sponsor on GitHub](https://github.com/sponsors/JinUltimate1995)** — donations fund development; sponsors get early access to features and builds
-- **ezCORE Platinum** *(planned)* — a paid convenience build on Google Play: same engine, premium icon/theme, your purchase funds development
-- **ezCORE Cloud** *(planned, v1.1+)* — optional sync & backup service
+- **[Sponsor on GitHub](https://github.com/sponsors/JinUltimate1995)** — fund development directly. Sponsors get:
+  - 🏷️ **Your name in the app** — credited in the About tab in Settings by GitHub username
+  - ⚡ Early access to features and builds before public release
+- **ezCORE Platinum** *(planned)* — a paid convenience build on Google Play. Same engine, same features, premium icon and theme. One-time purchase. Your money funds the project; the source stays public.
+- **ezCORE Cloud** *(planned, v1.1+)* — optional sync & backup. You pay for the service (servers, storage, version history), not for software features. Local saves are always complete and free.
 
-The full plan — including what we will never do — is in [`docs/MONETIZATION.md`](docs/MONETIZATION.md).
+**We will never:** sell ads, close-source any core, paywall emulation features, or sell user data. Full commitment in [`docs/MONETIZATION.md`](docs/MONETIZATION.md).
+
