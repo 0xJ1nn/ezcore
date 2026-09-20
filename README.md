@@ -118,10 +118,11 @@ game's cover.
 ## Systems & cores
 
 Built and load-verified on macOS arm64 (15 bundled from the next build —
-v0.1.0 shipped 17; Snes9x and Genesis Plus GX are build recipes only,
-their upstream licenses are non-commercial):
+v0.1.0 shipped 17; Snes9x, Genesis Plus GX, and FBNeo are build recipes
+only, their upstream licenses are non-commercial; Gambatte is GPL-2.0-only
+and therefore never bundled — PocketBit/SameBoy serves GB/GBC):
 
-GB/GBC (SameBoy, Gambatte) · GBA (mGBA) · NES/FDS (Mesen) ·
+GB/GBC (SameBoy) · GBA (mGBA) · NES/FDS (Mesen) ·
 Atari 2600 (Stella) · DOS (DOSBox Pure) · ScummVM (adventure games) ·
 TG-16 / PC Engine (Beetle PCE) · PS1 (SwanStation) · N64 (Mupen64Plus) ·
 DS (melonDS) · PSP (PPSSPP) · Dreamcast (Flycast) ·
