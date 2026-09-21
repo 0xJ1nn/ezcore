@@ -14,7 +14,8 @@ migrate_working_dir/
 
 # Build outputs (reproducible via scripts/build_core.sh --fetch-headers + --tier1)
 build/
-native/
+native/*
+!native/pin-waivers/
 runtime/build/
 runtime/build-*/
 runtime/Testing/

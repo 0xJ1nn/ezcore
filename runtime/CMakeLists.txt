@@ -67,19 +67,38 @@ target_include_directories(test_core_boot PRIVATE include)
 
 # Boot tests for cores that have test ROMs available.
 # Fixture-gated: skipped when native/test-roms/ is absent (fresh clones, CI
-# without fixtures). Suffix follows the host platform (.so/.dylib/.dll).
+# without fixtures). Core tree follows the host platform:
+# macos-arm64 -> native/cores, everything else -> native/cores-<plat>-<arch>
+# (matches core_platform.sh OUT_DIR). Suffix follows the host platform
+# (.so/.dylib/.dll).
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  set(EZCORE_CORES_ROOT "${CMAKE_SOURCE_DIR}/../native/cores")
+else()
+  execute_process(COMMAND uname -m OUTPUT_VARIABLE EZCORE_HOST_ARCH
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+  # Match core_platform.sh naming: linux x64 -> cores-linux-x64
+  set(EZCORE_HOST_PLAT "${CMAKE_HOST_SYSTEM_NAME}")
+  if(EZCORE_HOST_ARCH STREQUAL "x86_64")
+    set(EZCORE_HOST_ARCH "x64")
+  elseif(EZCORE_HOST_ARCH STREQUAL "aarch64")
+    set(EZCORE_HOST_ARCH "arm64")
+  endif()
+  string(TOLOWER "${EZCORE_HOST_PLAT}" EZCORE_HOST_PLAT)
+  set(EZCORE_CORES_ROOT
+      "${CMAKE_SOURCE_DIR}/../native/cores-${EZCORE_HOST_PLAT}-${EZCORE_HOST_ARCH}")
+endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
   add_test(NAME boot_pocketbit COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/pocketbit/pocketbit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "${EZCORE_CORES_ROOT}/pocketbit/pocketbit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/cpu_instrs.gb")
 endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/test.gba")
   add_test(NAME boot_advancebit COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/advancebit/advancebit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "${EZCORE_CORES_ROOT}/advancebit/advancebit_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/test.gba")
 endif()
 if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
   add_test(NAME boot_nesbyte COMMAND test_core_boot
-    "${CMAKE_SOURCE_DIR}/../native/cores/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "${EZCORE_CORES_ROOT}/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
 endif()

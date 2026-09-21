@@ -30,7 +30,7 @@
     "android": "dynarec",
     "ios": "interpreter"
   },
-  "notes": "Full speed on desktop. Mobile is playable but flagged slow \u2014 DSi mode off at launch.",
+  "notes": "Full speed on desktop. Mobile is playable but flagged slow — DSi mode off at launch.",
   "delivery": {
     "macos": "bundled",
     "windows": "bundled",
@@ -39,7 +39,8 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5"
+    "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5",
+    "linux-x64": "2d77f2dc7bcba436105ec8c75ffbc9b207f481ade4319aa23d960713419ebe83"
   },
   "bios_notes": "User-supplied; presence-gated at boot.",
   "provenance": {

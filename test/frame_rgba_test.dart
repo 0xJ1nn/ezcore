@@ -8,7 +8,7 @@ void main() {
     'copied frame is RGBA with opaque alpha, not native XRGB bytes',
     skip: paths.synthLib() != null ? null : 'synth core not built',
     () {
-    final rt = EzCoreRuntime.load();
+    final rt = EzCoreRuntime.load(runtimePath: paths.bridgeLib()!);
     final s = rt.loadSession(paths.synthLib()!);
     try {
       expect(rt.init(s), isTrue);

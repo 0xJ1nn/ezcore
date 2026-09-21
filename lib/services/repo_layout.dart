@@ -44,6 +44,42 @@ class RepoLayout {
   static String? coresRoot({String? executablePath}) =>
       _findAncestor(executablePath, 'native/cores');
 
+  /// The platform-specific staged cores tree for dev checkouts:
+  /// `native/cores` on macOS-arm64 (host default), `native/cores-<plat>-<arch>`
+  /// elsewhere — mirroring core_platform.sh's OUT_DIR. Prefers a tree that
+  /// actually contains core subdirs, so Linux dev checkouts stage
+  /// cores-linux-x64 instead of falling into an empty native/cores.
+  static String? stagedCoresRoot({String? executablePath}) {
+    final candidates = <String>[
+      if (Platform.isMacOS) ...['native/cores-macos-arm64', 'native/cores'],
+      if (Platform.isWindows) ...['native/cores-windows-x64', 'native/cores'],
+      if (!Platform.isMacOS && !Platform.isWindows) ...[
+        'native/cores-linux-x64',
+        'native/cores',
+      ],
+    ];
+    var dir = executablePath == null
+        ? Directory.current
+        : File(executablePath).parent;
+    // Per ancestor: first candidate tree that holds core subdirs wins.
+    // (An empty native/cores must not shadow a populated platform tree.)
+    for (var i = 0; i < 12; i++) {
+      for (final rel in candidates) {
+        final root = Directory('${dir.path}/$rel');
+        if (!root.existsSync()) continue;
+        try {
+          final hasSubdirs =
+              root.listSync(followLinks: false).whereType<Directory>().isNotEmpty;
+          if (hasSubdirs) return root.path;
+        } catch (_) {}
+      }
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+    return null;
+  }
+
   /// Release-bundle core roots, searched before the dev checkout.
   /// macOS: `<app>/Contents/Resources/ezcore/cores` (populated by
   /// scripts/release.sh). Windows/Linux: `<exeDir>/cores`.

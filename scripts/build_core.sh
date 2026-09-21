@@ -130,12 +130,19 @@ build_pocketbit() {
   # GNU make 4+ required: BootROM rules use $(realpath) (make 3.81 lacks it).
   # Serial build: the BootROM pb12 link step races under -j (triplicate
   # link jobs, missing order-only prerequisite upstream).
-  command -v gmake >/dev/null || {
-    echo "gmake required for SameBoy (brew install make)" >&2
+  # gmake is the explicit GNU-make name (macOS brew); Linux make is already
+  # GNU, so accept it when its version is 4+.
+  MAKEBIN=""
+  if command -v gmake >/dev/null; then
+    MAKEBIN="gmake"
+  elif command -v make >/dev/null && make --version 2>/dev/null | grep -q "GNU Make [4-9]"; then
+    MAKEBIN="make"
+  else
+    echo "GNU make 4+ required for SameBoy (gmake, or make >= 4)" >&2
     exit 2
-  }
+  fi
   # GNU make 4+ (realpath) + serial: BootROM pb12 link step races.
-  MAKEBIN="gmake" JOBS=1 \
+  MAKEBIN="$MAKEBIN" JOBS=1 \
     core_make "$SRC_DIR/SameBoy" libretro
   if [ "$PLATFORM" = ios ]; then
     stage pocketbit "$SRC_DIR/SameBoy/build/bin/sameboy_libretro_ios.dylib"

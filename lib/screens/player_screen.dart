@@ -110,6 +110,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           Platform.environment['EZCORE_CORES_DIR'] ??
           _vaultCoresRoot() ??
           _bundledCoresRoot() ??
+          RepoLayout.stagedCoresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot() ??
           'native/cores';

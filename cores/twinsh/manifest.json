@@ -25,7 +25,7 @@
     "sega_101.bin",
     "mpr-17933.bin"
   ],
-  "notes": "Desktop/Android first \u2014 needs strong CPU. iOS absent at launch.",
+  "notes": "Desktop/Android first — needs strong CPU. iOS absent at launch.",
   "delivery": {
     "macos": "bundled",
     "windows": "bundled",
@@ -34,7 +34,8 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "e532f134013e7922be38e8491b233fb0263c66d0632a6a01f93ccc3eb40bfb96"
+    "macos-arm64": "e532f134013e7922be38e8491b233fb0263c66d0632a6a01f93ccc3eb40bfb96",
+    "linux-x64": "22878d8f2fafac3340a93d6caf7a1c7b823a1cdd7a445f74b3f207cb638a17f7"
   },
   "execution": {
     "macos": "interpreter",

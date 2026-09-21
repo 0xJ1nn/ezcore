@@ -84,10 +84,20 @@ class CoreStagingService {
         if (dir.existsSync()) out.add(dir);
       }
     } catch (_) {}
-    final dev =
-        RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
-        RepoLayout.coresRoot();
-    if (dev != null) out.add(Directory(dev));
+    // Platform-aware dev-checkout root first (cores-linux-x64 on Linux),
+    // then the legacy host default — a populated platform tree must win
+    // over an empty native/cores.
+    final staged = RepoLayout.stagedCoresRoot(
+      executablePath: Platform.resolvedExecutable,
+    );
+    if (staged != null) {
+      out.add(Directory(staged));
+    } else {
+      final dev =
+          RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
+              RepoLayout.coresRoot();
+      if (dev != null) out.add(Directory(dev));
+    }
     return out;
   }
 

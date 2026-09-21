@@ -33,7 +33,8 @@
   },
   "artifacts": {
     "macos-arm64": "940e471244ce202441442748dcae5d207690f8b876de5e56fe165bda59e8527b",
-    "android-arm64": "7063eb166524c184f175d81d840eae167e90ae78fdf56ac79281cb035d3e44f2"
+    "android-arm64": "7063eb166524c184f175d81d840eae167e90ae78fdf56ac79281cb035d3e44f2",
+    "linux-x64": "c883579a185a3aa880678b731b34b6448715afa87ce6ef785c6b20bc7d9a88a5"
   },
   "execution": {
     "macos": "interpreter",

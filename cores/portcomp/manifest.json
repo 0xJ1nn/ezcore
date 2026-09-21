@@ -29,7 +29,7 @@
     "android": "dynarec",
     "ios": "interpreter"
   },
-  "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch \u2014 on-demand download only, never base-app payload. No PSN/DRM features.",
+  "notes": "Interpreter mode on iOS (no JIT). ~30MB/arch — on-demand download only, never base-app payload. No PSN/DRM features.",
   "delivery": {
     "macos": "bundled",
     "windows": "bundled",
@@ -38,7 +38,8 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "f3483b102dec93d484b8c10bdb2bb2fe1c5f12e7425ca800db2985b85a4d5d9f"
+    "macos-arm64": "f3483b102dec93d484b8c10bdb2bb2fe1c5f12e7425ca800db2985b85a4d5d9f",
+    "linux-x64": "cc680091bc9ae1215c1b136c84c3207860c144aa88dde1204f6062a81a73dbb3"
   },
   "provenance": {
     "upstream_license": "GPL-2.0-or-later",

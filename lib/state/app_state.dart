@@ -12,7 +12,26 @@ import '../services/core_discovery.dart';
 import '../services/core_staging.dart';
 import '../services/repo_layout.dart';
 import '../services/persistence_service.dart';
+import '../services/content_importer.dart';
+import '../services/hash_verifier.dart';
 import 'save_sync.dart';
+
+/// Summary of a [AppState.rescanRomFolders] pass.
+class RescanReport {
+  const RescanReport({
+    this.added = 0,
+    this.pruned = 0,
+    this.foldersScanned = 0,
+    this.cancelled = false,
+  });
+
+  final int added;
+  final int pruned;
+  final int foldersScanned;
+  final bool cancelled;
+
+  bool get changed => added > 0 || pruned > 0;
+}
 
 /// Application state: games, favorites, core choices, cheats, settings.
 ///
@@ -127,6 +146,7 @@ class AppState extends ChangeNotifier {
           Platform.environment['EZCORE_CORES_DIR'] ??
           await _stagedVaultRoot() ??
           _bundledCoresRoot() ??
+          RepoLayout.stagedCoresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot() ?? 'native/cores';
       final discovery = CoreDiscovery(Directory(coreRoot));
@@ -232,6 +252,87 @@ class AppState extends ChangeNotifier {
     games = games.map((g) => g.id == gameId ? g.copyWith(cheatsOn: on) : g)
         .toList();
     notifyListeners();
+  }
+
+  // --- ROM folders: watched roots, auto-scanned on launch + on demand ---
+  static const romFoldersKey = 'romFolders';
+
+  /// Folders the user registered via "Add ROM folder". Persisted in settings.
+  List<String> get romFolders {
+    final raw = _settings[romFoldersKey];
+    if (raw is! List) return const [];
+    return [for (final e in raw) if (e is String && e.isNotEmpty) e];
+  }
+
+  Future<void> addRomFolder(String path) async {
+    final next = [...romFolders];
+    if (!next.contains(path)) next.add(path);
+    await setSetting(romFoldersKey, next);
+  }
+
+  Future<void> removeRomFolder(String path) async {
+    await setSetting(
+      romFoldersKey,
+      [for (final p in romFolders) if (p != path) p],
+    );
+  }
+
+  /// Re-scans every registered folder (recursive, core-matched) and adds
+  /// anything new to the library. Also prunes entries whose file vanished
+  /// while its folder still exists — but never prunes when the folder
+  /// itself is gone (unplugged drive), so missing mounts can't wipe games.
+  Future<RescanReport> rescanRomFolders() async {
+    final folders = romFolders.where((p) => Directory(p).existsSync()).toList();
+    if (folders.isEmpty || registry.catalog.isEmpty) {
+      return const RescanReport();
+    }
+    final importer = ContentImporter(const PlatformHashVerifier());
+    final catalog = {for (final m in registry.catalog) m.id: m};
+    final known = games.map((g) => g.sha1).toSet();
+    var added = 0;
+    var scanned = 0;
+    for (final folder in folders) {
+      final scan = await importer.scanDirectory(
+        folder,
+        knownShas: known,
+        catalog: catalog,
+      );
+      for (final result in scan.results) {
+        if (result.isSuccess && result.game != null) {
+          addGame(result.game!);
+          known.add(result.game!.sha1);
+          added++;
+        }
+      }
+      scanned++;
+    }
+    // Prune: remove games whose file is gone but folder still exists
+    var pruned = 0;
+    final liveRoots = romFolders.where((p) => Directory(p).existsSync());
+    final livePaths = <String>{};
+    for (final root in liveRoots) {
+      final dir = Directory(root);
+      if (!dir.existsSync()) continue;
+      for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+        if (entity is File) livePaths.add(entity.path);
+      }
+    }
+    final before = games.length;
+    games = games.where((g) {
+      if (livePaths.contains(g.filePath)) return true;
+      // File gone — only prune if its folder still exists
+      final parent = Directory(g.filePath).parent.path;
+      if (romFolders.contains(parent) && Directory(parent).existsSync()) {
+        return false; // prune
+      }
+      return true; // keep (unplugged drive)
+    }).toList();
+    pruned = before - games.length;
+    if (added > 0 || pruned > 0) {
+      notifyListeners();
+      await _persist();
+    }
+    return RescanReport(added: added, pruned: pruned, foldersScanned: scanned);
   }
 
   // --- settings ---

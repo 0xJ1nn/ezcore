@@ -2,6 +2,7 @@
   "advancebit": {
     "artifacts": {
       "android-arm64": "441611bd198a78feab5e41e668433b6783240d706ef3944abcbce98d9bbe0c10",
+      "linux-x64": "26f5826576c722e144351e851baf8b2b37122070a19c082475f2166f59044f09",
       "macos-arm64": "2d8029a2287b9b92b190812feb54c033c5624bb7b2a3713a974a3ea0f2a42fdb"
     },
     "bios_files": [],
@@ -117,6 +118,7 @@
   "cardcon": {
     "artifacts": {
       "android-arm64": "87edabceae53679b026a54dfd1420301be500d9a3e82e24998ab31047a1ee7b7",
+      "linux-x64": "a3ef1f6ad46b6a3a876cf6eac4e8a4076727008c2b8e32c3e2381a8be87b21d4",
       "macos-arm64": "00c2fcd421cce73754e4492233232ccede2428bcdbdb9553205fceda95fbb6a4"
     },
     "bios_files": [
@@ -239,6 +241,7 @@
   },
   "dreamarc": {
     "artifacts": {
+      "linux-x64": "0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51",
       "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327"
     },
     "bios_files": [
@@ -295,6 +298,7 @@
   },
   "dualscreen": {
     "artifacts": {
+      "linux-x64": "2d77f2dc7bcba436105ec8c75ffbc9b207f481ade4319aa23d960713419ebe83",
       "macos-arm64": "60673d4b05066a00f79b00d5c968c129da15c93f75140f225129941c52dc07a5"
     },
     "bios_files": [
@@ -395,6 +399,7 @@
   },
   "geometry1": {
     "artifacts": {
+      "linux-x64": "8a319ac54e1eff70cea4c187cb6a65f05a62141fcf92c6ff0b1ad877cd9ccb0d",
       "macos-arm64": "35ef589500f399a15cec8474b6ad2c1b920441792fedd73890c45ecadd066ede"
     },
     "bios_files": [
@@ -450,6 +455,7 @@
   "joystick": {
     "artifacts": {
       "android-arm64": "a99f82584295b950046c528852fb063a3745885173adbb8daf45e683edd2a515",
+      "linux-x64": "14f5c3a6b2a13108efa10d04a6e1ce4bb99b599d5e6a4afa36b9d26dc451cf4b",
       "macos-arm64": "58787f7ffd33d45aacdc331e2e3751abc3ef4d4c2178937a947d77f904734b22"
     },
     "bios_files": [],
@@ -495,6 +501,7 @@
   "nesbyte": {
     "artifacts": {
       "android-arm64": "7063eb166524c184f175d81d840eae167e90ae78fdf56ac79281cb035d3e44f2",
+      "linux-x64": "c883579a185a3aa880678b731b34b6448715afa87ce6ef785c6b20bc7d9a88a5",
       "macos-arm64": "940e471244ce202441442748dcae5d207690f8b876de5e56fe165bda59e8527b"
     },
     "bios_files": [
@@ -594,6 +601,7 @@
   "pointclick": {
     "artifacts": {
       "android-arm64": "c23d31ab19d927e812befa12ed2ae521ada87f760d45d20c8ad026e74af97f36",
+      "linux-x64": "6ef0197ec157a71b70deae0369c1d7a9eeec1a55fa88f3999cc2c194e765c2b4",
       "macos-arm64": "20027dbdfcea9f00aca8baeb4bf3a6f4f00cdc3a531cd3ae61239a753f299dc6"
     },
     "bios_files": [],
@@ -637,6 +645,7 @@
   },
   "portcomp": {
     "artifacts": {
+      "linux-x64": "cc680091bc9ae1215c1b136c84c3207860c144aa88dde1204f6062a81a73dbb3",
       "macos-arm64": "f3483b102dec93d484b8c10bdb2bb2fe1c5f12e7425ca800db2985b85a4d5d9f"
     },
     "bios_files": [],
@@ -686,6 +695,7 @@
   },
   "powercube": {
     "artifacts": {
+      "linux-x64": "153229584c35feb5ce6fd3ef2b07357c4f3b77a172277fb1a0ca9da3fa59b4c9",
       "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
     },
     "bios_files": [
@@ -813,6 +823,7 @@
   "realmode": {
     "artifacts": {
       "android-arm64": "a479e16ae8039ff5be1704c3c283d88f717880415719fb1da0ce4c3797b64e13",
+      "linux-x64": "a2d0f4bf1d89b28c89ff83983cf096c59c234b9c04b2296ffb5b15408dc15df5",
       "macos-arm64": "950cb26af808f34dcea3c6670587819548a51e2ed4ced7d174f100dd917ac53a"
     },
     "bios_files": [],
@@ -932,6 +943,7 @@
   },
   "twinsh": {
     "artifacts": {
+      "linux-x64": "22878d8f2fafac3340a93d6caf7a1c7b823a1cdd7a445f74b3f207cb638a17f7",
       "macos-arm64": "e532f134013e7922be38e8491b233fb0263c66d0632a6a01f93ccc3eb40bfb96"
     },
     "bios_files": [

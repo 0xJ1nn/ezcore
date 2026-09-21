@@ -28,7 +28,7 @@
     "dc_boot.bin",
     "dc_flash.bin"
   ],
-  "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS \u2014 flagged slow.",
+  "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
   "delivery": {
     "macos": "bundled",
     "windows": "bundled",
@@ -37,7 +37,8 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327"
+    "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327",
+    "linux-x64": "0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51"
   },
   "execution": {
     "macos": "dynarec",

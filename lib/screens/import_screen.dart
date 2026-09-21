@@ -22,6 +22,7 @@ class _ImportScreenState extends State<ImportScreen> {
   bool busy = false;
   String? error;
   List<ImportResult> results = [];
+  String? rescanSummary;
 
   Future<void> scan() async {
     var input = path.text.trim();
@@ -112,6 +113,51 @@ class _ImportScreenState extends State<ImportScreen> {
     }
   }
 
+  /// Registers the typed path as a watched ROM folder (issue #14).
+  /// Empty input is a user error, surfaced inline — not a toast.
+  Future<void> addRomFolder() async {
+    var input = path.text.trim();
+    if (input.isEmpty) {
+      setState(() => error = 'Enter a folder path first');
+      return;
+    }
+    if (input.startsWith('~/')) {
+      input = '${Platform.environment['HOME'] ?? ''}/${input.substring(2)}';
+    }
+    await widget.state.addRomFolder(input);
+    if (mounted) {
+      orbitToast(context, 'Folder added to watch list');
+    }
+  }
+
+  /// Runs the watched-folder rescan (issue #14) and shows the report.
+  Future<void> rescanFolders() async {
+    setState(() {
+      busy = true;
+      error = null;
+      rescanSummary = null;
+    });
+    try {
+      final report = await widget.state.rescanRomFolders();
+      if (mounted) {
+        setState(() {
+          rescanSummary = report.changed
+              ? '${report.added} added · ${report.pruned} pruned · '
+                  '${report.foldersScanned} folders scanned'
+              : 'Library up to date · ${report.foldersScanned} folders scanned';
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> removeRomFolder(String folder) async {
+    await widget.state.removeRomFolder(folder);
+  }
+
   @override
   void dispose() {
     path.dispose();
@@ -135,6 +181,7 @@ class _ImportScreenState extends State<ImportScreen> {
             ),
             const SizedBox(height: 20),
             TextField(
+              key: const Key('import-path-field'),
               controller: path,
               enabled: !busy,
               style: Tokens.body(size: 13),
@@ -155,6 +202,47 @@ class _ImportScreenState extends State<ImportScreen> {
               expanded: true,
               onPressed: busy ? null : scan,
             ),
+            const SizedBox(height: 8),
+            OrbitSecondary(
+              key: const Key('import-add-folder'),
+              label: 'Add ROM folder to watch list',
+              icon: Icons.folder_special_outlined,
+              onPressed: busy ? null : addRomFolder,
+            ),
+            const SizedBox(height: 8),
+            OrbitSecondary(
+              key: const Key('import-rescan'),
+              label: 'Re-scan ROM folders',
+              icon: Icons.refresh,
+              onPressed: busy ? null : rescanFolders,
+            ),
+            if (widget.state.romFolders.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('WATCHED FOLDERS',
+                  style: Tokens.body(size: 9, ls: 1.5, color: Tokens.muted)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final folder in widget.state.romFolders)
+                    InputChip(
+                      label: Text(folder, style: Tokens.body(size: 11)),
+                      onDeleted: busy
+                          ? null
+                          : () => removeRomFolder(folder),
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      key: Key('remove-folder-$folder'),
+                    ),
+                ],
+              ),
+            ],
+            if (rescanSummary != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(rescanSummary!,
+                    style: Tokens.body(size: 12, color: Tokens.ok)),
+              ),
             if (error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),

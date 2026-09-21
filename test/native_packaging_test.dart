@@ -222,13 +222,20 @@ void main() {
 
   test('runtime loader resolves on dev hosts, fails honestly elsewhere',
       () async {
+    // Dev host = the runtime lib exists under any runtime/build* dir.
     final suffix = Platform.isMacOS
         ? 'dylib'
         : Platform.isWindows
             ? 'dll'
             : 'so';
-    final dev = File('runtime/build/libezcore_runtime.$suffix');
-    if (await dev.exists()) {
+    final devCandidates = [
+      File('runtime/build/libezcore_runtime.$suffix'),
+      File('runtime/build-macos/libezcore_runtime.$suffix'),
+      File('runtime/build-linux/libezcore_runtime.$suffix'),
+      File('runtime/build-windows/libezcore_runtime.$suffix'),
+    ];
+    final hasDevRuntime = devCandidates.any((f) => f.existsSync());
+    if (hasDevRuntime) {
       final ref = await resolveRuntimeRef(native: const FallbackNativeDirs());
       expect(ref['kind'], 'path');
       expect(ref['path'], isNotNull);

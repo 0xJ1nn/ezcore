@@ -36,7 +36,17 @@ class _EmuAppState extends State<EmuApp> {
   void initState() {
     super.initState();
     state = AppState(dirProvider: widget.dirProvider);
-    state.load();
+    state.load().then((_) => _rescanWatchedFolders());
+  }
+
+  /// Issue #14: after startup load, best-effort rescan of watched ROM
+  /// folders — new files appear in the library without manual import.
+  Future<void> _rescanWatchedFolders() async {
+    try {
+      await state.rescanRomFolders();
+    } catch (_) {
+      // Startup rescan is best-effort; per-folder failures stay isolated.
+    }
   }
 
   @override

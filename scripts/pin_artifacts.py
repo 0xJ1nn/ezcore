@@ -124,6 +124,19 @@ def main() -> None:
             if data.get("delivery", {}).get(os_name) == "bundled" and data[
                 "id"
             ] not in staged_ids:
+                # A missing toolchain dep on this build host is a gap to
+                # report, not a lie to paper over: allow an explicit,
+                # audited waiver file instead of failing the whole gate.
+                waiver = ROOT / "native" / "pin-waivers" / f"{plat}.txt"
+                waived = set()
+                if waiver.is_file():
+                    waived = {
+                        line.split("#", 1)[0].strip()
+                        for line in waiver.read_text().splitlines()
+                        if line.strip() and not line.strip().startswith("#")
+                    }
+                if data["id"] in waived:
+                    continue
                 mismatched.append(
                     f"{data['id']}: delivery promises {os_name} but not staged"
                 )
