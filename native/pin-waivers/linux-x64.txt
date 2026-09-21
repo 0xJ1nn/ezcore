@@ -1,4 +1,3 @@
 # linux-x64 pin-gate waivers (audited gaps, not silent omissions).
 # Each entry: core id + reason. Remove the line when the core stages.
-pocketbit  # needs rgbds (SameBoy BootROM assembly) on this build host; install rgbds, rebuild, remove this line
-rcp64      # needs nasm (mupen64plus x64 dynarec) on this build host; install nasm, rebuild, remove this line
+# (2026-09-22: empty — rgbds and nasm installed; pocketbit + rcp64 built, pinned.)

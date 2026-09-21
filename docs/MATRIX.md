@@ -1,9 +1,10 @@
 # ezCORE Core × Platform Matrix
 
 > **Last verified:** 2026-09-22 (Linux x64 dev-checkout enablement, `feat/linux-core-pins`:
-> 12 cores built + pin-verified + boot-tested natively; app launch verified — vault staging,
-> library auto-import via watched ROM folders, 3 legal test ROMs listed). macOS arm64
-> remains run-verified from v0.1.1 (2026-09-19).
+> 14 cores built + pin-verified (12 boot-tested natively; pocketbit live-boot verified,
+> rcp64 ABI-verified); app launch verified — vault staging, library auto-import via watched
+> ROM folders, 3 legal test ROMs listed). macOS arm64 remains run-verified from v0.1.1
+> (2026-09-19).
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
 
@@ -26,7 +27,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Notes |
 |---|---|---|---|---|---|---|
-| pocketbit | RENDERS | BUILT | BUILT | — (needs rgbds) | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race); Linux build blocked on rgbds package install |
+| pocketbit | RENDERS | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race); Linux verified with live boot test (Damuel.gb: load/init/frames/save-restore) |
 | gambatte | RENDERS | BUILT | BUILT | — | — | Android via `unix` (no android branch upstream) |
 | advancebit | RENDERS | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
 | nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` (TLS requires minos 9+) |
@@ -38,7 +39,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | coinbox | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
 | pointclick | IDENTIFIES | — | BUILT | BUILT | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
 | geometry1 | IDENTIFIES | — | — | BUILT | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
-| rcp64 | IDENTIFIES | — | — | — (needs nasm) | — | Same GL caveat (Angrylion path needs core options = ABI v2); Linux build blocked on nasm package install |
+| rcp64 | IDENTIFIES | — | — | BUILT | — | Same GL caveat (Angrylion path needs core options = ABI v2); Linux ABI-verified (Mupen64Plus-Next v2.8, api v1) |
 | dualscreen | IDENTIFIES | — | — | BUILT | — | Same GL caveat (software renderer needs core options) |
 | portcomp | IDENTIFIES | — | — | BUILT | — | Same GL caveat |
 | dreamarc | IDENTIFIES | — | — | BUILT | — | Same GL caveat |

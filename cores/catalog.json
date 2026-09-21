@@ -553,6 +553,7 @@
   "pocketbit": {
     "artifacts": {
       "android-arm64": "bcff17bfb6b75b3a357a302e4c3afde67c09a24a2ee8be50b45c59e8f0f8ba9a",
+      "linux-x64": "d44ddefcd543e1dc5a74763c3d1b442be41126487dc5ea74538a41719add21f6",
       "macos-arm64": "f38c6ae0659c76651ea5b88b6168e219f86edf4e9264889cee9849619127d07e"
     },
     "bios_files": [],
@@ -775,6 +776,7 @@
   },
   "rcp64": {
     "artifacts": {
+      "linux-x64": "e7e1ab52cd7321e326616ab4177c7deddd6548abbbbfbab2255d899585984f10",
       "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222"
     },
     "bios_files": [],

@@ -21,7 +21,7 @@
   ],
   "bios_required": false,
   "bios_files": [],
-  "notes": "Dynarec on desktop/Android only. Interpreter on iOS \u2014 expect reduced speed.",
+  "notes": "Dynarec on desktop/Android only. Interpreter on iOS — expect reduced speed.",
   "execution": {
     "macos": "dynarec",
     "windows": "dynarec",
@@ -37,7 +37,8 @@
     "ios": "absent"
   },
   "artifacts": {
-    "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222"
+    "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222",
+    "linux-x64": "e7e1ab52cd7321e326616ab4177c7deddd6548abbbbfbab2255d899585984f10"
   },
   "provenance": {
     "upstream_license": "GPL-2.0-or-later",
