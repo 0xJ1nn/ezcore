@@ -62,18 +62,22 @@ CHEATS = {
 # Delivery = what release.sh ships per OS (bundled), or absent. There is
 # no download infrastructure in v1 (see delivery_note in CoreManifest):
 # desktop and mobile apps carry their tier, verified by MATRIX.md.
+# gambatte is in NO tier: GPL-2.0-only cannot combine with this GPL-3.0-only
+# app, so its manifest delivery is absent on every OS (b1bb9d9). The platform
+# tiers in scripts/build_core.sh likewise exclude it. Re-adding it here
+# without a license re-clear reopens the violation license_audit rejects.
 _TIER_DESKTOP = [
-    "pocketbit", "gambatte", "advancebit", "nesbyte", "superfx", "blastproc",
+    "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
     "joystick", "cardcon", "twinsh", "coinbox", "pointclick",
     "realmode", "geometry1", "rcp64", "dualscreen", "portcomp",
     "dreamarc", "powercube",
 ]
 _TIER_ANDROID = [
-    "pocketbit", "gambatte", "advancebit", "nesbyte", "superfx", "blastproc",
+    "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
     "joystick", "cardcon", "realmode", "pointclick", "coinbox",
 ]
 _TIER_IOS = [
-    "pocketbit", "gambatte", "nesbyte", "superfx", "blastproc",
+    "pocketbit", "nesbyte", "superfx", "blastproc",
     "joystick", "cardcon", "realmode", "pointclick",
     # fbneo excluded: its gated_reason requires IP-lawyer review +
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Pre-commit guard: no banned content (ROMs/BIOS/keys/game art), no scratch
-# agent tooling (§79), and, when the license audit exists, no license
-# violations in the commit's tree.
+# agent tooling (§79), no license violations in the commit's tree, and no
+# manifest policy drift (execution/cheats/delivery vs fill_manifest_data).
 #
 # Install once per clone:  scripts/install-hooks.sh
 set -euo pipefail
@@ -44,6 +44,20 @@ if [ -f "$root/scripts/license_audit.py" ]; then
     tail -n +2 /tmp/ezcore-license.log | sed 's/^/    /'
     echo ""
     echo "  See CONTRIBUTING.md → Licensing of contributions."
+    exit 1
+  fi
+fi
+
+# --- manifest policy gate (same gate release.sh runs; drift must fail early) -
+# Read-only check, no git calls: cannot loop or rewrite the tree.
+if [ -f "$root/scripts/fill_manifest_data.py" ]; then
+  if ! python3 "$root/scripts/fill_manifest_data.py" --check \
+      > /tmp/ezcore-manifest.log 2>&1; then
+    echo ""
+    echo "✋ COMMIT BLOCKED — manifest policy drift (execution/cheats/delivery):"
+    sed 's/^/    /' /tmp/ezcore-manifest.log
+    echo ""
+    echo "  Fix: python3 scripts/fill_manifest_data.py  (then review the diff)"
     exit 1
   fi
 fi
