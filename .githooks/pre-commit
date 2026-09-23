@@ -1,12 +1,32 @@
 #!/usr/bin/env bash
-# Pre-commit guard: no banned content (ROMs/BIOS/keys/game art) and, when
-# the legal audit exists, no license violations in the commit's tree.
+# Pre-commit guard: no banned content (ROMs/BIOS/keys/game art), no scratch
+# agent tooling (§79), and, when the legal audit exists, no license
+# violations in the commit's tree.
 #
 # Install once per clone:  scripts/install-hooks.sh
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 
+# --- §79: scratch agent tooling never enters the repo -----------------------
+# Screenshot drivers, input injectors, capture helpers, probe scripts are
+# /tmp-only, wiped when the task ends, never committed. Only real permanent
+# tests live in test/.
+scratch_hits="$(git diff --cached --name-only --diff-filter=ACM | grep -E \
+  '(_probe\.(py|dart|sh)|probe_[a-z_]+\.(py|dart|sh)|screenshot[_-]?.*\.(py|sh)|shot_[a-z_]+\.(py|sh)|inject[_-]?.*\.(py|sh)|capture[_-]?.*\.(py|sh)|xdotool|ydotool|wtype)' \
+  || true)"
+if [ -n "$scratch_hits" ]; then
+  echo ""
+  echo "✋ COMMIT BLOCKED — §79 scratch tooling in staged files:"
+  echo "$scratch_hits" | sed 's/^/    /'
+  echo ""
+  echo "  Scratch/probe/screenshot/injection scripts NEVER enter the repo —"
+  echo "  keep them in /tmp, wipe when the task ends (project.md §79)."
+  echo "  Permanent tests belong in test/ with real assertions."
+  exit 1
+fi
+
+# --- banned content: ROMs/BIOS/keys/game art --------------------------------
 if ! bash "$root/scripts/banned_content_scan.sh" > /tmp/ezcore-scan.log 2>&1; then
   echo ""
   echo "✋ COMMIT BLOCKED — banned content in the tree:"
