@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../cores/core_registry.dart';
 import '../models/cheat.dart';
@@ -54,8 +55,16 @@ class AppState extends ChangeNotifier {
   }
 
   /// Creates an in-memory state with no persistence — used by tests.
-  factory AppState.ephemeral() {
-    return AppState.internal(persistence: null, saves: MemorySaveSyncProvider());
+  /// [documentsProvider] roots the managed "ezCORE ROMs" folder at a
+  /// caller-chosen directory (tests point it at a temp dir).
+  factory AppState.ephemeral({
+    Future<Directory> Function()? documentsProvider,
+  }) {
+    return AppState.internal(
+      persistence: null,
+      saves: MemorySaveSyncProvider(),
+      documentsProvider: documentsProvider,
+    );
   }
 
   /// Test/injection constructor — accepts explicit persistence + saves.
@@ -63,7 +72,13 @@ class AppState extends ChangeNotifier {
   AppState.internal({
     required this.persistence,
     required this.saves,
+    this.documentsProvider,
   });
+
+  /// Base directory for the managed "ezCORE ROMs" folder. Null in
+  /// production: the platform Documents directory is resolved lazily at
+  /// creation time (see [_romsBaseDir]).
+  final Future<Directory> Function()? documentsProvider;
 
   /// The persistence service. Null when ephemeral.
   @visibleForTesting
@@ -275,6 +290,105 @@ class AppState extends ChangeNotifier {
       romFoldersKey,
       [for (final p in romFolders) if (p != path) p],
     );
+  }
+
+  // --- managed "ezCORE ROMs" folder: one home for imported games ---
+
+  /// Setting keys for the managed folder path and its one-time offer.
+  static const romsFolderKey = 'ezcoreRomsFolder';
+  static const romsFolderPromptKey = 'ezcoreRomsFolderPrompted';
+
+  /// Path of the managed folder, once the user opted in (null otherwise).
+  String? get ezcoreRomsFolder {
+    final raw = _settings[romsFolderKey];
+    return raw is String && raw.isNotEmpty ? raw : null;
+  }
+
+  /// Whether the create-folder question has been answered (either way).
+  bool get romsFolderPrompted => _settings[romsFolderPromptKey] == true;
+
+  /// Base directory hosting the managed folder: injected seam in tests;
+  /// production resolves the platform Documents directory (user-visible —
+  /// the point of the folder is that the player can find it directly),
+  /// with a `~/Documents` fallback where path_provider is unavailable.
+  Future<Directory> _romsBaseDir() async {
+    final inject = documentsProvider;
+    if (inject != null) return inject();
+    try {
+      return await getApplicationDocumentsDirectory();
+    } catch (_) {
+      final home = Platform.environment['HOME'] ?? Directory.systemTemp.path;
+      final docs = Directory('$home${Platform.pathSeparator}Documents');
+      if (!docs.existsSync()) docs.createSync(recursive: true);
+      return docs;
+    }
+  }
+
+  /// Creates `<Documents>/ezCORE ROMs`, registers it as a watched ROM
+  /// folder, and records the prompt as answered. Idempotent: repeat
+  /// calls return the same path without duplicating watch entries.
+  Future<String> createEzcoreRomsFolder() async {
+    final base = await _romsBaseDir();
+    final dir = Directory('${base.path}${Platform.pathSeparator}ezCORE ROMs');
+    if (!dir.existsSync()) dir.createSync(recursive: true);
+    if (ezcoreRomsFolder != dir.path) {
+      await setSetting(romsFolderKey, dir.path);
+    }
+    if (!romFolders.contains(dir.path)) await addRomFolder(dir.path);
+    if (!romsFolderPrompted) await setSetting(romsFolderPromptKey, true);
+    return dir.path;
+  }
+
+  /// Records a dismissed prompt — offered once, never nagged again.
+  Future<void> declineEzcoreRomsFolder() =>
+      setSetting(romsFolderPromptKey, true);
+
+  /// Copies files in [paths] into the managed folder and returns the
+  /// paths to import from. Identity for directories (scanned in place),
+  /// missing paths (per-item errors must survive), and files already
+  /// inside the folder. A same-name collision with identical content
+  /// reuses the existing copy (SHA-256, not just size); different
+  /// content gets a ` (2)` suffix. No-op without an opted-in folder.
+  Future<List<String>> copyGamesIntoRomsFolder(Iterable<String> paths) async {
+    final folder = ezcoreRomsFolder;
+    if (folder == null) return paths.toList();
+    final dir = Directory(folder);
+    if (!dir.existsSync()) dir.createSync(recursive: true);
+    final sep = Platform.pathSeparator;
+    final inside = '$folder$sep';
+    final hashes = const PlatformHashVerifier();
+    final out = <String>[];
+    for (final p in paths) {
+      final src = File(p);
+      if (p.startsWith(inside) ||
+          !src.existsSync() ||
+          FileSystemEntity.isDirectorySync(p)) {
+        out.add(p);
+        continue;
+      }
+      var destPath = '$folder$sep${p.split(sep).last}';
+      if (File(destPath).existsSync()) {
+        final srcSha = await hashes.sha256File(p);
+        if (srcSha == await hashes.sha256File(destPath)) {
+          out.add(destPath); // already home with the same bytes
+          continue;
+        }
+        final name = p.split(sep).last;
+        final dot = name.lastIndexOf('.');
+        final stem = dot > 0 ? name.substring(0, dot) : name;
+        final ext = dot > 0 ? name.substring(dot) : '';
+        var n = 2;
+        destPath = '$folder$sep$stem ($n)$ext';
+        while (File(destPath).existsSync() &&
+            await hashes.sha256File(destPath) != srcSha) {
+          n++;
+          destPath = '$folder$sep$stem ($n)$ext';
+        }
+      }
+      if (!File(destPath).existsSync()) await src.copy(destPath);
+      out.add(destPath);
+    }
+    return out;
   }
 
   /// Re-scans every registered folder (recursive, core-matched) and adds

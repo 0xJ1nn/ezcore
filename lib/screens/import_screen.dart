@@ -23,6 +23,59 @@ class _ImportScreenState extends State<ImportScreen> {
   String? error;
   List<ImportResult> results = [];
   String? rescanSummary;
+  String? folderNote;
+
+  @override
+  void initState() {
+    super.initState();
+    // One-time offer of the managed "ezCORE ROMs" folder — only for
+    // users who already have a library and haven't answered yet, so
+    // fresh/empty sessions (and existing flows) stay silent.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _maybePromptRomsFolder());
+  }
+
+  Future<void> _maybePromptRomsFolder() async {
+    if (!mounted) return;
+    final state = widget.state;
+    if (state.games.isEmpty || state.romsFolderPrompted) return;
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text('One place for your games?',
+            style: Tokens.body(size: 15, weight: FontWeight.w600)),
+        content: Text(
+          'Shall ezCORE create an "ezCORE ROMs" folder on your device '
+          'and copy all the ROMs there?',
+          style: Tokens.body(size: 13, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('roms-folder-later'),
+            onPressed: () => Navigator.of(ctx).pop('later'),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            key: const Key('roms-folder-create'),
+            onPressed: () => Navigator.of(ctx).pop('create'),
+            child: const Text('Create folder'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'create') {
+      final dir = await state.createEzcoreRomsFolder();
+      if (!mounted) return;
+      setState(() {
+        folderNote = 'ezCORE ROMs folder created — copies land in $dir';
+      });
+    } else {
+      await state.declineEzcoreRomsFolder();
+      if (mounted) setState(() {});
+    }
+  }
 
   Future<void> scan() async {
     var input = path.text.trim();
@@ -46,6 +99,19 @@ class _ImportScreenState extends State<ImportScreen> {
       final catalog = {for (final m in widget.state.registry.catalog) m.id: m};
       final known = widget.state.games.map((g) => g.sha1).toSet();
       final scanned = <ImportResult>[];
+      // Normalize `~/` up front, then — when the managed folder exists —
+      // copy picked files into it so every game lands in one place.
+      // Directories and missing paths pass through untouched: folders
+      // scan in place, and missing paths keep their per-item errors.
+      inputs = [
+        for (final i in inputs)
+          i.startsWith('~/')
+              ? '${Platform.environment['HOME'] ?? ''}/${i.substring(2)}'
+              : i,
+      ];
+      if (widget.state.ezcoreRomsFolder != null) {
+        inputs = await widget.state.copyGamesIntoRomsFolder(inputs);
+      }
       for (var input in inputs) {
         if (input.startsWith('~/')) {
           input = '${Platform.environment['HOME'] ?? ''}/${input.substring(2)}';
@@ -241,6 +307,12 @@ class _ImportScreenState extends State<ImportScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(rescanSummary!,
+                    style: Tokens.body(size: 12, color: Tokens.ok)),
+              ),
+            if (folderNote != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(folderNote!,
                     style: Tokens.body(size: 12, color: Tokens.ok)),
               ),
             if (error != null)
