@@ -192,7 +192,7 @@ pod install
 ```
 Flutter UI (lib/)          → Dart
     ↓ FFI (lib/runtime/)   → C ABI (runtime/include/ezcore_runtime.h)
-ezCore Runtime (runtime/)  → C99, no deps
+ezCore Runtime (runtime/)  → C11, no external runtime dependencies
     ↓ dlopen
 libretro Cores (native/cores/) → C/C++, libretro API
 ```

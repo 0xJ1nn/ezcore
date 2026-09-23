@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../models/game_entry.dart';
 import '../services/cover_art.dart';
+import '../services/human_time.dart';
+import '../services/system_labels.dart';
 import '../theme/tokens.dart';
+import 'space_backdrop.dart';
 
 /// Shared Orbit console chrome — final-01.
 /// Topbar, nav rail/dock, ambient, docks, buttons, strips, toggles, toasts.
@@ -18,121 +22,144 @@ void orbitToast(BuildContext context, String text) {
   );
 }
 
-/// Ambient background: near-black + faint blue ellipse + 1px diagonal beam.
-/// The beam breathes (9s, like the finalized edge-light) unless [motion]
-/// is off or the OS requests reduced motion.
-class Ambient extends StatefulWidget {
-  const Ambient({super.key, this.selectedLabel = '', this.motion = true});
-  final String selectedLabel;
+/// Background for the shell. See `SpaceBackdrop` for the scene itself.
+///
+/// Kept as a thin wrapper so screens and tests can keep referring to
+/// `Ambient` while the implementation lives in its own file.
+class Ambient extends StatelessWidget {
+  const Ambient({super.key, this.motion = true});
   final bool motion;
 
   @override
-  State<Ambient> createState() => _AmbientState();
+  Widget build(BuildContext context) =>
+      Positioned.fill(child: SpaceBackdrop(motion: motion));
 }
 
-class _AmbientState extends State<Ambient>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
+/// The ezCORE lockup (brand mark + wordmark).
+///
+/// Uses the committed brand asset so the mark can never drift from
+/// `assets/branding/`. If the asset is missing for any reason the widget
+/// falls back to the wordmark in display type — the shell still reads.
+class OrbitBrand extends StatelessWidget {
+  const OrbitBrand({super.key, this.height = 26, this.onTap});
 
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 9),
-    );
-    if (widget.motion) _ctrl.repeat(reverse: true);
-  }
-
-  @override
-  void didUpdateWidget(Ambient old) {
-    super.didUpdateWidget(old);
-    if (widget.motion != old.motion) {
-      if (widget.motion) {
-        _ctrl.repeat(reverse: true);
-      } else {
-        _ctrl.stop();
-        _ctrl.value = 0.0;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  /// Target lockup height in logical pixels.
+  final double height;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final reduce = MediaQuery.of(context).disableAnimations;
-    final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
-    final beam = Transform.rotate(
-      angle: 38 * 3.14159 / 180,
-      child: Container(
-        width: 1,
-        height: height * 1.8,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Color(0x40DDE6F4),
-              Color(0x70007BFF),
-              Colors.transparent,
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(color: Color(0x30007BFF), blurRadius: 15),
-          ],
+    final lockup = Image.asset(
+      'assets/branding/lockup-light.png',
+      height: height,
+      // The asset is 950px wide; keep it sharp without letting it eat
+      // the row at large text scales.
+      filterQuality: FilterQuality.high,
+      errorBuilder: (context, error, stack) => _Wordmark(height: height),
+    );
+    if (onTap == null) return lockup;
+    return Semantics(
+      button: true,
+      label: 'ezCORE home',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: lockup,
         ),
       ),
-    );
-    return Stack(
-      children: [
-        Container(color: Tokens.bg),
-        const Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.7, 0.7),
-                radius: 0.9,
-                colors: [Color(0x0D007BFF), Colors.transparent],
-                stops: [0.0, 0.55],
-              ),
-            ),
-          ),
-        ),
-        // Diagonal edge-light beam.
-        Positioned(
-          left: width * 0.74,
-          top: -200,
-          child: (widget.motion && !reduce)
-              ? AnimatedBuilder(
-                  animation: _ctrl,
-                  builder: (_, child) => Opacity(
-                    opacity: 0.4 - 0.25 * _ctrl.value,
-                    child: child,
-                  ),
-                  child: beam,
-                )
-              : Opacity(opacity: 0.4, child: beam),
-        ),
-      ],
     );
   }
 }
 
+class _Wordmark extends StatelessWidget {
+  const _Wordmark({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'ezCORE',
+      style: Tokens.display(
+        size: height * 0.86,
+        weight: FontWeight.w700,
+        ls: -1.0,
+      ),
+    );
+  }
+}
+
+/// Top command bar.
+///
+/// Desktop/tablet: optional leading control, brand, status cluster.
+/// Phone portrait: leading control, centred brand, trailing control —
+/// the studio plate's arrangement.
 class OrbitTopbar extends StatelessWidget {
-  const OrbitTopbar({super.key, this.compact = false});
+  const OrbitTopbar({
+    super.key,
+    this.compact = false,
+    this.leading,
+    this.trailing,
+    this.centered = false,
+  });
+
+  final bool compact;
+  final Widget? leading;
+  final Widget? trailing;
+
+  /// Phone-portrait arrangement: leading, centred brand, trailing.
+  final bool centered;
+
+  @override
+  Widget build(BuildContext context) {
+    final brand = OrbitBrand(height: compact ? 20.0 : (centered ? 22.0 : 26.0));
+    final height = compact ? 44.0 : (centered ? 52.0 : 60.0);
+
+    if (centered) {
+      return SizedBox(
+        height: height,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (leading != null)
+              Align(alignment: Alignment.centerLeft, child: leading),
+            brand,
+            if (trailing != null)
+              Align(alignment: Alignment.centerRight, child: trailing),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          if (leading != null) ...[leading!, const SizedBox(width: 12)],
+          brand,
+          const Spacer(),
+          if (trailing != null) trailing! else const OrbitStatusCluster(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Right-hand status: local player badge + clock. Nothing leaves the
+/// device, so this is purely a glanceable local readout.
+class OrbitStatusCluster extends StatelessWidget {
+  const OrbitStatusCluster({super.key, this.compact = false});
+
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final clock = StreamBuilder<DateTime>(
-      stream: Stream.periodic(const Duration(seconds: 30), (_) => DateTime.now()),
+      stream: Stream.periodic(
+        const Duration(seconds: 30),
+        (_) => DateTime.now(),
+      ),
       initialData: DateTime.now(),
       builder: (context, snap) {
         final d = snap.data ?? DateTime.now();
@@ -141,36 +168,28 @@ class OrbitTopbar extends StatelessWidget {
         return Text('$hh:$mm', style: Tokens.display(size: 12, ls: 0));
       },
     );
-    return SizedBox(
-      height: compact ? 44 : 72,
-      child: Row(
-        children: [
-          Text('ezCORE',
-              style: Tokens.display(size: 20, weight: FontWeight.w700, ls: -1.0)),
-          const SizedBox(width: 8),
-          Container(
-            width: 6,
-            height: 6,
-            decoration: const BoxDecoration(
-                color: Tokens.accent, shape: BoxShape.circle),
-          ),
-          const Spacer(),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!compact) ...[
           const Icon(Icons.wifi, size: 15, color: Tokens.muted),
           const SizedBox(width: 10),
-          clock,
-          const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0x10DDE6F4),
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: const Color(0x30007BFF)),
-            ),
-            child: Text('P1',
-                style: Tokens.display(size: 11, weight: FontWeight.w600, ls: 0)),
-          ),
         ],
-      ),
+        clock,
+        const SizedBox(width: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0x10DDE6F4),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: const Color(0x30007BFF)),
+          ),
+          child: Text(
+            'P1',
+            style: Tokens.display(size: 11, weight: FontWeight.w600, ls: 0),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -185,14 +204,24 @@ class OrbitNavItem {
 
 const orbitNavItems = [
   OrbitNavItem('library', 'Library', Icons.grid_view_outlined, Icons.grid_view),
-  OrbitNavItem('systems', 'Systems', Icons.sports_esports_outlined, Icons.sports_esports),
+  OrbitNavItem(
+    'systems',
+    'Systems',
+    Icons.sports_esports_outlined,
+    Icons.sports_esports,
+  ),
   OrbitNavItem('vault', 'Capsule', Icons.history_outlined, Icons.history),
   OrbitNavItem('settings', 'Settings', Icons.settings_outlined, Icons.settings),
 ];
 
 /// Landscape left command rail (84px, 72px short).
 class OrbitRail extends StatelessWidget {
-  const OrbitRail({super.key, required this.page, required this.onGo, this.short = false});
+  const OrbitRail({
+    super.key,
+    required this.page,
+    required this.onGo,
+    this.short = false,
+  });
   final String page;
   final ValueChanged<String> onGo;
   final bool short;
@@ -226,7 +255,12 @@ class OrbitRail extends StatelessWidget {
 }
 
 class _RailButton extends StatelessWidget {
-  const _RailButton({required this.item, required this.active, required this.short, required this.onTap});
+  const _RailButton({
+    required this.item,
+    required this.active,
+    required this.short,
+    required this.onTap,
+  });
   final OrbitNavItem item;
   final bool active;
   final bool short;
@@ -254,81 +288,19 @@ class _RailButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(active ? item.filled : item.icon,
-                  size: short ? 18 : 21,
-                  color: active ? Colors.white : Tokens.muted),
-              const SizedBox(height: 8),
-              Text(label,
-                  style: Tokens.body(
-                      size: short ? 8 : 9,
-                      color: active ? Colors.white : Tokens.muted)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Portrait top command dock (50px rounded translucent).
-class OrbitDockNav extends StatelessWidget {
-  const OrbitDockNav({super.key, required this.page, required this.onGo});
-  final String page;
-  final ValueChanged<String> onGo;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: const Color(0x990A0A0A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x20DDE6F4)),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        children: [
-          for (final it in orbitNavItems)
-            Expanded(
-              child: _DockButton(
-                item: it,
-                active: page == it.id,
-                onTap: () => onGo(it.id),
+              Icon(
+                active ? item.filled : item.icon,
+                size: short ? 18 : 21,
+                color: active ? Colors.white : Tokens.muted,
               ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DockButton extends StatelessWidget {
-  const _DockButton({required this.item, required this.active, required this.onTap});
-  final OrbitNavItem item;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = item.id == 'vault' ? 'Capsule' : item.label;
-    return Material(
-      color: active ? Tokens.chipActiveBg : Colors.transparent,
-      borderRadius: BorderRadius.circular(7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(7),
-        onTap: onTap,
-        child: Container(
-          height: 40,
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(active ? item.filled : item.icon,
-                  size: 16, color: active ? Colors.white : Tokens.muted),
-              const SizedBox(width: 5),
-              Text(label,
-                  style: Tokens.body(
-                      size: 9, color: active ? Colors.white : Tokens.muted)),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: Tokens.body(
+                  size: short ? 8 : 9,
+                  color: active ? Colors.white : Tokens.muted,
+                ),
+              ),
             ],
           ),
         ),
@@ -364,7 +336,8 @@ class OrbitPrimary extends StatelessWidget {
         borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
         gradient: onPressed == null
             ? const LinearGradient(
-                colors: [Color(0xFF2A3542), Color(0xFF1B222C)])
+                colors: [Color(0xFF2A3542), Color(0xFF1B222C)],
+              )
             : const LinearGradient(
                 colors: [Tokens.accentHi, Tokens.accentDeep],
                 begin: Alignment.topLeft,
@@ -373,8 +346,16 @@ class OrbitPrimary extends StatelessWidget {
         boxShadow: onPressed == null
             ? null
             : const [
-                BoxShadow(color: Color(0x45FFFFFF), offset: Offset(0, 1), blurRadius: 0),
-                BoxShadow(color: Color(0x22007BFF), offset: Offset(0, 5), blurRadius: 18),
+                BoxShadow(
+                  color: Color(0x45FFFFFF),
+                  offset: Offset(0, 1),
+                  blurRadius: 0,
+                ),
+                BoxShadow(
+                  color: Color(0x22007BFF),
+                  offset: Offset(0, 5),
+                  blurRadius: 18,
+                ),
               ],
       ),
       child: Row(
@@ -382,13 +363,23 @@ class OrbitPrimary extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: Colors.white),
           const SizedBox(width: 10),
-          Text(label,
-              style: Tokens.display(size: 12, weight: FontWeight.w800, ls: 0, color: Colors.white)),
+          Text(
+            label,
+            style: Tokens.display(
+              size: 12,
+              weight: FontWeight.w800,
+              ls: 0,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );
     final child = expanded
-        ? SizedBox(width: double.infinity, child: Center(child: btn))
+        ? SizedBox(
+            width: double.infinity,
+            child: Center(child: btn),
+          )
         : btn;
     return Opacity(
       opacity: onPressed == null ? 0.4 : 1,
@@ -403,8 +394,12 @@ class OrbitPrimary extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
                     gradient: onPressed == null
-                        ? const LinearGradient(colors: [Color(0xFF2A3542), Color(0xFF1B222C)])
-                        : const LinearGradient(colors: [Tokens.accentHi, Tokens.accentDeep]),
+                        ? const LinearGradient(
+                            colors: [Color(0xFF2A3542), Color(0xFF1B222C)],
+                          )
+                        : const LinearGradient(
+                            colors: [Tokens.accentHi, Tokens.accentDeep],
+                          ),
                   ),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 25),
@@ -413,9 +408,15 @@ class OrbitPrimary extends StatelessWidget {
                     children: [
                       Icon(icon, size: 18, color: Colors.white),
                       const SizedBox(width: 10),
-                      Text(label,
-                          style: Tokens.display(
-                              size: 12, weight: FontWeight.w800, ls: 0, color: Colors.white)),
+                      Text(
+                        label,
+                        style: Tokens.display(
+                          size: 12,
+                          weight: FontWeight.w800,
+                          ls: 0,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -427,7 +428,12 @@ class OrbitPrimary extends StatelessWidget {
 }
 
 class OrbitSecondary extends StatelessWidget {
-  const OrbitSecondary({super.key, required this.label, required this.onPressed, this.icon});
+  const OrbitSecondary({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.icon,
+  });
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
@@ -451,7 +457,13 @@ class OrbitSecondary extends StatelessWidget {
 }
 
 class OrbitRoundButton extends StatelessWidget {
-  const OrbitRoundButton({super.key, required this.icon, required this.onPressed, this.tooltip, this.active = false});
+  const OrbitRoundButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+    this.active = false,
+  });
   final IconData icon;
   final VoidCallback? onPressed;
   final String? tooltip;
@@ -474,10 +486,14 @@ class OrbitRoundButton extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(Tokens.radiusRound),
               border: Border.all(
-                  color: active ? Tokens.accent : const Color(0x26DDE6F4)),
+                color: active ? Tokens.accent : const Color(0x26DDE6F4),
+              ),
             ),
-            child: Icon(icon,
-                size: 20, color: active ? Tokens.accent : Tokens.text),
+            child: Icon(
+              icon,
+              size: 20,
+              color: active ? Tokens.accent : Tokens.text,
+            ),
           ),
         ),
       ),
@@ -486,10 +502,19 @@ class OrbitRoundButton extends StatelessWidget {
 }
 
 class OrbitSearch extends StatelessWidget {
-  const OrbitSearch({super.key, required this.controller, required this.onChanged, this.hint = 'Find a game'});
+  const OrbitSearch({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+    this.hint = 'Find a game',
+    this.shortcutLabel,
+  });
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String hint;
+
+  /// Optional key hint shown at the trailing edge ("Ctrl K", "/").
+  final String? shortcutLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +523,7 @@ class OrbitSearch extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 320),
       decoration: BoxDecoration(
         color: Tokens.searchIdle,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Tokens.line),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 13),
@@ -523,14 +548,18 @@ class OrbitSearch extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Tokens.line),
+          if (shortcutLabel != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Tokens.line),
+              ),
+              child: Text(
+                shortcutLabel!,
+                style: Tokens.body(size: 10, color: Tokens.muted),
+              ),
             ),
-            child: Text('/', style: Tokens.body(size: 10, color: Tokens.muted)),
-          ),
         ],
       ),
     );
@@ -555,15 +584,17 @@ class OrbitSwitcher extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _SwBtn(
-              icon: Icons.view_carousel_outlined,
-              active: view == 'flow',
-              tooltip: 'Cover Flow view',
-              onTap: () => onView('flow')),
+            icon: Icons.view_carousel_outlined,
+            active: view == 'flow',
+            tooltip: 'Cover Flow view',
+            onTap: () => onView('flow'),
+          ),
           _SwBtn(
-              icon: Icons.grid_view_outlined,
-              active: view == 'grid',
-              tooltip: 'Grid view',
-              onTap: () => onView('grid')),
+            icon: Icons.grid_view_outlined,
+            active: view == 'grid',
+            tooltip: 'Grid view',
+            onTap: () => onView('grid'),
+          ),
         ],
       ),
     );
@@ -571,7 +602,12 @@ class OrbitSwitcher extends StatelessWidget {
 }
 
 class _SwBtn extends StatelessWidget {
-  const _SwBtn({required this.icon, required this.active, required this.onTap, required this.tooltip});
+  const _SwBtn({
+    required this.icon,
+    required this.active,
+    required this.onTap,
+    required this.tooltip,
+  });
   final IconData icon;
   final bool active;
   final VoidCallback onTap;
@@ -591,8 +627,11 @@ class _SwBtn extends StatelessWidget {
             height: 38,
             width: 44,
             alignment: Alignment.center,
-            child: Icon(icon,
-                size: 17, color: active ? Colors.white : Tokens.muted),
+            child: Icon(
+              icon,
+              size: 17,
+              color: active ? Colors.white : Tokens.muted,
+            ),
           ),
         ),
       ),
@@ -601,7 +640,12 @@ class _SwBtn extends StatelessWidget {
 }
 
 class OrbitToggle extends StatelessWidget {
-  const OrbitToggle({super.key, required this.value, required this.onChanged, this.label = ''});
+  const OrbitToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.label = '',
+  });
   final bool value;
   final ValueChanged<bool> onChanged;
   final String label;
@@ -645,7 +689,13 @@ class OrbitToggle extends StatelessWidget {
 }
 
 class OrbitSelect<T> extends StatelessWidget {
-  const OrbitSelect({super.key, required this.value, required this.options, required this.onChanged, this.labels});
+  const OrbitSelect({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.labels,
+  });
   final T value;
   final List<T> options;
   final ValueChanged<T?> onChanged;
@@ -678,53 +728,6 @@ class OrbitSelect<T> extends StatelessWidget {
   }
 }
 
-class ScreenHeader extends StatelessWidget {
-  const ScreenHeader({
-    super.key,
-    required this.eyebrow,
-    required this.title,
-    this.count,
-    this.trailing,
-  });
-  final String eyebrow;
-  final String title;
-  final String? count;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(eyebrow.toUpperCase(), style: Tokens.eyebrow),
-              const SizedBox(height: 7),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(title,
-                        style: Tokens.h1, overflow: TextOverflow.ellipsis),
-                  ),
-                  if (count != null) ...[
-                    const SizedBox(width: 8),
-                    Text(count!, style: Tokens.body(size: 10, color: Tokens.muted)),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-        if (trailing != null) ...[const SizedBox(width: 14), trailing!],
-      ],
-    );
-  }
-}
-
 class SystemLabel extends StatelessWidget {
   const SystemLabel({super.key, required this.text});
   final String text;
@@ -743,7 +746,7 @@ class SystemLabel extends StatelessWidget {
   }
 }
 
-/// Underline-style collection chip (final-01): no pill, 2px blue bar when active.
+/// Collection chip — pill style, blue fill when active (studio plate).
 class OrbitChip extends StatelessWidget {
   const OrbitChip({
     super.key,
@@ -752,7 +755,7 @@ class OrbitChip extends StatelessWidget {
     required this.active,
     required this.onTap,
     this.icon,
-    this.height = 50,
+    this.height = 36,
   });
   final String label;
   final String? sub;
@@ -763,37 +766,48 @@ class OrbitChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            border: active
-                ? const Border(bottom: BorderSide(color: Tokens.accent, width: 2))
-                : null,
-            boxShadow: active
-                ? const [BoxShadow(color: Color(0x50007BFF), blurRadius: 12, offset: Offset(0, 6))]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 16, color: active ? Colors.white : Tokens.muted),
-                const SizedBox(width: 8),
-              ],
-              Text(label,
+    return Semantics(
+      button: true,
+      selected: active,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Tokens.pillRadius),
+          child: Container(
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: Tokens.chipPill(active: active),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 15,
+                    color: active ? Colors.white : Tokens.muted,
+                  ),
+                  const SizedBox(width: 7),
+                ],
+                Text(
+                  label,
                   style: Tokens.chipLabel.copyWith(
-                      color: active ? Colors.white : Tokens.muted)),
-              if (sub != null) ...[
-                const SizedBox(width: 6),
-                Text(sub!,
-                    style: Tokens.display(size: 8, ls: 0.1, color: Tokens.muted)),
+                    color: active ? Colors.white : Tokens.muted,
+                  ),
+                ),
+                if (sub != null) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    sub!,
+                    style: Tokens.display(
+                      size: 8,
+                      ls: 0.1,
+                      color: Tokens.muted,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -801,32 +815,167 @@ class OrbitChip extends StatelessWidget {
   }
 }
 
+/// Segmented pill tabs — All / Favorites / Recent (studio plate).
+class OrbitTabs extends StatelessWidget {
+  const OrbitTabs({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.height = 38,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+  final double height;
+
+  static const tabs = <String, String>{
+    'all': 'All',
+    'favorites': 'Favorites',
+    'recent': 'Recent',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0x66070B12),
+        borderRadius: BorderRadius.circular(Tokens.pillRadius),
+        border: Border.all(color: Tokens.line),
+      ),
+      // Narrow phones cannot fit three fixed pills: shrink the padding
+      // (and the type) instead of overflowing.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tight = constraints.maxWidth < 330;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final e in tabs.entries)
+                _TabButton(
+                  label: e.value,
+                  active: value == e.key,
+                  height: height - 8,
+                  tight: tight,
+                  onTap: () => onChanged(e.key),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    required this.height,
+    this.tight = false,
+  });
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final double height;
+  final bool tight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: active,
+      child: Material(
+        color: active ? Tokens.accent : Colors.transparent,
+        borderRadius: BorderRadius.circular(Tokens.pillRadius),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Tokens.pillRadius),
+          child: Container(
+            height: height,
+            alignment: Alignment.center,
+            padding: EdgeInsets.symmetric(horizontal: tight ? 12 : 18),
+            child: Text(
+              label,
+              style: Tokens.body(
+                size: tight ? 10 : 11,
+                weight: active ? FontWeight.w700 : FontWeight.w600,
+                color: active ? Colors.white : Tokens.muted,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Section title with an optional "See all" action.
+class OrbitSectionHeader extends StatelessWidget {
+  const OrbitSectionHeader({
+    super.key,
+    required this.title,
+    this.onSeeAll,
+    this.seeAllLabel = 'See all',
+  });
+  final String title;
+  final VoidCallback? onSeeAll;
+  final String seeAllLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: Tokens.sectionTitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (onSeeAll != null)
+          TextButton(
+            onPressed: onSeeAll,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(seeAllLabel, style: Tokens.sectionLink),
+          ),
+      ],
+    );
+  }
+}
+
+/// Footer: keyboard hints plus the two brand taglines from the studio plate.
 class OrbitFooter extends StatelessWidget {
-  const OrbitFooter({super.key});
+  const OrbitFooter({super.key, this.hints = true});
+  final bool hints;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 44,
+      height: 40,
       child: Row(
         children: [
-          _Hint(keys: const ['←', '→'], label: 'Browse'),
+          if (hints) ...[
+            _Hint(keys: const ['←', '→'], label: 'Browse'),
+            const SizedBox(width: 18),
+            _Hint(keys: const ['↵'], label: 'Game details'),
+            const Spacer(),
+          ] else
+            const Spacer(),
+          Text(
+            Tokens.taglineLeft,
+            style: Tokens.body(size: 8, ls: 1.6, color: Tokens.muted),
+          ),
           const SizedBox(width: 18),
-          _Hint(keys: const ['↵'], label: 'Game details'),
-          const SizedBox(width: 18),
-          _Hint(keys: const ['ESC'], label: 'Back'),
-          const SizedBox(width: 18),
-          _Hint(keys: const ['1–4'], label: 'Switch space'),
-          const Spacer(),
-          Row(
-            children: [
-              Container(
-                  width: 4, height: 4,
-                  decoration: const BoxDecoration(
-                      color: Tokens.separator, shape: BoxShape.circle)),
-              const SizedBox(width: 8),
-              Text('BUILT FOR GAMES. YOUR GAMES. YOUR WAY.',
-                  style: Tokens.body(size: 8, ls: 1.0, color: Tokens.muted)),
-            ],
+          Text(
+            Tokens.taglineRight,
+            style: Tokens.body(size: 8, ls: 1.6, color: Tokens.muted),
           ),
         ],
       ),
@@ -903,10 +1052,24 @@ class GameCover extends StatelessWidget {
         ),
         boxShadow: selected
             ? const [
-                BoxShadow(color: Color(0xBB000000), offset: Offset(0, 26), blurRadius: 55),
-                BoxShadow(color: Color(0x80007BFF), blurRadius: 0, spreadRadius: 6),
+                BoxShadow(
+                  color: Color(0xBB000000),
+                  offset: Offset(0, 26),
+                  blurRadius: 55,
+                ),
+                BoxShadow(
+                  color: Color(0x80007BFF),
+                  blurRadius: 0,
+                  spreadRadius: 6,
+                ),
               ]
-            : const [BoxShadow(color: Color(0x55000000), offset: Offset(0, 10), blurRadius: 24)],
+            : const [
+                BoxShadow(
+                  color: Color(0x55000000),
+                  offset: Offset(0, 10),
+                  blurRadius: 24,
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius - 1),
@@ -919,7 +1082,10 @@ class GameCover extends StatelessWidget {
               _GenerativeArt(gameId: gameId),
             // Spine edge + sheen.
             Positioned(
-              left: 0, top: 0, bottom: 0, width: 4,
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
               child: Container(color: Colors.white.withValues(alpha: 0.08)),
             ),
             Positioned.fill(
@@ -943,7 +1109,9 @@ class GameCover extends StatelessWidget {
               ),
             // Bottom label scrim.
             Positioned(
-              left: 0, right: 0, bottom: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 18, 10, 8),
                 decoration: BoxDecoration(
@@ -961,18 +1129,26 @@ class GameCover extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (system.isNotEmpty)
-                      Text(system.toUpperCase(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Tokens.body(
-                              size: 7, ls: 1.5, color: Tokens.muted)),
-                    Text(title,
-                        maxLines: 2,
+                      Text(
+                        system.toUpperCase(),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Tokens.body(
-                            size: 11,
-                            weight: FontWeight.w600,
-                            color: Colors.white)),
+                          size: 7,
+                          ls: 1.5,
+                          color: Tokens.muted,
+                        ),
+                      ),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Tokens.body(
+                        size: 11,
+                        weight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1046,7 +1222,8 @@ class _CoverPainter extends CustomPainter {
               1.6,
               Paint()
                 ..color = Colors.white.withValues(
-                    alpha: (0.16 * (1 - r / 9)).clamp(0.02, 0.16)),
+                  alpha: (0.16 * (1 - r / 9)).clamp(0.02, 0.16),
+                ),
             );
           }
         }
@@ -1077,7 +1254,9 @@ class _CoverPainter extends CustomPainter {
         for (var i = 1; i <= 4; i++) {
           canvas.drawArc(
             Rect.fromCircle(
-                center: Offset(-w * 0.1, h * 1.05), radius: w * 0.28 * i),
+              center: Offset(-w * 0.1, h * 1.05),
+              radius: w * 0.28 * i,
+            ),
             -1.2,
             0.9,
             false,
@@ -1110,8 +1289,12 @@ class _CoverPainter extends CustomPainter {
 
 /// Core scopes segmented control (All / Added / Available).
 class CoreScopes extends StatelessWidget {
-  const CoreScopes(
-      {super.key, required this.scope, required this.onScope, this.expand = false});
+  const CoreScopes({
+    super.key,
+    required this.scope,
+    required this.onScope,
+    this.expand = false,
+  });
   final String scope;
   final ValueChanged<String> onScope;
   final bool expand;
@@ -1153,7 +1336,11 @@ class CoreScopes extends StatelessWidget {
 }
 
 class _ScopeBtn extends StatelessWidget {
-  const _ScopeBtn({required this.label, required this.active, required this.onTap});
+  const _ScopeBtn({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -1176,9 +1363,13 @@ class _ScopeBtn extends StatelessWidget {
                   border: Border.all(color: const Color(0x14DDE6F4)),
                 )
               : null,
-          child: Text(label,
-              style: Tokens.body(
-                  size: 11, color: active ? Colors.white : Tokens.muted)),
+          child: Text(
+            label,
+            style: Tokens.body(
+              size: 11,
+              color: active ? Colors.white : Tokens.muted,
+            ),
+          ),
         ),
       ),
     );
@@ -1197,8 +1388,9 @@ Future<T?> showOrbitDialog<T>(BuildContext context, Widget dialog) {
       return FadeTransition(
         opacity: curved,
         child: ScaleTransition(
-            scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
-            child: child),
+          scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
+          child: child,
+        ),
       );
     },
     pageBuilder: (context, _, _) => Center(
@@ -1213,5 +1405,560 @@ Future<T?> showOrbitDialog<T>(BuildContext context, Widget dialog) {
         ),
       ),
     ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Studio-plate composite pieces
+//
+// The selected-game dock, the stat panel, section tiles, the phone command
+// bar, and the "Select system" sheet. Every value shown here is read from
+// the library entry — nothing is estimated or filled in.
+// ---------------------------------------------------------------------------
+
+/// One row of the stat panel: small muted label, real value.
+class OrbitStatRow extends StatelessWidget {
+  const OrbitStatRow({
+    super.key,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(label, style: Tokens.statLabel)),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: Tokens.statValue.copyWith(
+                color: valueColor ?? Tokens.text,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A tick per saved snapshot.
+///
+/// The studio plate shows a "completion" bar here. ezCORE has no
+/// completion data, and inventing one would be a lie — so the same slot
+/// carries the one progress signal the app truly owns: how many moments
+/// you have saved for this game.
+class SnapshotTicks extends StatelessWidget {
+  const SnapshotTicks({super.key, required this.count, this.max = 10});
+  final int count;
+  final int max;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) {
+      return Text('No snapshots yet', style: Tokens.statLabel);
+    }
+    final shown = count.clamp(0, max);
+    return Row(
+      children: [
+        for (var i = 0; i < shown; i++)
+          Container(
+            width: 12,
+            height: 4,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: Tokens.accent,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        if (count > max) Text('+$count-$max', style: Tokens.statLabel),
+      ],
+    );
+  }
+}
+
+/// Stats for the selected game, using only tracked fields.
+class GameStatPanel extends StatelessWidget {
+  const GameStatPanel({super.key, required this.game, this.dense = false});
+  final GameEntry game;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(14, dense ? 10 : 14, 14, dense ? 10 : 14),
+      decoration: Tokens.statPanelDecor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OrbitStatRow(
+            label: 'Last played',
+            value: lastPlayedLabel(game.lastPlayedMs),
+          ),
+          OrbitStatRow(
+            label: 'Save states',
+            value: countLabel(game.stateCount, 'state'),
+          ),
+          OrbitStatRow(
+            label: 'Cheats on',
+            value: countLabel(game.cheatsOn, 'code'),
+            valueColor: game.cheatsOn > 0 ? Tokens.accent : null,
+          ),
+          OrbitStatRow(label: 'File size', value: fileSizeLabel(game.fileSize)),
+          const SizedBox(height: 6),
+          SnapshotTicks(count: game.stateCount),
+        ],
+      ),
+    );
+  }
+}
+
+/// Action row under the selected game: Manage / Cheats / States / More.
+class GameActionRow extends StatelessWidget {
+  const GameActionRow({
+    super.key,
+    required this.game,
+    required this.onManage,
+    required this.onCheats,
+    required this.onStates,
+    required this.onMore,
+  });
+  final GameEntry game;
+  final VoidCallback onManage;
+  final VoidCallback onCheats;
+  final VoidCallback onStates;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _DockAction(icon: Icons.tune, label: 'Manage', onTap: onManage),
+        _DockAction(
+          icon: Icons.bolt_outlined,
+          label: 'Cheats (${game.cheatsOn})',
+          onTap: onCheats,
+        ),
+        _DockAction(
+          icon: Icons.save_outlined,
+          label: 'States (${game.stateCount})',
+          onTap: onStates,
+        ),
+        _DockAction(icon: Icons.more_horiz, label: 'More', onTap: onMore),
+      ],
+    );
+  }
+}
+
+class _DockAction extends StatelessWidget {
+  const _DockAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 15),
+      label: Text(label, style: Tokens.body(size: 11, color: Tokens.text)),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 38),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        backgroundColor: const Color(0x0ADDE6F4),
+        side: const BorderSide(color: Color(0x26DDE6F4)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        ),
+        foregroundColor: Tokens.text,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
+}
+
+/// Cover tile used by the section rows ("Continue playing", "Recently added").
+class GameTile extends StatelessWidget {
+  const GameTile({
+    super.key,
+    required this.game,
+    required this.onTap,
+    required this.footnote,
+    this.width = 104,
+  });
+  final GameEntry game;
+  final VoidCallback onTap;
+
+  /// The honest one-line fact under the title (e.g. "2 days ago").
+  final String footnote;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          // The cover absorbs whatever height the row gives us, so the
+          // text block can never overflow a short viewport.
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Expanded(
+              child: GameCover(
+                gameId: game.id,
+                title: game.title,
+                system: shortSystemLabel(game.system),
+                width: width,
+                radius: Tokens.radiusCover,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 15,
+              child: Text(
+                game.title,
+                style: Tokens.body(size: 11, weight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 2),
+            SizedBox(
+              height: 13,
+              child: Text(
+                footnote,
+                style: Tokens.body(size: 9, color: Tokens.muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 5),
+            SnapshotTicks(count: game.stateCount, max: 6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact square icon control for top bars.
+class OrbitIconButton extends StatelessWidget {
+  const OrbitIconButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.active = false,
+  });
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        enabled: onPressed != null,
+        child: Material(
+          color: const Color(0x0ADDE6F4),
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Tokens.radiusSm),
+            onTap: onPressed,
+            child: Container(
+              width: 38,
+              height: 38,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(Tokens.radiusSm),
+                border: Border.all(
+                  color: active ? Tokens.accent : const Color(0x26DDE6F4),
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: active ? Tokens.accent : Tokens.text,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Phone-portrait command bar — the plate's bottom navigation.
+class OrbitBottomNav extends StatelessWidget {
+  const OrbitBottomNav({super.key, required this.page, required this.onGo});
+  final String page;
+  final ValueChanged<String> onGo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: Tokens.bottomBarHeight,
+      decoration: Tokens.bottomBarDecor,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            for (final it in orbitNavItems)
+              Expanded(
+                child: _BottomNavButton(
+                  item: it,
+                  active: page == it.id,
+                  onTap: () => onGo(it.id),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavButton extends StatelessWidget {
+  const _BottomNavButton({
+    required this.item,
+    required this.active,
+    required this.onTap,
+  });
+  final OrbitNavItem item;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = item.id == 'vault' ? 'Capsule' : item.label;
+    return Semantics(
+      button: true,
+      selected: active,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              active ? item.filled : item.icon,
+              size: 20,
+              color: active ? Tokens.accent : Tokens.muted,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Tokens.body(
+                size: 9,
+                color: active ? Tokens.text : Tokens.muted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A row in the "Select system" sheet.
+class SystemPickerRow extends StatelessWidget {
+  const SystemPickerRow({
+    super.key,
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? const Color(0x26007BFF) : Colors.transparent,
+        borderRadius: BorderRadius.circular(Tokens.radiusSm),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(Tokens.radiusSm),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 46),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.videogame_asset_outlined,
+                  size: 18,
+                  color: selected ? Tokens.accent : Tokens.muted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Tokens.body(
+                      size: 12,
+                      color: selected ? Colors.white : Tokens.text,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$count',
+                  style: Tokens.body(size: 10, color: Tokens.muted),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: selected ? Tokens.accent : Tokens.muted,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows the grouped "Select system" sheet.
+///
+/// [counts] maps a system id to how many games the library holds for it;
+/// [onPick] receives the chosen filter (`null` = all systems).
+Future<void> showSystemPicker(
+  BuildContext context, {
+  required Map<String, int> counts,
+  required String selected,
+  required ValueChanged<String?> onPick,
+  int favoriteCount = 0,
+}) {
+  // Group by manufacturer, keeping the plate's section order.
+  final grouped = <String, List<MapEntry<String, int>>>{};
+  for (final e in counts.entries) {
+    (grouped[makerFor(e.key)] ??= []).add(e);
+  }
+  for (final list in grouped.values) {
+    list.sort(
+      (a, b) => shortSystemLabel(
+        a.key,
+      ).toLowerCase().compareTo(shortSystemLabel(b.key).toLowerCase()),
+    );
+  }
+
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.72,
+        minChildSize: 0.45,
+        maxChildSize: 0.94,
+        builder: (context, scroll) => Container(
+          decoration: Tokens.sheetDecor,
+          child: SafeArea(
+            top: false,
+            child: ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Tokens.separator,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Select system',
+                        style: Tokens.display(
+                          size: 19,
+                          weight: FontWeight.w600,
+                          ls: -0.4,
+                        ),
+                      ),
+                    ),
+                    OrbitRoundButton(
+                      icon: Icons.close,
+                      tooltip: 'Close system picker',
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SystemPickerRow(
+                  label: 'All systems',
+                  count: counts.values.fold<int>(0, (a, b) => a + b),
+                  selected: selected == 'All systems',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onPick(null);
+                  },
+                ),
+                SystemPickerRow(
+                  label: 'Favorites',
+                  count: favoriteCount,
+                  selected: selected == 'Favorites',
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onPick('Favorites');
+                  },
+                ),
+                for (final maker in systemMakerOrder)
+                  if (grouped[maker] != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
+                      child: Text(maker.toUpperCase(), style: Tokens.eyebrow),
+                    ),
+                    for (final e in grouped[maker]!)
+                      SystemPickerRow(
+                        label: shortSystemLabel(e.key),
+                        count: e.value,
+                        selected: selected == e.key,
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          onPick(e.key);
+                        },
+                      ),
+                  ],
+              ],
+            ),
+          ),
+        ),
+      );
+    },
   );
 }

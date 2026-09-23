@@ -6,6 +6,7 @@ import '../cores/core_registry.dart';
 import '../models/core_manifest.dart';
 import '../services/bios_check.dart';
 import '../state/app_state.dart';
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
 import '../widgets/hardware_art.dart';
 import '../widgets/orbit_widgets.dart';
@@ -71,15 +72,17 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final portrait = size.width < 700 ||
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    // One breakpoint definition for the whole app (theme/layout.dart).
+    final portrait = Layout.isPhone(Layout.of(context));
     final osPad = Tokens.osPad(size.width, portrait: portrait);
     return ListenableBuilder(
       listenable: widget.state.registry,
       builder: (context, _) {
         final list = visible;
         final sel = selected;
-        final selIndex = sel == null ? 0 : list.indexWhere((m) => m.id == sel.id);
+        final selIndex = sel == null
+            ? 0
+            : list.indexWhere((m) => m.id == sel.id);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -92,14 +95,19 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('YOUR HARDWARE. YOUR RULES.',
-                            style: Tokens.eyebrow),
+                        Text(
+                          'YOUR HARDWARE. YOUR RULES.',
+                          style: Tokens.eyebrow,
+                        ),
                         const SizedBox(height: 7),
-                        Text('The core collection',
-                            style: Tokens.display(
-                                size: portrait ? 28 : 32,
-                                weight: FontWeight.w500,
-                                ls: -1.0)),
+                        Text(
+                          'The core collection',
+                          style: Tokens.display(
+                            size: portrait ? 28 : 32,
+                            weight: FontWeight.w500,
+                            ls: -1.0,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -118,25 +126,28 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                   if (portrait)
                     Expanded(
                       child: CoreScopes(
-                          scope: scope,
-                          expand: true,
-                          onScope: (s) => setState(() {
-                                scope = s;
-                                selectedId = null;
-                              })),
+                        scope: scope,
+                        expand: true,
+                        onScope: (s) => setState(() {
+                          scope = s;
+                          selectedId = null;
+                        }),
+                      ),
                     )
                   else
                     CoreScopes(
-                        scope: scope,
-                        onScope: (s) => setState(() {
-                              scope = s;
-                              selectedId = null;
-                            })),
+                      scope: scope,
+                      onScope: (s) => setState(() {
+                        scope = s;
+                        selectedId = null;
+                      }),
+                    ),
                   if (!portrait) ...[
                     const Spacer(),
-                    Text('MODULAR BY DESIGN · PREVIEW CATALOG',
-                        style: Tokens.body(
-                            size: 9, ls: 1.0, color: Tokens.muted)),
+                    Text(
+                      'MODULAR BY DESIGN · PREVIEW CATALOG',
+                      style: Tokens.body(size: 9, ls: 1.0, color: Tokens.muted),
+                    ),
                   ],
                 ],
               ),
@@ -147,13 +158,18 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('No cores here. Yet.',
-                          style: Tokens.display(size: 25)),
+                      Text(
+                        'No cores here. Yet.',
+                        style: Tokens.display(size: 25),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         'Switch to All cores to add or remove a core.',
                         style: Tokens.body(
-                            size: 12, color: Tokens.muted, height: 1.6),
+                          size: 12,
+                          color: Tokens.muted,
+                          height: 1.6,
+                        ),
                       ),
                     ],
                   ),
@@ -175,9 +191,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                   margin: EdgeInsets.fromLTRB(osPad, 0, osPad, 12),
                   padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
                   decoration: Tokens.dockDecor,
-                  child: portrait
-                      ? _dockPortrait(sel)
-                      : _dockLandscape(sel),
+                  child: portrait ? _dockPortrait(sel) : _dockLandscape(sel),
                 ),
             ],
           ],
@@ -205,16 +219,17 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         PageView.builder(
           controller: pageCtrl,
           itemCount: list.length,
-          onPageChanged: (i) =>
-              setState(() => selectedId = list[i].id),
+          onPageChanged: (i) => setState(() => selectedId = list[i].id),
           itemBuilder: (context, i) {
             return AnimatedBuilder(
               animation: pageCtrl,
               builder: (context, child) {
                 double delta = 0;
                 if (pageCtrl.position.haveDimensions) {
-                  delta = ((pageCtrl.page ?? selIndex.toDouble()) - i)
-                      .clamp(-3.0, 3.0);
+                  delta = ((pageCtrl.page ?? selIndex.toDouble()) - i).clamp(
+                    -3.0,
+                    3.0,
+                  );
                 } else {
                   delta = (selIndex - i).toDouble().clamp(-3.0, 3.0);
                 }
@@ -222,8 +237,11 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 final angle = delta == 0
                     ? 0.0
                     : (delta > 0 ? 24.0 : -24.0) * math.pi / 180;
-                final opacity =
-                    a > 3 ? 0.0 : a == 0 ? 1.0 : (0.68 - (a - 1) * 0.13).clamp(0.2, 0.68);
+                final opacity = a > 3
+                    ? 0.0
+                    : a == 0
+                    ? 1.0
+                    : (0.68 - (a - 1) * 0.13).clamp(0.2, 0.68);
                 return Opacity(
                   opacity: a == 0 ? 1.0 : opacity,
                   child: Transform(
@@ -234,8 +252,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                     child: _CoreCard(
                       manifest: list[i],
                       selected: i == selIndex,
-                      installed: widget.state.registry
-                          .isInstalled(list[i].id),
+                      installed: widget.state.registry.isInstalled(list[i].id),
                       onTap: () {
                         if (i == selIndex) {
                           _coreActions(list[i]);
@@ -253,22 +270,24 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         Positioned(
           left: osPad,
           child: _FlowBtn(
-              enabled: selIndex > 0,
-              icon: Icons.chevron_left,
-              onTap: () {
-                final n = (selIndex - 1).clamp(0, list.length - 1);
-                _select(list[n].id, jump: true);
-              }),
+            enabled: selIndex > 0,
+            icon: Icons.chevron_left,
+            onTap: () {
+              final n = (selIndex - 1).clamp(0, list.length - 1);
+              _select(list[n].id, jump: true);
+            },
+          ),
         ),
         Positioned(
           right: osPad,
           child: _FlowBtn(
-              enabled: selIndex < list.length - 1,
-              icon: Icons.chevron_right,
-              onTap: () {
-                final n = (selIndex + 1).clamp(0, list.length - 1);
-                _select(list[n].id, jump: true);
-              }),
+            enabled: selIndex < list.length - 1,
+            icon: Icons.chevron_right,
+            onTap: () {
+              final n = (selIndex + 1).clamp(0, list.length - 1);
+              _select(list[n].id, jump: true);
+            },
+          ),
         ),
       ],
     );
@@ -276,8 +295,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
 
   Widget _dockLandscape(CoreManifest m) {
     final installed = widget.state.registry.isInstalled(m.id);
-    final count =
-        widget.state.games.where((g) => g.coreId == m.id).length;
+    final count = widget.state.games.where((g) => g.coreId == m.id).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -302,13 +320,15 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 OrbitSecondary(
                   label: installed
                       ? 'Remove core'
-                      : _busyId == m.id ? 'Downloading…' : 'Add core',
+                      : _busyId == m.id
+                      ? 'Downloading…'
+                      : 'Add core',
                   icon: installed
                       ? Icons.close
-                      : _busyId == m.id ? Icons.downloading : Icons.add,
-                  onPressed: () => installed
-                      ? _confirmRemove(m)
-                      : _install(m),
+                      : _busyId == m.id
+                      ? Icons.downloading
+                      : Icons.add,
+                  onPressed: () => installed ? _confirmRemove(m) : _install(m),
                 ),
               ],
             ),
@@ -317,11 +337,16 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         const SizedBox(height: 8),
         Container(
           decoration: const BoxDecoration(
-              border: Border(top: BorderSide(color: Color(0x14DDE6F4)))),
+            border: Border(top: BorderSide(color: Color(0x14DDE6F4))),
+          ),
           padding: const EdgeInsets.only(top: 9),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, size: 12, color: Color(0xFF8290A4)),
+              const Icon(
+                Icons.info_outline,
+                size: 12,
+                color: Color(0xFF8290A4),
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -333,8 +358,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               ),
               TextButton(
                 onPressed: () => _license(m),
-                child: Text('License',
-                    style: Tokens.body(size: 10, color: Tokens.systemLabelFg)),
+                child: Text(
+                  'License',
+                  style: Tokens.body(size: 10, color: Tokens.systemLabelFg),
+                ),
               ),
             ],
           ),
@@ -345,8 +372,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
 
   Widget _dockPortrait(CoreManifest m) {
     final installed = widget.state.registry.isInstalled(m.id);
-    final count =
-        widget.state.games.where((g) => g.coreId == m.id).length;
+    final count = widget.state.games.where((g) => g.coreId == m.id).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -360,8 +386,9 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 icon: Icons.grid_view,
                 minHeight: 46,
                 expanded: true,
-                onPressed:
-                    installed ? () => widget.onBrowseCore?.call(m.id) : null,
+                onPressed: installed
+                    ? () => widget.onBrowseCore?.call(m.id)
+                    : null,
               ),
             ),
             const SizedBox(width: 8),
@@ -369,12 +396,15 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               child: OrbitSecondary(
                 label: installed
                     ? 'Remove'
-                    : _busyId == m.id ? 'Downloading…' : 'Add core',
+                    : _busyId == m.id
+                    ? 'Downloading…'
+                    : 'Add core',
                 icon: installed
                     ? Icons.close
-                    : _busyId == m.id ? Icons.downloading : Icons.add,
-                onPressed: () =>
-                    installed ? _confirmRemove(m) : _install(m),
+                    : _busyId == m.id
+                    ? Icons.downloading
+                    : Icons.add,
+                onPressed: () => installed ? _confirmRemove(m) : _install(m),
               ),
             ),
           ],
@@ -400,15 +430,26 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           spacing: 10,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(m.id, style: Tokens.display(size: 10, color: Tokens.systemLabelFg, ls: 0)),
-            Text('${_typeFor(m)} · ${_eraFor(m)}',
-                style: Tokens.body(size: 9, color: Tokens.muted)),
+            Text(
+              m.id,
+              style: Tokens.display(
+                size: 10,
+                color: Tokens.systemLabelFg,
+                ls: 0,
+              ),
+            ),
+            Text(
+              '${_typeFor(m)} · ${_eraFor(m)}',
+              style: Tokens.body(size: 9, color: Tokens.muted),
+            ),
             _StatusDot(status: status),
           ],
         ),
         const SizedBox(height: 6),
-        Text(m.name,
-            style: Tokens.display(size: 22, weight: FontWeight.w500, ls: -0.7)),
+        Text(
+          m.name,
+          style: Tokens.display(size: 22, weight: FontWeight.w500, ls: -0.7),
+        ),
         const SizedBox(height: 6),
         Text(
           '${_aboutFor(m)} ',
@@ -416,8 +457,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        Text('$count sample ${count == 1 ? 'game' : 'games'} in your library',
-            style: Tokens.body(size: 11, color: Tokens.text)),
+        Text(
+          '$count sample ${count == 1 ? 'game' : 'games'} in your library',
+          style: Tokens.body(size: 11, color: Tokens.text),
+        ),
         if (m.biosRequired)
           FutureBuilder(
             future: BiosCheck().check(m),
@@ -426,15 +469,18 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               final label = report == null
                   ? 'Checking BIOS…'
                   : report.satisfied
-                      ? 'BIOS ready — ${report.present.length} file(s) in place'
-                      : 'BIOS missing — ${report.missing.join(', ')}';
+                  ? 'BIOS ready — ${report.present.length} file(s) in place'
+                  : 'BIOS missing — ${report.missing.join(', ')}';
               final ok = report?.satisfied ?? false;
               return Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(label,
-                    style: Tokens.body(
-                        size: 11,
-                        color: ok ? Tokens.ok : Tokens.accent)),
+                child: Text(
+                  label,
+                  style: Tokens.body(
+                    size: 11,
+                    color: ok ? Tokens.ok : Tokens.accent,
+                  ),
+                ),
               );
             },
           ),
@@ -454,20 +500,32 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
 
   String _eraFor(CoreManifest m) {
     const eras = {
-      'joystick': '1977', 'realmode': '1981 onward', 'nesbyte': '1983',
-      'blastproc': '1985 — 1991', 'cardcon': '1987',
-      'pocketbit': '1989 — 1998', 'gambatte': '1989 — 1998',
-      'superfx': '1990', 'geometry1': '1994', 'twinsh': '1994',
-      'rcp64': '1996', 'dreamarc': '1998 — 2003',
-      'advancebit': '2001', 'powercube': '2001 — 2006', 'dualscreen': '2004',
-      'portcomp': '2004', 'coinbox': 'Multi-era', 'pointclick': 'Multi-era',
+      'joystick': '1977',
+      'realmode': '1981 onward',
+      'nesbyte': '1983',
+      'blastproc': '1985 — 1991',
+      'cardcon': '1987',
+      'pocketbit': '1989 — 1998',
+      'gambatte': '1989 — 1998',
+      'superfx': '1990',
+      'geometry1': '1994',
+      'twinsh': '1994',
+      'rcp64': '1996',
+      'dreamarc': '1998 — 2003',
+      'advancebit': '2001',
+      'powercube': '2001 — 2006',
+      'dualscreen': '2004',
+      'portcomp': '2004',
+      'coinbox': 'Multi-era',
+      'pointclick': 'Multi-era',
     };
     return eras[m.id] ?? m.version;
   }
 
   String _aboutFor(CoreManifest m) {
     const about = {
-      'pocketbit': 'Pocket-sized worlds from Nintendo\u2019s original handhelds.',
+      'pocketbit':
+          'Pocket-sized worlds from Nintendo\u2019s original handhelds.',
       'advancebit': 'A golden era, in your hands — vivid pixel worlds.',
       'gambatte': 'An alternative engine for the Game Boy family.',
       'nesbyte': 'Where so many adventures began — clean pixels.',
@@ -496,20 +554,23 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
       setState(() => _busyId = m.id);
       orbitToast(context, 'Downloading ${m.id}…');
     }
-    widget.state.addCore(m).then((_) {
-      if (!mounted) return;
-      if (downloads) setState(() => _busyId = null);
-      orbitToast(
-        context,
-        downloads
-            ? '${m.id} downloaded — SHA-256 verified'
-            : '${m.id} added — no package downloaded',
-      );
-    }).catchError((Object e) {
-      if (!mounted) return;
-      if (downloads) setState(() => _busyId = null);
-      orbitToast(context, e.toString().replaceFirst('StateError: ', ''));
-    });
+    widget.state
+        .addCore(m)
+        .then((_) {
+          if (!mounted) return;
+          if (downloads) setState(() => _busyId = null);
+          orbitToast(
+            context,
+            downloads
+                ? '${m.id} downloaded — SHA-256 verified'
+                : '${m.id} added — no package downloaded',
+          );
+        })
+        .catchError((Object e) {
+          if (!mounted) return;
+          if (downloads) setState(() => _busyId = null);
+          orbitToast(context, e.toString().replaceFirst('StateError: ', ''));
+        });
   }
 
   void _confirmRemove(CoreManifest m) {
@@ -523,8 +584,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           children: [
             Text('CORE MANAGEMENT / PREVIEW', style: Tokens.eyebrow),
             const SizedBox(height: 12),
-            Text('Remove ${m.id}?',
-                style: Tokens.display(size: 30, weight: FontWeight.w500)),
+            Text(
+              'Remove ${m.id}?',
+              style: Tokens.display(size: 30, weight: FontWeight.w500),
+            ),
             const SizedBox(height: 12),
             Text(
               'This removes ${m.name} from your added cores. Your games and saves stay untouched. You can add this core again at any time.',
@@ -535,19 +598,20 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OrbitSecondary(
-                    label: 'Keep core',
-                    onPressed: () => Navigator.of(context).pop()),
+                  label: 'Keep core',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
                 const SizedBox(width: 10),
                 OrbitPrimary(
-                    label: 'Remove core',
-                    icon: Icons.close,
-                    minHeight: 46,
-                    onPressed: () {
-                      widget.state.registry.remove(m.id);
-                      Navigator.of(context).pop();
-                      orbitToast(context,
-                          '${m.id} removed · games & saves kept');
-                    }),
+                  label: 'Remove core',
+                  icon: Icons.close,
+                  minHeight: 46,
+                  onPressed: () {
+                    widget.state.registry.remove(m.id);
+                    Navigator.of(context).pop();
+                    orbitToast(context, '${m.id} removed · games & saves kept');
+                  },
+                ),
               ],
             ),
           ],
@@ -569,8 +633,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close',
-                style: Tokens.body(size: 12, color: Tokens.accent)),
+            child: Text(
+              'Close',
+              style: Tokens.body(size: 12, color: Tokens.accent),
+            ),
           ),
         ],
       ),
@@ -600,18 +666,24 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               },
             ),
             ListTile(
-              leading: Icon(installed ? Icons.close : Icons.add,
-                  color: Tokens.text),
-              title: Text(installed ? 'Remove core' : 'Add core',
-                  style: Tokens.body()),
+              leading: Icon(
+                installed ? Icons.close : Icons.add,
+                color: Tokens.text,
+              ),
+              title: Text(
+                installed ? 'Remove core' : 'Add core',
+                style: Tokens.body(),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 installed ? _confirmRemove(m) : _install(m);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.description_outlined,
-                  color: Tokens.text),
+              leading: const Icon(
+                Icons.description_outlined,
+                color: Tokens.text,
+              ),
               title: Text('License', style: Tokens.body()),
               onTap: () {
                 Navigator.of(context).pop();
@@ -647,74 +719,106 @@ class _CoreCard extends StatelessWidget {
           child: Container(
             width: 300,
             height: 320,
-          padding: const EdgeInsets.all(18),
-          decoration:
-              selected ? Tokens.coreCardSelectedDecor : Tokens.coreCardDecor,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Text(_shortFor(manifest.id),
+            padding: const EdgeInsets.all(18),
+            decoration: selected
+                ? Tokens.coreCardSelectedDecor
+                : Tokens.coreCardDecor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      _shortFor(manifest.id),
                       style: Tokens.display(
-                          size: 10, weight: FontWeight.w500, ls: 2.0)),
-                  const Spacer(),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: installed
-                              ? Tokens.accent
-                              : const Color(0xFF788394),
-                        ),
+                        size: 10,
+                        weight: FontWeight.w500,
+                        ls: 2.0,
                       ),
-                      const SizedBox(width: 5),
-                      Text(installed ? 'ADDED' : manifest.blocked ? 'HOLD' : 'AVAILABLE',
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: installed
+                                ? Tokens.accent
+                                : const Color(0xFF788394),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          installed
+                              ? 'ADDED'
+                              : manifest.blocked
+                              ? 'HOLD'
+                              : 'AVAILABLE',
                           style: Tokens.body(
-                              size: 8,
-                              weight: FontWeight.w600,
-                              ls: 1.0,
-                              color: installed
-                                  ? Tokens.systemLabelFg
-                                  : Tokens.muted)),
-                    ],
-                  ),
-                ],
-              ),
-              Expanded(
-                child: Center(
-                  child: SvgPicture.string(
-                    hardwareSvg(manifest.id),
-                    fit: BoxFit.contain,
+                            size: 8,
+                            weight: FontWeight.w600,
+                            ls: 1.0,
+                            color: installed
+                                ? Tokens.systemLabelFg
+                                : Tokens.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: Center(
+                    child: SvgPicture.string(
+                      hardwareSvg(manifest.id),
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
-              Text(manifest.name,
+                Text(
+                  manifest.name,
                   style: Tokens.display(
-                      size: 16, weight: FontWeight.w500, ls: -0.4)),
-              const SizedBox(height: 4),
-              Text(manifest.id,
-                  style: Tokens.body(size: 10, ls: 0.5, color: Tokens.muted)),
-            ],
+                    size: 16,
+                    weight: FontWeight.w500,
+                    ls: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  manifest.id,
+                  style: Tokens.body(size: 10, ls: 0.5, color: Tokens.muted),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 
   String _shortFor(String id) {
     const shorts = {
-      'pocketbit': 'GB', 'gambatte': 'GBC', 'advancebit': 'GBA', 'nesbyte': 'NES',
-      'superfx': 'SNES', 'blastproc': 'MD', 'joystick': '2600',
-      'realmode': 'DOS', 'cardcon': 'PCE', 'geometry1': 'PS',
-      'rcp64': 'N64', 'dualscreen': 'DS', 'portcomp': 'PSP',
-      'dreamarc': 'DC', 'powercube': 'GC', 'twinsh': 'SAT',
-      'coinbox': 'ARC', 'pointclick': 'ADV',
+      'pocketbit': 'GB',
+      'gambatte': 'GBC',
+      'advancebit': 'GBA',
+      'nesbyte': 'NES',
+      'superfx': 'SNES',
+      'blastproc': 'MD',
+      'joystick': '2600',
+      'realmode': 'DOS',
+      'cardcon': 'PCE',
+      'geometry1': 'PS',
+      'rcp64': 'N64',
+      'dualscreen': 'DS',
+      'portcomp': 'PSP',
+      'dreamarc': 'DC',
+      'powercube': 'GC',
+      'twinsh': 'SAT',
+      'coinbox': 'ARC',
+      'pointclick': 'ADV',
     };
     return shorts[id] ?? id.toUpperCase();
   }
@@ -750,8 +854,11 @@ class _StatusDot extends StatelessWidget {
 }
 
 class _FlowBtn extends StatelessWidget {
-  const _FlowBtn(
-      {required this.enabled, required this.icon, required this.onTap});
+  const _FlowBtn({
+    required this.enabled,
+    required this.icon,
+    required this.onTap,
+  });
   final bool enabled;
   final IconData icon;
   final VoidCallback onTap;

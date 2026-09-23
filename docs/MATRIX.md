@@ -7,6 +7,12 @@
 > (2026-09-19).
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
+>
+> **2026-09-23 audit note:** the current committed manifests contain no
+> `ios-arm64` artifact pins. Historical `BUILT` iOS cells below are retained as
+> dated evidence, not current distribution or runtime proof; see
+> [`.ezcore/CORE_MATRIX.md`](../.ezcore/CORE_MATRIX.md) for the conservative
+> snapshot.
 
 ## Levels
 

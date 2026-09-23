@@ -8,6 +8,7 @@ import 'screens/core_manager_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
+import 'theme/layout.dart';
 import 'theme/tokens.dart';
 import 'widgets/orbit_widgets.dart';
 
@@ -62,7 +63,8 @@ class _EmuAppState extends State<EmuApp> {
             return const Scaffold(
               backgroundColor: Tokens.bg,
               body: Center(
-                  child: CircularProgressIndicator(color: Tokens.accent)),
+                child: CircularProgressIndicator(color: Tokens.accent),
+              ),
             );
           }
           if (state.loadError != null && kReleaseMode == false) {
@@ -98,29 +100,55 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   String page = 'library';
-  String? libraryCoreFilter;
+  String? libraryFilter;
   int libraryFilterNonce = 0;
 
   void _go(String p) => setState(() => page = p);
 
-  void _browseCore(String coreId) {
+  /// Sends the library to a filter (a core, or a system from the picker)
+  /// and brings the Library space forward.
+  void _filterLibrary(String? filter) {
     setState(() {
-      libraryCoreFilter = 'core:$coreId';
+      libraryFilter = filter;
       libraryFilterNonce++;
       page = 'library';
     });
   }
 
+  void _browseCore(String coreId) => _filterLibrary('core:$coreId');
+
+  /// Per-system game counts, for the "Select system" sheet.
+  Map<String, int> _systemCounts() {
+    final out = <String, int>{};
+    for (final g in widget.state.games) {
+      out[g.system] = (out[g.system] ?? 0) + 1;
+    }
+    return out;
+  }
+
+  Future<void> _openSystemPicker() async {
+    final selected = libraryFilter;
+    if (selected != null && selected.startsWith('core:')) return;
+    await showSystemPicker(
+      context,
+      counts: _systemCounts(),
+      selected: selected ?? 'All systems',
+      favoriteCount: widget.state.games.where((g) => g.favorite).length,
+      onPick: _filterLibrary,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final orientation = MediaQuery.of(context).orientation;
-    final wideRail = size.width >= 700 && orientation == Orientation.landscape;
-    final short = size.height <= 650 && wideRail;
-    final portrait = !wideRail;
-    final osPad = Tokens.osPad(size.width,
-        portrait: portrait, short_: short && wideRail);
-    final compactTop = wideRail ? (short ? 32.0 : 66.0) : 68.0;
+    final layout = Layout.of(context);
+    final osPad = Tokens.osPad(
+      size.width,
+      portrait: layout == OrbitLayout.phonePortrait,
+      short_: layout == OrbitLayout.phoneLandscape,
+    );
+    final hasRail = Layout.hasRail(layout);
+    final short = Layout.isShort(layout);
 
     return CallbackShortcuts(
       bindings: {
@@ -135,62 +163,61 @@ class _ShellState extends State<Shell> {
           backgroundColor: Tokens.bg,
           body: Stack(
             children: [
-              Ambient(
-                  motion:
-                      widget.state.settings['motion'] != false),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (wideRail)
+              Ambient(motion: widget.state.settings['motion'] != false),
+              if (hasRail)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     OrbitRail(page: page, onGo: _go, short: short),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (wideRail)
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                           Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(osPad, 0, osPad, 0),
-                            child: SizedBox(
-                              height: compactTop,
-                              child: const OrbitTopbar(compact: true),
-                            ),
-                          )
-                        else
-                          Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(osPad, 0, osPad, 0),
-                            child: SizedBox(
-                              height: 118,
-                              child: Column(
-                                children: [
-                                  const SizedBox(height: 16),
-                                  const Row(
-                                    children: [
-                                      Expanded(
-                                          child: OrbitTopbar(
-                                              compact: true)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  OrbitDockNav(
-                                      page: page, onGo: _go),
-                                ],
+                            padding: EdgeInsets.fromLTRB(osPad, 0, osPad, 0),
+                            child: OrbitTopbar(
+                              compact: short,
+                              leading: OrbitIconButton(
+                                icon: Icons.menu,
+                                tooltip: 'Select system',
+                                onPressed: _openSystemPicker,
                               ),
                             ),
                           ),
-                        Expanded(child: _page()),
-                        if (size.width >= 700)
-                          Padding(
-                            padding:
-                                EdgeInsets.fromLTRB(osPad, 0, osPad, 6),
-                            child: const OrbitFooter(),
-                          ),
-                      ],
+                          Expanded(child: _page()),
+                          if (!short)
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(osPad, 0, osPad, 6),
+                              child: const OrbitFooter(),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                )
+              else
+                Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(osPad, 6, osPad, 0),
+                      child: OrbitTopbar(
+                        centered: true,
+                        leading: OrbitIconButton(
+                          icon: Icons.menu,
+                          tooltip: 'Select system',
+                          onPressed: _openSystemPicker,
+                        ),
+                        trailing: OrbitIconButton(
+                          icon: Icons.settings_outlined,
+                          tooltip: 'Settings',
+                          onPressed: () => _go('settings'),
+                        ),
+                      ),
+                    ),
+                    Expanded(child: _page()),
+                    OrbitBottomNav(page: page, onGo: _go),
+                  ],
+                ),
             ],
           ),
         ),
@@ -212,18 +239,12 @@ class _ShellState extends State<Shell> {
         LibraryScreen(
           state: widget.state,
           onGo: _go,
-          initialFilter: libraryCoreFilter,
-          key: ValueKey('lib-$libraryFilterNonce-${libraryCoreFilter ?? ''}'),
+          initialFilter: libraryFilter,
+          key: ValueKey('lib-$libraryFilterNonce-${libraryFilter ?? ''}'),
         ),
-        CoreManagerScreen(
-          state: widget.state,
-          onBrowseCore: _browseCore,
-        ),
+        CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
         VaultScreen(state: widget.state),
-        SettingsScreen(
-          state: widget.state,
-          onGoVault: () => _go('vault'),
-        ),
+        SettingsScreen(state: widget.state, onGoVault: () => _go('vault')),
       ],
     );
   }

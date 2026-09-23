@@ -1,27 +1,33 @@
 # Installing ezCORE
 
-> Applies to **v0.1.0** — an early public build. Read the notice in the
-> [README](../README.md) first: some platforms have no binaries yet and
-> several cores are verified on macOS only.
+> Applies to the current **v0.2.x** release line — an early public build.
+> Read the notice in the [README](../README.md) first: exact artifact
+> availability varies by release and several cores have uneven verification.
+> See [`MATRIX.md`](MATRIX.md) for current evidence.
 
 ## What's in this release
 
 | Platform | Artifact | Status |
 |---|---|---|
-| macOS (Apple Silicon) | `ezcore-<version>-macos-arm64.zip` | ✅ ships |
-| Android (arm64) | `ezcore-<version>-android-arm64.apk` | ✅ ships |
-| Windows (x64) | — | no binary yet — build from source ([BUILDING.md](BUILDING.md)) |
-| Linux (x64) | — | no binary yet — build from source ([BUILDING.md](BUILDING.md)) |
+| Linux (x64) | `ezcore-<version>-linux-x64.tar.gz` | attached in v0.2.0; see the release notes for exact assets |
+| Android (arm64) | `ezcore-<version>-android-arm64.apk` | attached in v0.2.0; app artifact only, core/device boot not verified |
+| macOS (Apple Silicon) | — | not attached in v0.2.0; build from source or use a later release |
+| Windows (x64) | — | not attached in v0.2.0; build from source ([BUILDING.md](BUILDING.md)) |
 | iOS | — | not distributed yet (needs an Apple Developer identity) |
 
-Download from [GitHub Releases](../../releases/latest). Every release page
+Download from [GitHub Releases](https://github.com/JinUltimate1995/ezcore/releases/latest). Every release page
 also carries `SHA256SUMS.txt` — verify with `shasum -a 256 <file>` (macOS)
-or `sha256sum <file>` (Linux).
+or `sha256sum <file>` (Linux). Artifact availability and verification are
+release-specific; check the [v0.2.0 release notes](../.github/release-notes/v0.2.0.md)
+and [`MATRIX.md`](MATRIX.md) before downloading.
 
 ## macOS (Apple Silicon)
 
-**Requires:** macOS 12 (Monterey) or later, arm64 Mac. The app is ad-hoc
-signed, not notarized.
+> The current `v0.2.0` release does not attach a macOS binary. The steps below
+> apply when a macOS artifact is published, or to a locally built app.
+
+**Requires:** macOS 12 (Monterey) or later, arm64 Mac. A locally built or
+older ad-hoc-signed app is not notarized.
 
 1. Download `ezcore-<version>-macos-arm64.zip` and unzip it.
 2. Move `ezCore.app` to `/Applications`.
@@ -30,10 +36,14 @@ signed, not notarized.
    ```bash
    xattr -cr /Applications/ezCore.app
    ```
-4. Open from Applications. Cores ship inside the app; there is no
-   first-run download.
+4. Open from Applications. Cores marked bundled are included; eligible large
+   desktop cores may be downloaded explicitly and are hash-verified before
+   staging.
 
 ## Android (arm64)
+
+> The current `v0.2.0` APK is an app artifact only. Android runtime/core
+> artifacts and on-device boot were not verified on the release host.
 
 **Requires:** Android 7.0 (API 24) or later, arm64-v8a device.
 
@@ -73,7 +83,7 @@ yourself. Place them in the app's **`system/`** folder:
 | macOS | `~/Library/Application Support/ezcore/system/` |
 | Windows | `%APPDATA%\ezcore\system\` |
 | Linux | `~/.local/share/ezcore/system/` |
-| Android | app-private data folder (not user-accessible in v0.1.0 — see note) |
+| Android | app-private data folder (not user-accessible in v0.2.x — see note) |
 
 What each core looks for (the Systems screen and the player also name
 missing files exactly):
@@ -88,13 +98,14 @@ missing files exactly):
 | GameCube/Wii | `dolphin` | `IPL.bin` | optional (HLE default) |
 | NES (FDS) | `mesen` | `disksys.rom` | FDS titles only, optional |
 | Genesis/SMS | `genesis_plus_gx` | `bios_MD.bin`, `bios_SMS.bin` | optional |
-| Arcade/Neo Geo | `fbneo` | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.1.0 |
+| Arcade/Neo Geo | `fbneo` | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.2.x |
 
-> **Android note (v0.1.0):** the `system/` folder lives inside the app's
+> **Android note (v0.2.x):** the `system/` folder lives inside the app's
 > private storage, which isn't reachable from normal file managers yet.
 > Desktop is the supported place for BIOS files today; mobile placement is
 > planned. Cores that don't need firmware (GB/GBC, GBA, NES, SNES, Genesis,
-> Atari, DOS, TG-16 cards, PS1 with the built-in OpenBIOS) run fine.
+> Atari, DOS, TG-16 cards, PS1 with the built-in OpenBIOS) do not require a
+> firmware file.
 
 ## Notice
 
@@ -152,6 +163,6 @@ affected by updates.
 
 ## Support
 
-- [GitHub Discussions](../../discussions) — questions, help, ideas
-- [GitHub Issues](../../issues) — bugs and feature requests (use templates)
+- [GitHub Discussions](https://github.com/JinUltimate1995/ezcore/discussions) — questions, help, ideas
+- [GitHub Issues](https://github.com/JinUltimate1995/ezcore/issues) — bugs and feature requests (use templates)
 - [SUPPORT.md](../SUPPORT.md) — FAQ

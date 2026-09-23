@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../services/system_labels.dart';
+import '../services/human_time.dart';
 import '../state/app_state.dart';
 import '../state/save_sync.dart';
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
 import '../widgets/orbit_widgets.dart';
 import 'player_screen.dart';
@@ -23,7 +25,9 @@ class _VaultScreenState extends State<VaultScreen> {
     for (final g in widget.state.games) {
       final slots = await widget.state.saves.list(g.id);
       for (final s in slots) {
-        out.add(_SaveRow(gameId: g.id, title: g.title, system: g.system, slot: s));
+        out.add(
+          _SaveRow(gameId: g.id, title: g.title, system: g.system, slot: s),
+        );
       }
     }
     out.sort((a, b) => b.slot.modified.compareTo(a.slot.modified));
@@ -37,8 +41,8 @@ class _VaultScreenState extends State<VaultScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final portrait = size.width < 700 ||
-        MediaQuery.of(context).orientation == Orientation.portrait;
+    // One breakpoint definition for the whole app (theme/layout.dart).
+    final portrait = Layout.isPhone(Layout.of(context));
     final osPad = Tokens.osPad(size.width, portrait: portrait);
     return ListenableBuilder(
       listenable: widget.state,
@@ -54,26 +58,36 @@ class _VaultScreenState extends State<VaultScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('PLAY. PRESERVE. ANYWHERE.',
-                            style: Tokens.eyebrow),
+                        Text(
+                          'PLAY. PRESERVE. ANYWHERE.',
+                          style: Tokens.eyebrow,
+                        ),
                         const SizedBox(height: 7),
-                        Text('Your time capsule',
-                            style: Tokens.display(
-                                size: portrait ? 27 : 32,
-                                weight: FontWeight.w500,
-                                ls: -1.0)),
+                        Text(
+                          'Your time capsule',
+                          style: Tokens.display(
+                            size: portrait ? 27 : 32,
+                            weight: FontWeight.w500,
+                            ls: -1.0,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Not just where you stopped. Where you want to return.',
                           style: Tokens.body(
-                              size: 12, color: Tokens.muted, height: 1.6),
+                            size: 12,
+                            color: Tokens.muted,
+                            height: 1.6,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 6),
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Tokens.line),
@@ -82,8 +96,7 @@ class _VaultScreenState extends State<VaultScreen> {
                       widget.state.saves.id == 'local'
                           ? 'LOCAL VAULT'
                           : '${widget.state.saves.id.toUpperCase()} VAULT',
-                      style: Tokens.body(
-                          size: 9, ls: 1.5, color: Tokens.muted),
+                      style: Tokens.body(size: 9, ls: 1.5, color: Tokens.muted),
                     ),
                   ),
                 ],
@@ -95,8 +108,8 @@ class _VaultScreenState extends State<VaultScreen> {
                 builder: (context, snap) {
                   if (snap.connectionState != ConnectionState.done) {
                     return const Center(
-                        child: CircularProgressIndicator(
-                            color: Tokens.accent));
+                      child: CircularProgressIndicator(color: Tokens.accent),
+                    );
                   }
                   final rows = snap.data ?? const [];
                   if (rows.isEmpty) {
@@ -106,17 +119,20 @@ class _VaultScreenState extends State<VaultScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('No moments saved yet.',
-                                style: Tokens.display(size: 22)),
+                            Text(
+                              'No moments saved yet.',
+                              style: Tokens.display(size: 22),
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               widget.state.games.isEmpty
                                   ? 'Import a game, play, then save a moment from the player.'
                                   : 'Pause any game and choose “Save a moment” to pin it here.',
                               style: Tokens.body(
-                                  size: 12,
-                                  color: Tokens.muted,
-                                  height: 1.6),
+                                size: 12,
+                                color: Tokens.muted,
+                                height: 1.6,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -126,8 +142,7 @@ class _VaultScreenState extends State<VaultScreen> {
                   }
                   return GridView.builder(
                     padding: EdgeInsets.fromLTRB(osPad, 25, osPad, 25),
-                    gridDelegate:
-                        SliverGridDelegateWithMaxCrossAxisExtent(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: portrait ? 400 : 320,
                       mainAxisSpacing: 24,
                       crossAxisSpacing: 23,
@@ -135,9 +150,10 @@ class _VaultScreenState extends State<VaultScreen> {
                     ),
                     itemCount: rows.length,
                     itemBuilder: (context, i) => _SaveCard(
-                        row: rows[i],
-                        state: widget.state,
-                        onChanged: _refresh),
+                      row: rows[i],
+                      state: widget.state,
+                      onChanged: _refresh,
+                    ),
                   );
                 },
               ),
@@ -150,11 +166,12 @@ class _VaultScreenState extends State<VaultScreen> {
 }
 
 class _SaveRow {
-  const _SaveRow(
-      {required this.gameId,
-      required this.title,
-      required this.system,
-      required this.slot});
+  const _SaveRow({
+    required this.gameId,
+    required this.title,
+    required this.system,
+    required this.slot,
+  });
   final String gameId;
   final String title;
   final String system;
@@ -174,15 +191,10 @@ class _SaveCard extends StatelessWidget {
     return '$hh:$mm:$ss';
   }
 
-  String _fmtWhen(DateTime d) {
-    final now = DateTime.now();
-    final diff = now.difference(d);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
+  String _fmtWhen(DateTime d) =>
+      // Shared formatter, so vault cards and "Continue playing" tiles
+      // always describe the same moment the same way.
+      lastPlayedLabel(d.millisecondsSinceEpoch);
 
   @override
   Widget build(BuildContext context) {
@@ -219,16 +231,18 @@ class _SaveCard extends StatelessWidget {
                   left: 14,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 7),
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xBA0A131C),
                       borderRadius: BorderRadius.circular(5),
-                      border:
-                          Border.all(color: const Color(0x22FFFFFF)),
+                      border: Border.all(color: const Color(0x22FFFFFF)),
                     ),
-                    child: Text(row.slot.id.toUpperCase(),
-                        style: Tokens.body(
-                            size: 8, ls: 1.0, color: Tokens.text)),
+                    child: Text(
+                      row.slot.id.toUpperCase(),
+                      style: Tokens.body(size: 8, ls: 1.0, color: Tokens.text),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -237,15 +251,23 @@ class _SaveCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(row.slot.id.toUpperCase(),
-                          style: Tokens.body(
-                              size: 9, ls: 1.5, color: Color(0xFFCCD8DA))),
-                      Text(_fmtTime(row.slot.modified),
-                          style: Tokens.display(
-                              size: 24,
-                              weight: FontWeight.w500,
-                              ls: 0,
-                              color: Colors.white)),
+                      Text(
+                        row.slot.id.toUpperCase(),
+                        style: Tokens.body(
+                          size: 9,
+                          ls: 1.5,
+                          color: Color(0xFFCCD8DA),
+                        ),
+                      ),
+                      Text(
+                        _fmtTime(row.slot.modified),
+                        style: Tokens.display(
+                          size: 24,
+                          weight: FontWeight.w500,
+                          ls: 0,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -257,24 +279,30 @@ class _SaveCard extends StatelessWidget {
                     height: 37,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border:
-                          Border.all(color: const Color(0x4AFFFFFF)),
+                      border: Border.all(color: const Color(0x4AFFFFFF)),
                       color: Colors.black.withValues(alpha: 0.4),
                     ),
-                    child: const Icon(Icons.play_arrow,
-                        size: 15, color: Colors.white),
+                    child: const Icon(
+                      Icons.play_arrow,
+                      size: 15,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Text(row.title,
-              style: Tokens.display(size: 16, weight: FontWeight.w500, ls: -0.4),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          Text('$sysLabel · ${_fmtWhen(row.slot.modified)} · ${_kb(row.slot.size)}',
-              style: Tokens.body(size: 10, color: Tokens.muted)),
+          Text(
+            row.title,
+            style: Tokens.display(size: 16, weight: FontWeight.w500, ls: -0.4),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          Text(
+            '$sysLabel · ${_fmtWhen(row.slot.modified)} · ${_kb(row.slot.size)}',
+            style: Tokens.body(size: 10, color: Tokens.muted),
+          ),
         ],
       ),
     );
@@ -300,8 +328,10 @@ class _SaveCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.play_arrow, color: Tokens.text),
               title: Text('Resume and load snapshot', style: Tokens.body()),
-              subtitle: Text('${row.slot.id} · kept locally only',
-                  style: Tokens.body(size: 11, color: Tokens.muted)),
+              subtitle: Text(
+                '${row.slot.id} · kept locally only',
+                style: Tokens.body(size: 11, color: Tokens.muted),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -318,14 +348,15 @@ class _SaveCard extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Tokens.text),
               title: Text('Delete snapshot', style: Tokens.body()),
-              subtitle: Text('${row.slot.id} · kept locally only',
-                  style: Tokens.body(size: 11, color: Tokens.muted)),
+              subtitle: Text(
+                '${row.slot.id} · kept locally only',
+                style: Tokens.body(size: 11, color: Tokens.muted),
+              ),
               onTap: () async {
                 Navigator.of(context).pop();
                 await state.saves.remove(row.gameId, row.slot.id);
                 try {
-                  final remaining =
-                      await state.saves.list(row.gameId);
+                  final remaining = await state.saves.list(row.gameId);
                   state.setStateCount(row.gameId, remaining.length);
                 } catch (_) {}
                 if (context.mounted) {

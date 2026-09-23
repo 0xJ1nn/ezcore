@@ -229,8 +229,14 @@ platform, no proprietary firmware requirement, no Switch/3DS/PS2.
 - **`dlopen` with `RTLD_LOCAL`** so core symbols can't collide with the
   process or other cores.
 
-## Future (not v1)
+## Current and future boundaries
 
-A core download/store path, per-game core options (ABI v2), out-of-process
-crash isolation, and rewind all have reserved seams but no implementation
-yet — see [`docs/RELEASE_PLAN.md`](RELEASE_PLAN.md).
+Hybrid delivery is implemented for selected desktop giants: the Core Manager
+can fetch a release asset, stream it through a `.part` file, verify its
+SHA-256 pin, stage it, and register only verified bytes. This is not a general
+core marketplace or store. iOS never downloads executable cores.
+
+A complete capability object, per-game core options (ABI v2), out-of-process
+crash isolation, rewind, and a broader package ecosystem remain future work.
+Do not infer those features from the current manifest fields or the download
+seam.

@@ -27,7 +27,7 @@
 
 ### Installation & Setup
 **Q: Where do I download ezCORE?**
-A: [GitHub Releases](../../releases) — v0.1.0 ships macOS (Apple Silicon, `.zip`) and Android (arm64, `.apk`). Windows/Linux have no binaries yet (build from source); iOS is not distributed yet.
+A: [GitHub Releases](https://github.com/JinUltimate1995/ezcore/releases) — the current `v0.2.0` release attaches Linux x64 and Android arm64 artifacts; exact assets and verification are listed in the [release notes](.github/release-notes/v0.2.0.md) and [`docs/MATRIX.md`](docs/MATRIX.md). macOS, Windows, and iOS artifacts are not distributed in that release.
 
 **Q: macOS says "ezCore.app is damaged" or won't open**
 A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity — see RELEASE_PLAN.md.)
@@ -44,7 +44,7 @@ A:
 4. File a bug with logs if it should work
 
 **Q: How do I add BIOS files?**
-A: Place them in the app's `system/` folder inside the app data directory — macOS: `~/Library/Application Support/ezcore/system/`, Windows: `%APPDATA%\ezcore\system\`, Linux: `~/.local/share/ezcore/system/`. The Systems screen and the player name the exact files a core is missing. (On Android the folder is app-private in v0.1.0 — mobile placement is planned.) See [INSTALL.md](docs/INSTALL.md#bios--firmware).
+A: Place them in the app's `system/` folder inside the app data directory — macOS: `~/Library/Application Support/ezcore/system/`, Windows: `%APPDATA%\ezcore\system\`, Linux: `~/.local/share/ezcore/system/`. The Systems screen and the player name the exact files a core is missing. (On Android the folder is app-private in v0.2.x — mobile placement is planned.) See [INSTALL.md](docs/INSTALL.md#bios--firmware).
 
 **Q: Cheats don't work**
 A: 

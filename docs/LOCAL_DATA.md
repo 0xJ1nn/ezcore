@@ -1,7 +1,7 @@
 # ezCore — Local Data & Persistence
 
-> **Version:** 1.0
-> **Date:** 2026-09-18
+> **Version:** 1.1
+> **Date:** 2026-09-23
 
 ---
 
@@ -17,7 +17,7 @@ ezCore persists all user-owned data locally. No games, BIOS, or copyrighted asse
 macOS:   ~/Library/Application Support/ezcore/
 Windows: %APPDATA%\ezcore\
 Linux:   ~/.local/share/ezcore/
-Mobile:  ./.ezcore/ (temporary fallback; native app-directory integration NOT implemented)
+Mobile: platform application-support directory (resolved by `path_provider` and pinned during startup).
 ```
 
 Resolved by `PlatformLocalDataDirProvider`. Tests inject a temp directory via `LocalDataDirProvider` seam.
@@ -32,9 +32,12 @@ Resolved by `PlatformLocalDataDirProvider`. Tests inject a temp directory via `L
 ├── cores/
 │   └── <id>/
 │       └── <id>.so|dylib|dll   # Installed core artifacts
-└── saves/                      # SaveSyncProvider (LocalSaveSyncProvider)
-    └── <gameId>/
-        └── <slot>.bin
+├── <gameId>/                    # LocalSaveSyncProvider save-state slots
+│   └── <slot>.bin
+├── sram/<gameId>/              # Per-game battery-save handoff
+├── system/                     # User-provided BIOS/firmware
+├── screenshots/                # Captured PNG frames
+└── art/<gameId>.png            # Optional pinned cover art
 ```
 
 ---
@@ -161,7 +164,11 @@ Resolves and verifies installed core artifacts before launch:
 | `saves` | `LocalSaveSyncProvider(<platformDataDir>)` |
 | persistence | `PersistenceService(PlatformLocalDataDirProvider())` |
 
-The `AppState.ephemeral()` named factory returns an in-memory state with no disk backing — used by tests. The `AppState.internal` constructor accepts explicit persistence + saves for injection in tests.
+The provider is passed the platform data directory, so local save-state
+folders are `<platformDataDir>/<gameId>/<slot>.bin` (not a nested `saves/`
+directory). The `AppState.ephemeral()` named factory returns an in-memory state
+with no disk backing — used by tests. The `AppState.internal` constructor
+accepts explicit persistence + saves for injection in tests.
 
 Settings (`setSetting`/`removeSetting`) are persisted alongside games and cheats in `state.json`.
 

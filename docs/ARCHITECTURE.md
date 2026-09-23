@@ -1,8 +1,8 @@
 # ezCORE Architecture
 
-> **Version:** 3.0 — rewritten against the shipping code (v0.1.0)
-> **Stack:** Flutter/Dart (UI) · C11 runtime, ABI v1 (no external deps) ·
-> libretro cores (C/C++)
+> **Version:** 4.0 — audited 2026-09-23 against the v0.2.0 working tree
+> **Status:** As-built architecture snapshot; planned seams are called out explicitly
+> **Stack:** Flutter/Dart (UI) · C11 runtime, ABI v1 · libretro cores (C/C++)
 
 ---
 
