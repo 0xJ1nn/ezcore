@@ -137,7 +137,7 @@ flutter test test/core_matrix_test.dart
 
 ## Adding a New Core
 
-1. **Verify legal**: Open-source libretro core, compatible license (MPL-2.0, MIT, BSD, GPL-2.0+, LGPL), no DMCA 1201 exposure, no Nintendo/Sony/Sega IP.
+1. **Verify licensing**: Open-source libretro core, compatible license (MPL-2.0, MIT, BSD, GPL-2.0+, LGPL), no DMCA 1201 exposure, no Nintendo/Sony/Sega IP.
 2. **Add manifest**: `cores/<id>/manifest.json` (see existing for schema)
 3. **Add build recipe**: `scripts/core_platform.sh` — define `build_<id>()` function
 4. **Build & test**: `scripts/build_core.sh <id>` → verify `RENDERS` on target platform

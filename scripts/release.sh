@@ -65,7 +65,7 @@ echo "== ezCORE $VERSION for $PLATFORM =="
 # 1. data gates
 gate python3 "$ROOT/scripts/fill_manifest_data.py" --check
 gate python3 "$ROOT/scripts/build_catalog.py"
-gate python3 "$ROOT/scripts/legal_audit.py"
+gate python3 "$ROOT/scripts/license_audit.py"
 gate bash "$ROOT/scripts/banned_content_scan.sh"
 
 # 2. native gates
@@ -168,6 +168,6 @@ case "$PLATFORM" in
 esac
 
 # 5. final scan of what ships (bundle content, not just the repo)
-gate python3 "$ROOT/scripts/legal_audit.py"
+gate python3 "$ROOT/scripts/license_audit.py"
 gate bash "$ROOT/scripts/banned_content_scan.sh"
 echo "OK: $OUT"

@@ -54,7 +54,7 @@ class CoreStagingService {
         : 'so';
     for (final manifest in catalog) {
       if (manifest.blocked) continue;
-      // Cores this OS must not carry (delivery: 'absent' — legal holds and
+      // Cores this OS must not carry (delivery: 'absent' — hold cores and
       // pending-review cores) never stage. Without this, a dev checkout
       // sitting next to the app makes staging log noise for cores that
       // cannot ship here anyway.

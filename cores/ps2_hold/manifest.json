@@ -11,7 +11,7 @@
   "cheat_families": [],
   "bios_required": true,
   "bios_files": [],
-  "blocked_reason": "Engineering + legal: AetherSX2 is proprietary (cannot legally ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
+  "blocked_reason": "Engineering + licensing: AetherSX2 is proprietary (cannot ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
   "delivery": {"ios": "absent", "android": "absent", "macos": "absent", "windows": "absent"},
   "artifacts": {}
 }

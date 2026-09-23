@@ -89,7 +89,7 @@ class CorePathResolver {
   Future<String> verifyPin(CoreManifest manifest) async {
     if (manifest.blocked) {
       throw StateError(
-        '${manifest.name} is on legal hold: ${manifest.blockedReason}',
+        '${manifest.name} is on hold: ${manifest.blockedReason}',
       );
     }
     final resolved = await resolve(manifest);

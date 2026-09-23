@@ -96,11 +96,11 @@ missing files exactly):
 > planned. Cores that don't need firmware (GB/GBC, GBA, NES, SNES, Genesis,
 > Atari, DOS, TG-16 cards, PS1 with the built-in OpenBIOS) run fine.
 
-## Legal notice
+## Notice
 
 **ezCORE ships zero copyrighted content.** No ROMs, BIOS, firmware, keys,
 game art, or cheat databases are included or linked. You must provide your
-own legally obtained game dumps and firmware. See
+own game dumps and firmware. See
 [TRADEMARKS.md](../TRADEMARKS.md), [DMCA.md](../DMCA.md),
 [CONTRIBUTING.md](../CONTRIBUTING.md).
 

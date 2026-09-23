@@ -124,7 +124,7 @@ tests fork() a child so a native crash can't take down the harness.
 - Staged artifacts live in `native/` (gitignored) and are produced by
   `scripts/build_core.sh`; `scripts/pin_artifacts.py --check` verifies the
   staged set matches the committed pins before any release.
-- Legal holds (`cores/*_hold/`) are manifests without build recipes —
+- Hold manifests (`cores/*_hold/`) are manifests without build recipes —
   reserved slots that never build and never ship.
 
 ## Build system

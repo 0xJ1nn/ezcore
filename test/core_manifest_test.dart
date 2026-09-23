@@ -59,7 +59,7 @@ void main() {
   test('blocked core must not ship artifacts', () {
     final m = CoreManifest.fromJson({
       ..._base().toJson(),
-      'blocked_reason': 'legal hold',
+      'blocked_reason': 'on hold',
       'artifacts': {'macos-arm64': 'abc123'},
     });
     expect(m.blocked, isTrue);

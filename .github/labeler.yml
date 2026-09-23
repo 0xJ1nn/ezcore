@@ -55,7 +55,7 @@ design:
   - "assets/branding/**"
   - "assets/fonts/**"
 
-legal:
+licensing:
   - "CONTRIBUTING.md"
   - "DMCA.md"
   - "TRADEMARKS.md"

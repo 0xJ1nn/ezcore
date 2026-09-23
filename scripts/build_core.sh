@@ -11,7 +11,7 @@
 # Env: EZCORE_PLATFORM (macos|linux|windows|android|ios),
 #      EZCORE_ARCH (default per platform), EZCORE_OUT_DIR (staging root),
 #      ANDROID_NDK_HOME (android builds).
-# Legal holds (citra_hold, switch_hold, ps2_hold) refuse to build. This is
+# Hold cores (citra_hold, switch_hold, ps2_hold) refuse to build. This is
 # deliberate — see cores/<id>/manifest.json blocked_reason.
 set -euo pipefail
 
@@ -417,10 +417,10 @@ build_powercube() {
   stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
 }
 
-# ---------------- Legal holds: always refuse ----------------
+# ---------------- Hold cores: always refuse ----------------
 hold() { echo "REFUSED: $1"; exit 4; }
-build_citra_hold()  { hold "3DS core on legal hold (see cores/citra_hold/manifest.json)"; }
-build_switch_hold() { hold "Switch core on legal hold (see cores/switch_hold/manifest.json)"; }
+build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
+build_switch_hold() { hold "Switch core is on hold (see cores/switch_hold/manifest.json)"; }
 build_ps2_hold()    { hold "No shippable PS2 core (see cores/ps2_hold/manifest.json)"; }
 
 TIER1="pocketbit advancebit superfx blastproc realmode"

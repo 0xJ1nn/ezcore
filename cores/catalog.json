@@ -185,7 +185,7 @@
     "homepage": "",
     "id": "citra_hold",
     "license": "GPL-2.0 (upstream tainted \u2014 do not build from post-2024 forks)",
-    "name": "Nintendo 3DS \u2014 legal hold",
+    "name": "Nintendo 3DS \u2014 on hold",
     "systems": [
       "3ds"
     ],
@@ -221,7 +221,7 @@
     "extensions": [
       "zip"
     ],
-    "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
+    "gated_reason": "Murkiest licensing posture of the retro sets. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
     "homepage": "https://github.com/libretro/FBNeo",
     "id": "coinbox",
     "license": "FBNeo-custom (non-commercial \u2014 verify per-file terms at build time)",
@@ -754,7 +754,7 @@
     "artifacts": {},
     "bios_files": [],
     "bios_required": true,
-    "blocked_reason": "Engineering + legal: AetherSX2 is proprietary (cannot legally ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
+    "blocked_reason": "Engineering + licensing: AetherSX2 is proprietary (cannot ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
     "cheat_families": [],
     "cheats_supported": false,
     "delivery": {
@@ -936,7 +936,7 @@
     "homepage": "",
     "id": "switch_hold",
     "license": "GPL-3.0 (upstream tainted \u2014 do not build from Yuzu/Sudachi/Torzu/Eden forks)",
-    "name": "Nintendo Switch \u2014 legal hold",
+    "name": "Nintendo Switch \u2014 on hold",
     "systems": [
       "switch"
     ],

@@ -34,7 +34,7 @@ CoreManifest _mgba() => const CoreManifest(
 
 CoreManifest _blocked() => const CoreManifest(
       id: 'switch_hold',
-      name: 'Nintendo Switch — legal hold',
+      name: 'Nintendo Switch — on hold',
       version: '0.0.0-blocked',
       license: 'GPL-3.0',
       systems: ['switch'],
@@ -120,14 +120,14 @@ void main() {
       );
     });
 
-    test('throws StateError when core is blocked (legal hold)', () async {
+    test('throws StateError when core is blocked (hold)', () async {
       // Even though artifacts is empty, verifyPin should reject blocked cores
       expect(
         () => resolver.verifyPin(_blocked()),
         throwsA(isA<StateError>().having(
           (e) => e.message,
           'message',
-          contains('legal hold'),
+          contains('is on hold'),
         )),
       );
     });

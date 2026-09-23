@@ -1,6 +1,6 @@
 {
   "id": "citra_hold",
-  "name": "Nintendo 3DS — legal hold",
+  "name": "Nintendo 3DS — on hold",
   "version": "0.0.0-blocked",
   "license": "GPL-2.0 (upstream tainted — do not build from post-2024 forks)",
   "homepage": "",

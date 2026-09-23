@@ -159,7 +159,7 @@ CoreManifest _mgba() => const CoreManifest(
 
 CoreManifest _blockedSwitch() => const CoreManifest(
       id: 'switch_hold',
-      name: 'Nintendo Switch — legal hold',
+      name: 'Nintendo Switch — on hold',
       version: '0.0.0-blocked',
       license: 'GPL-3.0',
       systems: ['switch'],
@@ -211,7 +211,7 @@ void main() {
         catalog: _catalog(),
       );
       expect(result.isSkipped, isTrue);
-      expect(result.skippedReason, contains('legal hold'));
+      expect(result.skippedReason, contains('is on hold'));
     });
 
     test('skips files with no matching core', () async {

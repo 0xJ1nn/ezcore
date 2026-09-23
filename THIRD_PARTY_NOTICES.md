@@ -55,7 +55,7 @@ Notes:
   distributed in any binary — free or paid**. Their upstream licenses
   forbid commercial redistribution, and ezCORE ships one artifact for
   everyone. They remain in-tree as build recipes for users who compile
-  their own. Enforced by `scripts/legal_audit.py` (removed from
+  their own. Enforced by `scripts/license_audit.py` (removed from
   distribution 2026-09-19; see `CHANGELOG.md`).
 - **`rcp64`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
   the classic Mupen64Plus project license text is included in that tree.

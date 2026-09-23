@@ -19,7 +19,7 @@
   "bios_files": [
     "neogeo.zip"
   ],
-  "gated_reason": "Legally murkiest retro set. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
+  "gated_reason": "Murkiest licensing posture of the retro sets. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
   "delivery": {
     "macos": "absent",
     "windows": "absent",

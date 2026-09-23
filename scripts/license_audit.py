@@ -72,7 +72,7 @@ def main():
         blocked = bool(d.get("blocked_reason"))
 
         if blocked:
-            # Legal holds ship nothing and carry no license obligations —
+            # Hold cores ship nothing and carry no license obligations —
             # the only rule is that they stay empty.
             if bundled_os or artifacts:
                 violations.append(
@@ -111,7 +111,7 @@ def main():
         state = "bundled " + ",".join(bundled_os) if bundled_os else "not distributed"
         rows.append(f"{cid:<16} {cls:<14} {state}")
 
-    print("legal_audit: core license/delivery map")
+    print("license_audit: core license/delivery map")
     for r in rows:
         print("  " + r)
     if violations:

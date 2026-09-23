@@ -142,28 +142,28 @@ To strictly protect users and preserve GPL-3.0 integrity, cores with non-commerc
 | **Arcade / Neo Geo** | **CoinBox** | [FinalBurn Neo](https://github.com/libretro/FBNeo) | Non-commercial upstream terms | `scripts/build_core.sh coinbox` |
 
 > [!NOTE]
-> **Gambatte (GB/GBC):** Gambatte's upstream codebase is licensed strictly under **GPL-2.0-only** (without "or later"). It cannot legally link into a GPL-3.0 application bundle. ezCORE serves GB/GBC out-of-the-box via **PocketBit** (SameBoy, MIT).
+> **Gambatte (GB/GBC):** Gambatte's upstream codebase is licensed strictly under **GPL-2.0-only** (without "or later"). It cannot link into a GPL-3.0 application bundle. ezCORE serves GB/GBC out-of-the-box via **PocketBit** (SameBoy, MIT).
 
-### ⛔ Legal Holds (Permanently Reserved)
+### ⛔ On Hold (Permanently Reserved)
 
-| System | Status | Legal Reason |
+| System | Status | Reason |
 |:---|:---:|:---|
 | **Nintendo 3DS** | `citra_hold` | Upstream repos enjoined under Nintendo's 2024 DMCA actions. |
 | **Nintendo Switch** | `switch_hold` | Upstream repos enjoined under Nintendo's 2024 DMCA actions. |
-| **PlayStation 2** | `ps2_hold` | No legally shippable, open-source libretro PS2 core exists. |
+| **PlayStation 2** | `ps2_hold` | No shippable open-source libretro PS2 core exists. |
 
 ---
 
 ## 💾 Bring Your Own Dumps (BYOD)
 
-ezCORE maintains a clean-room legal boundary. We do not distribute ROMs, BIOS images, or cryptographic keys.
+ezCORE maintains a clean-room boundary. We do not distribute ROMs, BIOS images, or cryptographic keys.
 
 * **What ezCORE Includes:**
   * Complete emulation runtime, interface, and 14 bundled open-source cores.
   * Curated, agent-verified cheat database for instant in-game use.
   * Generative vector box art engine.
 * **What You Supply:**
-  * Your legal game dumps (`.gb`, `.gba`, `.nes`, `.iso`, `.chd`, etc.).
+  * Your own game dumps (`.gb`, `.gba`, `.nes`, `.iso`, `.chd`, etc.).
   * BIOS files for systems that require them (PS1, Dreamcast, Saturn). See [`docs/INSTALL.md`](docs/INSTALL.md).
 
 ---

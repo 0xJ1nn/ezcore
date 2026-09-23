@@ -8,7 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [0.1.1] — 2026-09-19
 
-**First legal-clean release.** Rebuilt without the non-commercial cores.
+**Rebuilt without the non-commercial cores** (license audit applied).
 
 ### Removed
 
@@ -52,12 +52,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
-- `scripts/legal_audit.py` — machine check for the licensing rules
+- `scripts/license_audit.py` — machine check for the licensing rules
   (non-commercial cores never bundled, holds stay empty, bundled cores are
   attributed and pinned). Wired into `scripts/release.sh` and the new
   pre-commit hook.
 - `.githooks/pre-commit` + `scripts/install-hooks.sh` — commits are blocked
-  when the banned-content scan or the legal audit fails.
+  when the banned-content scan or the license audit fails.
 
 ## [0.1.0] — 2026-09-19
 

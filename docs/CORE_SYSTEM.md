@@ -186,7 +186,7 @@ credited by name wherever the core appears (repo description, core README,
 licence is non-commercial. The repository verifies the build recipe in CI
 and publishes nothing.
 
-### Legal holds (never built, never shipped)
+### Holds (never built, never shipped)
 
 | System | Status |
 |---|---|
@@ -199,7 +199,7 @@ blocked cores that carry artifacts.
 
 ## Adding a core (contributors)
 
-1. **Verify legal**: open-source libretro core, compatible license, no
+1. **Verify licensing**: open-source libretro core, compatible license, no
    Nintendo/Sony/Sega IP, no DMCA §1201 exposure.
 2. **Add the manifest**: `cores/<id>/manifest.json` (see schema above).
 3. **Add the build recipe**: `scripts/core_platform.sh` — `build_<id>()`.

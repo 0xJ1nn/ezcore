@@ -18,7 +18,7 @@
 ### What We Don't Support
 
 - **ROM/BIOS/game file acquisition** — we ship zero copyrighted content. Bring your own dumps.
-- **Switch/3DS/PS2 cores** — legal holds, never built (see TRADEMARKS.md, CONTRIBUTING.md)
+- **Switch/3DS/PS2 cores** — holds, never built (see TRADEMARKS.md, CONTRIBUTING.md)
 - **Commercial game compatibility claims** — we verify core boot/render, not game libraries
 - **Proprietary cores** — only open-source libretro cores with compatible licenses
 - **Private builds** — all releases are public on GitHub
@@ -64,7 +64,7 @@ A: Not in v1. Local vault only. Cloud sync planned for v1.1 (see CLOUD_SAVES.md)
 A: See [BUILDING.md](docs/BUILDING.md) — `scripts/prereqs.sh` → `scripts/build_runtime.sh` → `scripts/build_core.sh --tier1` → `flutter run`
 
 **Q: How do I add a new core?**
-A: Read [CORE_SYSTEM.md](docs/CORE_SYSTEM.md) and [CONTRIBUTING.md](CONTRIBUTING.md). Core must be open-source libretro, compatible license, no legal exposure.
+A: Read [CORE_SYSTEM.md](docs/CORE_SYSTEM.md) and [CONTRIBUTING.md](CONTRIBUTING.md). Core must be open-source libretro, compatible license, no IP exposure.
 
 ## Contributing
 
@@ -72,7 +72,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Hard rules (instant close)
 - Normal rules (tests, analyze, DCO sign-off)
 - Core version bump process
-- Legal holds
+- Holds
 
 ## License
 

@@ -64,7 +64,7 @@ class CoreRegistry extends ChangeNotifier {
   /// Throws [StateError] on policy violation or hash mismatch.
   void install(CoreManifest m, {required String expectedSha256}) {
     if (m.blocked) {
-      throw StateError('${m.name} is on legal hold: ${m.blockedReason}');
+      throw StateError('${m.name} is on hold: ${m.blockedReason}');
     }
     final pinned = m.artifacts.values;
     if (pinned.isNotEmpty && !pinned.contains(expectedSha256)) {

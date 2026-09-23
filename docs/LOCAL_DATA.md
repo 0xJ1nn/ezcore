@@ -113,7 +113,7 @@ Validates user-supplied files against the core manifest catalog:
 
 1. **File existence** — rejects non-existent paths.
 2. **Extension match** — looks up extension in catalog artifacts. No match → skip.
-3. **Legal hold rejection** — if any matching core is `blocked`, the file is rejected with `skippedReason` naming the legal hold.
+3. **Hold rejection** — if any matching core is `blocked`, the file is rejected with `skippedReason` naming the hold.
 4. **SHA-256 dedup** — rejects files whose hash already exists in the library.
 5. **Game entry creation** — produces a `GameEntry` with `id = 'imp-<sha>'`, `coreId` set to the first matching core.
 
@@ -128,7 +128,7 @@ Resolves and verifies installed core artifacts before launch:
 1. **Platform key** — `currentPlatformKey()` derives `os-arch` (e.g. `macos-arm64`).
 2. **Artifact lookup** — matches platform key to `manifest.artifacts` map.
 3. **File check** — artifact must exist at `<localDataDir>/cores/<id>/<id>.so|dylib|dll`.
-4. **Legal hold check** — blocked cores throw `StateError` before any hashing.
+4. **Hold check** — blocked cores throw `StateError` before any hashing.
 5. **SHA-256 pin verification** — actual hash must equal manifest pin; mismatch throws.
 
 ---
@@ -179,7 +179,7 @@ Settings (`setSetting`/`removeSetting`) are persisted alongside games and cheats
 test/game_entry_json_test.dart        — GameEntry/CheatEntry JSON round-trip + equality
 test/persistence_service_test.dart    — PersistenceService load/save/delete round-trips
 test/core_path_resolver_test.dart    — CorePathResolver platform key, resolve, verifyPin
-test/content_importer_test.dart      — ContentImporter file validation, legal holds, dedup
+test/content_importer_test.dart      — ContentImporter file validation, holds, dedup
 test/local_data_dir_test.dart        — PlatformLocalDataDirProvider + fake
 test/hash_verifier_test.dart         — PlatformHashVerifier computes SHA-256
 test/app_state_defaults_test.dart    — AppState factory defaults to LocalSaveSyncProvider

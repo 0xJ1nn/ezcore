@@ -16,7 +16,7 @@ class CoreDiscovery {
       Abi.current().toString().replaceAll('_', '-');
 
   Future<String?> verifiedPath(CoreManifest manifest) async {
-    if (manifest.blocked) throw StateError('Core is on legal hold');
+    if (manifest.blocked) throw StateError('Core is on hold');
     final pin = manifest.artifacts[platformKey];
     if (pin == null) return null;
     final suffix = Platform.isMacOS

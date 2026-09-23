@@ -3,7 +3,7 @@
 > **Last verified:** 2026-09-22 (Linux x64 dev-checkout enablement, `feat/linux-core-pins`:
 > 14 cores built + pin-verified (12 boot-tested natively; pocketbit live-boot verified,
 > rcp64 ABI-verified); app launch verified — vault staging, library auto-import via watched
-> ROM folders, 3 legal test ROMs listed). macOS arm64 remains run-verified from v0.1.1
+> ROM folders, 3 CC0 test ROMs listed). macOS arm64 remains run-verified from v0.1.1
 > (2026-09-19).
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
@@ -45,7 +45,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | dreamarc | IDENTIFIES | — | — | BUILT | — | Same GL caveat |
 | powercube | IDENTIFIES | — (delivery absent) | — | BUILT | — | No software renderer exists: blocked on GPU context (post-v1), not attempted |
 | twinsh | IDENTIFIES | — | — | BUILT | — | SH-2 interpreter; slow by nature, frames unverified |
-| citra/switch/ps2 | holds | holds | holds | holds | holds | Legal blocks, never built |
+| citra/switch/ps2 | holds | holds | holds | holds | holds | Holds, never built |
 
 ## Platform shells & app builds
 

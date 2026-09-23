@@ -56,7 +56,7 @@ behind the new chrome:
 - Library: CoverFlow + bottom game dock + grid view, collection strip,
   game-hub dialog (core picker, Play, cheats, states, file info).
 - Systems: 3D core browser + core dock, All/Added/Available scopes,
-  sha-pinned install, remove confirm, license dialog, legal-hold surfacing.
+  sha-pinned install, remove confirm, license dialog, hold surfacing.
 - Time capsule (`lib/screens/vault_screen.dart`): local save-snapshot vault.
 - Settings: six local-preference tabs persisted to `AppState.settings`.
 - Player: dock control bar + "Take a breather" session overlay wired to the

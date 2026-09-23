@@ -47,7 +47,7 @@
 - `scripts/pin_artifacts.py` run for all target platforms
 - `scripts/build_catalog.py` run (catalog.json updated)
 
-## Legal Compliance (required for all PRs)
+## Licensing (required for all PRs)
 - [ ] No ROMs, BIOS/firmware, keys, or game files added (CONTRIBUTING.md rule 1)
 - [ ] No cheat databases added (CONTRIBUTING.md rule 2)
 - [ ] No circumvention tooling added (CONTRIBUTING.md rule 3)

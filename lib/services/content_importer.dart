@@ -53,7 +53,7 @@ class ImportScan {
 /// The importer:
 /// 1. Validates the file exists and is readable.
 /// 2. Matches its extension against the core manifest catalog.
-/// 3. Rejects files whose system is on a legal hold (blocked cores).
+/// 3. Rejects files whose system is on hold (blocked cores).
 /// 4. Hashes the file (SHA-256) for deduplication + integrity.
 /// 5. Rejects duplicates (same hash already in library).
 /// 6. Never rejects based on file name alone — the manifest is the source
@@ -79,7 +79,7 @@ class ContentImporter {
       return ImportResult(filePath: filePath, error: 'File does not exist');
     }
 
-    // Legal holds: reject any file whose system maps to a blocked core.
+    // Hold cores: reject any file whose system maps to a blocked core.
     final ext = filePath.split('.').last.toLowerCase();
     final matchingCores = catalog.values.where(
       (m) => m.extensions.map((e) => e.toLowerCase()).contains(ext),
@@ -88,7 +88,7 @@ class ContentImporter {
       if (core.blocked) {
         return ImportResult(
           filePath: filePath,
-          skippedReason: 'Rejected: ${core.name} is on legal hold',
+          skippedReason: 'Rejected: ${core.name} is on hold',
         );
       }
     }

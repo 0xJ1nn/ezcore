@@ -319,7 +319,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               Expanded(
                 child: Text(
                   m.blocked
-                      ? 'Legal hold · ${m.blockedReason} — games & saves are kept.'
+                      ? 'Hold · ${m.blockedReason} — games & saves are kept.'
                       : 'Cores install locally on this device. Removing one keeps games & saves.',
                   style: Tokens.body(size: 9, color: Color(0xFF8290A4)),
                 ),
@@ -371,7 +371,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         const SizedBox(height: 8),
         Text(
           m.blocked
-              ? 'Legal hold · ${m.blockedReason}'
+              ? 'Hold · ${m.blockedReason}'
               : 'Cores install locally on this device.',
           style: Tokens.body(size: 8, color: Color(0xFF8290A4)),
         ),
@@ -712,7 +712,7 @@ class _StatusDot extends StatelessWidget {
       CoreStatus.installed => 'installed',
       CoreStatus.notInstalled => 'not installed',
       CoreStatus.updateAvailable => 'update',
-      CoreStatus.blocked => 'legal hold',
+      CoreStatus.blocked => 'on hold',
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

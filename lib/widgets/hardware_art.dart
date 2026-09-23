@@ -533,7 +533,7 @@ const Map<String, _Renderer> _renderers = {
 const hardwareArtCores = 18;
 
 /// Returns the finalized hardware silhouette SVG for [coreId].
-/// Unknown ids (e.g. legal holds) get the generic console card.
+/// Unknown ids (e.g. hold cores) get the generic console card.
 String hardwareSvg(String coreId) {
   final fn = _renderers[coreId];
   if (fn != null) return fn(coreId);

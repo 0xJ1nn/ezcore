@@ -25,7 +25,7 @@ void main() {
     }
   });
 
-  test('unknown ids (legal holds) fall back to a labeled card', () {
+  test('unknown ids (hold cores) fall back to a labeled card', () {
     final svg = hardwareSvg('citra_hold');
     expect(svg, contains('<svg'));
     expect(svg, contains('citra_hold'));

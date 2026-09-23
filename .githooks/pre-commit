@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pre-commit guard: no banned content (ROMs/BIOS/keys/game art), no scratch
-# agent tooling (§79), and, when the legal audit exists, no license
+# agent tooling (§79), and, when the license audit exists, no license
 # violations in the commit's tree.
 #
 # Install once per clone:  scripts/install-hooks.sh
@@ -37,11 +37,11 @@ if ! bash "$root/scripts/banned_content_scan.sh" > /tmp/ezcore-scan.log 2>&1; th
   exit 1
 fi
 
-if [ -f "$root/scripts/legal_audit.py" ]; then
-  if ! python3 "$root/scripts/legal_audit.py" > /tmp/ezcore-legal.log 2>&1; then
+if [ -f "$root/scripts/license_audit.py" ]; then
+  if ! python3 "$root/scripts/license_audit.py" > /tmp/ezcore-license.log 2>&1; then
     echo ""
     echo "✋ COMMIT BLOCKED — license/delivery violation:"
-    tail -n +2 /tmp/ezcore-legal.log | sed 's/^/    /'
+    tail -n +2 /tmp/ezcore-license.log | sed 's/^/    /'
     echo ""
     echo "  See CONTRIBUTING.md → Licensing of contributions."
     exit 1

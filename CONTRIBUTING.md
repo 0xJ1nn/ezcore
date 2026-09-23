@@ -2,7 +2,7 @@
 
 > **Canonical engineering rules:** [`project.md`](project.md) defines the full
 > ezCORE development system — read it before contributing. This file covers
-> contribution-specific policy (legal, licensing, DCO); everything else lives
+> contribution-specific policy (licensing, DCO); everything else lives
 > in `project.md`.
 
 ## Hard rules (instant close, no discussion)
