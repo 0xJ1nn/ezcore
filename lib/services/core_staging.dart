@@ -12,7 +12,9 @@ import 'repo_layout.dart';
 ///
 /// Sources (first hit wins per core): platform-bundled dirs (Android
 /// jniLibs extraction dir / iOS bundle copy / desktop release bundle),
-/// then the dev-checkout `native/cores` tree. Destination is always
+/// then the dev-checkout `native/cores` tree — plus, for
+/// `delivery: download` cores, an already-downloaded vault copy with no
+/// external source at all (ADR-013). Destination is always
 /// `<localData>/cores/<id>/<id>.<ext>` — the single tree [CoreDiscovery]
 /// and the player resolve from. Every staged byte is sha256-checked
 /// against the manifest pin; mismatches are deleted and recorded, never
@@ -38,6 +40,8 @@ class CoreStagingService {
 
   /// Copies + verifies every shippable core for this platform.
   /// Returns the staged core ids. Up-to-date files are skipped by hash.
+  /// `delivery: download` cores are never fetched here — they count as
+  /// staged when a verified vault copy exists (see [_stageOne]).
   Future<List<String>> ensureStaged({
     required List<CoreManifest> catalog,
   }) async {
@@ -62,7 +66,7 @@ class CoreStagingService {
       final pin = manifest.artifacts[key];
       if (pin == null) continue;
       try {
-        if (await _stageOne(manifest, pin, ext, sources)) {
+        if (await _stageOne(manifest, pin, ext, sources, osKey)) {
           staged.add(manifest.id);
         }
       } catch (e) {
@@ -106,11 +110,24 @@ class CoreStagingService {
     String pin,
     String ext,
     List<Directory> sources,
+    String osKey,
   ) async {
     final dest = File(
       '${(await _dirs.localDataDir()).path}/cores/${manifest.id}/${manifest.id}.$ext',
     );
     final candidate = _findSource(manifest, ext, sources);
+    if (candidate == null && manifest.delivery[osKey] == 'download') {
+      // A downloaded core has no bundled/dev source — its vault copy IS
+      // the distribution (ADR-013). Keep it iff it still verifies against
+      // the pin; otherwise drop it so the downloader can refetch it.
+      if (dest.existsSync()) {
+        if (await verifyPinnedFile(dest.path, pin, hashes: _hashes)) {
+          return true;
+        }
+        await _removeDest(dest);
+      }
+      return false;
+    }
     final record = _readSidecar(dest.path);
     if (dest.existsSync() && record != null) {
       final want = pin.toLowerCase();

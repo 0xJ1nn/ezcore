@@ -7,9 +7,12 @@ import 'package:path_provider/path_provider.dart';
 
 import '../cores/core_registry.dart';
 import '../models/cheat.dart';
+import '../models/core_manifest.dart';
 import '../models/game_entry.dart';
 import '../services/local_data_dir.dart';
 import '../services/core_discovery.dart';
+import '../services/core_downloader.dart';
+import '../services/core_path_resolver.dart';
 import '../services/core_staging.dart';
 import '../services/repo_layout.dart';
 import '../services/persistence_service.dart';
@@ -68,12 +71,17 @@ class AppState extends ChangeNotifier {
   }
 
   /// Test/injection constructor — accepts explicit persistence + saves.
+  /// [downloader] swaps the on-demand core fetch seam for tests.
   @visibleForTesting
   AppState.internal({
     required this.persistence,
     required this.saves,
     this.documentsProvider,
-  });
+    CoreDownloader? downloader,
+  }) : _downloader = downloader ??
+            CoreDownloader(dirs: PlatformLocalDataDirProvider());
+
+  final CoreDownloader _downloader;
 
   /// Base directory for the managed "ezCORE ROMs" folder. Null in
   /// production: the platform Documents directory is resolved lazily at
@@ -85,6 +93,12 @@ class AppState extends ChangeNotifier {
   final PersistenceService? persistence;
 
   final CoreRegistry registry = CoreRegistry();
+
+  /// Parsed `cores/release.json` — where on-demand core assets live.
+  /// Null when the bundle predates hybrid delivery (ADR-013); downloads
+  /// then fail with an honest message instead of guessing a URL.
+  CoreRelease? coreRelease;
+
   List<GameEntry> games = [];
   final Map<String, List<CheatEntry>> cheatsByGame = {};
 
@@ -148,6 +162,17 @@ class AppState extends ChangeNotifier {
       }
       registry.addListener(notifyListeners);
 
+      // On-demand core release map (ADR-013). Optional: absent from older
+      // bundles, downloads then report "release metadata missing".
+      try {
+        final relRaw = await rootBundle.loadString('cores/release.json');
+        coreRelease = CoreRelease.fromJson(
+          json.decode(relRaw) as Map<String, dynamic>,
+        );
+      } catch (_) {
+        coreRelease = null;
+      }
+
       // Load persisted state from local storage
       final p = persistence;
       if (p != null) {
@@ -172,6 +197,47 @@ class AppState extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+  }
+
+  /// True when this OS fetches [m] on demand instead of bundling it.
+  bool needsDownload(CoreManifest m) =>
+      m.delivery[Platform.operatingSystem] == 'download';
+
+  /// Adds a core to the registry. Download-delivery cores without a
+  /// verified vault copy are fetched first (sha256-checked against the
+  /// manifest pin inside [CoreDownloader]); everything else marks the
+  /// already-staged copy as added. Throws [StateError] with a
+  /// user-facing message on download failure — the registry is only
+  /// told about verified bytes.
+  Future<void> addCore(CoreManifest m) async {
+    final key = CorePathResolver.currentPlatformKey();
+    if (needsDownload(m)) {
+      final resolver = CorePathResolver(
+        PlatformLocalDataDirProvider(),
+        const PlatformHashVerifier(),
+      );
+      if (await resolver.resolve(m) == null) {
+        final release = coreRelease;
+        if (release == null) {
+          throw StateError(
+            'Release metadata missing — cannot download ${m.id} yet',
+          );
+        }
+        await _downloader.download(
+          manifest: m,
+          release: release,
+          platformKey: key,
+          registry: registry,
+        );
+        return; // verified + installed inside the downloader
+      }
+    }
+    registry.install(
+      m,
+      expectedSha256: m.artifacts[key] ??
+          m.artifacts.values.firstOrNull ??
+          'dev-unverified',
+    );
   }
 
   /// Persists current state; await before reporting a durable UI operation.

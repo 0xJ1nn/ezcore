@@ -6,14 +6,17 @@ hook) so a license problem can never ship silently.
 
 Rules enforced:
   1. Every core manifest declares `license` and `license_url`.
-  2. A non-commercial core is NEVER `bundled` for any OS — free or paid.
-     (Build recipes may exist; binary distribution may not.)
-  3. A GPL-2.0-ONLY core is NEVER `bundled`: it cannot form a combined work
-     with this GPL-3.0-only app. A bare GPL-2 LICENSE file does not decide
-     this — read the source headers for an "or later" grant.
+  2. A non-commercial core is NEVER `bundled` or `download` for any OS —
+     free or paid. (Build recipes may exist; binary distribution may not.)
+  3. A GPL-2.0-ONLY core is NEVER `bundled` or `download`: it cannot form
+     a combined work with this GPL-3.0-only app. A bare GPL-2 LICENSE file
+     does not decide this — read the source headers for an "or later" grant.
   4. Blocked holds (`blocked_reason`) ship nothing: delivery absent, no pins.
-  5. Every bundled core is listed in THIRD_PARTY_NOTICES.md.
-  6. Every bundled core has at least one pinned artifact.
+  5. Every distributed core is listed in THIRD_PARTY_NOTICES.md.
+  6. Every distributed core has at least one pinned artifact.
+
+`download` distributes the exact same bytes from our release assets as
+`bundled` does from the package — every rule above covers both (ADR-013).
 
 Exit 0 = clean. Exit 1 = violations printed.
 """
@@ -67,14 +70,19 @@ def main():
         lic = d.get("license", "")
         cls = license_class(lic) if lic else "MISSING"
         delivery = d.get("delivery", {})
-        bundled_os = [k for k in OS_KEYS if delivery.get(k) == "bundled"]
+        # `download` ships the same bytes from our release assets as
+        # `bundled` ships inside the package — one distributed set, one
+        # rulebook (ADR-013).
+        shipped_os = [
+            k for k in OS_KEYS if delivery.get(k) in ("bundled", "download")
+        ]
         artifacts = d.get("artifacts", {}) or {}
         blocked = bool(d.get("blocked_reason"))
 
         if blocked:
             # Hold cores ship nothing and carry no license obligations —
             # the only rule is that they stay empty.
-            if bundled_os or artifacts:
+            if shipped_os or artifacts:
                 violations.append(
                     f"{cid}: blocked hold must ship nothing (delivery/pins present)"
                 )
@@ -84,31 +92,31 @@ def main():
         if not lic or not d.get("license_url"):
             violations.append(f"{cid}: missing license or license_url")
 
-        if cls == "NON-COMMERCIAL" and bundled_os:
+        if cls == "NON-COMMERCIAL" and shipped_os:
             violations.append(
-                f"{cid}: non-commercial license but bundled for {bundled_os}"
+                f"{cid}: non-commercial license but ships for {shipped_os}"
             )
-        if cls in ("GPL-2-ONLY", "GPL-2-AMBIG") and bundled_os:
+        if cls in ("GPL-2-ONLY", "GPL-2-AMBIG") and shipped_os:
             why = ("GPL-2.0-only is incompatible with this GPL-3.0-only app"
                    if cls == "GPL-2-ONLY"
                    else "license string is ambiguous (bare GPL-2.0) — verify the "
                         "source headers for an 'or later' grant, then state it "
                         "explicitly as GPL-2.0-or-later or GPL-2.0-only")
-            violations.append(f"{cid}: {why} but is bundled for {bundled_os}")
+            violations.append(f"{cid}: {why} but ships for {shipped_os}")
         if cls == "CUSTOM?":
             rows.append(f"{cid}: license class CUSTOM — review manually")
 
-        if bundled_os:
+        if shipped_os:
             if f"`{cid}`" not in notices:
                 violations.append(
-                    f"{cid}: bundled but missing from THIRD_PARTY_NOTICES.md"
+                    f"{cid}: ships to users but missing from THIRD_PARTY_NOTICES.md"
                 )
             if not artifacts:
                 violations.append(
-                    f"{cid}: bundled but has no pinned artifacts"
+                    f"{cid}: ships to users but has no pinned artifacts"
                 )
 
-        state = "bundled " + ",".join(bundled_os) if bundled_os else "not distributed"
+        state = "ships " + ",".join(shipped_os) if shipped_os else "not distributed"
         rows.append(f"{cid:<16} {cls:<14} {state}")
 
     print("license_audit: core license/delivery map")

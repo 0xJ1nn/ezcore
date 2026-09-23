@@ -28,7 +28,7 @@
 │                    Modular cores (C/C++)                      │
 │  cores/<id>/manifest.json     metadata · pins · policy        │
 │  staged artifact (dylib/so/dll) sha256-verified vs manifest   │
-│  delivered: bundled with the app (v1 — no download infra)     │
+│  delivered: bundled | on-demand, sha256-verified (ADR-013)     │
 └───────────────────────────────────────────────────────────────┘
 ```
 

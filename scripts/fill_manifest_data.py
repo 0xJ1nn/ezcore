@@ -59,13 +59,11 @@ CHEATS = {
     "twinsh": ["saturn_gameshark"],
 }
 
-# Delivery = what release.sh ships per OS (bundled), or absent. There is
-# no download infrastructure in v1 (see delivery_note in CoreManifest):
-# desktop and mobile apps carry their tier, verified by MATRIX.md.
-# gambatte is in NO tier: GPL-2.0-only cannot combine with this GPL-3.0-only
-# app, so its manifest delivery is absent on every OS (b1bb9d9). The platform
-# tiers in scripts/build_core.sh likewise exclude it. Re-adding it here
-# without a license re-clear reopens the violation license_audit rejects.
+# Delivery = what release.sh ships per OS. Three values ship: `bundled`
+# (in the package), `download` (fetched on demand from this release's core
+# assets and sha256-verified before staging — ADR-013), and `absent`.
+# iOS is never `download` (App Review 2.5.2/4.7; see CoreManifest.validate)
+# and desktop/mobile apps otherwise carry their tier, verified by MATRIX.md.
 _TIER_DESKTOP = [
     "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
     "joystick", "cardcon", "twinsh", "coinbox", "pointclick",
@@ -83,6 +81,19 @@ _TIER_IOS = [
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]
 
+# Hybrid download set (ADR-013): staged giants (>= ~25 MB — pointclick
+# 170M, dreamarc 39M, powercube 27M on linux-x64) leave the desktop
+# package so the app stays lightweight; the app fetches them on demand,
+# sha256-verified against the manifest pin before staging. Android keeps
+# even the giants bundled (heuristic: ship built-in while the APK stays
+# reasonable; no android download assets are published yet). iOS keeps its
+# tier value — never `download` (App Review 2.5.2/4.7).
+# gambatte is in NO tier anywhere: GPL-2.0-only cannot combine with this
+# GPL-3.0-only app, so its manifest delivery is absent on every OS
+# (b1bb9d9); re-adding it without a license re-clear reopens the
+# violation license_audit rejects.
+_DOWNLOAD_DESKTOP = {"pointclick", "dreamarc", "powercube"}
+
 
 def _delivery(cid: str) -> "dict[str, str] | None":
     if cid.endswith("_hold"):
@@ -98,13 +109,20 @@ def _delivery(cid: str) -> "dict[str, str] | None":
             "android": "absent",
             "ios": "absent",
         }
-    return {
+    ships = {
         "macos": "bundled" if cid in _TIER_DESKTOP else "absent",
         "windows": "bundled" if cid in _TIER_DESKTOP else "absent",
         "linux": "bundled" if cid in _TIER_DESKTOP else "absent",
         "android": "bundled" if cid in _TIER_ANDROID else "absent",
         "ios": "bundled" if cid in _TIER_IOS else "absent",
     }
+    if cid in _DOWNLOAD_DESKTOP:
+        # Hybrid set (ADR-013): desktop fetches these on demand; android
+        # and ios keep their tier value unchanged (see _DOWNLOAD_DESKTOP).
+        for os_name in ("macos", "windows", "linux"):
+            if ships[os_name] == "bundled":
+                ships[os_name] = "download"
+    return ships
 
 
 def fail(msg: str) -> "NoReturn":

@@ -27,6 +27,9 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   String scope = 'all'; // all | added | available
   String? selectedId;
 
+  /// Core currently being downloaded (ADR-013) — single-flight guard.
+  String? _busyId;
+
   @override
   void dispose() {
     pageCtrl.dispose();
@@ -297,8 +300,12 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 ),
                 const SizedBox(width: 8),
                 OrbitSecondary(
-                  label: installed ? 'Remove core' : 'Add core',
-                  icon: installed ? Icons.close : Icons.add,
+                  label: installed
+                      ? 'Remove core'
+                      : _busyId == m.id ? 'Downloading…' : 'Add core',
+                  icon: installed
+                      ? Icons.close
+                      : _busyId == m.id ? Icons.downloading : Icons.add,
                   onPressed: () => installed
                       ? _confirmRemove(m)
                       : _install(m),
@@ -360,8 +367,12 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: OrbitSecondary(
-                label: installed ? 'Remove' : 'Add core',
-                icon: installed ? Icons.close : Icons.add,
+                label: installed
+                    ? 'Remove'
+                    : _busyId == m.id ? 'Downloading…' : 'Add core',
+                icon: installed
+                    ? Icons.close
+                    : _busyId == m.id ? Icons.downloading : Icons.add,
                 onPressed: () =>
                     installed ? _confirmRemove(m) : _install(m),
               ),
@@ -479,13 +490,26 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   }
 
   void _install(CoreManifest m) {
-    try {
-      final sha = m.artifacts.values.firstOrNull ?? 'dev-unverified';
-      widget.state.registry.install(m, expectedSha256: sha);
-      if (mounted) orbitToast(context, '${m.id} added — no package downloaded');
-    } on StateError catch (e) {
-      if (mounted) orbitToast(context, e.message);
+    if (_busyId != null) return;
+    final downloads = widget.state.needsDownload(m);
+    if (downloads) {
+      setState(() => _busyId = m.id);
+      orbitToast(context, 'Downloading ${m.id}…');
     }
+    widget.state.addCore(m).then((_) {
+      if (!mounted) return;
+      if (downloads) setState(() => _busyId = null);
+      orbitToast(
+        context,
+        downloads
+            ? '${m.id} downloaded — SHA-256 verified'
+            : '${m.id} added — no package downloaded',
+      );
+    }).catchError((Object e) {
+      if (!mounted) return;
+      if (downloads) setState(() => _busyId = null);
+      orbitToast(context, e.toString().replaceFirst('StateError: ', ''));
+    });
   }
 
   void _confirmRemove(CoreManifest m) {

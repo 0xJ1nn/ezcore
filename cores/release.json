@@ -1,0 +1,16 @@
+{
+  "assets": {
+    "linux-x64": {
+      "dreamarc": "dreamarc_libretro-linux-x64.so",
+      "pointclick": "pointclick_libretro-linux-x64.so",
+      "powercube": "powercube_libretro-linux-x64.so"
+    },
+    "macos-arm64": {
+      "dreamarc": "dreamarc_libretro-macos-arm64.dylib",
+      "pointclick": "pointclick_libretro-macos-arm64.dylib",
+      "powercube": "powercube_libretro-macos-arm64.dylib"
+    }
+  },
+  "repo": "JinUltimate1995/ezcore",
+  "tag": "v0.2.0"
+}

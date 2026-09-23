@@ -36,9 +36,9 @@
   },
   "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
+    "macos": "download",
+    "windows": "download",
+    "linux": "download",
     "android": "absent",
     "ios": "absent"
   },

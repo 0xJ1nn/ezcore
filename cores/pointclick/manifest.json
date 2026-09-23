@@ -19,9 +19,9 @@
   "bios_files": [],
   "notes": "Needs user-owned game data files. Great iOS citizen, zero console-IP surface.",
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
+    "macos": "download",
+    "windows": "download",
+    "linux": "download",
     "android": "bundled",
     "ios": "bundled"
   },

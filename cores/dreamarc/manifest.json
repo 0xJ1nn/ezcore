@@ -30,9 +30,9 @@
   ],
   "notes": "WinCE titles excluded at launch (compat note). Interpreter on iOS — flagged slow.",
   "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
+    "macos": "download",
+    "windows": "download",
+    "linux": "download",
     "android": "absent",
     "ios": "absent"
   },

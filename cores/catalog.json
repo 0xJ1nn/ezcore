@@ -257,9 +257,9 @@
     "delivery": {
       "android": "absent",
       "ios": "absent",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "linux": "download",
+      "macos": "download",
+      "windows": "download"
     },
     "execution": {
       "android": "dynarec",
@@ -612,9 +612,9 @@
     "delivery": {
       "android": "bundled",
       "ios": "bundled",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "linux": "download",
+      "macos": "download",
+      "windows": "download"
     },
     "execution": {
       "android": "interpreter",
@@ -711,9 +711,9 @@
     "delivery": {
       "android": "absent",
       "ios": "absent",
-      "linux": "bundled",
-      "macos": "bundled",
-      "windows": "bundled"
+      "linux": "download",
+      "macos": "download",
+      "windows": "download"
     },
     "execution": {
       "android": "dynarec",

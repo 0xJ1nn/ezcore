@@ -1,7 +1,7 @@
 # ezCORE Modular Core System
 
-> **Version:** 2.0 — rewritten to the shipping system (v1, bundled delivery)
-> **Date:** 2026-09-19
+> **Version:** 2.1 — hybrid delivery: bundled by default, on-demand giants
+> **Date:** 2026-09-23
 > **Status:** Current
 
 ---
@@ -12,12 +12,14 @@ ezCORE uses a **modular core architecture** — every emulated system is a
 separate libretro binary (C/C++) behind a small stable C ABI. Cores are
 versioned, license-tagged, and **sha256-pinned** in per-core manifests.
 
-**v1 delivery is `bundled`:** cores ship inside the app bundle (desktop,
-Android) or as embedded frameworks (iOS) and update together with app
-releases. There is **no core-download infrastructure in v1** — nothing is
-fetched at runtime, and iOS never downloads anything by policy (App Review
-2.5.2/4.7). A download/store path is a possible later addition, not a v1
-feature.
+**Delivery is `bundled` by default:** most cores ship inside the app bundle
+(desktop, Android) or as embedded frameworks (iOS) and update together with
+app releases. Since v0.2.0 (ADR-013) delivery is **hybrid**: the three
+desktop giants (`pointclick`, `dreamarc`, `powercube`) are `download` — the
+Core Manager fetches them from this repository's GitHub Releases on first
+use and sha256-verifies every byte against the manifest pin before staging.
+Nothing is ever fetched on iOS by policy (App Review 2.5.2/4.7), and the
+app never compiles cores on the user's device.
 
 Why modular still matters: each core keeps its own upstream license, a core
 update can't silently change the runtime ABI, and a crashed or unfinished
@@ -69,7 +71,7 @@ native/cores*/<id>/<lib>      # staged artifact (gitignored, built by scripts)
 | `extensions` | string[] | Import extensions it can open |
 | `cheats_supported`, `cheat_families` | bool / string[] | Cheat engine surface |
 | `bios_required`, `bios_files` | bool / string[] | Exact firmware filenames the player gates on |
-| `delivery` | object | Per-OS delivery: `bundled` (or `absent`/hold states) |
+| `delivery` | object | Per-OS delivery: `bundled` / `download` (or `absent`/hold states) |
 | `artifacts` | object | Per-platform **sha256 pins** of the staged artifact |
 | `execution` | object | Per-OS strategy: `interpreter` or `dynarec` |
 
@@ -98,9 +100,12 @@ game selected in Library
    ↓  ezcore_load_game() → ezcore_run_frame() loop
 ```
 
-If no compatible core is installed, the app says so — it never fetches one
-(v1 has no download path). The player gates BIOS-dependent cores on an
-exact-file check before boot (`lib/services/bios_check.dart`).
+If no compatible core is installed, the app says so. Download-delivery
+cores (ADR-013) offer an explicit **Download** action in the Core Manager —
+they are fetched only there, verified against the manifest pin, and staged;
+everything else is never fetched behind the user's back. The player gates
+BIOS-dependent cores on an exact-file check before boot
+(`lib/services/bios_check.dart`).
 
 ## Core registry (app-side bookkeeping)
 
