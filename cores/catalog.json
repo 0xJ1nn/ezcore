@@ -602,7 +602,7 @@
   "pointclick": {
     "artifacts": {
       "android-arm64": "c23d31ab19d927e812befa12ed2ae521ada87f760d45d20c8ad026e74af97f36",
-      "linux-x64": "6ef0197ec157a71b70deae0369c1d7a9eeec1a55fa88f3999cc2c194e765c2b4",
+      "linux-x64": "105aa4fefdc98b5875274f44aafa3a068ebdc27bef7a6ef3b24a0721baff03a1",
       "macos-arm64": "20027dbdfcea9f00aca8baeb4bf3a6f4f00cdc3a531cd3ae61239a753f299dc6"
     },
     "bios_files": [],
@@ -646,7 +646,7 @@
   },
   "portcomp": {
     "artifacts": {
-      "linux-x64": "cc680091bc9ae1215c1b136c84c3207860c144aa88dde1204f6062a81a73dbb3",
+      "linux-x64": "e543b206e8c39e614eebb1c06ca3015e1ecdfae48bf1f328af66735a37244889",
       "macos-arm64": "f3483b102dec93d484b8c10bdb2bb2fe1c5f12e7425ca800db2985b85a4d5d9f"
     },
     "bios_files": [],
@@ -696,7 +696,7 @@
   },
   "powercube": {
     "artifacts": {
-      "linux-x64": "153229584c35feb5ce6fd3ef2b07357c4f3b77a172277fb1a0ca9da3fa59b4c9",
+      "linux-x64": "932183e20d222d914850fa3c081dcd34c6d2acbde4a418a3dc1455545646c81e",
       "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
     },
     "bios_files": [

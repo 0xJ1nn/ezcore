@@ -44,7 +44,7 @@
   },
   "artifacts": {
     "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327",
-    "linux-x64": "153229584c35feb5ce6fd3ef2b07357c4f3b77a172277fb1a0ca9da3fa59b4c9"
+    "linux-x64": "932183e20d222d914850fa3c081dcd34c6d2acbde4a418a3dc1455545646c81e"
   },
   "bios_notes": "Optional — HLE default. User-supplied only.",
   "provenance": {
