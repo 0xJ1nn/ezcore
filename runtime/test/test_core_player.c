@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
 
   /* A core that exports the optional cheat entry points still receives them. */
   ezcore_cheat_reset(s);
-  CHECK(ezcore_cheat_set(s, 0, true, "0101ABCD"), "cheat set accepted");
+  CHECK(ezcore_cheat_set(s, 0, true, "0101ABCD"), "cheat hook dispatched");
 
   /* --- Geometry + Sample rate --- */
   unsigned w = 0, h = 0;

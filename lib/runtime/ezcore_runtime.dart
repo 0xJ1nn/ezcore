@@ -263,6 +263,8 @@ class EzCoreRuntime {
 
   void cheatReset(Pointer<Void> session) => _cheatReset(session);
 
+  /// Returns whether the runtime dispatched the call to an available core hook.
+  /// The libretro hook is void, so this does not validate the cheat code.
   bool cheatSet(
       Pointer<Void> session, int index, bool enabled, String code) {
     final codePtr = _toNativeUtf8(code);

@@ -297,7 +297,9 @@ bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                       const char *code);
 ```
 
-Sets a cheat code. Calls `retro_cheat_set` when the core exports it.
+Attempts to set a cheat code. Calls `retro_cheat_set` when the core exports it.
+The libretro hook has no return value, so this does not validate the code or
+confirm that the core applied its effect.
 
 **Parameters:**
 - `s` — session pointer
@@ -305,8 +307,9 @@ Sets a cheat code. Calls `retro_cheat_set` when the core exports it.
 - `enabled` — whether the cheat is active
 - `code` — cheat code string (GameShark/Action Replay format)
 
-**Returns:** `true` on success, `false` on failure (e.g., invalid code
-format or a core without cheat support).
+**Returns:** `true` when a non-null code was dispatched to an available core
+hook; `false` when the runtime cannot dispatch it (for example, a missing core
+hook or null code). It does not indicate code validity.
 
 ---
 

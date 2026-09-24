@@ -374,6 +374,8 @@ void ezcore_cheat_reset(ezcore_session *s) {
 bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                    const char *code) {
   if (!s || !code || !s->retro_cheat_set) return false;
+  /* The libretro hook is void; true means dispatch was attempted, not that
+   * the core validated the code. */
   s->retro_cheat_set(index, enabled, code);
   return true;
 }

@@ -6,11 +6,12 @@
  *
  *   - 256x240 @ 60fps, stereo s16 @ 44100 Hz
  *   - Requests XRGB8888 pixel format from the host
- *   - Frame: R channel = frame_counter & 0xFF, G = (frame_counter/2) & 0xFF,
+ *   - Frame: R channel = frame_counter & 0xFF, G = (frame_counter/2) & 0x3F,
  *     B increments every 16 frames
  *   - Audio: sample = 0x1000 ^ (button_state & 0x00FF) — deterministic,
  *     so button presses are verifiable in the audio output
  *   - Reset: zeroes frame_counter, audio_sample_counter
+ *   - Green high bits expose optional cheat-hook dispatch to the test
  *   - Serialize: 16-byte state blob
  */
 #include <stdint.h>
@@ -25,6 +26,8 @@
 #define SAMPLE_RATE 44100.0
 #define FRAME_CAP (WIDTH * HEIGHT)
 #define AUDIO_FRAMES_PER_RUN 480
+#define CHEAT_RESET_MARK 0x40u
+#define CHEAT_SET_MARK 0x80u
 
 struct synth_state {
     uint32_t frame_counter;
@@ -34,10 +37,14 @@ struct synth_state {
 };
 
 static struct synth_state g_state = {0, 0, 0, 0x53594E54};
+static bool g_cheat_reset_seen;
+static bool g_cheat_set_seen;
 
 static void render_frame(uint32_t *buf) {
     uint8_t r = (uint8_t)(g_state.frame_counter & 0xFF);
-    uint8_t g = (uint8_t)((g_state.frame_counter / 2) & 0xFF);
+    uint8_t g = (uint8_t)((g_state.frame_counter / 2) & 0x3F);
+    if (g_cheat_reset_seen) g |= CHEAT_RESET_MARK;
+    if (g_cheat_set_seen) g |= CHEAT_SET_MARK;
     uint8_t b = (uint8_t)((g_state.frame_counter / 16) & 0xFF);
     uint32_t pixel = ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
     for (int i = 0; i < FRAME_CAP; i++) {
@@ -52,7 +59,10 @@ static retro_input_poll_t        input_poll_cb;
 static retro_input_state_t       input_state_cb;
 static retro_environment_t       env_cb;
 
-void retro_init(void) { /* state already zeroed */ }
+void retro_init(void) {
+    g_cheat_reset_seen = false;
+    g_cheat_set_seen = false;
+}
 
 void retro_deinit(void) { }
 
@@ -112,6 +122,8 @@ bool retro_load_game(const struct retro_game_info *game) {
     (void)game;
     g_state.frame_counter = 0;
     g_state.audio_sample_counter = 0;
+    g_cheat_reset_seen = false;
+    g_cheat_set_seen = false;
     return true;
 }
 
@@ -125,6 +137,8 @@ size_t retro_get_memory_size(unsigned id) { (void)id; return 0; }
 void retro_reset(void) {
     g_state.frame_counter = 0;
     g_state.audio_sample_counter = 0;
+    g_cheat_reset_seen = false;
+    g_cheat_set_seen = false;
 }
 
 void retro_run(void) {
@@ -177,11 +191,16 @@ bool retro_unserialize(const void *data, size_t size) {
     return true;
 }
 
-#ifndef EZCORE_SYNTH_NO_CHEAT
-void retro_cheat_reset(void) { }
+#if !defined(EZCORE_SYNTH_NO_CHEAT) && \
+    !defined(EZCORE_SYNTH_NO_CHEAT_RESET)
+void retro_cheat_reset(void) { g_cheat_reset_seen = true; }
+#endif
 
+#if !defined(EZCORE_SYNTH_NO_CHEAT) && \
+    !defined(EZCORE_SYNTH_NO_CHEAT_SET)
 void retro_cheat_set(unsigned index, bool enabled, const char *code) {
     (void)index; (void)enabled; (void)code;
+    g_cheat_set_seen = true;
 }
 #endif
 

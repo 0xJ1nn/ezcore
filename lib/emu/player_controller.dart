@@ -142,7 +142,8 @@ class PlayerController extends ChangeNotifier {
   }
 
   /// Applies [entries] to the live session (reset-first). Returns the
-  /// indices the core rejected. No-op when no session is running.
+  /// indices the runtime could not dispatch to a core hook. No-op when no
+  /// session is running.
   Future<List<int>> applyCheats(List<CheatEntry> entries) async {
     if (!running || _closed) return [];
     return worker.applyCheats([
