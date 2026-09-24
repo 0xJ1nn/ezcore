@@ -46,6 +46,10 @@ int main(int argc, char **argv) {
   /* --- Load game (synthetic core accepts anything) --- */
   CHECK(ezcore_load_game(s, "/dev/null", NULL, 0), "load_game ok");
 
+  /* A core that exports the optional cheat entry points still receives them. */
+  ezcore_cheat_reset(s);
+  CHECK(ezcore_cheat_set(s, 0, true, "0101ABCD"), "cheat set accepted");
+
   /* --- Geometry + Sample rate --- */
   unsigned w = 0, h = 0;
   double fps = 0;

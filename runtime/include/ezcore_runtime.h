@@ -46,7 +46,8 @@ void ezcore_set_button(ezcore_session *s, unsigned port, unsigned button_id,
                     bool pressed);
 void ezcore_clear_buttons(ezcore_session *s, unsigned port);
 
-/* Cheats — forward to retro_cheat_reset / retro_cheat_set */
+/* Cheats — optional core entry points. If unsupported, reset is a no-op and
+ * set returns false. */
 void ezcore_cheat_reset(ezcore_session *s);
 bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                    const char *code);

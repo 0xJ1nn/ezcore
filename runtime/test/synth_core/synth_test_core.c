@@ -177,11 +177,13 @@ bool retro_unserialize(const void *data, size_t size) {
     return true;
 }
 
+#ifndef EZCORE_SYNTH_NO_CHEAT
 void retro_cheat_reset(void) { }
 
 void retro_cheat_set(unsigned index, bool enabled, const char *code) {
     (void)index; (void)enabled; (void)code;
 }
+#endif
 
 void retro_set_controller_port_device(unsigned port, unsigned device) {
     (void)port; (void)device;

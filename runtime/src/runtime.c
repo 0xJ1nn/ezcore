@@ -24,6 +24,7 @@ struct ezcore_session {
   bool (*retro_load_game)(const struct retro_game_info *);
   void (*retro_run)(void);
   void (*retro_reset)(void);
+  /* Optional cheat entry points: NULL-checked at every call. */
   void (*retro_cheat_reset)(void);
   void (*retro_cheat_set)(unsigned, bool, const char *);
   /* Save states are core-optional: NULL-checked at every call. */
@@ -221,8 +222,10 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   LOAD_SYM(s, retro_load_game, "retro_load_game");
   LOAD_SYM(s, retro_run, "retro_run");
   LOAD_SYM(s, retro_reset, "retro_reset");
-  LOAD_SYM(s, retro_cheat_reset, "retro_cheat_reset");
-  LOAD_SYM(s, retro_cheat_set, "retro_cheat_set");
+  /* Cheat entry points are core-optional; cores without cheat support still
+   * need to load for video, audio, input, and save-state functionality. */
+  s->retro_cheat_reset = ez_dyn_sym(s->handle, "retro_cheat_reset");
+  s->retro_cheat_set = ez_dyn_sym(s->handle, "retro_cheat_set");
   /* Save-state entry points are core-optional (older cores may omit them). */
   s->retro_serialize_size = ez_dyn_sym(s->handle, "retro_serialize_size");
   s->retro_serialize = ez_dyn_sym(s->handle, "retro_serialize");
@@ -365,12 +368,12 @@ double ezcore_sample_rate(ezcore_session *s) {
 }
 
 void ezcore_cheat_reset(ezcore_session *s) {
-  if (s) s->retro_cheat_reset();
+  if (s && s->retro_cheat_reset) s->retro_cheat_reset();
 }
 
 bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                    const char *code) {
-  if (!s || !code) return false;
+  if (!s || !code || !s->retro_cheat_set) return false;
   s->retro_cheat_set(index, enabled, code);
   return true;
 }
