@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>One shell. Many generations. More play.</strong><br>
-  <em>ezCORE is building the emulator experience we wanted to use.</em>
+  <em>ezCORE is building the easy-to-use emulator experience we wanted to use.</em>
 </p>
 
 <p align="center">
@@ -56,7 +56,7 @@ kept in front.
 
 That is the ezCORE north star:
 
-> **One library. One player. A growing universe of cores.**
+> **One library. A growing universe of cores. A simple, polished experience.**
 
 We are building the path from **open your game → press Play → return to your
 save** without breaking the experience apart every time a new system, core, or
@@ -67,6 +67,7 @@ platform enters the picture.
 | Advantage | What it means |
 |---|---|
 | **A real product surface** | Orbit is designed like a console: responsive, focused, and ready for a living-room display, desktop, handheld, or phone. |
+| **Easy to use** | A polished UI/UX keeps the game in front and the complexity out of the way. |
 | **One place for your collection** | Your library, systems, saves, screenshots, and preferences live in one coherent experience. |
 | **Power without the ceremony** | ezCORE resolves the compatible core path and keeps advanced controls available when you want them. |
 | **Local by default** | ezCORE does not require an account, telemetry, or analytics. Your content and saves stay yours. |
