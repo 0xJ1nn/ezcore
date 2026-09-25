@@ -3,14 +3,15 @@
 > **Status:** authoritative long-term roadmap for ezCORE.
 > **Last audited:** 2026-09-25.
 > **Current release:** `v0.2.0` (public, experimental).
-> **Current repository state:** the replacement stack is open for review in
-> stacked PRs [#29](https://github.com/JinUltimate1995/ezcore/pull/29) and
-> [#30](https://github.com/JinUltimate1995/ezcore/pull/30): the base PR carries
-> the artwork/compact-shell evidence repair, and the child PR adds the signed
-> cover-flow hardening and public evidence refresh. Flutter, Linux native,
-> provenance, Linux debug, and Android debug gates are green on this checkout;
-> maintainer review, approval, and device/platform verification remain separate
-> release gates.
+> **Current repository state:** the responsive replacement stack is merged into
+> `main`: PR [#29](https://github.com/JinUltimate1995/ezcore/pull/29) carried the
+> artwork/compact-shell evidence repair, PR
+> [#30](https://github.com/JinUltimate1995/ezcore/pull/30) carried the signed
+> cover-flow hardening, and PR
+> [#31](https://github.com/JinUltimate1995/ezcore/pull/31) integrated the
+> reviewed child delta after the stacked topology was resolved. Flutter, Linux
+> native, provenance, Linux debug, and Android debug gates are green; device
+> and platform verification remain bounded by [`docs/MATRIX.md`](docs/MATRIX.md).
 >
 > This roadmap describes direction, not permission to implement every item in
 > one change. The code, tests, [`docs/MATRIX.md`](docs/MATRIX.md), and
@@ -44,19 +45,17 @@ understandable before adding another feature.
   evidence-backed capabilities, contribution paths, and sponsorship.
 - [x] Complete — integrate the five-family Orbit redesign and its permanent
   layout/backdrop regression coverage.
-- [~] In progress — maintainer review and sequential merge of the two signed
-  replacement branches. The current checkout passes `flutter analyze`, the full
-  Flutter suite (`441` passed, `15` skipped), Linux CTest (`3/3`), and
-  Linux/Android debug builds; the final review covers the replacement diff and
-  recorded platform limits.
+- [x] Complete — independently review and sequentially merge the signed
+  replacement stack into `main`. The current checkout passes `flutter analyze`,
+  the full Flutter suite (`441` passed, `15` skipped), Linux CTest (`3/3`), and
+  Linux/Android debug builds; recorded platform limits remain explicit.
 - [ ] Planned — make CI/reproducible release verification a green, reviewed
   checkpoint again.
 
-**Why this comes first:** the combined branch now has a usable, tested baseline
-and sanitized visual previews, but the public claims and compatibility
-boundaries still require maintainer review. Merge only after the final diff is
-approved; then begin capability-contract work without letting roadmap edits
-blur implementation evidence.
+**Why this comes first:** M0 is now complete: the combined branch has a usable,
+tested baseline and sanitized visual previews, and its public claims and
+compatibility boundaries are documented without expanding device claims. The
+next task is capability-contract research, not another responsive-shell pass.
 
 ## Prioritized delivery phases
 
@@ -266,9 +265,9 @@ Game modifications, patches, assets, and profiles.
 
 ## Next task queue
 
-1. **M0-01 — Maintainer review and sequential merge:** review the two signed
-   replacement branches, confirm the artwork provenance and five-layout claims,
-   and merge the base branch before the cover-flow branch.
+1. **M0-01 — Complete:** the signed replacement stack was independently
+   reviewed and merged through PRs #29, #30, and #31; artwork provenance and
+   five-layout claims are recorded in the public evidence.
 2. **M1-01 — Capability contract research:** specify the smallest capability
    object and lifecycle compatibility rules before changing the ABI.
 3. **M1-02 — Configuration hierarchy:** define global/system/core/game

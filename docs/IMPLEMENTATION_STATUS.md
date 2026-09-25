@@ -6,7 +6,9 @@
 
 ## Responsive Orbit/cover-flow replacement checkpoint (2026-09-25)
 
-The current replacement stack has five layout families: desktop, tablet
+The reviewed replacement stack is merged into `main` through PRs #29, #30, and
+#31; #31 was the topology-correction integration after the stacked child merge.
+It has five layout families: desktop, tablet
 landscape, tablet portrait, phone landscape, and phone portrait. Desktop and
 phone Library use the cover flow; both tablet orientations retain the
 Continue/Recently Added hub. The shell now shares compact padding, preserves
@@ -22,7 +24,7 @@ WebP by SHA-256, rejects non-WebP/nested shipped artwork, and decodes every
 asset in the release/test gate. This is a provenance and maintainer-review
 record, not independent legal clearance.
 
-Directly executed checks on the replacement child branch:
+Directly executed checks on the reviewed replacement child tree:
 
 - `flutter analyze`: **No issues found** (`18.3s`).
 - `flutter test --no-pub`: **441 passed, 15 skipped, 0 failed**.
