@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:ezcore/main.dart';
+import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
@@ -56,8 +59,23 @@ void main() {
     ),
   ];
 
+  const core = CoreManifest(
+    id: 'powercube',
+    name: 'PowerCube',
+    version: '1.0.0',
+    license: 'GPL-2.0-or-later',
+    systems: ['gc'],
+    extensions: ['gcm', 'iso'],
+    cheatFamilies: [],
+    cheatsSupported: false,
+    delivery: {'linux': 'bundled'},
+    artifacts: {'linux-x64': 'test-pin'},
+  );
+
   Future<void> pumpShell(WidgetTester tester, Size size) async {
     final state = AppState()..games = games;
+    state.registry.loadCatalog({core.id: jsonEncode(core.toJson())});
+    state.registry.install(core, expectedSha256: 'test-pin');
     state.loaded = true;
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -98,6 +116,39 @@ void main() {
       );
     });
   }
+
+  testWidgets('Settings and populated Systems fit compact landscape shells', (
+    tester,
+  ) async {
+    for (final size in const [Size(844, 390), Size(568, 320)]) {
+      await pumpShell(tester, size);
+      expect(tester.takeException(), isNull, reason: 'initial shell at $size');
+      final rail = find.byType(OrbitRail);
+      await tester.tap(
+        find.descendant(of: rail, matching: find.text('Settings')),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.takeException(), isNull, reason: 'Settings at $size');
+
+      await tester.tap(
+        find.descendant(of: rail, matching: find.text('Systems')),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.takeException(), isNull, reason: 'Systems at $size');
+    }
+  });
+
+  testWidgets('populated shell fits the 480x320 content width', (tester) async {
+    await pumpShell(tester, const Size(480, 320));
+    expect(tester.takeException(), isNull, reason: 'initial Library shell');
+
+    final rail = find.byType(OrbitRail);
+    for (final label in ['Systems', 'Capsule', 'Settings']) {
+      await tester.tap(find.descendant(of: rail, matching: find.text(label)));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.takeException(), isNull, reason: '$label at 480x320');
+    }
+  });
 
   testWidgets('phone portrait uses the bottom command bar', (tester) async {
     await pumpShell(tester, const Size(390, 844));

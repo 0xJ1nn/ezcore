@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../cores/core_registry.dart';
 import '../models/core_manifest.dart';
@@ -72,9 +71,11 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    // One breakpoint definition for the whole app (theme/layout.dart).
-    final portrait = Layout.isPhone(Layout.of(context));
-    final osPad = Tokens.osPad(size.width, portrait: portrait);
+    final layout = Layout.of(context);
+    final portrait = Layout.hasBottomBar(layout);
+    final short = Layout.isShort(layout);
+    final ultraCompact = short && size.height < 360;
+    final osPad = Tokens.osPad(size.width, portrait: portrait, short_: short);
     return ListenableBuilder(
       listenable: widget.state.registry,
       builder: (context, _) {
@@ -83,44 +84,85 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         final selIndex = sel == null
             ? 0
             : list.indexWhere((m) => m.id == sel.id);
+        final availableCount =
+            list.length -
+            list.where((m) => widget.state.registry.isInstalled(m.id)).length;
+        final countLabel = '$addedCount added · $availableCount available';
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(osPad, 22, osPad, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
+              padding: EdgeInsets.fromLTRB(
+                osPad,
+                ultraCompact ? 4 : (short ? 8 : 22),
+                osPad,
+                0,
+              ),
+              child: portrait
+                  ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'YOUR HARDWARE. YOUR RULES.',
                           style: Tokens.eyebrow,
                         ),
-                        const SizedBox(height: 7),
+                        const SizedBox(height: 6),
                         Text(
                           'The core collection',
                           style: Tokens.display(
-                            size: portrait ? 28 : 32,
+                            size: 26,
                             weight: FontWeight.w500,
-                            ls: -1.0,
+                            ls: -0.8,
                           ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          countLabel,
+                          style: Tokens.body(size: 12, color: Tokens.muted),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (!short) ...[
+                                Text(
+                                  'YOUR HARDWARE. YOUR RULES.',
+                                  style: Tokens.eyebrow,
+                                ),
+                                const SizedBox(height: 7),
+                              ],
+                              Text(
+                                'The core collection',
+                                style: Tokens.display(
+                                  size: short ? 22 : 32,
+                                  weight: FontWeight.w500,
+                                  ls: -1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          countLabel,
+                          style: Tokens.body(size: 12, color: Tokens.muted),
+                          textAlign: TextAlign.right,
                         ),
                       ],
                     ),
-                  ),
-                  Text(
-                    '$addedCount added · ${list.length - list.where((m) => widget.state.registry.isInstalled(m.id)).length + (scope == "all" ? 0 : 0)} available',
-                    style: Tokens.body(size: 10, color: Tokens.muted),
-                    textAlign: TextAlign.right,
-                  ),
-                ],
-              ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(osPad, 22, osPad, 0),
+              padding: EdgeInsets.fromLTRB(
+                osPad,
+                ultraCompact ? 4 : (short ? 8 : 22),
+                osPad,
+                0,
+              ),
               child: Row(
                 children: [
                   if (portrait)
@@ -134,6 +176,19 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                         }),
                       ),
                     )
+                  else if (short)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: CoreScopes(
+                          scope: scope,
+                          onScope: (s) => setState(() {
+                            scope = s;
+                            selectedId = null;
+                          }),
+                        ),
+                      ),
+                    )
                   else
                     CoreScopes(
                       scope: scope,
@@ -142,7 +197,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                         selectedId = null;
                       }),
                     ),
-                  if (!portrait) ...[
+                  if (!portrait && !short) ...[
                     const Spacer(),
                     Text(
                       'MODULAR BY DESIGN · PREVIEW CATALOG',
@@ -177,21 +232,34 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               )
             else ...[
               Expanded(child: _browser(list, selIndex, osPad)),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '${(selIndex + 1).toString().padLeft(2, '0')} / ${list.length.toString().padLeft(2, '0')}',
-                    style: Tokens.flowCount,
+              if (!short)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '${(selIndex + 1).toString().padLeft(2, '0')} / ${list.length.toString().padLeft(2, '0')}',
+                      style: Tokens.flowCount,
+                    ),
                   ),
                 ),
-              ),
               if (sel != null)
                 Container(
-                  margin: EdgeInsets.fromLTRB(osPad, 0, osPad, 12),
-                  padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
+                  margin: EdgeInsets.fromLTRB(
+                    osPad,
+                    0,
+                    osPad,
+                    ultraCompact ? 2 : (short ? 6 : 12),
+                  ),
+                  padding: EdgeInsets.fromLTRB(
+                    ultraCompact ? 8 : (short ? 14 : 22),
+                    ultraCompact ? 6 : (short ? 10 : 18),
+                    ultraCompact ? 8 : (short ? 14 : 22),
+                    ultraCompact ? 6 : (short ? 8 : 12),
+                  ),
                   decoration: Tokens.dockDecor,
-                  child: portrait ? _dockPortrait(sel) : _dockLandscape(sel),
+                  child: portrait
+                      ? _dockPortrait(sel)
+                      : _dockLandscape(sel, compact: short),
                 ),
             ],
           ],
@@ -293,78 +361,116 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     );
   }
 
-  Widget _dockLandscape(CoreManifest m) {
+  Widget _dockLandscape(CoreManifest m, {bool compact = false}) {
     final installed = widget.state.registry.isInstalled(m.id);
     final count = widget.state.games.where((g) => g.coreId == m.id).length;
+    final ultraCompact = compact && MediaQuery.sizeOf(context).height < 360;
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        OrbitPrimary(
+          label: ultraCompact ? 'Games' : 'Browse games',
+          icon: Icons.grid_view,
+          minHeight: compact ? 40 : 48,
+          onPressed: installed ? () => widget.onBrowseCore?.call(m.id) : null,
+        ),
+        SizedBox(width: compact ? 6 : 8),
+        OrbitSecondary(
+          label: installed
+              ? (compact ? 'Remove' : 'Remove core')
+              : _busyId == m.id
+              ? 'Downloading…'
+              : 'Add core',
+          icon: installed
+              ? Icons.close
+              : _busyId == m.id
+              ? Icons.downloading
+              : Icons.add,
+          onPressed: () => installed ? _confirmRemove(m) : _install(m),
+        ),
+      ],
+    );
+    if (ultraCompact) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: _dockUltraCompactCopy(m, count)),
+          const SizedBox(width: 8),
+          actions,
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: _dockCopy(m, count)),
-            const SizedBox(width: 16),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+        if (compact) ...[
+          _dockCopy(m, count, compact: true),
+          const SizedBox(height: 6),
+          Align(alignment: Alignment.centerRight, child: actions),
+        ] else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(child: _dockCopy(m, count)),
+              const SizedBox(width: 16),
+              actions,
+            ],
+          ),
+        if (!compact) const SizedBox(height: 8),
+        if (!compact)
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0x14DDE6F4))),
+            ),
+            padding: const EdgeInsets.only(top: 9),
+            child: Row(
               children: [
-                OrbitPrimary(
-                  label: 'Browse games',
-                  icon: Icons.grid_view,
-                  minHeight: 48,
-                  onPressed: installed
-                      ? () => widget.onBrowseCore?.call(m.id)
-                      : null,
+                const Icon(
+                  Icons.info_outline,
+                  size: 12,
+                  color: Color(0xFF8290A4),
                 ),
-                const SizedBox(width: 8),
-                OrbitSecondary(
-                  label: installed
-                      ? 'Remove core'
-                      : _busyId == m.id
-                      ? 'Downloading…'
-                      : 'Add core',
-                  icon: installed
-                      ? Icons.close
-                      : _busyId == m.id
-                      ? Icons.downloading
-                      : Icons.add,
-                  onPressed: () => installed ? _confirmRemove(m) : _install(m),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    m.blocked
+                        ? 'Hold · ${m.blockedReason} — games & saves are kept.'
+                        : 'Cores install locally on this device. Removing one keeps games & saves.',
+                    style: Tokens.body(size: 12, color: Color(0xFF8290A4)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _license(m),
+                  child: Text(
+                    'License',
+                    style: Tokens.body(size: 12, color: Tokens.systemLabelFg),
+                  ),
                 ),
               ],
             ),
-          ],
+          ),
+      ],
+    );
+  }
+
+  Widget _dockUltraCompactCopy(CoreManifest m, int count) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          m.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Tokens.display(size: 16, weight: FontWeight.w500),
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Color(0x14DDE6F4))),
-          ),
-          padding: const EdgeInsets.only(top: 9),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.info_outline,
-                size: 12,
-                color: Color(0xFF8290A4),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  m.blocked
-                      ? 'Hold · ${m.blockedReason} — games & saves are kept.'
-                      : 'Cores install locally on this device. Removing one keeps games & saves.',
-                  style: Tokens.body(size: 9, color: Color(0xFF8290A4)),
-                ),
-              ),
-              TextButton(
-                onPressed: () => _license(m),
-                child: Text(
-                  'License',
-                  style: Tokens.body(size: 10, color: Tokens.systemLabelFg),
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 2),
+        Text(
+          '$count ${count == 1 ? 'game' : 'games'} in your library',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Tokens.body(size: 11, color: Tokens.muted),
         ),
       ],
     );
@@ -414,13 +520,13 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           m.blocked
               ? 'Hold · ${m.blockedReason}'
               : 'Cores install locally on this device.',
-          style: Tokens.body(size: 8, color: Color(0xFF8290A4)),
+          style: Tokens.body(size: 12, color: Color(0xFF8290A4)),
         ),
       ],
     );
   }
 
-  Widget _dockCopy(CoreManifest m, int count) {
+  Widget _dockCopy(CoreManifest m, int count, {bool compact = false}) {
     final status = widget.state.registry.statusOf(m);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +546,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
             ),
             Text(
               '${_typeFor(m)} · ${_eraFor(m)}',
-              style: Tokens.body(size: 9, color: Tokens.muted),
+              style: Tokens.body(size: 12, color: Tokens.muted),
             ),
             _StatusDot(status: status),
           ],
@@ -448,18 +554,22 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         const SizedBox(height: 6),
         Text(
           m.name,
-          style: Tokens.display(size: 22, weight: FontWeight.w500, ls: -0.7),
+          style: Tokens.display(
+            size: compact ? 18 : 22,
+            weight: FontWeight.w500,
+            ls: -0.7,
+          ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: compact ? 2 : 6),
         Text(
           '${_aboutFor(m)} ',
-          style: Tokens.body(size: 11, color: Tokens.dockBody, height: 1.45),
-          maxLines: 2,
+          style: Tokens.body(size: 12, color: Tokens.dockBody, height: 1.4),
+          maxLines: compact ? 1 : 2,
           overflow: TextOverflow.ellipsis,
         ),
         Text(
           '$count sample ${count == 1 ? 'game' : 'games'} in your library',
-          style: Tokens.body(size: 11, color: Tokens.text),
+          style: Tokens.body(size: 12, color: Tokens.text),
         ),
         if (m.biosRequired)
           FutureBuilder(
@@ -477,7 +587,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 child: Text(
                   label,
                   style: Tokens.body(
-                    size: 11,
+                    size: 12,
                     color: ok ? Tokens.ok : Tokens.accent,
                   ),
                 ),
@@ -711,91 +821,107 @@ class _CoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 300,
-            height: 320,
-            padding: const EdgeInsets.all(18),
-            decoration: selected
-                ? Tokens.coreCardSelectedDecor
-                : Tokens.coreCardDecor,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite
+            ? math.min(300.0, constraints.maxWidth)
+            : 300.0;
+        final height = constraints.maxHeight.isFinite
+            ? math.min(320.0, constraints.maxHeight)
+            : 320.0;
+        // Keep type at its intended size on narrow or short carousels. The
+        // illustration gives up space first; text is never scaled with it.
+        final compact = width < 230 || height < 190;
+        return Center(
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: EdgeInsets.all(compact ? 12 : 18),
+                decoration: selected
+                    ? Tokens.coreCardSelectedDecor
+                    : Tokens.coreCardDecor,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      _shortFor(manifest.id),
-                      style: Tokens.display(
-                        size: 10,
-                        weight: FontWeight.w500,
-                        ls: 2.0,
+                    if (!compact)
+                      Row(
+                        children: [
+                          Text(
+                            _shortFor(manifest.id),
+                            style: Tokens.display(
+                              size: 12,
+                              weight: FontWeight.w500,
+                              ls: 1.2,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: installed
+                                  ? Tokens.accent
+                                  : const Color(0xFF788394),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            installed
+                                ? 'ADDED'
+                                : manifest.blocked
+                                ? 'HOLD'
+                                : 'AVAILABLE',
+                            style: Tokens.body(
+                              size: 12,
+                              weight: FontWeight.w600,
+                              ls: 0.3,
+                              color: installed
+                                  ? Tokens.systemLabelFg
+                                  : Tokens.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    Expanded(
+                      child: Center(
+                        child: CoreArtwork(
+                          coreId: manifest.id,
+                          systems: manifest.systems,
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: installed
-                                ? Tokens.accent
-                                : const Color(0xFF788394),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          installed
-                              ? 'ADDED'
-                              : manifest.blocked
-                              ? 'HOLD'
-                              : 'AVAILABLE',
-                          style: Tokens.body(
-                            size: 8,
-                            weight: FontWeight.w600,
-                            ls: 1.0,
-                            color: installed
-                                ? Tokens.systemLabelFg
-                                : Tokens.muted,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      manifest.name,
+                      style: Tokens.display(
+                        size: compact ? 14 : 16,
+                        weight: FontWeight.w500,
+                        ls: -0.3,
+                      ),
+                      maxLines: compact ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    if (!compact) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        manifest.id,
+                        style: Tokens.body(
+                          size: 12,
+                          ls: 0.2,
+                          color: Tokens.muted,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
-                Expanded(
-                  child: Center(
-                    child: SvgPicture.string(
-                      hardwareSvg(manifest.id),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-                Text(
-                  manifest.name,
-                  style: Tokens.display(
-                    size: 16,
-                    weight: FontWeight.w500,
-                    ls: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  manifest.id,
-                  style: Tokens.body(size: 10, ls: 0.5, color: Tokens.muted),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

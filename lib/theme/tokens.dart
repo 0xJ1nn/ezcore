@@ -127,7 +127,9 @@ abstract final class Tokens {
     double? height,
   }) => TextStyle(
     fontFamily: displayFamily,
-    fontSize: size,
+    // Avoid the tiny 8–11 px labels that made the shell hard to scan.
+    // Display titles keep their requested size; only micro-labels are lifted.
+    fontSize: size < 12 ? 12 : size,
     fontWeight: weight,
     letterSpacing: ls,
     color: color,
@@ -142,7 +144,7 @@ abstract final class Tokens {
     double? height,
   }) => TextStyle(
     fontFamily: bodyFamily,
-    fontSize: size,
+    fontSize: size < 12 ? 12 : size,
     fontWeight: weight,
     letterSpacing: ls,
     color: color,
@@ -151,8 +153,8 @@ abstract final class Tokens {
 
   static TextStyle get eyebrow => const TextStyle(
     fontFamily: displayFamily,
-    fontSize: 9,
-    letterSpacing: 2.0,
+    fontSize: 11,
+    letterSpacing: 1.5,
     color: muted,
     fontWeight: FontWeight.w400,
   );
@@ -166,19 +168,19 @@ abstract final class Tokens {
   static TextStyle get dockBodyStyle =>
       body(size: 11, color: dockBody, height: 1.5);
 
-  static TextStyle get gameMeta => body(size: 10, ls: 0.25, color: text);
+  static TextStyle get gameMeta => body(size: 12, ls: 0.25, color: text);
 
   static TextStyle get systemLabel => const TextStyle(
     fontFamily: displayFamily,
-    fontSize: 9,
-    letterSpacing: 1.0,
+    fontSize: 11,
+    letterSpacing: 0.8,
     color: systemLabelFg,
     fontWeight: FontWeight.w400,
   );
 
   static TextStyle get flowCount => const TextStyle(
     fontFamily: displayFamily,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 3.0,
     color: muted,
   );
@@ -186,7 +188,7 @@ abstract final class Tokens {
   static TextStyle get chipLabel =>
       body(size: 11, weight: FontWeight.w600, color: muted);
 
-  static TextStyle get footerStyle => body(size: 9, color: muted);
+  static TextStyle get footerStyle => body(size: 11, color: muted);
 
   // ---- Type: scene chrome (screen title, sections, stat panel) ----
 

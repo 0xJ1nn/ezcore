@@ -281,9 +281,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final layout = Layout.of(context);
+    final short = Layout.isShort(layout);
     final osPad = Tokens.osPad(
       MediaQuery.of(context).size.width,
       portrait: layout == OrbitLayout.phonePortrait,
+      short_: short,
     );
     return ListenableBuilder(
       listenable: widget.state,
@@ -377,7 +379,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Flexible(
+            Expanded(
+              flex: 3,
               child: Text(
                 'The collection',
                 style: Tokens.display(
@@ -385,11 +388,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   weight: FontWeight.w500,
                   ls: -1.0,
                 ),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 10),
-            Text(countLabel, style: Tokens.body(size: 12, color: Tokens.muted)),
+            Flexible(
+              child: Text(
+                countLabel,
+                style: Tokens.body(size: 12, color: Tokens.muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 4),
@@ -589,51 +600,90 @@ class _LibraryScreenState extends State<LibraryScreen> {
     GameEntry? selected,
     double osPad,
   ) {
-    if (list.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(osPad, 8, osPad, 0),
-            child: Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 360;
+        final header = _landscapeHeader(
+          list.length,
+          osPad,
+          stacked: constraints.maxWidth < 600,
+        );
+        if (compact) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: _titleBlock(_countLabel(list.length), big: false),
+                header,
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 180,
+                  child: list.isEmpty
+                      ? _empty()
+                      : view == 'grid'
+                      ? _grid(list, osPad)
+                      : _flowStage(list, selected, osPad, desktop: false),
                 ),
-                _search(width: 200, hint: 'Search games…'),
+              ],
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            header,
+            Expanded(
+              child: list.isEmpty
+                  ? _empty()
+                  : view == 'grid'
+                  ? _grid(list, osPad)
+                  : _flowStage(list, selected, osPad, desktop: false),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _landscapeHeader(int count, double osPad, {required bool stacked}) {
+    final title = _titleBlock(_countLabel(count), big: false);
+    if (stacked) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(osPad, 8, osPad, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: title),
                 const SizedBox(width: 8),
                 _importButton(),
               ],
             ),
-          ),
-          Expanded(child: _empty()),
-        ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _search(width: 160, hint: 'Search games…'),
+                const SizedBox(width: 8),
+                _viewSwitcher(),
+              ],
+            ),
+          ],
+        ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(osPad, 8, osPad, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: _titleBlock(_countLabel(list.length), big: false),
-              ),
-              _search(width: 200, hint: 'Search games…'),
-              const SizedBox(width: 8),
-              _viewSwitcher(),
-              const SizedBox(width: 8),
-              _importButton(),
-            ],
-          ),
-        ),
-        Expanded(
-          child: view == 'grid'
-              ? _grid(list, osPad)
-              : _flowStage(list, selected, osPad, desktop: false),
-        ),
-      ],
+    return Padding(
+      padding: EdgeInsets.fromLTRB(osPad, 8, osPad, 0),
+      child: Row(
+        children: [
+          Expanded(child: title),
+          _search(width: 200, hint: 'Search games…'),
+          const SizedBox(width: 8),
+          _viewSwitcher(),
+          const SizedBox(width: 8),
+          _importButton(),
+        ],
+      ),
     );
   }
 

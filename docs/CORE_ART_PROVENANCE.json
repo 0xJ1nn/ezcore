@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "asset_directory": "assets/core_art",
+  "created": "2026-09",
+  "source": {
+    "service": "ChatGPT Images",
+    "client": "Codex",
+    "maintainer_statement": "The artwork was created for ezCORE by Codex using ChatGPT Images.",
+    "external_source_url": null,
+    "generation_id": null,
+    "prompt_record": null
+  },
+  "rights": {
+    "terms_url": "https://openai.com/policies/row-terms-of-use/",
+    "terms_effective": "2026-01-01",
+    "maintainer_review_date": "2026-09-25",
+    "maintainer_review": "approved",
+    "review_scope": "All files reviewed for visible logos, copied branding, and unacceptable hardware trade-dress resemblance; approved for ezCORE redistribution.",
+    "limitations": "This is a provenance record, not legal advice or a warranty against third-party rights or generated-output similarity."
+  },
+  "files": {
+    "advancebit.webp": {
+      "sha256": "a1947dc37c079c258c5b65c08c47d32f0d50f268298ceb5bc6be7b670b82ad42",
+      "role": "AdvanceBit / GBA family"
+    },
+    "blastproc.webp": {
+      "sha256": "638341dcfda02d8be5b98d34afc04f8d19e190002fe49ab052a7a83f62165002",
+      "role": "BlastProc / 16-bit console family"
+    },
+    "cardcon.webp": {
+      "sha256": "2937ebbf8367a6326625aa0d3ab14ae309a3fcd0ec173ad86de1a5db88d30162",
+      "role": "CardCon / PCE family"
+    },
+    "coinbox.webp": {
+      "sha256": "32ff77babb74714527237be7d1f9a7f95f94178ed2db9fedd40a6b84de3b8ab6",
+      "role": "CoinBox / arcade family"
+    },
+    "dreamarc.webp": {
+      "sha256": "8dd4f2d5f9f235e85f62ae799d2c87d6abe20e539b062979208027a05e470608",
+      "role": "DreamArc / disc-console family"
+    },
+    "dualscreen.webp": {
+      "sha256": "7c0ac4e74c555a97e2744dae92bd0549d004e41f4af5b8bbfd4ae4190f2de5f2",
+      "role": "DualScreen / dual-screen family"
+    },
+    "gambatte.webp": {
+      "sha256": "8d40d2bc320deefc0488f948fec5b6f8364d036ad6ea418f203f5d0c8b8cec06",
+      "role": "Gambatte / GBC family"
+    },
+    "generic.webp": {
+      "sha256": "eea0a0c2e736cf05a085271e0f49bc040da92773a45f6e5f04e1979fecd0a4d5",
+      "role": "Unknown-system fallback"
+    },
+    "geometry1.webp": {
+      "sha256": "d008f572a0be9df10e61ff4e9c706a17efbdf63b872f7aa7ead97123af9bbb41",
+      "role": "Geometry1 / PlayStation-family target"
+    },
+    "joystick.webp": {
+      "sha256": "c43a7cc32ea27fa3295cb042cfb0d7d2044ac21e322ba1a01e41bbd7132a08ee",
+      "role": "Joystick / Atari 2600 family"
+    },
+    "nesbyte.webp": {
+      "sha256": "16ca9c5b7de72ebecbb36ff4bfddc995ce1899f0c4a16b4c96c2648a4a8dbc59",
+      "role": "NesByte / NES family"
+    },
+    "pocketbit.webp": {
+      "sha256": "a92853d79ae5fd80c45e42e1779cf3345241890a73f72eb30db3b8b73acf5fce",
+      "role": "PocketBit / Game Boy family"
+    },
+    "pointclick.webp": {
+      "sha256": "5a778882203c7408fbe633c4570c16e8db4e8ba806b522ec27bbf1519a193a4d",
+      "role": "PointClick / adventure-computer family"
+    },
+    "portcomp.webp": {
+      "sha256": "9a67b61fd18f7ecc048a379b2caa2d66c7853fa8f8582b6c9f3a5bb5e2f2e5fa",
+      "role": "PortComp / handheld family"
+    },
+    "powercube.webp": {
+      "sha256": "4db05162b70cdddfeed81adab167c2d920f10a4c57e12366776b673112ac45ae",
+      "role": "PowerCube / GameCube-family target"
+    },
+    "rcp64.webp": {
+      "sha256": "6f291cb01d11dc2e766eedbd9e91e27c1c41163fc1ac6a62f6330597858fb6cc",
+      "role": "RCP64 / Nintendo 64 family"
+    },
+    "realmode.webp": {
+      "sha256": "17c9eb594c9565c687ec16768e7b4f60d4502a40ece619c0d2509fc241ad372b",
+      "role": "RealMode / home-computer family"
+    },
+    "superfx.webp": {
+      "sha256": "c644c8ae1f99755eed17aaaf1897a073168454cff90e2f86d3204a62dc30d621",
+      "role": "SuperFX / SNES family"
+    },
+    "twinsh.webp": {
+      "sha256": "90483080c3d089c269cd690991d6b982fb2e20c64f36847b983a0247fa6d5f64",
+      "role": "TwinSH / Saturn family"
+    }
+  }
+}

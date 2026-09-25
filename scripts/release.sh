@@ -6,7 +6,7 @@
 #        EZCORE_KEYSTORE_* (Android; see android signing config).
 #
 # Pipeline per platform:
-#   1. data gates (manifests valid + catalog fresh)
+#   1. data gates (manifests, artwork provenance/pins, catalog fresh)
 #   2. native gates (runtime builds; staged cores match committed pins)
 #   3. flutter build --release
 # 4. bundle runtime + tier cores next to the app (desktop), jniLibs
@@ -66,6 +66,8 @@ echo "== ezCORE $VERSION for $PLATFORM =="
 gate python3 "$ROOT/scripts/fill_manifest_data.py" --check
 gate python3 "$ROOT/scripts/build_catalog.py"
 gate python3 "$ROOT/scripts/license_audit.py"
+gate python3 "$ROOT/scripts/verify_core_art.py"
+gate flutter test --no-pub test/hardware_art_test.dart
 gate bash "$ROOT/scripts/banned_content_scan.sh"
 
 # 2. native gates
@@ -169,5 +171,6 @@ esac
 
 # 5. final scan of what ships (bundle content, not just the repo)
 gate python3 "$ROOT/scripts/license_audit.py"
+gate python3 "$ROOT/scripts/verify_core_art.py"
 gate bash "$ROOT/scripts/banned_content_scan.sh"
 echo "OK: $OUT"

@@ -41,66 +41,69 @@ class _VaultScreenState extends State<VaultScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    // One breakpoint definition for the whole app (theme/layout.dart).
-    final portrait = Layout.isPhone(Layout.of(context));
-    final osPad = Tokens.osPad(size.width, portrait: portrait);
+    final layout = Layout.of(context);
+    final portrait = Layout.hasBottomBar(layout);
+    final short = Layout.isShort(layout);
+    final ultraCompact = short && size.height < 360;
+    final osPad = Tokens.osPad(size.width, portrait: portrait, short_: short);
     return ListenableBuilder(
       listenable: widget.state,
       builder: (context, _) {
+        final vaultLabel = widget.state.saves.id == 'local'
+            ? 'LOCAL VAULT'
+            : '${widget.state.saves.id.toUpperCase()} VAULT';
+        final title = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!ultraCompact) ...[
+              Text('PLAY. PRESERVE. ANYWHERE.', style: Tokens.eyebrow),
+              const SizedBox(height: 7),
+            ],
+            Text(
+              'Your time capsule',
+              style: Tokens.display(
+                size: ultraCompact ? 20 : (short ? 22 : (portrait ? 27 : 32)),
+                weight: FontWeight.w500,
+                ls: -1.0,
+              ),
+            ),
+            if (!ultraCompact) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Not just where you stopped. Where you want to return.',
+                style: Tokens.body(size: 12, color: Tokens.muted, height: 1.6),
+              ),
+            ],
+          ],
+        );
+        final badge = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Tokens.line),
+          ),
+          child: Text(
+            vaultLabel,
+            style: Tokens.body(size: 12, ls: 0.8, color: Tokens.muted),
+          ),
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(osPad, 26, osPad, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
+              padding: EdgeInsets.fromLTRB(osPad, short ? 10 : 26, osPad, 0),
+              child: portrait
+                  ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [title, const SizedBox(height: 8), badge],
+                    )
+                  : Row(
                       children: [
-                        Text(
-                          'PLAY. PRESERVE. ANYWHERE.',
-                          style: Tokens.eyebrow,
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          'Your time capsule',
-                          style: Tokens.display(
-                            size: portrait ? 27 : 32,
-                            weight: FontWeight.w500,
-                            ls: -1.0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Not just where you stopped. Where you want to return.',
-                          style: Tokens.body(
-                            size: 12,
-                            color: Tokens.muted,
-                            height: 1.6,
-                          ),
-                        ),
+                        Expanded(child: title),
+                        badge,
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Tokens.line),
-                    ),
-                    child: Text(
-                      widget.state.saves.id == 'local'
-                          ? 'LOCAL VAULT'
-                          : '${widget.state.saves.id.toUpperCase()} VAULT',
-                      style: Tokens.body(size: 9, ls: 1.5, color: Tokens.muted),
-                    ),
-                  ),
-                ],
-              ),
             ),
             Expanded(
               child: FutureBuilder<List<_SaveRow>>(
@@ -141,7 +144,12 @@ class _VaultScreenState extends State<VaultScreen> {
                     );
                   }
                   return GridView.builder(
-                    padding: EdgeInsets.fromLTRB(osPad, 25, osPad, 25),
+                    padding: EdgeInsets.fromLTRB(
+                      osPad,
+                      short ? 12 : 25,
+                      osPad,
+                      short ? 12 : 25,
+                    ),
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: portrait ? 400 : 320,
                       mainAxisSpacing: 24,

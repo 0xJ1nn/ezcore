@@ -67,34 +67,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    // One breakpoint definition for the whole app (theme/layout.dart).
-    final portrait = Layout.isPhone(Layout.of(context));
-    final osPad = Tokens.osPad(size.width, portrait: portrait);
+    final layout = Layout.of(context);
+    final portrait = Layout.hasBottomBar(layout);
+    final compact = layout == OrbitLayout.phoneLandscape;
+    final useTabs = portrait || compact;
+    final short = Layout.isShort(layout);
+    final osPad = Tokens.osPad(size.width, portrait: portrait, short_: short);
     return ListenableBuilder(
       listenable: widget.state,
       builder: (context, _) {
-        final nav = _nav(portrait);
+        final nav = _nav(useTabs);
         final panel = _panel();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(osPad, 26, osPad, 0),
+              padding: EdgeInsets.fromLTRB(osPad, short ? 10 : 26, osPad, 0),
               child: Row(
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'SIMPLE. POWERFUL. EVERYWHERE.',
-                          style: Tokens.eyebrow,
-                        ),
-                        const SizedBox(height: 7),
+                        if (!compact) ...[
+                          Text(
+                            'SIMPLE. POWERFUL. EVERYWHERE.',
+                            style: Tokens.eyebrow,
+                          ),
+                          const SizedBox(height: 7),
+                        ],
                         Text(
                           'Fine-tune your experience',
                           style: Tokens.display(
-                            size: portrait ? 25 : 30,
+                            size: short ? 22 : (portrait ? 25 : 30),
                             weight: FontWeight.w500,
                             ls: -0.7,
                           ),
@@ -102,27 +107,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                  if (!compact)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Tokens.line),
+                      ),
+                      child: Text(
+                        portrait ? 'LOCAL' : 'LOCAL PREFERENCES',
+                        style: Tokens.body(
+                          size: 12,
+                          ls: 0.8,
+                          color: Tokens.muted,
+                        ),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Tokens.line),
-                    ),
-                    child: Text(
-                      'LOCAL PREFERENCES',
-                      style: Tokens.body(size: 9, ls: 1.5, color: Tokens.muted),
-                    ),
-                  ),
                 ],
               ),
             ),
             Expanded(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(osPad, 32, osPad, 24),
-                child: portrait
+                padding: EdgeInsets.fromLTRB(
+                  osPad,
+                  short ? 12 : 32,
+                  osPad,
+                  short ? 8 : 24,
+                ),
+                child: useTabs
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -138,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(width: 170, child: nav),
-                          const SizedBox(width: 48),
+                          SizedBox(width: short ? 18 : 48),
                           Expanded(child: SingleChildScrollView(child: panel)),
                         ],
                       ),

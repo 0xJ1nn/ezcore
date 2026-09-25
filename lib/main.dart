@@ -142,13 +142,13 @@ class _ShellState extends State<Shell> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final layout = Layout.of(context);
+    final short = Layout.isShort(layout);
     final osPad = Tokens.osPad(
       size.width,
       portrait: layout == OrbitLayout.phonePortrait,
-      short_: layout == OrbitLayout.phoneLandscape,
+      short_: short,
     );
     final hasRail = Layout.hasRail(layout);
-    final short = Layout.isShort(layout);
 
     return CallbackShortcuts(
       bindings: {

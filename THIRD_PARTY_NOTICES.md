@@ -16,6 +16,7 @@ see [`TRADEMARKS.md`](TRADEMARKS.md) and [`DMCA.md`](DMCA.md).
 | Component | License |
 |---|---|
 | App shell (Flutter/Dart, `lib/`) | GPL-3.0-only |
+| Core catalog artwork (`assets/core_art/`) | GPL-3.0-only; project-generated — see [`docs/CORE_ART_PROVENANCE.md`](docs/CORE_ART_PROVENANCE.md) and [`docs/CORE_ART_PROVENANCE.json`](docs/CORE_ART_PROVENANCE.json) |
 | ezCore Runtime (C11, `runtime/`) | GPL-3.0-only |
 | Core manifests, scripts, docs | GPL-3.0-only |
 
@@ -84,7 +85,6 @@ packages (all permissively licensed; exact versions in `pubspec.lock`):
 | Package | License |
 |---|---|
 | `cupertino_icons` | MIT |
-| `flutter_svg` | MIT |
 | `path_provider` | BSD-3-Clause |
 | `file_selector` | BSD-3-Clause |
 | `flutter_test`, `integration_test` | BSD-3-Clause (Flutter) |
@@ -94,6 +94,11 @@ used per their platform terms and are not redistributed by this project.
 
 ## 5. Verification and provenance
 
+- Core catalog artwork records its maintainer-supplied creation statement,
+  generation service terms, limitations, and complete file list in
+  [`docs/CORE_ART_PROVENANCE.md`](docs/CORE_ART_PROVENANCE.md); the exact
+  machine-readable file set and SHA-256 pins live in
+  [`docs/CORE_ART_PROVENANCE.json`](docs/CORE_ART_PROVENANCE.json).
 - Core artifacts are built from the upstream sources named above and
   **sha256-pinned** per platform in `cores/<id>/manifest.json`.
 - `scripts/pin_artifacts.py --check` refuses to assemble a release when the

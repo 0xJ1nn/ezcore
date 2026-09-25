@@ -14,12 +14,14 @@ Rules enforced:
   4. Blocked holds (`blocked_reason`) ship nothing: delivery absent, no pins.
   5. Every distributed core is listed in THIRD_PARTY_NOTICES.md.
   6. Every distributed core has at least one pinned artifact.
+  7. Every bundled core-art WebP is listed in the artwork provenance record.
 
 `download` distributes the exact same bytes from our release assets as
 `bundled` does from the package — every rule above covers both (ADR-013).
 
 Exit 0 = clean. Exit 1 = violations printed.
 """
+import hashlib
 import json
 import re
 import sys
@@ -56,6 +58,62 @@ def license_class(lic):
     return "CUSTOM?"
 
 
+def verify_core_art():
+    """Validate the exact artwork set, provenance record, and pins."""
+    art_dir = ROOT / "assets" / "core_art"
+    record_path = ROOT / "docs" / "CORE_ART_PROVENANCE.json"
+    violations = []
+    if not art_dir.is_dir():
+        return ["core artwork: missing assets/core_art directory"]
+    entries = list(art_dir.iterdir())
+    for entry in entries:
+        if entry.is_dir() or entry.is_symlink() or entry.suffix.lower() != ".webp":
+            violations.append(
+                "core artwork: assets/core_art must contain only flat WebP files "
+                f"({entry.name})"
+            )
+    actual = {
+        path.name: path
+        for path in entries
+        if path.is_file() and not path.is_symlink() and path.suffix.lower() == ".webp"
+    }
+    if not record_path.is_file():
+        return violations + ["core artwork: missing docs/CORE_ART_PROVENANCE.json"]
+    try:
+        record = json.loads(record_path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        return violations + [f"core artwork: invalid provenance JSON: {exc}"]
+
+    if record.get("schema") != 1:
+        violations.append("core artwork provenance: unsupported schema")
+    source = record.get("source", {})
+    if source.get("service") != "ChatGPT Images" or source.get("client") != "Codex":
+        violations.append("core artwork provenance: service/client statement missing")
+    rights = record.get("rights", {})
+    if rights.get("maintainer_review") != "approved":
+        violations.append("core artwork provenance: maintainer review is not approved")
+    if rights.get("terms_url") != "https://openai.com/policies/row-terms-of-use/":
+        violations.append("core artwork provenance: OpenAI terms URL missing")
+
+    recorded = record.get("files", {})
+    if not isinstance(recorded, dict):
+        return violations + ["core artwork provenance: files must be an object"]
+    for name in sorted(set(actual) - set(recorded)):
+        violations.append(f"core artwork: {name} missing from provenance record")
+    for name in sorted(set(recorded) - set(actual)):
+        violations.append(f"core artwork provenance: {name} has no asset file")
+    for name in sorted(set(actual) & set(recorded)):
+        path = actual[name]
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        expected = recorded[name].get("sha256") if isinstance(recorded[name], dict) else None
+        if digest != expected:
+            violations.append(f"core artwork: {name} SHA-256 does not match provenance pin")
+        header = path.read_bytes()[:12]
+        if header[:4] != b"RIFF" or header[8:12] != b"WEBP":
+            violations.append(f"core artwork: {name} is not a RIFF/WebP file")
+    return violations
+
+
 def main():
     notices = ""
     notices_path = ROOT / "THIRD_PARTY_NOTICES.md"
@@ -64,6 +122,8 @@ def main():
 
     violations = []
     rows = []
+
+    violations.extend(verify_core_art())
     for path in sorted((ROOT / "cores").glob("*/manifest.json")):
         d = json.loads(path.read_text())
         cid = d.get("id", path.parent.name)
@@ -127,7 +187,7 @@ def main():
         for v in violations:
             print("  ✗ " + v)
         sys.exit(1)
-    print("\nOK: license rules hold")
+    print("\nOK: license and artwork provenance rules hold")
 
 
 if __name__ == "__main__":

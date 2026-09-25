@@ -65,8 +65,9 @@ behind the new chrome:
   `assets/fonts/README.md`); no runtime font fetching.
 
 This supersedes the "Moonboard visual parity has NOT been established" bullet
-in the checkpoint below **for app chrome tokens/layout only**. Still true and
-unchanged: covers/hardware art are generated placeholders (no art ships),
+in the checkpoint below **for app chrome tokens/layout and the current core
+artwork surface**. The core catalog now ships project-generated WebP renders
+with a reviewed provenance record and SHA-256 pins. Still true and unchanged:
 playable end-to-end emulation is NOT verified, and the sandboxed macOS
 acceptance test still fails as documented below.
 
@@ -78,13 +79,15 @@ Directly executed checks for this pass:
 - Launch smoke: released `.app` starts and stays resident with no crash
   report (headless session — no pixel verification claimed).
 
-## Production pass (2026-09-18): no placeholders
+## Historical production pass (2026-09-18): no placeholders
 
 Follow-up pass that removed every placeholder and half-wired control:
 
-- **Hardware art**: all 18 finalized silhouettes ported to
-  `lib/widgets/hardware_art.dart` (same shapes/palette/gradients/viewBox,
-  rendered with flutter_svg) + parser/render widget tests.
+- **Hardware art (historical SVG implementation)**: all 18 finalized
+  silhouettes were ported to `lib/widgets/hardware_art.dart` and rendered
+  with `flutter_svg` at this checkpoint. The current branch replaces that
+  implementation with project-generated WebP renders documented in
+  [`CORE_ART_PROVENANCE.md`](CORE_ART_PROVENANCE.md).
 - **Covers**: deterministic generative covers per game
   (`lib/services/cover_art.dart`, seed/palette/motif tests); screenshots
   pin as the game's cover automatically.
