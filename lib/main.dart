@@ -20,8 +20,9 @@ Future<void> main() async {
 }
 
 /// ezCORE — Orbit console shell (final-01).
-/// 4 spaces: Library / Systems / Capsule / Settings.
-/// Landscape ≥700px → left command rail; portrait → top command dock.
+/// Five layout families: desktop, tablet landscape/portrait, and phone
+/// landscape/portrait. All but phone portrait use the command rail; phone
+/// portrait uses the bottom command bar.
 class EmuApp extends StatefulWidget {
   const EmuApp({super.key, required this.dirProvider});
   final LocalDataDirProvider dirProvider;
@@ -101,18 +102,40 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   String page = 'library';
   String? libraryFilter;
-  int libraryFilterNonce = 0;
 
-  void _go(String p) => setState(() => page = p);
+  void _go(String p) {
+    if (p == 'continue' || p == 'favorites') {
+      _filterLibrary(p == 'continue' ? 'Continue' : 'Favorites');
+      return;
+    }
+    if (p == 'library') {
+      _filterLibrary(null);
+      return;
+    }
+    setState(() => page = p);
+  }
+
+  String get _activeRailPage {
+    if (page != 'library') return page;
+    return switch (libraryFilter) {
+      'Continue' => 'continue',
+      'Favorites' => 'favorites',
+      _ => 'library',
+    };
+  }
 
   /// Sends the library to a filter (a core, or a system from the picker)
   /// and brings the Library space forward.
   void _filterLibrary(String? filter) {
     setState(() {
       libraryFilter = filter;
-      libraryFilterNonce++;
       page = 'library';
     });
+  }
+
+  void _onLibraryFilterChanged(String? filter) {
+    if (libraryFilter == filter) return;
+    setState(() => libraryFilter = filter);
   }
 
   void _browseCore(String coreId) => _filterLibrary('core:$coreId');
@@ -145,7 +168,7 @@ class _ShellState extends State<Shell> {
     final short = Layout.isShort(layout);
     final osPad = Tokens.osPad(
       size.width,
-      portrait: layout == OrbitLayout.phonePortrait,
+      portrait: Layout.isPortrait(layout),
       short_: short,
     );
     final hasRail = Layout.hasRail(layout);
@@ -168,7 +191,7 @@ class _ShellState extends State<Shell> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    OrbitRail(page: page, onGo: _go, short: short),
+                    OrbitRail(page: _activeRailPage, onGo: _go, short: short),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -185,7 +208,7 @@ class _ShellState extends State<Shell> {
                             ),
                           ),
                           Expanded(child: _page()),
-                          if (!short)
+                          if (layout == OrbitLayout.desktop)
                             Padding(
                               padding: EdgeInsets.fromLTRB(osPad, 0, osPad, 6),
                               child: const OrbitFooter(),
@@ -239,8 +262,8 @@ class _ShellState extends State<Shell> {
         LibraryScreen(
           state: widget.state,
           onGo: _go,
-          initialFilter: libraryFilter,
-          key: ValueKey('lib-$libraryFilterNonce-${libraryFilter ?? ''}'),
+          filter: libraryFilter,
+          onFilterChanged: _onLibraryFilterChanged,
         ),
         CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
         VaultScreen(state: widget.state),

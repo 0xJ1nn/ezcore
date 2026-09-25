@@ -1,12 +1,16 @@
 # ezCORE Living Roadmap
 
 > **Status:** authoritative long-term roadmap for ezCORE.
-> **Last audited:** 2026-09-24.
+> **Last audited:** 2026-09-25.
 > **Current release:** `v0.2.0` (public, experimental).
-> **Current repository state:** the Orbit redesign is integrated on the
-> `feat/orbit-mockup-redesign` PR branch. The combined Flutter and Linux native
-> gates are green on this checkout; maintainer review and platform-specific
-> verification remain separate release gates.
+> **Current repository state:** the replacement stack is open for review in
+> stacked PRs [#29](https://github.com/JinUltimate1995/ezcore/pull/29) and
+> [#30](https://github.com/JinUltimate1995/ezcore/pull/30): the base PR carries
+> the artwork/compact-shell evidence repair, and the child PR adds the signed
+> cover-flow hardening and public evidence refresh. Flutter, Linux native,
+> provenance, Linux debug, and Android debug gates are green on this checkout;
+> maintainer review, approval, and device/platform verification remain separate
+> release gates.
 >
 > This roadmap describes direction, not permission to implement every item in
 > one change. The code, tests, [`docs/MATRIX.md`](docs/MATRIX.md), and
@@ -38,12 +42,13 @@ understandable before adding another feature.
 - [x] Complete — create the `.ezcore/` state memory files.
 - [x] Complete — rebuild the public README around the current product,
   evidence-backed capabilities, contribution paths, and sponsorship.
-- [x] Complete — integrate the four-family Orbit redesign and its permanent
+- [x] Complete — integrate the five-family Orbit redesign and its permanent
   layout/backdrop regression coverage.
-- [~] In progress — maintainer review and merge of the combined UI/documentation
-  PR. The current checkout passes `flutter analyze`, the full Flutter suite
-  (`396` passed, `15` skipped), Linux CTest (`3/3`), and Linux/Android debug
-  builds; the final review still covers descriptive system-name wording.
+- [~] In progress — maintainer review and sequential merge of the two signed
+  replacement branches. The current checkout passes `flutter analyze`, the full
+  Flutter suite (`441` passed, `15` skipped), Linux CTest (`3/3`), and
+  Linux/Android debug builds; the final review covers the replacement diff and
+  recorded platform limits.
 - [ ] Planned — make CI/reproducible release verification a green, reviewed
   checkpoint again.
 
@@ -261,9 +266,9 @@ Game modifications, patches, assets, and profiles.
 
 ## Next task queue
 
-1. **M0-01 — Maintainer review and merge:** review the final Orbit/documentation
-   diff, confirm the descriptive system-name wording against project policy,
-   and merge PR #25 when the branch checks remain green.
+1. **M0-01 — Maintainer review and sequential merge:** review the two signed
+   replacement branches, confirm the artwork provenance and five-layout claims,
+   and merge the base branch before the cover-flow branch.
 2. **M1-01 — Capability contract research:** specify the smallest capability
    object and lifecycle compatibility rules before changing the ABI.
 3. **M1-02 — Configuration hierarchy:** define global/system/core/game

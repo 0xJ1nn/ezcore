@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../emu/player_controller.dart';
 import '../services/bios_check.dart';
 import '../services/core_discovery.dart';
+import '../services/cover_art.dart';
 import '../services/gamepad.dart';
 import '../services/core_staging.dart';
 import '../services/repo_layout.dart';
@@ -260,6 +261,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final art = File('${data.path}/art/${game.id}.png');
         await art.parent.create(recursive: true);
         await file.copy(art.path);
+        invalidateCoverFile(game.id);
       } catch (_) {
         // Cover pinning is best-effort; the screenshot itself is saved.
       }

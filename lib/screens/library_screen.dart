@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +7,7 @@ import '../services/human_time.dart';
 import '../services/system_labels.dart';
 import '../models/game_entry.dart';
 import '../state/app_state.dart';
+import '../theme/cover_flow_style.dart';
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
 import '../widgets/orbit_widgets.dart';
@@ -16,11 +18,12 @@ import 'player_screen.dart';
 
 /// Orbit Library — the collection, in the shape the studio plate draws it:
 ///
-/// * desktop      — cover flow + full game dock (stats + actions)
+/// * desktop      — wide cover flow + full game dock (stats + actions)
 /// * tablet       — "Continue playing" / "Recently added" hub rows
 /// * phone landscape — compact rail layout, short cover flow, compact dock
 /// * phone portrait  — search, All/Favorites/Recent, featured game,
 ///                     bottom "Continue playing" row
+/// * tablet portrait — roomy hub with the command rail retained
 ///
 /// Every layout shares one data path (`filtered`, `_play`, `_openDetail`)
 /// so behaviour cannot drift between screen sizes. All functionality from
@@ -31,11 +34,13 @@ class LibraryScreen extends StatefulWidget {
     super.key,
     required this.state,
     this.onGo,
-    this.initialFilter,
+    this.filter,
+    this.onFilterChanged,
   });
   final AppState state;
   final ValueChanged<String>? onGo;
-  final String? initialFilter;
+  final String? filter;
+  final ValueChanged<String?>? onFilterChanged;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -44,31 +49,31 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final searchCtrl = TextEditingController();
   final searchFocus = FocusNode();
-  // A narrow viewport fraction puts several covers on screen, the way the
-  // studio plate's carousel does; a wide one showed only the neighbours'
-  // edges. The portrait plate instead shows one dominant cover, so it owns
-  // a second, wider-framed controller.
-  final pageCtrl = PageController(viewportFraction: 0.24);
-  final portraitCtrl = PageController(viewportFraction: 0.62);
+  final libraryFocus = FocusNode(debugLabel: 'library-browser');
+  // Each shape gets a viewport pitch that keeps nearby art visible without
+  // letting portrait covers overlap. The controller used to drive the page
+  // and its animated covers must always be the same instance.
+  final desktopFlowCtrl = PageController(viewportFraction: 0.18);
+  final landscapeFlowCtrl = PageController(viewportFraction: 0.24);
+  final portraitFlowCtrl = PageController(viewportFraction: 0.62);
+  OrbitLayout? _lastLayout;
   String query = '';
   String filter =
       'All systems'; // All systems | Favorites | system id | core:<id>
-  String tab = 'all'; // all | favorites | recent
+  String tab = 'all'; // all | favorites | recent | continue
   String view = 'flow';
   int index = 0;
+  double _pointerScroll = 0;
+  bool _snappingReducedMotion = false;
 
   @override
   void initState() {
     super.initState();
     final layout = widget.state.settings['layout'];
     if (layout == 'grid' || layout == 'flow') view = layout as String;
-    final initial = widget.initialFilter;
+    final initial = widget.filter;
     if (initial != null && initial.isNotEmpty) {
-      if (initial == 'Favorites') {
-        tab = 'favorites';
-      } else {
-        filter = initial;
-      }
+      _applyCollection(initial);
     }
   }
 
@@ -76,10 +81,169 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void dispose() {
     searchCtrl.dispose();
     searchFocus.dispose();
-    pageCtrl.dispose();
-    portraitCtrl.dispose();
+    libraryFocus.dispose();
+    desktopFlowCtrl.dispose();
+    landscapeFlowCtrl.dispose();
+    portraitFlowCtrl.dispose();
     super.dispose();
   }
+
+  @override
+  void didUpdateWidget(covariant LibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.filter != widget.filter) {
+      _applyCollection(widget.filter);
+      _clearSearch();
+      _syncCarouselToIndex();
+    }
+  }
+
+  void _syncViewPreference() {
+    final setting = widget.state.settings['layout'];
+    if (setting != 'grid' && setting != 'flow') return;
+    final next = setting as String;
+    if (view == next) return;
+    view = next;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncCarouselToIndex();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncViewPreference();
+    final layout = Layout.of(context);
+    if (_lastLayout != layout) {
+      if (layout == OrbitLayout.phonePortrait && tab == 'continue') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            tab = 'recent';
+            index = 0;
+          });
+          widget.onFilterChanged?.call('Recent');
+          _syncCarouselToIndex();
+        });
+      } else {
+        _syncCarouselToIndex();
+      }
+    }
+    _lastLayout = layout;
+  }
+
+  PageController _flowControllerFor(OrbitLayout layout) => switch (layout) {
+    OrbitLayout.desktop => desktopFlowCtrl,
+    OrbitLayout.phonePortrait => portraitFlowCtrl,
+    _ => landscapeFlowCtrl,
+  };
+
+  CoverFlowStyle get _flowStyle =>
+      CoverFlowStyle.fromSetting(widget.state.settings['coverFlowStyle']);
+
+  bool get _reduceMotion => MediaQuery.disableAnimationsOf(context);
+
+  ScrollPhysics get _flowPhysics => _reduceMotion
+      ? const ClampingScrollPhysics()
+      : const PageScrollPhysics(parent: BouncingScrollPhysics());
+
+  void _handlePointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    GestureBinding.instance.pointerSignalResolver.register(event, (resolved) {
+      if (resolved is! PointerScrollEvent) return;
+      final delta = resolved.scrollDelta.dx != 0
+          ? resolved.scrollDelta.dx
+          : resolved.scrollDelta.dy;
+      _pointerScroll += delta;
+      if (_pointerScroll.abs() < 24) return;
+      final direction = _pointerScroll > 0 ? 1 : -1;
+      _pointerScroll = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _move(direction);
+      });
+    });
+  }
+
+  void _snapReducedFlow(PageController controller) {
+    if (!_reduceMotion ||
+        _snappingReducedMotion ||
+        !controller.hasClients ||
+        filtered.isEmpty) {
+      return;
+    }
+    final current = controller.page ?? controller.position.pixels;
+    final target = current.round().clamp(0, filtered.length - 1).toInt();
+    if ((current - target).abs() >= 0.001) {
+      _snappingReducedMotion = true;
+      try {
+        controller.jumpToPage(target);
+      } finally {
+        _snappingReducedMotion = false;
+      }
+    }
+    if (target != index && mounted) setState(() => index = target);
+  }
+
+  bool _handleFlowScrollEnd(
+    PageController controller,
+    ScrollEndNotification notification,
+  ) {
+    _snapReducedFlow(controller);
+    return false;
+  }
+
+  Widget _flowViewport({
+    required PageController controller,
+    required Widget child,
+  }) {
+    return NotificationListener<ScrollEndNotification>(
+      onNotification: (notification) =>
+          _handleFlowScrollEnd(controller, notification),
+      child: Listener(
+        behavior: HitTestBehavior.opaque,
+        onPointerSignal: _handlePointerSignal,
+        onPointerUp: (_) => _snapReducedFlow(controller),
+        child: child,
+      ),
+    );
+  }
+
+  void _syncCarouselToIndex() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final list = filtered;
+      if (list.isEmpty) return;
+      final controller = _flowControllerFor(Layout.of(context));
+      if (controller.hasClients) {
+        controller.jumpToPage(index.clamp(0, list.length - 1).toInt());
+      }
+    });
+  }
+
+  void _selectPage(int target) {
+    final list = filtered;
+    if (list.isEmpty) return;
+    final safeTarget = target.clamp(0, list.length - 1).toInt();
+    if (safeTarget != index) setState(() => index = safeTarget);
+    _animateToPage(safeTarget);
+  }
+
+  void _animateToPage(int target) {
+    final controller = _flowControllerFor(Layout.of(context));
+    if (!controller.hasClients) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      controller.jumpToPage(target);
+      return;
+    }
+    final style = _flowStyle;
+    controller.animateToPage(
+      target,
+      duration: style.settleDuration,
+      curve: style.settleCurve,
+    );
+  }
+
+  void _resetCarousel() => _syncCarouselToIndex();
 
   /// Games after tab + system filter + search.
   ///
@@ -88,7 +252,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   List<GameEntry> get filtered {
     final games = widget.state.games.where((g) {
       if (tab == 'favorites' && !g.favorite) return false;
-      if (tab == 'recent' && g.lastPlayedMs <= 0) return false;
+      if ((tab == 'recent' || tab == 'continue') && g.lastPlayedMs <= 0) {
+        return false;
+      }
       if (tab == 'all' &&
           filter != 'All systems' &&
           filter != 'Favorites' &&
@@ -115,7 +281,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       }
       return true;
     }).toList();
-    if (tab == 'recent') {
+    if (tab == 'recent' || tab == 'continue') {
       games.sort((a, b) => b.lastPlayedMs.compareTo(a.lastPlayedMs));
     }
     return games;
@@ -139,55 +305,115 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _move(int delta) {
-    final list = filtered;
-    if (list.isEmpty) return;
-    setState(() {
-      index = (index + delta).clamp(0, list.length - 1);
-    });
-    // Animate whichever carousel this layout actually shows.
-    final ctrl = Layout.of(context) == OrbitLayout.phonePortrait
-        ? portraitCtrl
-        : pageCtrl;
-    if (ctrl.hasClients) {
-      ctrl.animateToPage(index, duration: Tokens.easeDur, curve: Tokens.ease);
+    if (filtered.isEmpty) return;
+    _selectPage(index + delta);
+  }
+
+  void _applyCollection(String? next) {
+    switch (next) {
+      case 'Favorites':
+      case 'favorites':
+        tab = 'favorites';
+        filter = 'All systems';
+      case 'Continue':
+      case 'continue':
+        tab = 'continue';
+        filter = 'All systems';
+      case 'Recent':
+      case 'recent':
+        tab = 'recent';
+        filter = 'All systems';
+      case null:
+      case 'all':
+      case 'All systems':
+        tab = 'all';
+        filter = 'All systems';
+      default:
+        tab = 'all';
+        filter = next;
     }
+    index = 0;
+  }
+
+  void _notifyCollection() {
+    final value = switch (tab) {
+      'favorites' => 'Favorites',
+      'continue' => 'Continue',
+      'recent' => 'Recent',
+      _ => filter == 'All systems' ? null : filter,
+    };
+    widget.onFilterChanged?.call(value);
+  }
+
+  void _clearSearch() {
+    query = '';
+    searchCtrl.clear();
   }
 
   void _setFilter(String next) {
     setState(() {
-      if (next == 'Favorites') {
-        // Favorites is a tab, not a system value. Keeping one vocabulary
-        // prevents the desktop/tablet chip from selecting a value that the
-        // shared `filtered` predicate intentionally ignores.
-        tab = 'favorites';
-        filter = 'All systems';
-      } else {
-        tab = 'all';
-        filter = next;
-      }
-      index = 0;
+      _applyCollection(next);
+      _clearSearch();
     });
+    _notifyCollection();
+    _resetCarousel();
   }
 
   void _setTab(String next) {
     setState(() {
-      tab = next;
-      index = 0;
+      _applyCollection(next);
+      _clearSearch();
     });
+    _notifyCollection();
+    _resetCarousel();
   }
 
   void _clearFilters() {
     setState(() {
-      tab = 'all';
-      filter = 'All systems';
+      _applyCollection(null);
       query = '';
       searchCtrl.clear();
-      index = 0;
     });
+    _notifyCollection();
+    _resetCarousel();
   }
 
   void _openDetail(GameEntry g) {
     showGameDetail(context, gameId: g.id, state: widget.state);
+  }
+
+  void _openSelectedDetail() {
+    final list = filtered;
+    if (list.isEmpty) return;
+    _openDetail(list[index.clamp(0, list.length - 1).toInt()]);
+  }
+
+  KeyEventResult _handleLibraryKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (event.logicalKey == LogicalKeyboardKey.keyK &&
+        (keyboard.isControlPressed || keyboard.isMetaPressed)) {
+      searchFocus.requestFocus();
+      return KeyEventResult.handled;
+    }
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowRight:
+        _move(1);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowLeft:
+        _move(-1);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.slash:
+        searchFocus.requestFocus();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.enter:
+        _openSelectedDetail();
+        return KeyEventResult.handled;
+      default:
+        return KeyEventResult.ignored;
+    }
   }
 
   void _play(GameEntry game) {
@@ -267,9 +493,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 style: Tokens.body(size: 11, color: Tokens.muted),
               ),
               onTap: () {
+                final oldList = filtered;
+                final removedAt = oldList.indexWhere((g) => g.id == game.id);
                 widget.state.removeGame(game.id);
+                final newLength = filtered.length;
+                final nextIndex = removedAt >= 0 && removedAt < index
+                    ? index - 1
+                    : index;
                 Navigator.of(context).pop();
-                setState(() => index = 0);
+                setState(() {
+                  index = newLength == 0
+                      ? 0
+                      : nextIndex.clamp(0, newLength - 1).toInt();
+                });
+                _resetCarousel();
               },
             ),
           ],
@@ -284,47 +521,39 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final short = Layout.isShort(layout);
     final osPad = Tokens.osPad(
       MediaQuery.of(context).size.width,
-      portrait: layout == OrbitLayout.phonePortrait,
+      portrait: Layout.isPortrait(layout),
       short_: short,
     );
     return ListenableBuilder(
       listenable: widget.state,
       builder: (context, _) {
+        _syncViewPreference();
         final list = filtered;
-        if (index >= list.length) index = list.isEmpty ? 0 : list.length - 1;
+        final clampedIndex = list.isEmpty
+            ? 0
+            : index.clamp(0, list.length - 1).toInt();
+        if (clampedIndex != index) {
+          index = clampedIndex;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _syncCarouselToIndex();
+          });
+        }
         final selected = list.isEmpty ? null : list[index];
-        return CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
-                _move(1),
-            const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
-                _move(-1),
-            const SingleActivator(LogicalKeyboardKey.slash): () {
-              searchFocus.requestFocus();
-            },
-            const SingleActivator(LogicalKeyboardKey.keyK, control: true): () {
-              searchFocus.requestFocus();
-            },
-            const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () {
-              searchFocus.requestFocus();
-            },
-            const SingleActivator(LogicalKeyboardKey.enter): () {
-              if (selected != null) _openDetail(selected);
-            },
+        return Focus(
+          focusNode: libraryFocus,
+          autofocus: true,
+          onKeyEvent: _handleLibraryKey,
+          child: switch (layout) {
+            OrbitLayout.desktop => _desktop(list, selected, osPad),
+            OrbitLayout.tablet => _hub(osPad),
+            OrbitLayout.tabletPortrait => _hub(osPad),
+            OrbitLayout.phoneLandscape => _phoneLandscape(
+              list,
+              selected,
+              osPad,
+            ),
+            OrbitLayout.phonePortrait => _portrait(list, selected, osPad),
           },
-          child: Focus(
-            autofocus: true,
-            child: switch (layout) {
-              OrbitLayout.desktop => _desktop(list, selected, osPad),
-              OrbitLayout.tablet => _hub(osPad),
-              OrbitLayout.phoneLandscape => _phoneLandscape(
-                list,
-                selected,
-                osPad,
-              ),
-              OrbitLayout.phonePortrait => _portrait(list, selected, osPad),
-            },
-          ),
         );
       },
     );
@@ -337,10 +566,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
       controller: searchCtrl,
       hint: hint ?? 'Search games, systems, or genres…',
       shortcutLabel: shortcut,
-      onChanged: (v) => setState(() {
-        query = v;
-        index = 0;
-      }),
+      onChanged: (v) {
+        setState(() {
+          query = v;
+          index = 0;
+        });
+        _resetCarousel();
+      },
     );
     // Flexible by default: inside a header Row the field must give up
     // space rather than overflow a narrow phone.
@@ -355,6 +587,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       onView: (v) {
         setState(() => view = v);
         widget.state.setSetting('layout', v);
+        if (v == 'flow') _syncCarouselToIndex();
       },
     );
   }
@@ -412,25 +645,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget _strip(double osPad) {
     final chips = <Widget>[
       OrbitChip(
-        label: 'Time capsule',
+        label: 'Capsule',
         icon: Icons.history_outlined,
         active: false,
         onTap: () => widget.onGo?.call('vault'),
-      ),
-      OrbitChip(
-        label: 'Favorites',
-        icon: Icons.favorite_outline,
-        active: tab == 'favorites',
-        onTap: () =>
-            tab == 'favorites' ? _setTab('all') : _setFilter('Favorites'),
-      ),
-      // "Recent" lives here as well as in the phone tabs, so every layout
-      // offers the same filter vocabulary.
-      OrbitChip(
-        label: 'Recent',
-        icon: Icons.schedule,
-        active: tab == 'recent',
-        onTap: () => tab == 'recent' ? _setTab('all') : _setTab('recent'),
       ),
       OrbitChip(
         label: 'All systems',
@@ -449,14 +667,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
           active: tab == 'all' && filter == s,
           onTap: () => _setFilter(s),
         ),
-      // Per installed core shortcuts (short + id), mirrors web strip.
-      for (final m in widget.state.registry.installedCores)
+      for (final core in widget.state.registry.installedCores)
         OrbitChip(
-          label: _shortFor(m.id),
-          sub: m.id,
-          active: tab == 'all' && filter == 'core:${m.id}',
-          onTap: () => _setFilter('core:${m.id}'),
+          label: _shortFor(core.id),
+          sub: core.id,
+          active: tab == 'all' && filter == 'core:${core.id}',
+          onTap: () => _setFilter('core:${core.id}'),
         ),
+      Container(
+        width: 1,
+        height: 18,
+        color: Tokens.line,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      OrbitChip(
+        label: 'Favorites',
+        icon: Icons.favorite_outline,
+        active: tab == 'favorites',
+        onTap: () =>
+            tab == 'favorites' ? _setTab('all') : _setFilter('Favorites'),
+      ),
+      OrbitChip(
+        label: 'Recent',
+        icon: Icons.schedule,
+        active: tab == 'recent',
+        onTap: () => tab == 'recent' ? _setTab('all') : _setTab('recent'),
+      ),
     ];
     return Padding(
       padding: EdgeInsets.fromLTRB(osPad, 12, osPad, 4),
@@ -691,34 +927,155 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _portrait(List<GameEntry> list, GameEntry? selected, double osPad) {
     final playable = selected != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(osPad, 10, osPad, 0),
-          child: Row(
-            children: [
-              _search(hint: 'Search games…'),
-              const SizedBox(width: 8),
-              _viewSwitcher(),
-              const SizedBox(width: 8),
-              _importButton(),
-            ],
-          ),
-        ),
-        Padding(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 520;
+        final controls = _portraitControls(osPad);
+        final tabs = Padding(
           padding: EdgeInsets.fromLTRB(osPad, 12, osPad, 8),
           child: OrbitTabs(value: tab, onChanged: _setTab),
-        ),
-        Expanded(
-          child: view == 'grid'
-              ? _grid(list, osPad)
-              : list.isEmpty
-              ? _empty()
-              : _portraitFeatured(list, selected, osPad),
-        ),
-        if (playable) _continueRow(osPad),
-      ],
+        );
+        if (compact) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                controls,
+                tabs,
+                SizedBox(
+                  height: 240,
+                  child: view == 'grid'
+                      ? _grid(list, osPad)
+                      : list.isEmpty
+                      ? _empty()
+                      : _portraitFeatured(list, selected, osPad),
+                ),
+                if (playable) _continueRow(osPad),
+              ],
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            controls,
+            tabs,
+            Expanded(
+              child: view == 'grid'
+                  ? _grid(list, osPad)
+                  : list.isEmpty
+                  ? _empty()
+                  : _portraitFeatured(list, selected, osPad),
+            ),
+            if (playable) _continueRow(osPad),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _portraitControls(double osPad) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(osPad, 10, osPad, 0),
+      child: Row(
+        children: [
+          _search(hint: 'Search games…'),
+          const SizedBox(width: 8),
+          _viewSwitcher(),
+          const SizedBox(width: 8),
+          _importButton(),
+        ],
+      ),
+    );
+  }
+
+  /// Shared fractional-page treatment for desktop and mobile shelves.
+  Widget _flowCard({
+    required PageController controller,
+    required List<GameEntry> games,
+    required int itemIndex,
+    required double coverWidth,
+    required double coverHeight,
+    required CoverFlowStyle style,
+    bool reflection = false,
+  }) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final page = controller.hasClients && controller.position.haveDimensions
+            ? controller.page ?? index.toDouble()
+            : index.toDouble();
+        final rawDelta = itemIndex - page;
+        if (rawDelta.abs() > 4) return const SizedBox.shrink();
+        final delta = rawDelta.clamp(-4.0, 4.0);
+        final distance = delta.abs();
+
+        final angle = -delta.sign * style.rotationDegrees * math.pi / 180;
+        final scale = math
+            .max(style.minScale, 1 - (1 - style.neighborScale) * distance)
+            .toDouble();
+        final opacity = math
+            .max(style.minOpacity, 1 - (1 - style.neighborOpacity) * distance)
+            .toDouble();
+        final game = games[itemIndex];
+        final matrix = Matrix4.identity();
+        if (style.perspective > 0) {
+          matrix.setEntry(3, 2, style.perspective);
+        }
+        matrix
+          ..rotateY(angle)
+          ..scaleByDouble(scale, scale, 1.0, 1.0);
+
+        return Opacity(
+          opacity: opacity,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: matrix,
+            child: GestureDetector(
+              onTap: () {
+                if (itemIndex == index) {
+                  _openDetail(game);
+                } else {
+                  _selectPage(itemIndex);
+                }
+              },
+              onLongPress: () => _gameMenu(game),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GameCover(
+                    gameId: game.id,
+                    title: game.title,
+                    system: shortSystemLabel(game.system),
+                    width: coverWidth,
+                    height: coverHeight,
+                    selected: itemIndex == index,
+                    dimmed: itemIndex != index,
+                  ),
+                  if (reflection)
+                    Opacity(
+                      opacity: 0.07,
+                      child: Transform(
+                        alignment: Alignment.topCenter,
+                        transform: Matrix4.identity()
+                          ..scaleByDouble(1.0, -0.35, 1.0, 1.0),
+                        child: GameCover(
+                          gameId: game.id,
+                          title: game.title,
+                          system: '',
+                          width: coverWidth,
+                          height: 60,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -732,13 +1089,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
     GameEntry? selected,
     double osPad,
   ) {
+    final style = MediaQuery.disableAnimationsOf(context)
+        ? CoverFlowStyle.flat
+        : _flowStyle;
     return Column(
       children: [
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final coverH = math.min(constraints.maxHeight, 320.0);
-              final coverW = coverH * 0.72;
+              final slotW =
+                  constraints.maxWidth * portraitFlowCtrl.viewportFraction;
+              final coverW = math.min(coverH * 0.72, slotW * 0.88);
+              final cardH = math.min(coverH, coverW / 0.72);
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -757,82 +1120,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       ),
                     ),
                   ),
-                  PageView.builder(
-                    controller: pageCtrl,
-                    itemCount: list.length,
-                    onPageChanged: (i) => setState(() => index = i),
-                    itemBuilder: (context, i) => AnimatedBuilder(
-                      animation: portraitCtrl,
-                      builder: (context, child) {
-                        double delta = 0;
-                        if (portraitCtrl.hasClients &&
-                            portraitCtrl.position.haveDimensions) {
-                          delta = (i - (portraitCtrl.page ?? index.toDouble()))
-                              .clamp(-4.0, 4.0);
-                        } else {
-                          delta = (i - index).toDouble().clamp(-4.0, 4.0);
-                        }
-                        final a = delta.abs();
-                        if (a > 4) return const SizedBox.shrink();
-                        final angle = delta == 0
-                            ? 0.0
-                            : (delta > 0 ? -14.0 : 14.0) * math.pi / 180;
-                        final scale = delta == 0
-                            ? 1.0
-                            : (0.9 - (a - 1) * 0.05).clamp(0.7, 0.9);
-                        final opacity = delta == 0
-                            ? 1.0
-                            : (0.85 - a * 0.12).clamp(0.3, 0.85);
-                        return Opacity(
-                          opacity: opacity,
-                          child: Transform(
-                            alignment: Alignment.center,
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.0012)
-                              ..rotateY(angle)
-                              ..scaleByDouble(scale, scale, 1.0, 1.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                if (i == index) {
-                                  _openDetail(list[i]);
-                                } else {
-                                  portraitCtrl.animateToPage(
-                                    i,
-                                    duration: Tokens.easeDur,
-                                    curve: Tokens.ease,
-                                  );
-                                }
-                              },
-                              onLongPress: () => _gameMenu(list[i]),
-                              child: GameCover(
-                                gameId: list[i].id,
-                                title: list[i].title,
-                                system: shortSystemLabel(list[i].system),
-                                width: coverW,
-                                height: coverH,
-                                selected: i == index,
-                                dimmed: i != index,
-                              ),
-                            ),
-                          ),
-                        );
+                  _flowViewport(
+                    controller: portraitFlowCtrl,
+                    child: PageView.builder(
+                      controller: portraitFlowCtrl,
+                      physics: _flowPhysics,
+                      pageSnapping: !_reduceMotion,
+                      allowImplicitScrolling: !_reduceMotion,
+                      scrollBehavior: const _CoverFlowScrollBehavior(),
+                      itemCount: list.length,
+                      onPageChanged: (i) {
+                        if (i != index) setState(() => index = i);
                       },
-                    ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    child: _FlowButton(
-                      icon: Icons.chevron_left,
-                      enabled: index > 0,
-                      onTap: () => _move(-1),
-                    ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    child: _FlowButton(
-                      icon: Icons.chevron_right,
-                      enabled: index < list.length - 1,
-                      onTap: () => _move(1),
+                      itemBuilder: (context, i) => _flowCard(
+                        controller: portraitFlowCtrl,
+                        games: list,
+                        itemIndex: i,
+                        coverWidth: coverW,
+                        coverHeight: cardH,
+                        style: style,
+                      ),
                     ),
                   ),
                 ],
@@ -901,7 +1208,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           for (var i = 0; i < shown; i++)
             AnimatedContainer(
-              duration: Tokens.fastDur,
+              duration: _reduceMotion ? Duration.zero : Tokens.fastDur,
               margin: const EdgeInsets.symmetric(horizontal: 3),
               width: i == index ? 16 : 6,
               height: 6,
@@ -956,11 +1263,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _hub(double osPad) {
     final games = filtered;
+    final continuing = continuePlaying;
+    final recent = recentlyAdded;
     // The two plate sections are enough on their own; a third identical row
     // only appears when the collection is actually being narrowed
     // (a search, a tab, or a system filter), where it earns its place.
     final narrowed =
         query.isNotEmpty || tab != 'all' || filter != 'All systems';
+    final hasGlobalHub = continuing.isNotEmpty || recent.isNotEmpty;
+    final showNarrowedRow =
+        narrowed &&
+        (query.isNotEmpty ||
+            filter != 'All systems' ||
+            (tab != 'all' && tab != 'recent' && tab != 'continue'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -970,32 +1285,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               _search(hint: 'Search games…'),
               const SizedBox(width: 8),
-              _viewSwitcher(),
-              const SizedBox(width: 8),
               _importButton(),
             ],
           ),
         ),
         _strip(osPad),
         Expanded(
-          child: games.isEmpty
+          child: !hasGlobalHub && games.isEmpty
               ? _empty()
               : ListView(
                   padding: EdgeInsets.fromLTRB(osPad, 8, osPad, 20),
                   children: [
-                    if (continuePlaying.isNotEmpty) ...[
+                    if (continuing.isNotEmpty) ...[
                       OrbitSectionHeader(
                         title: 'Continue playing',
                         onSeeAll: () => _setTab('recent'),
                       ),
                       const SizedBox(height: 10),
                       _tileRow(
-                        continuePlaying,
+                        continuing,
                         footnote: (g) => lastPlayedLabel(g.lastPlayedMs),
                       ),
                       const SizedBox(height: 22),
                     ],
-                    if (recentlyAdded.isNotEmpty) ...[
+                    if (recent.isNotEmpty) ...[
                       OrbitSectionHeader(
                         title: 'Recently added',
                         onSeeAll: () => _clearFilters(),
@@ -1003,18 +1316,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       const SizedBox(height: 10),
                       // This row is an import-order snapshot, not a second
                       // view of the currently filtered collection.
-                      _tileRow(recentlyAdded, footnote: (g) => _systemNote(g)),
+                      _tileRow(recent, footnote: (g) => _systemNote(g)),
                     ],
-                    if (narrowed) ...[
+                    if (showNarrowedRow && games.isNotEmpty) ...[
                       const SizedBox(height: 22),
                       OrbitSectionHeader(
-                        title: tab == 'favorites'
-                            ? 'Favorites'
-                            : (tab == 'recent' ? 'Recent' : 'The collection'),
+                        title: switch (tab) {
+                          'favorites' => 'Favorites',
+                          'recent' => 'Recent',
+                          'continue' => 'Continue playing',
+                          _ => 'The collection',
+                        },
                       ),
                       const SizedBox(height: 10),
                       _tileRow(games, footnote: (g) => _systemNote(g)),
                     ],
+                    if (games.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 22),
+                        child: Text(
+                          'No titles match this view.',
+                          style: Tokens.body(size: 12, color: Tokens.muted),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                   ],
                 ),
         ),
@@ -1105,6 +1430,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
     required bool desktop,
   }) {
     final height = MediaQuery.of(context).size.height;
+    final controller = _flowControllerFor(Layout.of(context));
+    final style = MediaQuery.disableAnimationsOf(context)
+        ? CoverFlowStyle.flat
+        : _flowStyle;
     // A short viewport has no room for the reflection echo: it would eat a
     // third of the stage and shrink the covers to stamps.
     final reflectH =
@@ -1144,92 +1473,37 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ),
                 ),
               ),
-              PageView.builder(
-                controller: portraitCtrl,
-                itemCount: list.length,
-                onPageChanged: (i) => setState(() => index = i),
-                itemBuilder: (context, i) {
-                  return AnimatedBuilder(
-                    animation: pageCtrl,
-                    builder: (context, child) {
-                      double delta = 0;
-                      // `hasClients` first: inside the shell's IndexedStack
-                      // this carousel can build before the PageView has
-                      // attached, and `.position` throws when it has not.
-                      if (pageCtrl.hasClients &&
-                          pageCtrl.position.haveDimensions) {
-                        final p = pageCtrl.page ?? index.toDouble();
-                        delta = (i - p).clamp(-4.0, 4.0);
-                      } else {
-                        delta = (i - index).toDouble().clamp(-4.0, 4.0);
-                      }
-                      final a = delta.abs();
-                      if (a > 4) return const SizedBox.shrink();
-                      final angle = (delta == 0)
-                          ? 0.0
-                          : (delta > 0 ? -18.0 : 18.0) * math.pi / 180;
-                      final scale = delta == 0
-                          ? 1.0
-                          : (0.88 - (a - 1) * 0.06).clamp(0.6, 0.88);
-                      final opacity = delta == 0
-                          ? 1.0
-                          : (0.87 - a * 0.13).clamp(0.23, 0.87);
-                      return Opacity(
-                        opacity: opacity,
-                        child: Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.0012)
-                            ..rotateY(angle)
-                            ..scaleByDouble(scale, scale, 1.0, 1.0),
-                          child: GestureDetector(
-                            onTap: () {
-                              if (i == index) {
-                                _openDetail(list[i]);
-                              } else {
-                                pageCtrl.animateToPage(
-                                  i,
-                                  duration: Tokens.easeDur,
-                                  curve: Tokens.ease,
-                                );
-                              }
-                            },
-                            onLongPress: () => _gameMenu(list[i]),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GameCover(
-                                  gameId: list[i].id,
-                                  title: list[i].title,
-                                  system: shortSystemLabel(list[i].system),
-                                  width: coverW,
-                                  height: coverH,
-                                  selected: i == index,
-                                  dimmed: i != index,
-                                ),
-                                if (reflectH > 0)
-                                  Opacity(
-                                    opacity: 0.07,
-                                    child: Transform(
-                                      alignment: Alignment.topCenter,
-                                      transform: Matrix4.identity()
-                                        ..scaleByDouble(1.0, -0.35, 1.0, 1.0),
-                                      child: GameCover(
-                                        gameId: list[i].id,
-                                        title: list[i].title,
-                                        system: '',
-                                        width: coverW,
-                                        height: 60,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Page pitch follows the viewport while the actual cover
+                  // stays inside its slot. That leaves a clean, visible edge
+                  // of the neighboring covers on both sides.
+                  final slotWidth =
+                      constraints.maxWidth * controller.viewportFraction;
+                  final cardWidth = math.min(coverW, slotWidth * 0.88);
+                  final cardHeight = math.min(coverH, cardWidth / 0.72);
+                  return _flowViewport(
+                    controller: controller,
+                    child: PageView.builder(
+                      controller: controller,
+                      physics: _flowPhysics,
+                      pageSnapping: !_reduceMotion,
+                      allowImplicitScrolling: !_reduceMotion,
+                      scrollBehavior: const _CoverFlowScrollBehavior(),
+                      itemCount: list.length,
+                      onPageChanged: (i) {
+                        if (i != index) setState(() => index = i);
+                      },
+                      itemBuilder: (context, i) => _flowCard(
+                        controller: controller,
+                        games: list,
+                        itemIndex: i,
+                        coverWidth: cardWidth,
+                        coverHeight: cardHeight,
+                        style: style,
+                        reflection: reflectH > 0,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -1237,6 +1511,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 left: osPad,
                 child: _FlowButton(
                   icon: Icons.chevron_left,
+                  tooltip: 'Previous cover',
                   enabled: index > 0,
                   onTap: () => _move(-1),
                 ),
@@ -1245,6 +1520,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 right: osPad,
                 child: _FlowButton(
                   icon: Icons.chevron_right,
+                  tooltip: 'Next cover',
                   enabled: index < list.length - 1,
                   onTap: () => _move(1),
                 ),
@@ -1423,35 +1699,57 @@ class _LibraryScreenState extends State<LibraryScreen> {
 class _FlowButton extends StatelessWidget {
   const _FlowButton({
     required this.icon,
+    required this.tooltip,
     required this.enabled,
     required this.onTap,
   });
   final IconData icon;
+  final String tooltip;
   final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1 : 0.3,
-      child: Material(
-        color: const Color(0xC90A0A0A),
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: enabled ? onTap : null,
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.3,
+          child: Material(
+            color: const Color(0xE6111B2A),
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0x30DDE6F4)),
+              onTap: enabled ? onTap : null,
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0x30DDE6F4)),
+                ),
+                child: Icon(icon, size: 20, color: Tokens.text),
+              ),
             ),
-            child: Icon(icon, size: 20, color: Tokens.text),
           ),
         ),
       ),
     );
   }
+}
+
+class _CoverFlowScrollBehavior extends MaterialScrollBehavior {
+  const _CoverFlowScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
 }

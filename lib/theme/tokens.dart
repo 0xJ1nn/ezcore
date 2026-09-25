@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 /// ezCORE (Orbit console) design tokens.
 ///
-/// Approved identity, unchanged by the studio-plate redesign: black /
-/// electric blue / silver-white, dark only. The brand plate pins the
-/// palette as `#0A0A0A · #007BFF · #DDE6F4 · #FFFFFF`; everything under
-/// "Space scene" re-mixes those same values for depth, it does not
-/// introduce a new hue.
+/// Orbit's approved identity: midnight navy, electric blue, silver-white,
+/// dark only. The blue-black surfaces add depth around the existing brand
+/// accent without changing the ezCORE marks or type.
 ///
 /// Every colour, radius and type style the UI uses is declared here, which
 /// is what makes a future theme system a swap of this one file rather than
@@ -16,7 +14,7 @@ import 'package:flutter/material.dart';
 /// OFL-licensed — fully offline, no runtime font fetching).
 abstract final class Tokens {
   // ---- Core (final) ----
-  static const bg = Color(0xFF0A0A0A);
+  static const bg = Color(0xFF060B14);
   static const text = Color(0xFFDDE6F4);
   static const muted = Color(0xFF9AA8BC);
   static const line = Color(0x16FFFFFF); // rgba(255,255,255,0.086)
@@ -24,9 +22,9 @@ abstract final class Tokens {
   static const accent = Color(0xFF007BFF);
   static const accentHi = Color(0xFF0086FF);
   static const accentDeep = Color(0xFF0065ED);
-  static const panel = Color(0xFF12151B);
-  static const dockTop = Color(0xFF1B2029);
-  static const dockBottom = Color(0xFF101216);
+  static const panel = Color(0xFF0F1825);
+  static const dockTop = Color(0xFF17263A);
+  static const dockBottom = Color(0xFF0B1421);
   static const systemLabelFg = Color(0xFFA8CEFF);
   static const systemLabelBg = Color(0x19007BFF); // #007BFF19
   static const systemLabelBd = Color(0x38007BFF); // #007BFF38
@@ -81,7 +79,7 @@ abstract final class Tokens {
   static const fastDur = Duration(milliseconds: 200);
 
   /// Single responsive side-margin: clamp(20, w*0.03, 52).
-  /// Portrait phones use 24, short landscape 26 — handled by callers.
+  /// Portrait layouts use 24, short landscape callers use 26.
   static double osPad(
     double width, {
     bool portrait = false,
@@ -99,10 +97,11 @@ abstract final class Tokens {
   static const double railShort = 72;
 
   // ---- Responsive breakpoints (shared by every screen) ----
-  // Four layout families mirror the studio plate:
+  // Five layout families mirror the studio plate:
   //   phone portrait  — bottom command bar, featured game, continue row
   //   phone landscape — compact command rail, short cover flow
   //   tablet          — command rail, hub rows
+  //   tablet portrait — command rail, spacious hub rows
   //   desktop         — command rail, cover flow + game dock
   static const double bpCompact = 700; // below this: phone
   static const double bpDesktop = 1180; // at/above this: desktop
@@ -265,7 +264,7 @@ abstract final class Tokens {
     gradient: const LinearGradient(
       begin: Alignment(-0.7, -0.7),
       end: Alignment(0.7, 0.7),
-      colors: [Color(0xFF242B35), Color(0xFF10141A)],
+      colors: [Color(0xFF1B2A3D), Color(0xFF0C1522)],
       stops: [0.0, 0.65],
     ),
     border: Border.all(color: Color(0x28DDE6F4)),
@@ -284,7 +283,7 @@ abstract final class Tokens {
     gradient: const LinearGradient(
       begin: Alignment(-0.7, -0.7),
       end: Alignment(0.7, 0.7),
-      colors: [Color(0xFF242B35), Color(0xFF10141A)],
+      colors: [Color(0xFF1B2A3D), Color(0xFF0C1522)],
       stops: [0.0, 0.65],
     ),
     border: Border.all(color: Color(0xFF6EB4FF)),

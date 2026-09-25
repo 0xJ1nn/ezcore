@@ -72,7 +72,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final layout = Layout.of(context);
-    final portrait = Layout.hasBottomBar(layout);
+    final portrait = Layout.isPortrait(layout);
     final short = Layout.isShort(layout);
     final ultraCompact = short && size.height < 360;
     final osPad = Tokens.osPad(size.width, portrait: portrait, short_: short);
@@ -340,6 +340,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           child: _FlowBtn(
             enabled: selIndex > 0,
             icon: Icons.chevron_left,
+            tooltip: 'Previous core',
             onTap: () {
               final n = (selIndex - 1).clamp(0, list.length - 1);
               _select(list[n].id, jump: true);
@@ -351,6 +352,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           child: _FlowBtn(
             enabled: selIndex < list.length - 1,
             icon: Icons.chevron_right,
+            tooltip: 'Next core',
             onTap: () {
               final n = (selIndex + 1).clamp(0, list.length - 1);
               _select(list[n].id, jump: true);
@@ -983,31 +985,41 @@ class _FlowBtn extends StatelessWidget {
   const _FlowBtn({
     required this.enabled,
     required this.icon,
+    required this.tooltip,
     required this.onTap,
   });
   final bool enabled;
   final IconData icon;
+  final String tooltip;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1 : 0.3,
-      child: Material(
-        color: const Color(0xC90A0A0A),
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: enabled ? onTap : null,
-          child: Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.3,
+          child: Material(
+            color: const Color(0xC90A0A0A),
+            borderRadius: BorderRadius.circular(8),
+            child: InkWell(
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0x30DDE6F4)),
+              onTap: enabled ? onTap : null,
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0x30DDE6F4)),
+                ),
+                child: Icon(icon, size: 20, color: Tokens.text),
+              ),
             ),
-            child: Icon(icon, size: 20, color: Tokens.text),
           ),
         ),
       ),

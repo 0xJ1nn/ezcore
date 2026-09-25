@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:ezcore/main.dart';
 import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
+import 'package:ezcore/screens/library_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
@@ -79,15 +80,19 @@ void main() {
     state.loaded = true;
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
-    addTearDown(() {
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
     });
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     await tester.pumpWidget(
       MaterialApp(
         theme: Tokens.theme(),
         debugShowCheckedModeBanner: false,
-        home: Shell(state: state),
+        home: Shell(key: UniqueKey(), state: state),
       ),
     );
     await tester.pump();
@@ -95,11 +100,51 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
   }
 
+  testWidgets('tiny and short phone shells remain usable', (tester) async {
+    for (final size in const [Size(320, 320), Size(360, 480), Size(390, 360)]) {
+      await pumpShell(tester, size);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'layout overflow at $size',
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+
+  testWidgets('short rail keeps accessible touch targets', (tester) async {
+    await pumpShell(tester, const Size(640, 320));
+    final rail = find.byType(OrbitRail);
+    for (final label in [
+      'Library',
+      'Systems',
+      'Continue',
+      'Favorites',
+      'Capsule',
+      'Settings',
+    ]) {
+      final target = find.descendant(
+        of: rail,
+        matching: find.bySemanticsLabel(label),
+      );
+      expect(target, findsOneWidget, reason: label);
+      expect(
+        tester.getSize(target).height,
+        greaterThanOrEqualTo(48),
+        reason: '$label target',
+      );
+    }
+  });
+
   final viewports = <String, Size>{
     'desktop': Size(1600, 1000),
     'small desktop window': Size(1280, 720),
     'tablet': Size(1024, 768),
     'phone landscape': Size(844, 390),
+    'short phone landscape': Size(772, 346),
+    'compact landscape window': Size(640, 360),
+    'very short landscape window': Size(640, 320),
     'phone portrait': Size(390, 844),
     'small phone portrait': Size(360, 640),
   };
@@ -157,6 +202,78 @@ void main() {
     // The bar carries the same four spaces as the rail.
     expect(find.text('Capsule'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
+  });
+
+  testWidgets('portrait tablet keeps the rail and library hub', (tester) async {
+    await pumpShell(tester, const Size(834, 1194));
+    expect(tester.takeException(), isNull);
+    expect(find.byType(OrbitRail), findsOneWidget);
+    expect(find.byType(OrbitBottomNav), findsNothing);
+    expect(find.text('Continue playing'), findsOneWidget);
+  });
+
+  testWidgets('desktop rail routes to continue and favorite collections', (
+    tester,
+  ) async {
+    await pumpShell(tester, const Size(1600, 1000));
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Favorites'), findsWidgets);
+
+    await tester.tap(find.text('Favorites').first);
+    // The space background animates continuously, so settle is never reached.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('1 game'), findsOneWidget);
+    expect(find.text('Super Mario World'), findsWidgets);
+  });
+
+  testWidgets('Library collection changes keep the shell filter in sync', (
+    tester,
+  ) async {
+    await pumpShell(tester, const Size(1600, 1000));
+    final rail = find.byType(OrbitRail);
+    final favorites = find.descendant(
+      of: rail,
+      matching: find.text('Favorites'),
+    );
+
+    await tester.tap(favorites);
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(tester.widget<OrbitRail>(rail).page, 'favorites');
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(LibraryScreen),
+        matching: find.text('All systems'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(tester.widget<OrbitRail>(rail).page, 'library');
+
+    await tester.tap(favorites);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.descendant(of: rail, matching: find.text('Library')));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(tester.widget<OrbitRail>(rail).page, 'library');
+  });
+
+  testWidgets('Continue maps to a visible portrait collection tab', (
+    tester,
+  ) async {
+    await pumpShell(tester, const Size(1600, 1000));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(OrbitRail),
+        matching: find.text('Continue'),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+
+    expect(tester.widget<OrbitTabs>(find.byType(OrbitTabs)).value, 'recent');
   });
 
   testWidgets('landscape layouts use the command rail', (tester) async {

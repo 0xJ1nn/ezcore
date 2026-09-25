@@ -1,13 +1,18 @@
+import 'dart:convert';
+
+import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/library_screen.dart';
+import 'package:ezcore/screens/settings_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Gate for the studio plate's four layouts.
+/// Gate for the studio plate's five responsive layouts.
 ///
 /// These tests exist because the redesign is *responsive*, and responsive
 /// code fails silently: a layout that works on a desktop can overflow on a
@@ -33,6 +38,27 @@ void main() {
       extension: 'sfc',
       coreId: 'superfx',
       favorite: true,
+    ),
+  ];
+
+  final fourGames = <GameEntry>[
+    games[0],
+    games[1],
+    GameEntry(
+      id: 'g3',
+      title: 'Sonic the Hedgehog',
+      system: 'genesis',
+      filePath: '/games/sonic.md',
+      extension: 'md',
+      coreId: 'blastproc',
+    ),
+    GameEntry(
+      id: 'g4',
+      title: 'The Legend of Zelda',
+      system: 'snes',
+      filePath: '/games/zelda.sfc',
+      extension: 'sfc',
+      coreId: 'superfx',
     ),
   ];
 
@@ -80,6 +106,161 @@ void main() {
     expect(find.textContaining('States ('), findsOneWidget);
   });
 
+  testWidgets('desktop cover flow uses the wide, neighbor-visible page size', (
+    tester,
+  ) async {
+    await pumpAt(tester, const Size(1600, 1000));
+    final page = tester.widget<PageView>(find.byType(PageView));
+
+    expect(page.controller!.viewportFraction, 0.18);
+  });
+
+  testWidgets('cover art transforms continuously while the shelf is dragged', (
+    tester,
+  ) async {
+    await pumpAt(tester, const Size(1600, 1000));
+    final page = tester.widget<PageView>(find.byType(PageView));
+    final controller = page.controller!;
+    final firstCover = find.byWidgetPredicate(
+      (widget) =>
+          widget is GameCover && widget.gameId == 'g1' && widget.system != '',
+    );
+    final transformForFirstCover = find
+        .ancestor(of: firstCover, matching: find.byType(Transform))
+        .first;
+    final initialMatrix = tester
+        .widget<Transform>(transformForFirstCover)
+        .transform
+        .clone();
+    final viewport = tester.getRect(find.byType(PageView));
+    await tester.drag(
+      find.byType(PageView),
+      Offset(-viewport.width * controller.viewportFraction * 0.35, 0),
+    );
+    await tester.pump();
+
+    expect(controller.page!, greaterThan(0.15));
+    final draggedMatrix = tester
+        .widget<Transform>(transformForFirstCover)
+        .transform;
+    expect(draggedMatrix.storage[0], isNot(initialMatrix.storage[0]));
+
+    await tester.pump(const Duration(milliseconds: 500));
+  });
+
+  testWidgets('flow selection survives a grid round trip', (tester) async {
+    await pumpAt(
+      tester,
+      const Size(1600, 1000),
+      state: AppState()..games = fourGames,
+    );
+    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('Super Mario World'), findsWidgets);
+
+    await tester.tap(find.byTooltip('Grid view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Cover Flow view'));
+    await tester.pumpAndSettle();
+
+    final page = tester.widget<PageView>(find.byType(PageView));
+    expect(page.controller!.page, closeTo(1, 0.01));
+    expect(find.text('Super Mario World'), findsWidgets);
+  });
+
+  testWidgets('rapid arrow keys advance every requested page', (tester) async {
+    await pumpAt(
+      tester,
+      const Size(1600, 1000),
+      state: AppState()..games = fourGames,
+    );
+    final focus = tester.widget<Focus>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Focus &&
+            widget.focusNode?.debugLabel == 'library-browser',
+      ),
+    );
+    focus.focusNode!.requestFocus();
+    await tester.pump();
+    expect(focus.focusNode!.hasFocus, isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final page = tester.widget<PageView>(find.byType(PageView));
+    expect(page.controller!.page, closeTo(2, 0.01));
+    expect(find.text('Sonic the Hedgehog'), findsWidgets);
+  });
+
+  testWidgets('desktop mouse drag advances the shelf', (tester) async {
+    await pumpAt(
+      tester,
+      const Size(1600, 1000),
+      state: AppState()..games = fourGames,
+    );
+    final pageFinder = find.byType(PageView);
+    final page = tester.widget<PageView>(pageFinder);
+    final viewport = tester.getRect(pageFinder);
+    await tester.drag(
+      pageFinder,
+      Offset(-viewport.width * page.controller!.viewportFraction * 0.7, 0),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+    expect(page.controller!.page, greaterThan(0.5));
+  });
+
+  testWidgets('desktop wheel advances the shelf', (tester) async {
+    await pumpAt(
+      tester,
+      const Size(1600, 1000),
+      state: AppState()..games = fourGames,
+    );
+    final pageFinder = find.byType(PageView);
+    final page = tester.widget<PageView>(pageFinder);
+    final pointer = TestPointer(41, PointerDeviceKind.mouse);
+    final center = tester.getCenter(pageFinder);
+    await tester.sendEventToBinding(pointer.down(center));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 120)));
+    await tester.sendEventToBinding(pointer.up());
+    await tester.pumpAndSettle();
+    expect(page.controller!.page, closeTo(1, 0.01));
+  });
+
+  testWidgets('flow controls expose accessible labels', (tester) async {
+    await pumpAt(tester, const Size(1600, 1000));
+    expect(find.byTooltip('Previous cover'), findsOneWidget);
+    expect(find.byTooltip('Next cover'), findsOneWidget);
+  });
+
+  testWidgets('library keeps a direct Capsule shortcut', (tester) async {
+    String? destination;
+    final state = AppState.ephemeral()..games = games;
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(
+          body: LibraryScreen(state: state, onGo: (page) => destination = page),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('Capsule'));
+    await tester.pump();
+
+    expect(destination, 'vault');
+  });
+
   testWidgets('desktop: unplayed game says "Never played"', (tester) async {
     // A library of one unplayed game: no play stamp means we must say so
     // rather than invent a date.
@@ -98,6 +279,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Continue playing'), findsOneWidget);
     expect(find.text('Recently added'), findsOneWidget);
+    expect(find.byType(OrbitSwitcher), findsNothing);
   });
 
   testWidgets('phone portrait: tabs, featured game, no overflow', (
@@ -109,6 +291,135 @@ void main() {
     expect(find.text('Favorites'), findsOneWidget);
     expect(find.text('Recent'), findsOneWidget);
     expect(find.text('Play'), findsWidgets);
+  });
+
+  testWidgets('phone portrait cover flow uses its portrait preview spacing', (
+    tester,
+  ) async {
+    await pumpAt(tester, const Size(390, 844));
+    final page = tester.widget<PageView>(find.byType(PageView));
+
+    expect(page.controller!.viewportFraction, 0.62);
+  });
+
+  testWidgets('phone landscape keeps the wide preview flow', (tester) async {
+    await pumpAt(tester, const Size(844, 390));
+    final page = tester.widget<PageView>(find.byType(PageView));
+
+    expect(page.controller!.viewportFraction, 0.24);
+  });
+
+  testWidgets('reduced motion snaps the shelf without an animation', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: LibraryScreen(state: AppState()..games = fourGames),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pageFinder = find.byType(PageView);
+    final pageView = tester.widget<PageView>(pageFinder);
+    expect(pageView.pageSnapping, isFalse);
+    expect(pageView.physics, isA<ClampingScrollPhysics>());
+
+    final pageWidth = tester.getRect(pageFinder).width;
+    await tester.drag(pageFinder, Offset(-pageWidth * .7, 0));
+    await tester.pump();
+
+    expect(pageView.controller!.page, closeTo(1, 0.01));
+  });
+
+  testWidgets('library view preference updates the mounted shelf', (
+    tester,
+  ) async {
+    final state = AppState.ephemeral()..games = fourGames;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(body: LibraryScreen(state: state)),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(PageView), findsOneWidget);
+
+    await state.setSetting('layout', 'grid');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byType(PageView), findsNothing);
+  });
+
+  testWidgets('appearance lets people tune the cover-flow feel', (
+    tester,
+  ) async {
+    final state = AppState.ephemeral();
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(
+          body: SettingsScreen(state: state, initialTab: 'Appearance'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Cover flow feel'), findsOneWidget);
+    expect(find.text('Classic'), findsOneWidget);
+
+    await tester.tap(find.text('Classic'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gentle').last);
+    await tester.pumpAndSettle();
+    expect(state.settings['coverFlowStyle'], 'gentle');
+  });
+
+  testWidgets('unknown persisted cover-flow preference opens safely', (
+    tester,
+  ) async {
+    final state = AppState.ephemeral();
+    await state.setSetting('coverFlowStyle', 'old-value');
+    await state.setSetting('layout', 'old-layout');
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(
+          body: SettingsScreen(state: state, initialTab: 'Appearance'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Classic'), findsOneWidget);
   });
 
   testWidgets('phone landscape: compact layout, no overflow', (tester) async {
@@ -168,6 +479,43 @@ void main() {
     expect(find.text('Super Mario World'), findsNothing);
   });
 
+  testWidgets('collection navigation clears a stale search', (tester) async {
+    await pumpAt(
+      tester,
+      const Size(1600, 1000),
+      state: AppState()
+        ..games = const [
+          GameEntry(
+            id: 'search-demo',
+            title: 'Search Demo',
+            system: 'snes',
+            filePath: '/games/search.sfc',
+            extension: 'sfc',
+            coreId: 'superfx',
+            favorite: true,
+          ),
+          GameEntry(
+            id: 'other-demo',
+            title: 'Other Demo',
+            system: 'snes',
+            filePath: '/games/other.sfc',
+            extension: 'sfc',
+            coreId: 'superfx',
+          ),
+        ],
+    );
+
+    final search = find.byType(TextField).first;
+    await tester.enterText(search, 'Search');
+    await tester.pump();
+    await tester.tap(find.text('Favorites').first);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(search).controller!.text, isEmpty);
+    expect(find.text('Search Demo'), findsWidgets);
+    expect(find.text('Other Demo'), findsNothing);
+  });
+
   testWidgets('desktop Favorites chip filters the collection', (tester) async {
     await pumpAt(
       tester,
@@ -200,6 +548,109 @@ void main() {
 
     expect(find.text('Favorite Demo'), findsWidgets);
     expect(find.text('Other Demo'), findsNothing);
+  });
+
+  testWidgets('wheel input does not scroll the enclosing compact dock', (
+    tester,
+  ) async {
+    await pumpAt(
+      tester,
+      const Size(640, 320),
+      state: AppState()..games = fourGames,
+    );
+    final pageFinder = find.byType(PageView);
+    final dockScroll = find
+        .ancestor(of: pageFinder, matching: find.byType(Scrollable))
+        .last;
+    expect(dockScroll, findsOneWidget);
+    final scrollState = tester.state<ScrollableState>(dockScroll);
+    final before = scrollState.position.pixels;
+    final pointer = TestPointer(42, PointerDeviceKind.mouse);
+    final center = tester.getCenter(pageFinder);
+    await tester.sendEventToBinding(pointer.hover(center));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, 120)));
+    await tester.pumpAndSettle();
+
+    expect(scrollState.position.pixels, closeTo(before, 0.01));
+  });
+
+  testWidgets('removing a selected game realigns the carousel', (tester) async {
+    final state = AppState.ephemeral()..games = fourGames.take(3).toList();
+    await pumpAt(tester, const Size(1600, 1000), state: state);
+    final pageFinder = find.byType(PageView);
+    final pageController = tester.widget<PageView>(pageFinder).controller!;
+    final pageWidth = tester.getSize(pageFinder).width;
+    for (var i = 0; i < 2; i++) {
+      await tester.drag(
+        pageFinder,
+        Offset(-pageWidth * pageController.viewportFraction * 0.8, 0),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(pageController.page, closeTo(2, 0.01));
+
+    state.removeGame('g3');
+    await tester.pumpAndSettle();
+
+    final page = tester.widget<PageView>(find.byType(PageView));
+    expect(page.controller!.page, closeTo(1, 0.01));
+    expect(find.text('Super Mario World'), findsWidgets);
+  });
+
+  testWidgets('tablet keeps global hub rows when a search has no matches', (
+    tester,
+  ) async {
+    await pumpAt(
+      tester,
+      const Size(1024, 768),
+      state: AppState()
+        ..games = const [
+          GameEntry(
+            id: 'played',
+            title: 'Played Demo',
+            system: 'snes',
+            filePath: '/games/played.sfc',
+            extension: 'sfc',
+            coreId: 'superfx',
+            lastPlayedMs: 1758500000000,
+          ),
+        ],
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'does-not-exist');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue playing'), findsOneWidget);
+    expect(find.text('Recently added'), findsOneWidget);
+    expect(find.text('No titles match this view.'), findsOneWidget);
+  });
+
+  testWidgets('tablet Recent view does not duplicate the global hub', (
+    tester,
+  ) async {
+    await pumpAt(
+      tester,
+      const Size(1024, 768),
+      state: AppState()
+        ..games = const [
+          GameEntry(
+            id: 'played',
+            title: 'Played Demo',
+            system: 'snes',
+            filePath: '/games/played.sfc',
+            extension: 'sfc',
+            coreId: 'superfx',
+            lastPlayedMs: 1758500000000,
+          ),
+        ],
+    );
+
+    await tester.tap(find.text('Recent').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Continue playing'), findsOneWidget);
+    expect(find.text('Recently added'), findsOneWidget);
   });
 
   testWidgets('tablet Recently added stays global when search is active', (
@@ -266,6 +717,38 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('A little quiet in here.'), findsOneWidget);
     expect(find.text('Import a folder'), findsOneWidget);
+  });
+
+  testWidgets('installed-core filter shortcuts remain available', (
+    tester,
+  ) async {
+    const manifest = CoreManifest(
+      id: 'superfx',
+      name: 'SuperFX',
+      version: '1.0.0',
+      license: 'GPL-3.0',
+      systems: ['snes'],
+      extensions: ['sfc'],
+      cheatFamilies: [],
+      cheatsSupported: false,
+      delivery: {'linux': 'bundled'},
+      artifacts: {'linux-x64': 'test-pin'},
+    );
+    final state = AppState()..games = fourGames;
+    state.registry.loadCatalog({manifest.id: jsonEncode(manifest.toJson())});
+    state.registry.install(manifest, expectedSha256: 'test-pin');
+
+    await pumpAt(tester, const Size(1600, 1000), state: state);
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is OrbitChip &&
+            widget.label == 'SNES' &&
+            widget.sub == 'superfx',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('grid view still lists every game', (tester) async {

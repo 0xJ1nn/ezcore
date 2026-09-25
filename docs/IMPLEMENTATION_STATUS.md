@@ -4,6 +4,40 @@
 > push. Current verified status lives in [`MATRIX.md`](MATRIX.md); live v1
 > scope in [`RELEASE_PLAN.md`](RELEASE_PLAN.md).
 
+## Responsive Orbit/cover-flow replacement checkpoint (2026-09-25)
+
+The current replacement stack has five layout families: desktop, tablet
+landscape, tablet portrait, phone landscape, and phone portrait. Desktop and
+phone Library use the cover flow; both tablet orientations retain the
+Continue/Recently Added hub. The shell now shares compact padding, preserves
+rail touch targets, and has regression coverage for very small phone/landscape
+viewports, wheel isolation, carousel synchronization, screenshot-cover
+refresh, and stale search state. Screenshot covers also use a revision key so a
+file-to-file replacement at the same path cannot retain a stale Flutter image
+cache entry.
+
+The base artwork branch records the maintainer's statement that the project
+WebPs were created for ezCORE by Codex using ChatGPT Images, pins every flat
+WebP by SHA-256, rejects non-WebP/nested shipped artwork, and decodes every
+asset in the release/test gate. This is a provenance and maintainer-review
+record, not independent legal clearance.
+
+Directly executed checks on the replacement child branch:
+
+- `flutter analyze`: **No issues found** (`18.3s`).
+- `flutter test --no-pub`: **441 passed, 15 skipped, 0 failed**.
+- `ctest --test-dir runtime/build-linux --output-on-failure`: **3/3 passed**.
+- `flutter build linux --debug`: **passed**.
+- `flutter build apk --debug`: **passed**; device boot remains unverified.
+- Manifest, license, artwork, provenance, banned-content, and whitespace
+  gates: **passed**.
+- Linux debug captures were visually reviewed for desktop Library, Systems,
+  Capsule, Settings, and an 834×700 tablet hub using temporary public-domain or
+  local fixture data outside the repository.
+
+The remaining platform/device limitations are unchanged; see
+[`MATRIX.md`](MATRIX.md) and [`KNOWN_ISSUES.md`](../.ezcore/KNOWN_ISSUES.md).
+
 ## All-platforms push (2026-09-18): macOS + Linux + Windows + Android + iOS
 
 Dart seams (all unit-tested, `analyze lib/` clean):

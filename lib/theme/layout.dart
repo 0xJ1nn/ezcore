@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'tokens.dart';
 
-/// The four layout families the studio plate is drawn for.
+/// The five layout families the studio plate is drawn for.
 ///
 /// Every screen asks for one of these instead of re-deriving
 /// `portrait` / `wideRail` / `short` on its own. That duplication is how
@@ -13,6 +13,9 @@ enum OrbitLayout {
 
   /// Tablet: command rail + hub rows ("Continue playing", "Recently added").
   tablet,
+
+  /// Tablet held upright: keep the rail and hub instead of using phone chrome.
+  tabletPortrait,
 
   /// Phone held sideways: compact command rail + short cover flow + dock.
   phoneLandscape,
@@ -35,7 +38,11 @@ abstract final class Layout {
   /// or a small desktop window) gets the compressed rhythm regardless of
   /// how wide it is, because height is what runs out first.
   static OrbitLayout ofSize(Size size, Orientation orientation) {
-    if (orientation == Orientation.portrait) return OrbitLayout.phonePortrait;
+    if (orientation == Orientation.portrait) {
+      return size.width >= Tokens.bpCompact
+          ? OrbitLayout.tabletPortrait
+          : OrbitLayout.phonePortrait;
+    }
     if (size.height < Tokens.bpShortHeight || size.width < Tokens.bpCompact) {
       return OrbitLayout.phoneLandscape;
     }
@@ -50,6 +57,10 @@ abstract final class Layout {
   static bool isPhone(OrbitLayout l) =>
       l == OrbitLayout.phonePortrait || l == OrbitLayout.phoneLandscape;
 
+  /// True for layouts held upright, including tablets that keep a rail.
+  static bool isPortrait(OrbitLayout l) =>
+      l == OrbitLayout.phonePortrait || l == OrbitLayout.tabletPortrait;
+
   /// True when the phone-style bottom command bar replaces the top one.
   static bool hasBottomBar(OrbitLayout l) => l == OrbitLayout.phonePortrait;
 
@@ -62,6 +73,7 @@ abstract final class Layout {
   static String label(OrbitLayout l) => switch (l) {
     OrbitLayout.desktop => 'desktop',
     OrbitLayout.tablet => 'tablet',
+    OrbitLayout.tabletPortrait => 'tablet portrait',
     OrbitLayout.phoneLandscape => 'phone landscape',
     OrbitLayout.phonePortrait => 'phone portrait',
   };

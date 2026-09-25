@@ -42,7 +42,7 @@ class _VaultScreenState extends State<VaultScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final layout = Layout.of(context);
-    final portrait = Layout.hasBottomBar(layout);
+    final portrait = Layout.isPortrait(layout);
     final short = Layout.isShort(layout);
     final ultraCompact = short && size.height < 360;
     final osPad = Tokens.osPad(size.width, portrait: portrait, short_: short);

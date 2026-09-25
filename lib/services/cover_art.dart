@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import '../services/local_data_dir.dart';
 
 /// Deterministic per-game cover identity + screenshot-cover resolution.
@@ -55,10 +57,27 @@ CoverSpec coverSpecFor(String gameId) {
   );
 }
 
+final Map<String, File?> _coverFileCache = <String, File?>{};
+
+/// Rebuilds mounted covers after a screenshot replaces a pinned file.
+final ValueNotifier<int> coverRevision = ValueNotifier<int>(0);
+
 /// Local screenshot-cover file for [gameId], or null when none was pinned.
-/// Synchronous: the path is derived without touching disk beyond existsSync.
+///
+/// The first lookup checks disk. Repeated carousel frames reuse that result so
+/// a drag does not perform synchronous filesystem probes for every cover.
+/// Screenshot writes call [invalidateCoverFile] to publish the new file.
 File? coverFileFor(String gameId) {
-  final file = File(
-      '${PlatformLocalDataDirProvider.path()}/art/$gameId.png');
-  return file.existsSync() ? file : null;
+  if (_coverFileCache.containsKey(gameId)) {
+    return _coverFileCache[gameId];
+  }
+  final file = File('${PlatformLocalDataDirProvider.path()}/art/$gameId.png');
+  final resolved = file.existsSync() ? file : null;
+  _coverFileCache[gameId] = resolved;
+  return resolved;
+}
+
+void invalidateCoverFile(String gameId) {
+  _coverFileCache.remove(gameId);
+  coverRevision.value++;
 }

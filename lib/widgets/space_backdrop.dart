@@ -366,9 +366,10 @@ class SpaceScenePainter extends CustomPainter {
   }
 
   void _planet(Canvas canvas, Size size) {
-    // Centre sits below the frame so only the limb's crown is visible.
-    final c = Offset(size.width * 0.42, size.height * 1.62);
-    final r = size.height * 1.18;
+    // Keep the horizon in the lower quarter so it frames the library instead
+    // of running through covers, labels, and the selected-game panel.
+    final c = Offset(size.width * 0.42, size.height * 1.85);
+    final r = size.height * 1.10;
     final bodyTop = math.max(0.0, c.dy - r);
     final bodyRect = Rect.fromLTWH(
       0,
@@ -567,8 +568,8 @@ class StarfieldPainter extends CustomPainter {
   }
 
   void _orbitalSignals(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.42, size.height * 1.62);
-    final radius = size.height * 1.18;
+    final center = Offset(size.width * 0.42, size.height * 1.85);
+    final radius = size.height * 1.10;
     const start = -2.35;
     const end = -0.79;
 

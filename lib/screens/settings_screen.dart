@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final layout = Layout.of(context);
-    final portrait = Layout.hasBottomBar(layout);
+    final portrait = Layout.isPortrait(layout);
     final compact = layout == OrbitLayout.phoneLandscape;
     final useTabs = portrait || compact;
     final short = Layout.isShort(layout);
@@ -219,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Black panels, blue highlights. Make it yours.',
+          'Midnight surfaces, electric-blue highlights. Make it yours.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
@@ -268,8 +268,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
+          'Cover flow feel',
+          'Choose the depth and snap used on desktop and phone covers.',
+          OrbitSelect<String>(
+            value: _pref('coverFlowStyle', 'classic'),
+            options: const ['classic', 'gentle', 'flat'],
+            labels: const {
+              'classic': 'Classic',
+              'gentle': 'Gentle',
+              'flat': 'Flat',
+            },
+            onChanged: (v) => _set('coverFlowStyle', v ?? 'classic'),
+          ),
+        ),
+        _row(
           'Default library view',
-          'Flow for discovery. Grid for a bird\u2019s-eye view.',
+          'Desktop and phone browsing. Tablets keep their focused hub.',
           OrbitSelect<String>(
             value: _pref('layout', 'flow'),
             options: const ['flow', 'grid'],
@@ -293,6 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               await _set('motion', true);
               await _set('reflection', true);
+              await _set('coverFlowStyle', 'classic');
               await _set('layout', 'flow');
               await _set('dense', false);
               if (mounted) {
@@ -712,11 +727,15 @@ class _NavBtn extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: active ? Colors.white : Tokens.muted),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: Tokens.body(
-                  size: 12,
-                  color: active ? Colors.white : Tokens.muted,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(
+                    size: 12,
+                    color: active ? Colors.white : Tokens.muted,
+                  ),
                 ),
               ),
             ],
