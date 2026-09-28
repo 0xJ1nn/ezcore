@@ -85,7 +85,8 @@ class EmulationWorker {
   }
 
   /// Applies cheats to the live session. Each entry is
-  /// `[index:int, enabled:bool, code:String]`; returns rejected indices.
+  /// `[index:int, enabled:bool, code:String]`; returns indices the runtime
+  /// could not dispatch to a core hook.
   Future<List<int>> applyCheats(List<List<Object>> cheats) async {
     final value = await _request('cheats', cheats);
     return List<int>.from(value as List);

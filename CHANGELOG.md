@@ -18,6 +18,12 @@ All notable changes to ezCORE are documented here. The format follows
   evicts stale Flutter image-cache state and remounts the cover with the new
   revision.
 
+### Fixed
+
+- Cores that do not export the optional libretro `retro_cheat_reset` or
+  `retro_cheat_set` symbols now load normally; unsupported cheat calls fail
+  safely instead of being treated as a core-load error.
+
 ### Verification
 
 - Replacement-stack checks: `flutter analyze` clean; `flutter test --no-pub`

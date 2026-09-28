@@ -169,18 +169,18 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  /// Pushes stored cheats into the live session. Silent unless the core
-  /// rejects an index or the call itself fails.
+  /// Pushes stored cheats into the live session. Silent unless the runtime
+  /// cannot dispatch an index or the call itself fails.
   Future<void> _applyCheats() async {
     if (!mounted || leaving || !player.running) return;
     final game = widget.state.games.firstWhere((g) => g.id == widget.gameId);
     final cheats = widget.state.cheatsFor(game.id);
     if (cheats.isEmpty) return;
     try {
-      final rejected = await player.applyCheats(cheats);
-      if (rejected.isNotEmpty && mounted) {
+      final notDispatched = await player.applyCheats(cheats);
+      if (notDispatched.isNotEmpty && mounted) {
         orbitToast(context,
-            '${rejected.length} cheat(s) rejected by this core');
+            '${notDispatched.length} cheat(s) could not be dispatched');
       }
     } catch (e) {
       if (mounted) orbitToast(context, 'Cheats did not apply: $e');

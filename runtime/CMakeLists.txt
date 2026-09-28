@@ -42,6 +42,46 @@ if(APPLE)
   set_target_properties(synth_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# Variants used to verify that optional libretro entry points may be absent.
+add_library(synth_no_cheat_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_no_cheat_libretro PRIVATE
+  EZCORE_SYNTH_NO_CHEAT
+)
+target_include_directories(synth_no_cheat_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_no_cheat_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
+add_library(synth_no_reset_cheat_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_no_reset_cheat_libretro PRIVATE
+  EZCORE_SYNTH_NO_CHEAT_RESET
+)
+target_include_directories(synth_no_reset_cheat_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_no_reset_cheat_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
+add_library(synth_no_set_cheat_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_no_set_cheat_libretro PRIVATE
+  EZCORE_SYNTH_NO_CHEAT_SET
+)
+target_include_directories(synth_no_set_cheat_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_no_set_cheat_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Tests ---
 add_executable(test_abi test/test_abi.c)
 target_link_libraries(test_abi PRIVATE ezcore_runtime)
@@ -52,6 +92,17 @@ add_executable(test_core_player test/test_core_player.c)
 target_link_libraries(test_core_player PRIVATE ezcore_runtime)
 target_include_directories(test_core_player PRIVATE include)
 
+# Optional libretro entry points must not make a core unloadable.
+add_executable(test_optional_cheats test/test_optional_cheats.c)
+target_link_libraries(test_optional_cheats PRIVATE ezcore_runtime)
+target_include_directories(test_optional_cheats PRIVATE include)
+add_dependencies(test_optional_cheats
+  synth_libretro
+  synth_no_cheat_libretro
+  synth_no_reset_cheat_libretro
+  synth_no_set_cheat_libretro
+)
+
 enable_testing()
 add_test(NAME abi_version COMMAND test_abi)
 
@@ -59,6 +110,20 @@ add_test(NAME abi_version COMMAND test_abi)
 add_test(NAME core_player
   COMMAND test_core_player
   ${CMAKE_BINARY_DIR}/libsynth_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Regression coverage for cores that omit each optional cheat symbol.
+add_test(NAME optional_cheat_symbols_none
+  COMMAND test_optional_cheats
+  $<TARGET_FILE:synth_no_cheat_libretro> 0x00 0)
+add_test(NAME optional_cheat_symbols_without_reset
+  COMMAND test_optional_cheats
+  $<TARGET_FILE:synth_no_reset_cheat_libretro> 0x80 1)
+add_test(NAME optional_cheat_symbols_without_set
+  COMMAND test_optional_cheats
+  $<TARGET_FILE:synth_no_set_cheat_libretro> 0x40 0)
+add_test(NAME optional_cheat_symbols_supported
+  COMMAND test_optional_cheats
+  $<TARGET_FILE:synth_libretro> 0xC0 1)
 
 # Crash-isolated per-core boot test (forks a child so one crash doesn't kill the runner)
 add_executable(test_core_boot test/test_core_boot.c)
