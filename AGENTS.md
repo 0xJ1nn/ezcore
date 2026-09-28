@@ -60,7 +60,7 @@ ones that catch agents most often:
    `runtime/test/test_core_player.c` must pass **unmodified**; if a change
    requires editing those tests to pass, the change is wrong.
 3. **The kernel's missing capability surface is the binding constraint, not the
-   UI.** `env_cb` implements 7 of 96 `RETRO_ENVIRONMENT_*` commands
+   UI.** `env_cb` implements 7 of the 92 `RETRO_ENVIRONMENT_*` commands
    (`runtime.c:71-114`). Finishing it unlocks far more than new UI work.
 4. **No core-name branching in the Flutter layer.** Per-core quirks belong in
    `runtime/src/` with a comment naming the cause (one exists today:
