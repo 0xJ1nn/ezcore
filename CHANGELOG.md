@@ -23,6 +23,42 @@ All notable changes to ezCORE are documented here. The format follows
 - Cores that do not export the optional libretro `retro_cheat_reset` or
   `retro_cheat_set` symbols now load normally; unsupported cheat calls fail
   safely instead of being treated as a core-load error.
+- **Orbit design evidence can no longer drift or regress silently.**
+  `design/ezcore-orbit/verify_brand.py` captured the `details` and `pause`
+  screens with no settle wait, so those screenshots raced the overlay's `.3s`
+  fade-in and could commit a semi-transparent overlay with the library legible
+  through it. Capture is now deterministic — `reduced_motion='reduce'` (which
+  the prototype already honours), pinned Chromium colour/raster flags, and an
+  explicit wait for every animation to finish before each screenshot, and
+  every capture passes Playwright's `animations='disabled'`, which
+  fast-forwards transitions that start after the wait — a transition tail was
+  flipping `responsive-768.png` between two byte states across runs. The run
+  also asserts the overlay still has a working `backdrop-filter` and a scrim
+  opaque enough to obscure content without it, and now records each state's
+  `height`/`scrollHeight`, which it previously never captured.
+
+### Added
+
+- **`scripts/check_design_evidence.py`** — dependency-free (standard library
+  only) gate over the committed evidence, wired into the pre-commit hook. It
+  fails when a capture is missing, blank, implausibly sized, from a different
+  run than the rest, out of step with `report.json`, when `report.json` records
+  fewer than the expected 36 states, or when the overlay backdrop check is
+  absent. It runs only when a commit actually touches the evidence directory.
+  Escape hatch: `EZCORE_SKIP_DESIGN_EVIDENCE=1`.
+
+  This is the blind spot that let 18 committed PNGs change height (android
+  +4px, ios +4px, windows +21px) while `report.json` stayed byte-identical:
+  height was never recorded, so nothing could cross-check the files. The report
+  now records each capture's own `captureWidth`/`captureHeight`, read back from
+  the PNG header, which is what makes the cross-check possible at all.
+
+  Determinism is demonstrated rather than asserted: two back-to-back runs
+  produce 57 of 57 byte-identical PNGs with zero differing pixels. The two
+  sources of real pixel drift were a live clock in the shell header and a toast
+  that self-hides on a 3s timer; neither is a CSS animation, so waiting on
+  `getAnimations()` never saw them. The clock is frozen for the run and
+  transient toasts are dismissed before each capture.
 
 ### Verification
 
