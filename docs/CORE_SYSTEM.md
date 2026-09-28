@@ -207,7 +207,8 @@ blocked cores that carry artifacts.
 1. **Verify licensing**: open-source libretro core, compatible license, no
    Nintendo/Sony/Sega IP, no DMCA §1201 exposure.
 2. **Add the manifest**: `cores/<id>/manifest.json` (see schema above).
-3. **Add the build recipe**: `scripts/core_platform.sh` — `build_<id>()`.
+3. **Add the build recipe**: `scripts/build_core.sh` — `build_<id>()` (the
+   platform variables it uses come from `scripts/core_platform.sh`).
 4. **Build + prove it**: `scripts/build_core.sh <id>`, then the Dart matrix
    (`flutter test test/core_matrix_test.dart`) — at least IDENTIFIES.
 5. **Pin artifacts**: `scripts/pin_artifacts.py <platform> --out native/cores`.
