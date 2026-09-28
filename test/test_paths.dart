@@ -12,8 +12,8 @@ import 'dart:io';
 String get hostLibExt => Platform.isWindows
     ? 'dll'
     : (Platform.isMacOS || Platform.isIOS)
-        ? 'dylib'
-        : 'so';
+    ? 'dylib'
+    : 'so';
 
 String? firstExisting(Iterable<String> candidates) {
   for (final path in candidates) {
@@ -26,22 +26,26 @@ String? firstExisting(Iterable<String> candidates) {
 
 /// Directory holding the built runtime + synth core + CTest harness.
 String? runtimeBuildDir() => firstExisting([
-      'runtime/build-macos',
-      'runtime/build-linux',
-      'runtime/build-windows',
-      'runtime/build',
-    ]);
+  'runtime/build-macos',
+  'runtime/build-linux',
+  'runtime/build-windows',
+  'runtime/build',
+]);
 
-String? _join(String? dir, String file) =>
-    dir == null ? null : '$dir/$file';
+String? _join(String? dir, String file) => dir == null ? null : '$dir/$file';
 
 /// Absolute-or-relative path to the built runtime library, if present.
 String? bridgeLib() =>
     _join(runtimeBuildDir(), 'libezcore_runtime.$hostLibExt');
 
 /// Path to the built synthetic test core, if present.
-String? synthLib() =>
-    _join(runtimeBuildDir(), 'libsynth_libretro.$hostLibExt');
+String? synthLib() => _join(runtimeBuildDir(), 'libsynth_libretro.$hostLibExt');
+
+/// Path to the built synthetic core that registers core options (P1b), if
+/// present. Registration happens on every load, so option tests do not
+/// depend on any real core's option set.
+String? synthOptionsLib() =>
+    _join(runtimeBuildDir(), 'libsynth_options_libretro.$hostLibExt');
 
 /// Staged core artifact for [id] (dev checkout or platform matrix output).
 String? stagedCoreLib(String id) {
@@ -49,8 +53,7 @@ String? stagedCoreLib(String id) {
   final native = Directory('native');
   if (native.existsSync()) {
     for (final entity in native.listSync()) {
-      if (entity is Directory &&
-          entity.path.startsWith('native/cores-')) {
+      if (entity is Directory && entity.path.startsWith('native/cores-')) {
         roots.add(entity.path);
       }
     }

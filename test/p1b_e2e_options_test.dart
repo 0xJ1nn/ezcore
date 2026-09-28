@@ -3,7 +3,6 @@
 // this drives the SAME registration through the public Dart bindings, so a
 // signature or string-idiom regression in ezcore_runtime.dart fails here.
 // Skips cleanly when the runtime or the synth core is not built.
-import 'dart:ffi';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +15,9 @@ void main() {
 
   test(
     'P1b round-trip: register options, read them back, set a value',
-    skip: (bridgeLib != null && synth.existsSync()) ? null : 'needs built runtime + synth_options core',
+    skip: (bridgeLib != null && synth.existsSync())
+        ? null
+        : 'needs built runtime + synth_options core',
     () {
       final bridge = EzCoreRuntime.load(runtimePath: bridgeLib!);
       final session = bridge.loadSession(synth.path);
@@ -30,19 +31,23 @@ void main() {
         expect(first!.key, isNotEmpty);
         expect(first.defaultValue, isNotNull);
 
-        // 2. Resolve what the frontend would show through the new resolver.
-        final keys = [for (var i = 0; i < bridge.coreOptionCount(session); i++) bridge.coreOption(session, i)!.key];
+        // 2. Set a value through Dart and read it back — the real round trip.
+        final keys = [
+          for (var i = 0; i < bridge.coreOptionCount(session); i++)
+            bridge.coreOption(session, i)!.key,
+        ];
         expect(keys, isNotEmpty);
-
-        // 3. Set a value through Dart and read it back — the real round trip.
         final target = keys.first;
-        final values = <String>[];
-        // pick a value from the core's own defaults: set to default first
-        expect(bridge.setCoreOption(session, target, first.value), isTrue);
+        expect(bridge.setCoreOption(session, target, 'test-set'), isTrue);
+        final after = bridge.coreOption(session, keys.indexOf(target));
+        expect(after!.value, 'test-set');
 
-        // 4. Out-of-range and unknown-key honesty.
+        // 3. Out-of-range and unknown-key honesty.
         expect(bridge.coreOption(session, 99999), isNull);
-        expect(bridge.setCoreOption(session, 'definitely_not_a_key', 'x'), isFalse);
+        expect(
+          bridge.setCoreOption(session, 'definitely_not_a_key', 'x'),
+          isFalse,
+        );
 
         // 5. The capability surfaces are present (counts may be zero for
         //    a synthetic core that does not register them).
