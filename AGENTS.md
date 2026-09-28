@@ -26,11 +26,64 @@
 Before changing any code for a non-trivial task, **STOP** and inspect:
 
 - [`project.md`](project.md) — engineering governance (this is the rulebook)
+- [`docs/PLATFORM.md`](docs/PLATFORM.md) — **what ezCORE is, the core/runtime/UI
+  boundary, and the platform invariants that may not be broken**
 - [`README.md`](README.md) — what the project is
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the code is laid out
-- [`ROADMAP.md`](ROADMAP.md) — authoritative long-term roadmap / [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md) — release gates
-- `.ezcore/CURRENT_TASK.md` and related state files — current task, evidence, and handoff
+- [`ROADMAP.md`](ROADMAP.md) — authoritative long-term roadmap (see **Platform
+  program**) / [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md) — release gates
+- [`.ezcore/CURRENT_TASK.md`](.ezcore/CURRENT_TASK.md) and related state files — current task, evidence, and handoff
 - `git status`, current branch, relevant source/tests
+
+**The code is truth. Documentation can be stale. Read the code.**
+
+---
+
+## Platform invariants — read before touching the core boundary
+
+ezCORE is a **modular platform**: one app, many replaceable emulator cores
+(libretro plugins), from handheld to current-generation targets, added by third
+parties without forking the app. ezCORE is developed with fast AI-assisted
+iteration, so these fixed points are written down — a confident, well-formatted
+change that violates one is a **rejected** change, not an improvement.
+
+The full list with rationale is [`docs/PLATFORM.md`](docs/PLATFORM.md) §6. The
+ones that catch agents most often:
+
+1. **The core ABI is libretro.** A core exports `retro_*`
+   (`runtime/src/runtime.c:216-225`). `runtime/include/ezcore_runtime.h`
+   (`ezcore_*`) is the **host** API that Dart calls — a core never calls it.
+   Never add an `ezcore_*` entry point that a core must implement. Do not design
+   an ezCORE core SDK; it would orphan every existing core.
+2. **Kernel growth is additive and soft-resolved.** New host functions are
+   NULL-checked at every call (existing pattern: `runtime.c:456-469`).
+   `runtime/test/test_core_player.c` must pass **unmodified**; if a change
+   requires editing those tests to pass, the change is wrong.
+3. **The kernel's missing capability surface is the binding constraint, not the
+   UI.** `env_cb` implements 7 of 96 `RETRO_ENVIRONMENT_*` commands
+   (`runtime.c:71-114`). Finishing it unlocks far more than new UI work.
+4. **No core-name branching in the Flutter layer.** Per-core quirks belong in
+   `runtime/src/` with a comment naming the cause (one exists today:
+   `runtime.c:272-287`). `if (coreId == ...)` in UI is forbidden.
+5. **Capability before content.** Do not add a console or system to the catalog
+   until the kernel can run and verify it.
+6. **Package data never executes code.** Control layouts, skins, cheats, and
+   presets are JSON: schema-validated, size-capped, path-confined, no symlinks,
+   no fetched URLs, unknown fields rejected.
+7. **Untrusted native code is opt-in, labelled, and never auto-updated.**
+   Running unknown native code cannot be made safe — say so, never imply
+   otherwise. Never hand-roll cryptography.
+8. **Local-first.** ezCORE must stay fully usable with no account and no
+   network. A remote registry is additive, never required.
+9. **Never knowingly break a save.**
+
+**Before proposing a change to the core/runtime/UI boundary, state which
+invariant it touches.** If it touches one, it needs an ADR in
+[`docs/DECISIONS.md`](docs/DECISIONS.md) and explicit maintainer approval
+(`project.md` §1, §65). Decisions of record: ADR-014 (libretro stays), ADR-015
+(crash containment), ADR-016 (self-serve + Verified tiers), ADR-017 (Tier-2
+engines are supervised, not embedded).
+
 
 **The code is truth. Documentation can be stale. Read the code.**
 
@@ -45,6 +98,9 @@ Before changing any code for a non-trivial task, **STOP** and inspect:
 - **Smallest safe change.** No speculative abstractions, no premature optimization.
 - **Existing functionality is sacred.** Don't change working interfaces without understanding who depends on them.
 - **Core isolation.** Cores never touch Flutter. Runtime owns execution. The ABI is the boundary.
+- **Respect the platform gates.** Platform program items P5–P9 must not start
+  before their stated predecessor in [`ROADMAP.md`](ROADMAP.md). Large
+  expensive layers built on an unfinished kernel contract get built twice.
 
 ---
 
@@ -81,6 +137,15 @@ Before changing any code for a non-trivial task, **STOP** and inspect:
 ## What AI must NOT do silently
 
 - Make major architectural, product, UX, compatibility, licensing, dependency, or scope decisions
+- Invent a new core ABI, or add a core-facing `ezcore_*` function
+- Weaken a platform invariant in [`docs/PLATFORM.md`](docs/PLATFORM.md) §6
+- Start a platform program item (P2–P9) before its stated gate in [`ROADMAP.md`](ROADMAP.md)
+- Add a console, core, or system to the catalog before the kernel can run and verify it
+- Branch on core identity in the Flutter layer
+- Execute untrusted native code, or imply that running it is made safe
+- Hand-roll cryptography
+- Make ezCORE require an account or a network connection
+- Add a package format that can execute code, fetch URLs, or escape its directory
 - Copy external code without license/provenance checks
 - Change generated files (change the source instead)
 - Execute destructive commands (`rm`, `git reset --hard`, force push) without explaining first

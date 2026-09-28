@@ -526,6 +526,212 @@ linux-x64). The maintainer wants the main package lightweight, cores
   for `<platform>` yet"); macOS/Windows giant assets await those
   platform builds (recorded as *not verified* on this host).
 
+## ADR-014: The core ABI stays libretro — no ezCORE core SDK
+
+**Status:** Accepted (2026-09-26). Platform contract:
+[`PLATFORM.md`](PLATFORM.md) §2 and §6. Binding on all future core work.
+
+### Context
+
+ezCORE is a modular platform: the maintainer's direction is that third parties
+can add cores, and that one application should cover everything from handheld
+systems to current-generation targets. That raises the question of what
+contract a core implements.
+
+The code already answers it, and the documentation does not. A core is a
+**libretro** plugin exporting `retro_*` symbols
+(`runtime/src/runtime.c:216-225`), gated on `retro_api_version() == 1`
+(`runtime.c:231-236`). `runtime/include/ezcore_runtime.h` — the `ezcore_*`
+surface — is host-facing: Dart calls it to drive a core *through* the runtime,
+and no core ever calls it. `docs/ARCHITECTURE.md:44-46` states the opposite
+("Every core speaks the runtime ABI"), which is false and would actively mislead
+every third-party author. Separately, the kernel implements **7 of 96**
+`RETRO_ENVIRONMENT_*` commands (`runtime.c:71-114`, `default: return false`),
+which is why `MATRIX.md` records PS2/N64/GameCube/Wii/Dreamcast as
+frame-unverified.
+
+### Decision
+
+- **The core contract is libretro API v1, unchanged.** We do not design,
+  publish, or require an ezCORE-specific core SDK.
+- The host ABI (`ezcore_runtime.h`) may grow, but **additively only**, and only
+  for host use. New capabilities are soft-resolved and NULL-checked, following
+  the existing optional save-state pattern (`runtime.c:456-469`).
+- Work the kernel's missing capability surface (core options, input
+  descriptors, controller info, memory maps, hardware render) rather than
+  replacing the ecosystem we already speak.
+- Read existing standards for metadata — libretro `.info` files, `retro_
+  core_option_value`, `retro_input_descriptor`, the existing `.cht` cheat
+  format — instead of inventing parallel formats.
+- `docs/ARCHITECTURE.md` and `docs/API.md` are corrected as program item P1.
+
+### Consequences
+
+- ezCORE is immediately compatible with the existing libretro core ecosystem;
+  thousands of cores become reachable by finishing the kernel rather than by
+  writing new cores.
+- The project hosts emulators instead of reimplementing them. Reimplementing
+  tested, freely licensed emulators is wasted effort.
+- ezCORE-specific extension points are confined to **non-code metadata**
+  (control layouts, skins, function hooks) that libretro does not standardise.
+- The existing native tests (`test_core_player`, `test_core_boot`) are the
+  regression tripwire: a kernel change that requires editing them to pass is
+  rejected by contract.
+
+### Alternatives considered
+
+- **Design an ezCORE core SDK.** Rejected: it orphans every existing libretro
+  core, gains nothing the ABI does not already express, and makes ezCORE a
+  project of one rather than a platform.
+- **Wrap libretro instead of using it.** Rejected: an indirection layer with no
+  capability gain; it would be a second ABI to keep in sync.
+- **Fix the documentation only, defer the kernel.** Rejected: the missing 89
+  environment commands are the binding constraint on the product, not a
+  documentation problem.
+
+## ADR-015: A core crash must not terminate ezCORE
+
+**Status:** Accepted (2026-09-26), sequenced behind P1. Platform contract:
+[`PLATFORM.md`](PLATFORM.md) §5 and §6.
+
+### Context
+
+Cores are currently `dlopen`ed into the application process
+(`runtime/src/dynload_posix.c:7-13`). The project already records the
+consequence in its own code: `lib/emu/emulation_worker.dart:11-12` states
+*"This is NOT process isolation: a native core crash can still terminate the
+application."* A `dart:isolate` isolates Dart, not native code.
+
+The platform's stated direction is that **third parties** add cores. That makes
+crash containment a trust property, not a nicety: without it, one bad core
+takes the library, the save vault, and the session with it, and produces no
+diagnostic.
+
+### Decision
+
+- **A core crash must never take down the application.** The end state is one
+  process per core session, supervised by ezCORE.
+- On crash: the game session ends, the failure is recorded in diagnostics, the
+  library and saved data survive, and the user may select another core.
+- Ship **behind a setting, defaulting to today's in-process path**, so it can be
+  adopted and validated incrementally rather than as a single large switch.
+- Sequenced **after** P1. Containment is the most expensive and most
+  cross-platform item; building it against an unfinished kernel contract means
+  building it twice.
+- Until it ships, the limitation is **stated in documentation and in-app** and
+  never papered over.
+
+### Alternatives considered
+
+- **Keep cores in-process, document the risk.** Rejected: acceptable for
+  first-party curated cores, not for a platform that invites unknown
+  third-party native code.
+- **Immediate hard cutover to per-core processes.** Rejected: highest risk of
+  regressing the one core that currently renders; an opt-in path preserves a
+  known-good fallback.
+- **Static analysis or sandboxing instead of processes.** Rejected as a
+  substitute: neither contains a runtime fault at execution time.
+
+## ADR-016: Third-party cores are self-serve, with an ezCORE Verified tier
+
+**Status:** Accepted (2026-09-26). Platform contract: [`PLATFORM.md`](PLATFORM.md)
+§4, §5, §6.
+
+### Context
+
+The maintainer's direction is that a third party should be able to add a working
+core — with touch layouts, skins, and cheats — **without the maintainer writing
+code**, while ezCORE also keeps a curated list of its own cores. The trust
+question was raised explicitly: prevent viruses, malware, and injection.
+
+An emulator core is a native shared library. Once loaded it has the same
+privileges as the application. This cannot be engineered away, and no plan that
+implies otherwise is honest.
+
+### Decision
+
+Two doors, one validator:
+
+- **Self-serve.** A local package folder, or an added download. Fully offline,
+  no account, no server. Opt-in with a plain-language warning.
+- **Reviewed.** A pull request into `cores/`, reviewed and pinned, for cores the
+  project stands behind.
+
+Two trust tiers, never blurred:
+
+- **ezCORE Verified** — project-reviewed, listed in-app with a trust badge,
+  project-updated, integrity-protected by SHA-256 manifest pins and (P7) a
+  signature.
+- **Unverified** — permitted, clearly labelled, opt-in, **never**
+  auto-updated, and run contained once P6 lands.
+
+Metadata that ships with a package is **data and never executes code**: JSON
+schema validation, size caps, path confinement (no `..`), no symlinks, no
+nested directories, no fetched URLs, unknown fields rejected. This reuses the
+proven shape of the existing `scripts/verify_core_art.py` gate.
+
+Cryptography is not hand-rolled. SHA-256 pins stand; a real signature scheme
+(Ed25519) is a separate task with an explicit dependency decision; platform
+code signing is used where it is free.
+
+### Consequences
+
+- ezCORE stays fully usable with no account and no network, consistent with the
+  local-first policy in `MONETIZATION.md`.
+- A third party can ship controls, skins and cheats without any ezCORE release.
+- The project accepts a real, documented risk: unverified native code can be
+  malicious. It is mitigated by default-deny, labelling, and containment — not
+  eliminated, and never described as eliminated.
+- Adding a core to the catalog no longer requires a maintainer code change
+  (P2), which is the actual definition of the platform working.
+
+### Alternatives considered
+
+- **Pull-request-only intake.** Rejected as the sole path: onboarding stays
+  gated on maintainer review bandwidth, which does not scale.
+- **Signed remote registry only.** Rejected as the sole path: requires hosting,
+  key rotation and an outage story before the first third party can onboard.
+  Retained as an additive transport for the Verified tier.
+- **Claim untrusted cores can be made safe in-process.** Rejected: not
+  technically possible.
+
+## ADR-017: Tier-2 targets are supervised, not embedded
+
+**Status:** Accepted (2026-09-26), experimental scope. Platform contract:
+[`PLATFORM.md`](PLATFORM.md) §3.
+
+### Context
+
+The product direction includes current-generation console targets and
+Windows-PC-games emulation. Those targets are large standalone native programs.
+They do not expose the libretro API and have no reason to, so they cannot be
+`dlopen`ed as Tier-1 cores, and ezCORE cannot make them into cores without
+upstream cooperation that cannot be assumed.
+
+Claiming in-process embedding would be a promise the project cannot keep.
+
+### Decision
+
+- **Tier 1 — libretro cores** are the primary platform path and the focus of
+  near-term work.
+- **Tier 2 — engine integrations** are supervised: ezCORE launches the engine,
+  routes display, input and audio through itself, watches the process lifecycle,
+  and preserves library, save and controller continuity.
+- Tier 2 is described as supervision and routing. It is **not** described as
+  embedding, and `MATRIX.md` claims stay bounded accordingly.
+- Tier 2 work is experimental and starts only after P1.
+
+### Alternatives considered
+
+- **Design an ezCORE engine ABI and link engines in-process.** Rejected: no
+  external engine will implement it, and it would compete with the Tier-1 path
+  we just decided to keep (ADR-014).
+- **Deep-link / hand off to the external emulator.** Rejected as the whole
+  answer: it forfeits library, save and controller continuity, which is most of
+  the user value. Retained as a fallback.
+- **Ignore these targets.** Rejected: the maintainer named them explicitly, and
+  the supervision scope is deliverable and honest.
+
 ## Open Decisions
 
 These need to be made before Phase 1:

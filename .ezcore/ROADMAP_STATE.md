@@ -50,18 +50,43 @@ is required for this closeout.
 
 ## Milestone order
 
+> The authoritative delivery order for platform work is the **Platform program**
+> in [`../ROADMAP.md`](../ROADMAP.md) (P1 … P9), governed by
+> [`../docs/PLATFORM.md`](../docs/PLATFORM.md). The table below remains the
+> long-range product-surface order. Where they overlap, the platform program
+> wins on sequencing.
+
 | Order | Milestone | Status | Gate |
 |---:|---|---|---|
 | 0 | Project control and baseline | [x] Complete | Reviewed replacement stack merged into `main` with recorded platform limits |
-| 1 | Runtime and core contract | [~] Partially implemented | Capabilities, lifecycle, media, and config are explicit |
-| 2 | Controller profiles | [ ] Planned | Hierarchical profiles and portable packages |
+| 1 | Runtime and core contract (= platform program **P1**) | [~] Partially implemented | Capabilities, lifecycle, media, and config are explicit |
+| 2 | Controller profiles (= **P3**, **P4**) | [ ] Planned | Hierarchical profiles and portable packages |
 | 3 | Library and metadata | [~] Partially implemented | Provider-independent durable library model |
 | 4 | BIOS/firmware | [~] Partially implemented | Complete manager and validation UX |
-| 5 | Saves and portability | [~] Partially implemented | Migration, backup, and import/export tests |
-| 6 | Themes and graphics | [ ] Planned | Installable theme/graphics packages |
+| 5 | Saves and portability (**P4**) | [~] Partially implemented | Migration, backup, and import/export tests |
+| 6 | Themes and graphics (**P2**, **P4**) | [ ] Planned | Installable theme/graphics packages |
 | 7 | Shaders and mods | [?] Needs research | Safe renderer and mod package designs |
 | 8 | Capture, diagnostics, achievements | [~] Partially implemented | Shared service seams without provider coupling |
-| 9 | Netplay and ecosystem | [ ] Planned | Reviewed local-first package and transport designs |
+| 9 | Netplay and ecosystem (**P5**, **P7**) | [ ] Planned | Reviewed local-first package and transport designs |
+
+## Platform contract (2026-09-26)
+
+A platform audit on 2026-09-26 produced the binding contract at
+[`../docs/PLATFORM.md`](../docs/PLATFORM.md) and ADR-014 … ADR-017 in
+[`../docs/DECISIONS.md`](../docs/DECISIONS.md). Verified findings that now
+govern sequencing:
+
+- Cores are **libretro** plugins; the `ezcore_*` header is host-facing. The
+  claim in `docs/ARCHITECTURE.md:44-46` that cores speak the runtime ABI is
+  false and is corrected in platform program P1a.
+- The kernel implements **7 of 96** `RETRO_ENVIRONMENT_*` commands
+  (`runtime/src/runtime.c:71-114`). This, not the UI, is the binding constraint
+  on the product, and it is why several catalog cores are built but not
+  frame-verified.
+- Cores run **in-process**; `lib/emu/emulation_worker.dart:11-12` states that a
+  native crash can terminate the app. Containment is ADR-015 / P6.
+- **P6, P8, P9 are gated behind P1.** Expensive cross-platform layers built on
+  an unfinished kernel contract get built twice.
 
 ## Current reality
 
@@ -80,9 +105,19 @@ is required for this closeout.
 
 ## Next logical task
 
-**M1 capability-contract research.** Specify the smallest capability object and
-lifecycle compatibility rules before changing the ABI. Start with a focused
-branch, failing-first tests where applicable, and explicit maintainer review.
+**P1a — documentation truth** (platform program, `ROADMAP.md`). Correct
+`docs/API.md` and `docs/ARCHITECTURE.md` against the source, and add the
+header-symbol documentation coverage test so the drift cannot recur. The full
+defect list is [`../docs/PLATFORM.md`](../docs/PLATFORM.md) §8. Documentation
+and one test only — no runtime, no UI, no feature work.
+
+Then **P1b — core options and capability surface**, then **P1c — core authoring
+documentation**.
+
+`M1 capability-contract research` is absorbed into P1b: the smallest capability
+object and the configuration hierarchy are both part of finishing what the
+kernel can offer a core. Structured diagnostics (former M1-03) is tracked under
+P5.
 
 ## State-file maintenance rule
 

@@ -100,6 +100,17 @@ delta onto `main`. The old #27/#28 candidates are closed.
 
 ## Next logical task
 
-M0 closeout is complete. Begin the isolated M1 capability-contract research
-milestone next; do not expand the responsive shell scope or change the runtime
-ABI as part of this closeout.
+M0 closeout is complete. The next task is **P1a of the platform program**
+recorded in [`../ROADMAP.md`](../ROADMAP.md) and governed by
+[`../docs/PLATFORM.md`](../docs/PLATFORM.md):
+
+1. **P1a — documentation truth.** Correct `docs/API.md` and
+   `docs/ARCHITECTURE.md` against the source, and add the header-symbol
+   documentation coverage test. Defect list: `docs/PLATFORM.md` §8.
+2. **P1b — core options and capability surface** in `env_cb`, additively.
+3. **P1c — core authoring documentation** for third-party core authors.
+
+The previous "M1 capability-contract research" item is absorbed into P1b.
+**Do not expand the responsive shell scope. Do not start platform items P2–P9
+before their stated gate.** P6, P8, and P9 must not start before P1 lands and
+the blocked cores in [`../docs/MATRIX.md`](../docs/MATRIX.md) reach `RENDERS`.
