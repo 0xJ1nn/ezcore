@@ -15,10 +15,21 @@ transition in both frames to finish before a screenshot is taken.
 """
 from pathlib import Path
 import json
+import struct
 from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).parent
 OUT = ROOT / 'verification'
 OUT.mkdir(exist_ok=True)
+
+
+def png_size(path):
+    """Pixel size of a PNG, read from the IHDR chunk. Stdlib only, so this
+    script keeps working without Pillow."""
+    with open(path, 'rb') as handle:
+        head = handle.read(24)
+    if head[:8] != b'\x89PNG\r\n\x1a\n' or head[12:16] != b'IHDR':
+        raise AssertionError(f'{path} is not a PNG')
+    return struct.unpack('>II', head[16:24])
 
 LAUNCH_ARGS = [
     '--force-color-profile=srgb',
@@ -26,7 +37,11 @@ LAUNCH_ARGS = [
     '--font-render-hinting=none',
     '--disable-partial-raster',
     '--disable-skia-runtime-opts',
-    '--deterministic-mode',
+    # NOT --deterministic-mode: it stops the compositor producing frames, so
+    # Playwright's actionability check never sees an element become *stable*
+    # and every click() blocks until timeout. Verified by bisecting this list
+    # one flag at a time: the other seven are fine, this one hangs the run.
+    # See issue #35.
     '--run-all-compositor-stages-before-draw',
     '--disable-new-content-rendering-timeout',
 ]
@@ -37,6 +52,24 @@ SETTLE_JS = """() => Promise.all(
       .flatMap(d => (d.getAnimations ? d.getAnimations() : []))
       .map(a => a.finished.catch(() => {}))
 )"""
+
+# The toast is a transient notification that self-hides on a 3000ms timer
+# (`setTimeout(() => ... classList.remove('show'), 3000)` in the prototype).
+# getAnimations() cannot see that: a JS timer is not a CSS animation, so
+# SETTLE_JS returns immediately while the toast is still on screen. Whether a
+# capture caught it mid-life then depends on how long the preceding steps took,
+# which is exactly the kind of timing-dependent evidence this PR exists to
+# eliminate -- it was the sole remaining source of pixel drift, worth ~2% of
+# settings-emulation.png. Dismissing any visible toast before capture makes the
+# evidence independent of how fast the machine ran.
+HIDE_TRANSIENT_JS = """() => {
+  for (const frame of [document, ...Array.from(document.querySelectorAll('iframe'))]) {
+    let doc;
+    try { doc = frame.contentDocument || frame; } catch (e) { continue; }
+    if (!doc || !doc.querySelector) continue;
+    for (const el of doc.querySelectorAll('.toast.show')) el.classList.remove('show');
+  }
+}"""
 
 # The overlay is 79% opaque (background:#02070dc9) and relies on
 # backdrop-filter:blur(24px) to make the 21% show-through unreadable. If the
@@ -51,13 +84,26 @@ OVERLAY_BACKDROP_JS = """() => {
   const ds = d ? getComputedStyle(d) : null;
   return {
     backdropFilter: cs.backdropFilter || cs.webkitBackdropFilter || 'none',
-    overlayAlpha: (cs.backgroundColor.match(/[\\d.]+\\)$/) || ['1'])[0],
+    // The alpha is the last number in "rgba(r, g, b, a)". The group is
+    // required: /[\\d.]+\\)$/ without it also consumes the ")" and returns
+    // "0.79)", which float() rejects. See issue #35.
+    overlayAlpha: (cs.backgroundColor.match(/([\\d.]+)\\)$/) || [null, '1'])[1],
     dialogBackground: ds ? ds.backgroundColor : null,
     dialogHasImage: !!(ds && ds.backgroundImage && ds.backgroundImage !== 'none'),
   };
 }"""
 
 report = {'build':'ezcore-final-01','matrix':[],'checks':[],'errors':[]}
+
+# The prototype's shell header renders a live clock: new Date().toLocaleTimeString()
+# refreshed on a 30s interval (ezCORE-Orbit.html:996). Two runs a minute apart
+# therefore captured different digits, which is why 32 of the 57 PNGs differed
+# in real pixels even with every launch flag pinned. No browser flag can freeze
+# a page's own Date; freezing the clock before any script runs is the only way
+# to make the evidence reproducible. Fixed instant, chosen to be an arbitrary
+# round value so nobody mistakes it for a real observation.
+FROZEN_INSTANT = '2026-01-01T09:41:00'
+
 with sync_playwright() as p:
     browser = p.chromium.launch(args=LAUNCH_ARGS)
     context = browser.new_context(
@@ -66,6 +112,10 @@ with sync_playwright() as p:
         reduced_motion='reduce',
     )
     page = context.new_page()
+    # Install on the CONTEXT, not the page: the clock widget lives inside the
+    # prototype iframe, and page.clock only covers the wrapper frame. That is
+    # why a page-scoped install still left the minutes ticking in the captures.
+    context.clock.install(time=FROZEN_INSTANT)
     page.on('pageerror',lambda e: report['errors'].append(str(e)))
     page.goto('http://127.0.0.1:8770/',wait_until='networkidle')
     page.reload(wait_until='networkidle')
@@ -80,6 +130,7 @@ with sync_playwright() as p:
             selector = '#overlay .dialog' if screen in ['details','pause'] else '#'+screen
             child.locator(selector).wait_for(state='visible')
             child.wait_for_function('Array.from(document.images).filter(x=>x.getClientRects().length).every(x=>x.complete && x.naturalWidth>0)')
+            child.evaluate(HIDE_TRANSIENT_JS)
             child.evaluate(SETTLE_JS)
             if screen in ('details','pause'):
                 backdrop = child.evaluate(OVERLAY_BACKDROP_JS)
@@ -97,12 +148,30 @@ with sync_playwright() as p:
             assert measurements['scrollWidth'] <= measurements['width'], (platform, screen, measurements)
             assert measurements['accent'].lower() == '#007bff', measurements
             assert measurements['visibleText'] > 100
-            report['matrix'].append({'platform':platform,'screen':screen,**measurements})
             if screen == 'library':
+                child.evaluate(HIDE_TRANSIENT_JS)
                 child.evaluate(SETTLE_JS)
                 box = child.evaluate('''() => {const a=document.querySelector('.game-case.selected').getBoundingClientRect(),b=document.querySelector('.flow').getBoundingClientRect();return {top:a.top-b.top,bottom:b.bottom-a.bottom}}''')
                 assert box['top'] >= -1 and box['bottom'] >= -1, (platform,box)
-            page.screenshot(path=str(OUT/f'{platform}-{screen}.png'),full_page=True)
+            shot = OUT/f'{platform}-{screen}.png'
+            child.evaluate(HIDE_TRANSIENT_JS)
+            child.evaluate(SETTLE_JS)
+            page.screenshot(path=str(shot),full_page=True)
+            # Record the size of the FILE that was just written, not the child
+            # frame's viewport. The screenshot is full_page and covers the whole
+            # wrapper (masthead + device shell + footer), so its pixel size is
+            # deliberately different from innerWidth/innerHeight. The evidence
+            # gate cross-checks the report against the PNG headers, so recording
+            # the viewport here would make that check impossible to satisfy.
+            report['matrix'].append({
+                'platform':platform,'screen':screen,
+                'viewportWidth':measurements['width'],'viewportHeight':measurements['height'],
+                'captureWidth':png_size(shot)[0],'captureHeight':png_size(shot)[1],
+                'scrollWidth':measurements['scrollWidth'],
+                'scrollHeight':measurements['scrollHeight'],
+                'accent':measurements['accent'],
+                'visibleText':measurements['visibleText'],
+            })
     report['checks'].append('36 platform/screen states; decoded visible images; no horizontal overflow; selected cover inside stage; final blue tokens; height and scrollHeight recorded per state')
     report['checks'].append('Overlay keeps a working backdrop-filter and an opaque enough scrim on all 12 details/pause states')
     page.locator('[data-screen="library"]').click()
@@ -132,6 +201,7 @@ with sync_playwright() as p:
     for setting in ['Appearance','Emulation','Controllers','Audio','Library & storage','About ezCORE']:
         child.locator(f'[data-setting="{setting}"]').click()
         assert child.locator('#settings-panel h2').is_visible()
+        child.evaluate(HIDE_TRANSIENT_JS)
         child.evaluate(SETTLE_JS)
         page.screenshot(path=str(OUT/('settings-'+setting.split()[0].lower()+'.png')),full_page=True)
     child.locator('[data-setting="Appearance"]').click()
@@ -156,6 +226,7 @@ with sync_playwright() as p:
     page.locator('#shell-button').click()
     page.locator('#brand-guide-button').click()
     assert page.locator('#brand-guide').is_visible()
+    page.evaluate(HIDE_TRANSIENT_JS)
     page.evaluate(SETTLE_JS)
     page.screenshot(path=str(OUT/'brand-identity.png'),full_page=True)
     page.keyboard.press('Escape')
@@ -167,6 +238,7 @@ with sync_playwright() as p:
         page.wait_for_function('ready')
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
         child=page.frames[1]
+        child.evaluate(HIDE_TRANSIENT_JS)
         child.evaluate(SETTLE_JS)
         page.screenshot(path=str(OUT/f'responsive-{width}.png'),full_page=True)
     report['checks'].append('390px and 768px responsive wrapper without horizontal overflow')

@@ -174,11 +174,22 @@ def check_report(images: list[dict]) -> dict:
 
     # The blind spot that let 18 PNGs change height unnoticed: the report never
     # recorded a height, so nothing could cross-check the files. Now it does.
-    unrecorded = [f"{p}/{s}" for (p, s), row in seen.items() if "height" not in row]
+    #
+    # Compare the CAPTURE size, not the child frame's viewport. The screenshots
+    # are full_page and cover the whole wrapper page (masthead + device shell +
+    # footer), so their pixel size is intentionally larger than the emulated
+    # viewport. The report records both, under distinct keys, precisely so this
+    # comparison is like-for-like.
+    unrecorded = [
+        f"{p}/{s}"
+        for (p, s), row in seen.items()
+        if "captureHeight" not in row or "captureWidth" not in row
+    ]
     if unrecorded:
         raise Failure(
-            "report.json states predate the height recording, so drift cannot be "
-            "detected; re-run design/ezcore-orbit/verify_brand.py. Affected: "
+            "report.json states predate the capture-size recording, so drift "
+            "cannot be detected; re-run design/ezcore-orbit/verify_brand.py. "
+            "Affected: "
             + ", ".join(sorted(unrecorded)[:6])
             + (" …" if len(unrecorded) > 6 else "")
         )
@@ -186,10 +197,11 @@ def check_report(images: list[dict]) -> dict:
     mismatches: list[str] = []
     for image in images:
         row = seen[(image["platform"], image["screen"])]
-        if row["height"] != image["height"] or row["width"] != image["width"]:
+        if (row["captureHeight"] != image["height"]
+                or row["captureWidth"] != image["width"]):
             mismatches.append(
                 f"{image['file']} is {image['width']}x{image['height']} but report.json "
-                f"says {row['width']}x{row['height']}"
+                f"says {row['captureWidth']}x{row['captureHeight']}"
             )
     if mismatches:
         raise Failure(
