@@ -75,6 +75,42 @@ platform enters the picture.
 
 The interface is the product. Orbit is the first expression of that idea.
 
+### ezCORE is a platform, not a single emulator
+
+The long-term target is an **operating system for emulated games**: one
+application, many independent emulator cores, and no need to fork the app to add
+a console.
+
+That is not a slogan about more cores. It is a specific engineering commitment,
+and it is worth being precise about how ezCORE gets there:
+
+- **The core interface is libretro**, the standard used by the large existing
+  ecosystem of emulator cores. ezCORE does not invent a private core language, so
+  existing cores are reachable and third-party cores are not stranded. The host
+  ABI in [`runtime/include/ezcore_runtime.h`](runtime/include/ezcore_runtime.h)
+  is what the application calls; a core never calls it.
+- **A core is a package.** The emulator, plus its touch control layout, skin,
+  cheats, and functions, ships as one installable unit with a validated
+  manifest. ezCORE reads existing standards where they exist and adds new
+  formats only where genuinely none does — control layouts being the main one.
+- **Anyone can bring a core.** Two supported doors: a self-serve local package
+  with no account and no network, or a pull request reviewed into `cores/`.
+  Cores the project has reviewed are labelled **ezCORE Verified**; everything
+  else is clearly labelled unverified, opt-in, and never auto-updated.
+- **ezCORE is honest about trust.** Running a native core means running code we
+  did not necessarily write, and that cannot be made completely safe. What we
+  do implement: do not run unknown code by default, isolate what is run so a
+  crash cannot take the app down, and never let package *data* execute code at
+  all. We would rather state the limit than imply it away.
+
+The full, binding platform contract — including the invariants that may not be
+broken — is [`docs/PLATFORM.md`](docs/PLATFORM.md), and the reasoning is
+recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-014 … ADR-017).
+
+**What is true today is tracked separately in [`docs/MATRIX.md`](docs/MATRIX.md).**
+Core support is reported in evidence-graded terms, so a core that builds is
+never presented as a core that plays.
+
 ---
 
 ## Latest progress
@@ -200,6 +236,27 @@ adds another layer to the same experience.
 Not by pretending every core behaves identically. By giving every core a
 consistent home, a clear capability model, and a UI that makes the differences
 feel like features instead of friction.
+
+#### The platform program
+
+The road ahead is sequenced deliberately. The keystone is finishing what the
+kernel can offer a core — today it answers only **7 of 96** libretro environment
+requests, which is why some systems in the catalog are listed as built but not
+yet frame-verified in [`docs/MATRIX.md`](docs/MATRIX.md).
+
+| # | Focus | Why it is here |
+|---|---|---|
+| **P1** | Documentation truth + core options and capability support | Unblocks the systems that are currently built-but-unverified, and makes every existing core configurable and correctly labelled |
+| **P2** | Core packages — `.info` support, package format, validator | A core becomes a complete, installable package |
+| **P3–P4** | Input devices, then control layouts, skins, battery saves | Touch controls become data a third party can ship, with no ezCORE release |
+| **P5** | ezCORE Verified list and trust tiers | Reviewed cores get a badge; unverified ones stay clearly labelled |
+| **P6** | Crash containment | A bad third-party core cannot take the app down |
+| **P7** | Signature and trust hardening | The verified list becomes cryptographically checkable |
+| **P8** | GPU video path | Systems whose cores require hardware rendering |
+| **P9** | Supervision of current-generation and PC-game engines | Explicitly scoped as supervision, not embedding |
+
+**P6, P8, and P9 are gated behind P1 on purpose.** Expensive cross-platform
+layers built on an unfinished kernel contract get built twice.
 
 The full, status-tracked plan lives in [`ROADMAP.md`](ROADMAP.md). Planned
 items are marked as roadmap work; shipped behavior is tracked in
