@@ -96,6 +96,21 @@ class EmulationWorker {
     await _request('reset');
   }
 
+  /// Reads back the option set the loaded core registered. Each entry is
+  /// `{key, default, value}`; empty when the core registers no options.
+  Future<List<Map<String, String>>> coreOptions() async {
+    final value = await _request('options');
+    return [
+      for (final e in (value as List).cast<Map>()) Map<String, String>.from(e),
+    ];
+  }
+
+  /// Sets one core option on the live session. Returns false when the key
+  /// matched no registered option — surfacing user-data mistakes honestly
+  /// instead of throwing.
+  Future<bool> setCoreOption(String key, String value) async =>
+      await _request('setOption', {'key': key, 'value': value}) as bool;
+
   Future<void> close() async {
     try {
       if (_commands != null) await _request('close');
@@ -122,7 +137,8 @@ Future<void> _workerMain(SendPort ready) async {
       if (command == 'open') {
         final args = value as Map;
         final rt = EzCoreRuntime.fromMarker(
-            Map<String, String?>.from(args['runtime'] as Map));
+          Map<String, String?>.from(args['runtime'] as Map),
+        );
         rt.setDirs(args['system'] as String, args['save'] as String);
         service = EmulationService(runtime: rt);
         await service.start(
@@ -183,7 +199,7 @@ Future<void> _workerMain(SendPort ready) async {
                 (
                   index: e[0] as int,
                   enabled: e[1] as bool,
-                  code: e[2] as String
+                  code: e[2] as String,
                 ),
             ]);
           case 'restore':
@@ -192,6 +208,28 @@ Future<void> _workerMain(SendPort ready) async {
             }
           case 'reset':
             active.reset();
+          case 'options':
+            // Read-back of the option set the core registered: a list of
+            // records (key, defaultValue, value) the UI can render as-is.
+            result = active
+                .coreOptions()
+                .map(
+                  (o) => {
+                    'key': o.key,
+                    'default': o.defaultValue,
+                    'value': o.value,
+                  },
+                )
+                .toList();
+          case 'setOption':
+            final args = value as Map;
+            // False means the key matched no registered option; surface
+            // that to the caller instead of throwing — an unknown option
+            // is user data, not a program fault.
+            result = active.setCoreOption(
+              args['key'] as String,
+              args['value'] as String,
+            );
           case 'close':
             active.close();
           default:
