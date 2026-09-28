@@ -10,11 +10,11 @@ import 'dart:convert';
 /// Zero third-party dependencies: UTF-8 is encoded/decoded by hand.
 class EzCoreRuntime {
   EzCoreRuntime.load({String? runtimePath})
-      : _lib = DynamicLibrary.open(
-          runtimePath ??
-              Platform.environment['EZCORE_RUNTIME_LIB'] ??
-              'runtime/build/libezcore_runtime.dylib',
-        ) {
+    : _lib = DynamicLibrary.open(
+        runtimePath ??
+            Platform.environment['EZCORE_RUNTIME_LIB'] ??
+            'runtime/build/libezcore_runtime.dylib',
+      ) {
     _bind();
   }
 
@@ -43,11 +43,13 @@ class EzCoreRuntime {
         .asFunction<int Function()>();
     _load = _lib
         .lookup<
-            NativeFunction<
-                Pointer<Void> Function(
-                    Pointer<Uint8>, Pointer<Uint8>, IntPtr)>>('ezcore_load')
+          NativeFunction<
+            Pointer<Void> Function(Pointer<Uint8>, Pointer<Uint8>, IntPtr)
+          >
+        >('ezcore_load')
         .asFunction<
-            Pointer<Void> Function(Pointer<Uint8>, Pointer<Uint8>, int)>();
+          Pointer<Void> Function(Pointer<Uint8>, Pointer<Uint8>, int)
+        >();
     _unload = _lib
         .lookup<NativeFunction<Void Function(Pointer<Void>)>>('ezcore_unload')
         .asFunction<void Function(Pointer<Void>)>();
@@ -59,111 +61,242 @@ class EzCoreRuntime {
         .asFunction<void Function(Pointer<Void>)>();
     _coreName = _lib
         .lookup<NativeFunction<Pointer<Uint8> Function(Pointer<Void>)>>(
-            'ezcore_core_name')
+          'ezcore_core_name',
+        )
         .asFunction<Pointer<Uint8> Function(Pointer<Void>)>();
     _coreVersion = _lib
         .lookup<NativeFunction<Pointer<Uint8> Function(Pointer<Void>)>>(
-            'ezcore_core_version')
+          'ezcore_core_version',
+        )
         .asFunction<Pointer<Uint8> Function(Pointer<Void>)>();
     _geometry = _lib
         .lookup<
-            NativeFunction<
-                Void Function(Pointer<Void>, Pointer<Uint32>,
-                    Pointer<Uint32>, Pointer<Double>)>>('ezcore_system_geometry')
+          NativeFunction<
+            Void Function(
+              Pointer<Void>,
+              Pointer<Uint32>,
+              Pointer<Uint32>,
+              Pointer<Double>,
+            )
+          >
+        >('ezcore_system_geometry')
         .asFunction<
-            void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>,
-                Pointer<Double>)>();
+          void Function(
+            Pointer<Void>,
+            Pointer<Uint32>,
+            Pointer<Uint32>,
+            Pointer<Double>,
+          )
+        >();
     _sampleRate = _lib
         .lookup<NativeFunction<Double Function(Pointer<Void>)>>(
-            'ezcore_sample_rate')
+          'ezcore_sample_rate',
+        )
         .asFunction<double Function(Pointer<Void>)>();
     _loadGame = _lib
         .lookup<
-            NativeFunction<
-                Bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>,
-                    IntPtr)>>('ezcore_load_game')
+          NativeFunction<
+            Bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>, IntPtr)
+          >
+        >('ezcore_load_game')
         .asFunction<
-            bool Function(
-                Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>, int)>();
+          bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>, int)
+        >();
     _runFrame = _lib
-        .lookup<NativeFunction<Void Function(Pointer<Void>)>>('ezcore_run_frame')
+        .lookup<NativeFunction<Void Function(Pointer<Void>)>>(
+          'ezcore_run_frame',
+        )
         .asFunction<void Function(Pointer<Void>)>();
     _framePixels = _lib
         .lookup<
-            NativeFunction<
-                Pointer<Uint32> Function(Pointer<Void>, Pointer<Uint32>,
-                    Pointer<Uint32>)>>('ezcore_frame_pixels')
-        .asFunction<
+          NativeFunction<
             Pointer<Uint32> Function(
-                Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)>();
+              Pointer<Void>,
+              Pointer<Uint32>,
+              Pointer<Uint32>,
+            )
+          >
+        >('ezcore_frame_pixels')
+        .asFunction<
+          Pointer<Uint32> Function(
+            Pointer<Void>,
+            Pointer<Uint32>,
+            Pointer<Uint32>,
+          )
+        >();
     _framePixelsCopy = _lib
         .lookup<
-            NativeFunction<
-                IntPtr Function(Pointer<Void>, Pointer<Uint8>,
-                    IntPtr)>>('ezcore_frame_pixels_copy')
+          NativeFunction<IntPtr Function(Pointer<Void>, Pointer<Uint8>, IntPtr)>
+        >('ezcore_frame_pixels_copy')
         .asFunction<int Function(Pointer<Void>, Pointer<Uint8>, int)>();
     _frameSize = _lib
         .lookup<
-            NativeFunction<
-                Void Function(Pointer<Void>, Pointer<Uint32>,
-                    Pointer<Uint32>)>>('ezcore_frame_size')
+          NativeFunction<
+            Void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)
+          >
+        >('ezcore_frame_size')
         .asFunction<
-            void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)>();
+          void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)
+        >();
     _cheatReset = _lib
         .lookup<NativeFunction<Void Function(Pointer<Void>)>>(
-            'ezcore_cheat_reset')
+          'ezcore_cheat_reset',
+        )
         .asFunction<void Function(Pointer<Void>)>();
     _cheatSet = _lib
         .lookup<
-            NativeFunction<
-                Bool Function(Pointer<Void>, Uint32, Bool,
-                    Pointer<Uint8>)>>('ezcore_cheat_set')
-        .asFunction<
-            bool Function(Pointer<Void>, int, bool, Pointer<Uint8>)>();
+          NativeFunction<
+            Bool Function(Pointer<Void>, Uint32, Bool, Pointer<Uint8>)
+          >
+        >('ezcore_cheat_set')
+        .asFunction<bool Function(Pointer<Void>, int, bool, Pointer<Uint8>)>();
     _setDirs = _lib
-        .lookup<
-            NativeFunction<
-                Void Function(Pointer<Uint8>, Pointer<Uint8>)>>(
-            'ezcore_set_dirs')
+        .lookup<NativeFunction<Void Function(Pointer<Uint8>, Pointer<Uint8>)>>(
+          'ezcore_set_dirs',
+        )
         .asFunction<void Function(Pointer<Uint8>, Pointer<Uint8>)>();
     _serializeSize = _lib
         .lookup<NativeFunction<IntPtr Function(Pointer<Void>)>>(
-            'ezcore_serialize_size')
+          'ezcore_serialize_size',
+        )
         .asFunction<int Function(Pointer<Void>)>();
     _serialize = _lib
         .lookup<
-            NativeFunction<
-                Bool Function(
-                    Pointer<Void>, Pointer<Uint8>, IntPtr)>>(
-            'ezcore_serialize')
+          NativeFunction<Bool Function(Pointer<Void>, Pointer<Uint8>, IntPtr)>
+        >('ezcore_serialize')
         .asFunction<bool Function(Pointer<Void>, Pointer<Uint8>, int)>();
     _unserialize = _lib
         .lookup<
-            NativeFunction<
-                Bool Function(
-                    Pointer<Void>, Pointer<Uint8>, IntPtr)>>(
-            'ezcore_unserialize')
+          NativeFunction<Bool Function(Pointer<Void>, Pointer<Uint8>, IntPtr)>
+        >('ezcore_unserialize')
         .asFunction<bool Function(Pointer<Void>, Pointer<Uint8>, int)>();
     _audioDrain = _lib
         .lookup<
-            NativeFunction<
-                IntPtr Function(Pointer<Void>, Pointer<Int16>, IntPtr)>>(
-            'ezcore_audio_drain')
+          NativeFunction<IntPtr Function(Pointer<Void>, Pointer<Int16>, IntPtr)>
+        >('ezcore_audio_drain')
         .asFunction<int Function(Pointer<Void>, Pointer<Int16>, int)>();
     _audioPending = _lib
         .lookup<NativeFunction<IntPtr Function(Pointer<Void>)>>(
-            'ezcore_audio_pending')
+          'ezcore_audio_pending',
+        )
         .asFunction<int Function(Pointer<Void>)>();
     _setButton = _lib
         .lookup<
-            NativeFunction<
-                Void Function(Pointer<Void>, Uint32, Uint32, Bool)>>(
-            'ezcore_set_button')
+          NativeFunction<Void Function(Pointer<Void>, Uint32, Uint32, Bool)>
+        >('ezcore_set_button')
         .asFunction<void Function(Pointer<Void>, int, int, bool)>();
     _clearButtons = _lib
         .lookup<NativeFunction<Void Function(Pointer<Void>, Uint32)>>(
-            'ezcore_clear_buttons')
+          'ezcore_clear_buttons',
+        )
         .asFunction<void Function(Pointer<Void>, int)>();
+    // --- core options & capability surface (ABI v1 additions) ---
+    _coreOptionCount = _lib
+        .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
+          'ezcore_get_core_option_count',
+        )
+        .asFunction<int Function(Pointer<Void>)>();
+    _getCoreOption = _lib
+        .lookup<
+          NativeFunction<
+            Bool Function(
+              Pointer<Void>,
+              Uint32,
+              Pointer<Pointer<Uint8>>,
+              Pointer<Pointer<Uint8>>,
+              Pointer<Pointer<Uint8>>,
+            )
+          >
+        >('ezcore_get_core_option')
+        .asFunction<
+          bool Function(
+            Pointer<Void>,
+            int,
+            Pointer<Pointer<Uint8>>,
+            Pointer<Pointer<Uint8>>,
+            Pointer<Pointer<Uint8>>,
+          )
+        >();
+    _setCoreOption = _lib
+        .lookup<
+          NativeFunction<
+            Bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>)
+          >
+        >('ezcore_set_core_option')
+        .asFunction<
+          bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>)
+        >();
+    _inputDescriptorCount = _lib
+        .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
+          'ezcore_get_input_descriptor_count',
+        )
+        .asFunction<int Function(Pointer<Void>)>();
+    _getInputDescriptor = _lib
+        .lookup<
+          NativeFunction<
+            Bool Function(
+              Pointer<Void>,
+              Uint32,
+              Pointer<Uint32>,
+              Pointer<Uint32>,
+              Pointer<Uint32>,
+              Pointer<Uint32>,
+              Pointer<Pointer<Uint8>>,
+            )
+          >
+        >('ezcore_get_input_descriptor')
+        .asFunction<
+          bool Function(
+            Pointer<Void>,
+            int,
+            Pointer<Uint32>,
+            Pointer<Uint32>,
+            Pointer<Uint32>,
+            Pointer<Uint32>,
+            Pointer<Pointer<Uint8>>,
+          )
+        >();
+    _controllerPortCount = _lib
+        .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
+          'ezcore_get_controller_port_count',
+        )
+        .asFunction<int Function(Pointer<Void>)>();
+    _memoryDescriptorCount = _lib
+        .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
+          'ezcore_get_memory_descriptor_count',
+        )
+        .asFunction<int Function(Pointer<Void>)>();
+    _getMemoryDescriptor = _lib
+        .lookup<
+          NativeFunction<
+            Bool Function(
+              Pointer<Void>,
+              Uint32,
+              Pointer<Uint64>,
+              Pointer<Pointer<Void>>,
+              Pointer<IntPtr>,
+              Pointer<IntPtr>,
+              Pointer<IntPtr>,
+              Pointer<IntPtr>,
+              Pointer<IntPtr>,
+              Pointer<Pointer<Uint8>>,
+            )
+          >
+        >('ezcore_get_memory_descriptor')
+        .asFunction<
+          bool Function(
+            Pointer<Void>,
+            int,
+            Pointer<Uint64>,
+            Pointer<Pointer<Void>>,
+            Pointer<IntPtr>,
+            Pointer<IntPtr>,
+            Pointer<IntPtr>,
+            Pointer<IntPtr>,
+            Pointer<IntPtr>,
+            Pointer<Pointer<Uint8>>,
+          )
+        >();
   }
 
   final DynamicLibrary _lib;
@@ -174,17 +307,26 @@ class EzCoreRuntime {
   late final void Function(Pointer<Void>) _reset;
   late final Pointer<Uint8> Function(Pointer<Void>) _coreName;
   late final Pointer<Uint8> Function(Pointer<Void>) _coreVersion;
-  late final void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>,
-      Pointer<Double>) _geometry;
+  late final void Function(
+    Pointer<Void>,
+    Pointer<Uint32>,
+    Pointer<Uint32>,
+    Pointer<Double>,
+  )
+  _geometry;
   late final double Function(Pointer<Void>) _sampleRate;
   late final bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>, int)
-      _loadGame;
+  _loadGame;
   late final void Function(Pointer<Void>) _runFrame;
   late final Pointer<Uint32> Function(
-      Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>) _framePixels;
+    Pointer<Void>,
+    Pointer<Uint32>,
+    Pointer<Uint32>,
+  )
+  _framePixels;
   late final int Function(Pointer<Void>, Pointer<Uint8>, int) _framePixelsCopy;
-  late final void Function(
-      Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>) _frameSize;
+  late final void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)
+  _frameSize;
   late final void Function(Pointer<Void>) _cheatReset;
   late final bool Function(Pointer<Void>, int, bool, Pointer<Uint8>) _cheatSet;
   late final void Function(Pointer<Uint8>, Pointer<Uint8>) _setDirs;
@@ -195,6 +337,43 @@ class EzCoreRuntime {
   late final int Function(Pointer<Void>) _audioPending;
   late final void Function(Pointer<Void>, int, int, bool) _setButton;
   late final void Function(Pointer<Void>, int) _clearButtons;
+  late final int Function(Pointer<Void>) _coreOptionCount;
+  late final bool Function(
+    Pointer<Void>,
+    int,
+    Pointer<Pointer<Uint8>>,
+    Pointer<Pointer<Uint8>>,
+    Pointer<Pointer<Uint8>>,
+  )
+  _getCoreOption;
+  late final bool Function(Pointer<Void>, Pointer<Uint8>, Pointer<Uint8>)
+  _setCoreOption;
+  late final int Function(Pointer<Void>) _inputDescriptorCount;
+  late final bool Function(
+    Pointer<Void>,
+    int,
+    Pointer<Uint32>,
+    Pointer<Uint32>,
+    Pointer<Uint32>,
+    Pointer<Uint32>,
+    Pointer<Pointer<Uint8>>,
+  )
+  _getInputDescriptor;
+  late final int Function(Pointer<Void>) _controllerPortCount;
+  late final int Function(Pointer<Void>) _memoryDescriptorCount;
+  late final bool Function(
+    Pointer<Void>,
+    int,
+    Pointer<Uint64>,
+    Pointer<Pointer<Void>>,
+    Pointer<IntPtr>,
+    Pointer<IntPtr>,
+    Pointer<IntPtr>,
+    Pointer<IntPtr>,
+    Pointer<IntPtr>,
+    Pointer<Pointer<Uint8>>,
+  )
+  _getMemoryDescriptor;
 
   int abiVersion() => _abiVersion();
 
@@ -265,8 +444,7 @@ class EzCoreRuntime {
 
   /// Returns whether the runtime dispatched the call to an available core hook.
   /// The libretro hook is void, so this does not validate the cheat code.
-  bool cheatSet(
-      Pointer<Void> session, int index, bool enabled, String code) {
+  bool cheatSet(Pointer<Void> session, int index, bool enabled, String code) {
     final codePtr = _toNativeUtf8(code);
     try {
       return _cheatSet(session, index, enabled, codePtr);
@@ -331,6 +509,173 @@ class EzCoreRuntime {
   /// Clears all buttons for a port.
   void clearButtons(Pointer<Void> session, int port) {
     _clearButtons(session, port);
+  }
+
+  // --- core options & capability surface (public wrappers) ---
+
+  /// Number of core options registered by the loaded core.
+  int coreOptionCount(Pointer<Void> session) {
+    return _coreOptionCount(session);
+  }
+
+  /// Core option at [index] as (key, defaultValue, value), or null when the
+  /// index is out of range. The strings are runtime-owned copies, valid until
+  /// the next SET_CORE_OPTIONS* call or session unload.
+  ({String key, String defaultValue, String value})? coreOption(
+    Pointer<Void> session,
+    int index,
+  ) {
+    final keyPtr = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Uint8>>();
+    final defaultValuePtr = _allocBytes(
+      sizeOf<IntPtr>(),
+    ).cast<Pointer<Uint8>>();
+    final valuePtr = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Uint8>>();
+    try {
+      if (!_getCoreOption(session, index, keyPtr, defaultValuePtr, valuePtr)) {
+        return null;
+      }
+      return (
+        key: _fromNativeUtf8(keyPtr.value),
+        defaultValue: _fromNativeUtf8(defaultValuePtr.value),
+        value: _fromNativeUtf8(valuePtr.value),
+      );
+    } finally {
+      _free(keyPtr);
+      _free(defaultValuePtr);
+      _free(valuePtr);
+    }
+  }
+
+  /// Sets the current value of a core option by key. The [value] is
+  /// deep-copied into runtime memory; the caller's string may be reused.
+  /// Returns true when the key matched an existing option.
+  bool setCoreOption(Pointer<Void> session, String key, String value) {
+    final keyPtr = _toNativeUtf8(key);
+    final valuePtr = _toNativeUtf8(value);
+    try {
+      return _setCoreOption(session, keyPtr, valuePtr);
+    } finally {
+      _free(keyPtr);
+      _free(valuePtr);
+    }
+  }
+
+  /// Number of input descriptors registered via
+  /// RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS.
+  int inputDescriptorCount(Pointer<Void> session) {
+    return _inputDescriptorCount(session);
+  }
+
+  /// Input descriptor at [index] as (port, device, descIndex, id,
+  /// description), or null when the index is out of range.
+  ({int port, int device, int descIndex, int id, String description})?
+  inputDescriptor(Pointer<Void> session, int index) {
+    final port = callocUint32();
+    final device = callocUint32();
+    final descIndex = callocUint32();
+    final id = callocUint32();
+    final description = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Uint8>>();
+    try {
+      if (!_getInputDescriptor(
+        session,
+        index,
+        port,
+        device,
+        descIndex,
+        id,
+        description,
+      )) {
+        return null;
+      }
+      return (
+        port: port.value,
+        device: device.value,
+        descIndex: descIndex.value,
+        id: id.value,
+        description: _fromNativeUtf8(description.value),
+      );
+    } finally {
+      _free(port);
+      _free(device);
+      _free(descIndex);
+      _free(id);
+      _free(description);
+    }
+  }
+
+  /// Number of controller ports with info registered via
+  /// RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.
+  int controllerPortCount(Pointer<Void> session) {
+    return _controllerPortCount(session);
+  }
+
+  /// Number of memory-map descriptors registered via
+  /// RETRO_ENVIRONMENT_SET_MEMORY_MAPS.
+  int memoryDescriptorCount(Pointer<Void> session) {
+    return _memoryDescriptorCount(session);
+  }
+
+  /// Memory-map descriptor at [index] as (flags, ptr, offset, start,
+  /// select, disconnect, len, addrspace), or null when the index is out of
+  /// range.
+  ///
+  /// [ptr] points into core-owned memory (NOT copied by the runtime) and is
+  /// null when the runtime reports no pointer; all other fields are
+  /// runtime-owned copies.
+  ({
+    int flags,
+    Pointer<Void>? ptr,
+    int offset,
+    int start,
+    int select,
+    int disconnect,
+    int len,
+    String addrspace,
+  })?
+  memoryDescriptor(Pointer<Void> session, int index) {
+    final flags = callocUint64();
+    final ptr = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Void>>();
+    final offset = _allocBytes(sizeOf<IntPtr>()).cast<IntPtr>();
+    final start = _allocBytes(sizeOf<IntPtr>()).cast<IntPtr>();
+    final select = _allocBytes(sizeOf<IntPtr>()).cast<IntPtr>();
+    final disconnect = _allocBytes(sizeOf<IntPtr>()).cast<IntPtr>();
+    final len = _allocBytes(sizeOf<IntPtr>()).cast<IntPtr>();
+    final addrspace = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Uint8>>();
+    try {
+      if (!_getMemoryDescriptor(
+        session,
+        index,
+        flags,
+        ptr,
+        offset,
+        start,
+        select,
+        disconnect,
+        len,
+        addrspace,
+      )) {
+        return null;
+      }
+      return (
+        flags: flags.value,
+        ptr: ptr.value.address == 0 ? null : ptr.value,
+        offset: offset.value,
+        start: start.value,
+        select: select.value,
+        disconnect: disconnect.value,
+        len: len.value,
+        addrspace: _fromNativeUtf8(addrspace.value),
+      );
+    } finally {
+      _free(flags);
+      _free(ptr);
+      _free(offset);
+      _free(start);
+      _free(select);
+      _free(disconnect);
+      _free(len);
+      _free(addrspace);
+    }
   }
 
   /// Captures a save state via the runtime. Null when the core has no
@@ -424,12 +769,17 @@ class EzCoreRuntime {
 
   Pointer<Uint8> calloc(int bytes) => _allocBytes(bytes);
   Pointer<Uint32> callocUint32() => _allocBytes(4).cast();
+  Pointer<Uint64> callocUint64() => _allocBytes(8).cast();
   Pointer<Double> callocDouble() => _allocBytes(8).cast();
   void _free(Pointer ptr) => _libcFree(ptr.cast());
 }
 
-final _libcMalloc = DynamicLibrary.process().lookupFunction<
-    Pointer<Void> Function(IntPtr), Pointer<Void> Function(int)>('malloc');
-final _libcFree = DynamicLibrary.process().lookupFunction<
-    Void Function(Pointer<Void>),
-    void Function(Pointer<Void>)>('free');
+final _libcMalloc = DynamicLibrary.process()
+    .lookupFunction<
+      Pointer<Void> Function(IntPtr),
+      Pointer<Void> Function(int)
+    >('malloc');
+final _libcFree = DynamicLibrary.process()
+    .lookupFunction<Void Function(Pointer<Void>), void Function(Pointer<Void>)>(
+      'free',
+    );
