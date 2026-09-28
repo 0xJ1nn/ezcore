@@ -77,7 +77,7 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers only **7 of 96** environment commands
+cores. The kernel currently answers only **7 of the 92** environment commands
 (`runtime.c:71-114`), which is the binding constraint on the whole product.
 
 | # | Item | Status | Exit condition | Gate |

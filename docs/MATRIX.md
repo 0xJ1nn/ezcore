@@ -1,6 +1,10 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-22 (Linux x64 dev-checkout enablement, `feat/linux-core-pins`:
+> **Last verified:** 2026-09-28 (linux-x64 tier rebuilt on the current
+> toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 10/10 on the
+> Linux checkout including `boot_pocketbit`; the app stages 14 bundled cores
+> with zero pin refusals. The 2026-09-22 record below documents the enablement
+> that reached
 > 14 cores built + pin-verified (12 boot-tested natively; pocketbit live-boot verified,
 > rcp64 ABI-verified); app launch verified — vault staging, library auto-import via watched
 > ROM folders, 3 CC0 test ROMs listed). macOS arm64 remains run-verified from v0.1.1

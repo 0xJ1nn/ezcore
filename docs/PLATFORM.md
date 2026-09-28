@@ -77,7 +77,9 @@ it.
 3. The largest single blocker is not architecture — it is that the kernel
    answers "no" to almost everything a core asks.
 
-**The keystone gap (verified 2026-09-26):** `env_cb` implements **7 of 96**
+**The keystone gap (verified 2026-09-26; count re-verified 2026-09-28 — 92 is
+the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
+`libretro.h`, reproducible with one grep):** `env_cb` implements **7 of the 92**
 `RETRO_ENVIRONMENT_*` commands; everything else hits `default: return false`
 (`runtime/src/runtime.c:71-114`). Unimplemented: `GET_CORE_OPTIONS_V2*`,
 `GET_VARIABLE*`, `SET_CORE_OPTIONS_V2*`, `SET_INPUT_DESCRIPTORS`,
