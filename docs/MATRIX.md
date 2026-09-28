@@ -1,6 +1,16 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-28 (linux-x64 tier rebuilt on the current
+> **Last verified:** 2026-09-28 (P1b capability surface merged: env_cb answers
+> 13 of the 92 environment requests — core options v2+intl, input descriptors,
+> controller info, memory maps — with the Dart bindings, the 4-layer
+> global/system/core/game resolver, and the worker protocol landed via
+> #45/#48/#50. The option surface removes the kernel blocker for frame
+> verification of the built-but-unverified systems; their RENDERS evidence
+> still accrues per system below. The linux-x64 tier was also rebuilt on the
+> current toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 11/11
+> including `boot_pocketbit`; the app stages 14 bundled cores with zero pin
+> refusals. The 2026-09-22 record below documents the enablement that
+> reached
 > toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 10/10 on the
 > Linux checkout including `boot_pocketbit`; the app stages 14 bundled cores
 > with zero pin refusals. The 2026-09-22 record below documents the enablement
