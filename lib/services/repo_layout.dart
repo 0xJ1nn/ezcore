@@ -18,6 +18,14 @@ class RepoLayout {
       if (parent.path == dir.path) break;
       dir = parent;
     }
+    // Under `flutter test` the executable resolves to the SDK's
+    // flutter_tester, so the ancestor walk above never reaches the
+    // repo. Retry from the current working directory (the repo root
+    // during tests) before giving up. Packaged-app resolutions succeed
+    // on the walk above and never reach this fallback.
+    if (executablePath != null) {
+      return _findAncestor(null, relative);
+    }
     return null;
   }
 
