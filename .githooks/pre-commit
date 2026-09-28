@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Pre-commit guard: no banned content (ROMs/BIOS/keys/game art), no scratch
-# agent tooling (§79), no license violations in the commit's tree, and no
-# manifest policy drift (execution/cheats/delivery vs fill_manifest_data).
+# agent tooling (§79), no license violations in the commit's tree, no manifest
+# policy drift (execution/cheats/delivery vs fill_manifest_data), and no
+# unreconciled Orbit design evidence.
 #
 # Install once per clone:  scripts/install-hooks.sh
 set -euo pipefail
@@ -60,4 +61,32 @@ if [ -f "$root/scripts/fill_manifest_data.py" ]; then
     echo "  Fix: python3 scripts/fill_manifest_data.py  (then review the diff)"
     exit 1
   fi
+fi
+
+# --- Orbit design evidence ---------------------------------------------------
+# design/ezcore-orbit/verification/ is public release evidence. Only check it
+# when the commit actually touches that evidence or the gate itself, so an
+# unrelated Dart change is never blocked by a stale screenshot set.
+evidence_touched="$(git diff --cached --name-only --diff-filter=ACM | grep -E \
+  '^(design/ezcore-orbit/verification/|scripts/check_design_evidence\.py$)' \
+  || true)"
+
+if [ -n "$evidence_touched" ] && [ -z "${EZCORE_SKIP_DESIGN_EVIDENCE:-}" ]; then
+  if ! python3 "$root/scripts/check_design_evidence.py" > /tmp/ezcore-evidence.log 2>&1; then
+    echo ""
+    echo "✋ COMMIT BLOCKED — Orbit design evidence does not reconcile:"
+    sed 's/^/    /' /tmp/ezcore-evidence.log
+    echo ""
+    echo "  Staged evidence files:"
+    echo "$evidence_touched" | sed 's/^/    /'
+    echo ""
+    echo "  Regenerate on a machine with Playwright:"
+    echo "    python3 -m http.server 8770 --directory design/ezcore-orbit"
+    echo "    python3 design/ezcore-orbit/verify_brand.py"
+    echo ""
+    echo "  If this is a known-good intentional change, re-run with"
+    echo "  EZCORE_SKIP_DESIGN_EVIDENCE=1 and say so in the PR description."
+    exit 1
+  fi
+  echo "design evidence: reconciled"
 fi
