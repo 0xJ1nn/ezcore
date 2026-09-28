@@ -2,7 +2,7 @@
   "id": "coinbox",
   "name": "CoinBox",
   "version": "1.0.0.03",
-  "license": "FBNeo-custom (non-commercial \u2014 verify per-file terms at build time)",
+  "license": "FBNeo-custom (non-commercial — verify per-file terms at build time)",
   "license_url": "https://github.com/libretro/FBNeo/blob/master/src/license.txt",
   "homepage": "https://github.com/libretro/FBNeo",
   "upstream": "libretro/FBNeo",
@@ -19,7 +19,7 @@
   "bios_files": [
     "neogeo.zip"
   ],
-  "gated_reason": "Murkiest licensing posture of the retro sets. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB \u2014 ship subset builds (neogeo/cps) to slim distribution.",
+  "gated_reason": "Murkiest licensing posture of the retro sets. Ships only with compat allowlist, no-CHD posture, after IP-lawyer review. Currently installable on desktop/Android only. NOTE: full-driver build is 57MB — ship subset builds (neogeo/cps) to slim distribution.",
   "delivery": {
     "macos": "absent",
     "windows": "absent",
@@ -29,7 +29,8 @@
   },
   "artifacts": {
     "macos-arm64": "f262cb0e2613ef0f5627fed89c4387656a6b829bd97136014ddbbee70d9860af",
-    "android-arm64": "00d4762fb1142daf18191fcfacff931d3c8bb7f8e4dee157ff33ec14a25c7134"
+    "android-arm64": "00d4762fb1142daf18191fcfacff931d3c8bb7f8e4dee157ff33ec14a25c7134",
+    "linux-x64": "8ee31e64c0669c83229251c4b66d8f330d4fcdd5a9f226e8fed2d076861ff527"
   },
   "execution": {
     "macos": "interpreter",
@@ -41,7 +42,7 @@
   "bios_notes": "Neo Geo sets need neogeo.zip plus per-board BIOS; plain arcade sets boot without BIOS. User-supplied.",
   "provenance": {
     "built_from": "https://github.com/libretro/FBNeo",
-    "upstream_license": "FBNeo-custom (non-commercial \u2014 verify per-file terms at build time)",
+    "upstream_license": "FBNeo-custom (non-commercial — verify per-file terms at build time)",
     "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
   }
 }
