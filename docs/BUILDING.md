@@ -139,7 +139,8 @@ flutter test test/core_matrix_test.dart
 
 1. **Verify licensing**: Open-source libretro core, compatible license (MPL-2.0, MIT, BSD, GPL-2.0+, LGPL), no DMCA 1201 exposure, no Nintendo/Sony/Sega IP.
 2. **Add manifest**: `cores/<id>/manifest.json` (see existing for schema)
-3. **Add build recipe**: `scripts/core_platform.sh` — define `build_<id>()` function
+3. **Add the build recipe**: `scripts/build_core.sh` — `build_<id>()` (the
+   platform variables it uses come from `scripts/core_platform.sh`).
 4. **Build & test**: `scripts/build_core.sh <id>` → verify `RENDERS` on target platform
 5. **Pin artifacts**: `python3 scripts/pin_artifacts.py <platform> --out native/cores`
 6. **Update policy**: `scripts/fill_manifest_data.py` (add to EXECUTION/CHEATS/DELIVERY maps)

@@ -66,8 +66,9 @@ Future<Directory> _writePackage(
   await dir.create(recursive: true);
   await File('${dir.path}/manifest.json').writeAsString(jsonEncode(manifest));
   if (dataSize > 0) {
-    await File('${dir.path}/data.bin')
-        .writeAsBytes(List<int>.filled(dataSize, 0));
+    await File(
+      '${dir.path}/data.bin',
+    ).writeAsBytes(List<int>.filled(dataSize, 0));
   }
   return dir;
 }
@@ -83,7 +84,11 @@ void main() {
   });
 
   test('valid nesbyte-shaped package passes', () async {
-    final dir = await _writePackage(base, 'nesbyte', nesbyteManifest('nesbyte'));
+    final dir = await _writePackage(
+      base,
+      'nesbyte',
+      nesbyteManifest('nesbyte'),
+    );
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isTrue);
     expect(report.errors, isEmpty);
@@ -91,7 +96,8 @@ void main() {
 
   test('artifacts pin that is not 64-char lowercase hex is rejected', () async {
     final m = nesbyteManifest('nesbyte');
-    (m['artifacts'] as Map<String, dynamic>)['linux-x64'] = 'A' * 64; // uppercase
+    (m['artifacts'] as Map<String, dynamic>)['linux-x64'] =
+        'A' * 64; // uppercase
     final dir = await _writePackage(base, 'nesbyte', m);
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isFalse);
@@ -103,7 +109,10 @@ void main() {
     final dir = await _writePackage(base, 'Bad_ID!', m);
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isFalse);
-    expect(report.errors.any((e) => e.contains('must match [a-z0-9_]+')), isTrue);
+    expect(
+      report.errors.any((e) => e.contains('must match [a-z0-9_]+')),
+      isTrue,
+    );
   });
 
   test('id not matching directory name is rejected', () async {
@@ -136,7 +145,11 @@ void main() {
   });
 
   test('symlink anywhere in package is rejected', () async {
-    final dir = await _writePackage(base, 'nesbyte', nesbyteManifest('nesbyte'));
+    final dir = await _writePackage(
+      base,
+      'nesbyte',
+      nesbyteManifest('nesbyte'),
+    );
     await Link('${dir.path}/evil_link').create('${dir.path}/manifest.json');
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isFalse);
@@ -183,10 +196,7 @@ void main() {
     await File('${dir.path}/manifest.json').writeAsString('{not json');
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isFalse);
-    expect(
-      report.errors.any((e) => e.contains('not valid JSON')),
-      isTrue,
-    );
+    expect(report.errors.any((e) => e.contains('not valid JSON')), isTrue);
   });
 
   test('missing id is reported', () async {
@@ -205,9 +215,28 @@ void main() {
     final report = await PackageValidationReport.validate(dir);
     expect(report.ok, isTrue);
     expect(report.errors, isEmpty);
-    expect(
-      report.warnings.any((w) => w.contains('bios_files')),
-      isTrue,
-    );
+    expect(report.warnings.any((w) => w.contains('bios_files')), isTrue);
+  });
+
+  test('every committed manifest in cores/ validates', () async {
+    // Reality as the mutation test: the vocabulary, the known-field set,
+    // and the pin format must accept the repository's own 21 manifests.
+    final cores = Directory('cores');
+    if (!cores.existsSync()) {
+      markTestSkipped('no cores/ directory in this checkout');
+      return;
+    }
+    final dirs = cores
+        .listSync()
+        .whereType<Directory>()
+        .where((d) => File('${d.path}/manifest.json').existsSync())
+        .toList();
+    expect(dirs.length, greaterThan(0));
+    final failures = <String>[];
+    for (final d in dirs) {
+      final report = await PackageValidationReport.validate(d);
+      if (!report.ok) failures.add('${d.path}: ${report.errors}');
+    }
+    expect(failures, isEmpty, reason: failures.join('\n'));
   });
 }
