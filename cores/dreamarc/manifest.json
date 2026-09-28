@@ -38,7 +38,7 @@
   },
   "artifacts": {
     "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327",
-    "linux-x64": "0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51"
+    "linux-x64": "9699c3664027771fce7349a4ae212686b165376e70647186b820d05da03edfef"
   },
   "execution": {
     "macos": "dynarec",
