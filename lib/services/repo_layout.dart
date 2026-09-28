@@ -18,12 +18,19 @@ class RepoLayout {
       if (parent.path == dir.path) break;
       dir = parent;
     }
-    // Under `flutter test` the executable resolves to the SDK's
-    // flutter_tester, so the ancestor walk above never reaches the
-    // repo. Retry from the current working directory (the repo root
-    // during tests) before giving up. Packaged-app resolutions succeed
-    // on the walk above and never reach this fallback.
-    if (executablePath != null) {
+    // Fall back to Directory.current — but ONLY for the Flutter test
+    // harness. Under `flutter test` the executable is the SDK's
+    // flutter_tester, whose ancestors are the SDK, never the repo, while
+    // the test's working directory IS the repo. A real executable outside
+    // a repo — a packaged app run elsewhere, or /usr/bin/false in
+    // repo_layout_test.dart — must still resolve null so callers fail
+    // honestly; falling back from any non-repo executable would silently
+    // resolve a dev checkout whenever the process happens to run inside
+    // one, breaking the honest-null contract.
+    final isFlutterTestExecutable = executablePath != null &&
+        (executablePath.contains('flutter_tester') ||
+            executablePath.contains('flutter_tools'));
+    if (isFlutterTestExecutable) {
       return _findAncestor(null, relative);
     }
     return null;
