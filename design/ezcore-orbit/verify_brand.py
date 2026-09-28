@@ -12,6 +12,15 @@ same source has to produce the same pixels. Two settings enforce that.
 
 ``settle()`` is the belt-and-braces check: it waits for every animation and
 transition in both frames to finish before a screenshot is taken.
+
+Every capture also passes ``animations='disabled'``: Playwright fast-forwards
+finite CSS transitions and animations to their end state at the moment of the
+screenshot. ``settle()`` cannot see a transition that *starts after it ran*
+(rAF-throttled reflow can begin one tick late), and a capture taken inside
+that tail recorded a sub-pixel offset of the re-centering cover flow — two
+symmetric ~9-pixel antialiasing clusters at the selected cover's edges,
+flipping ``responsive-768.png`` between two byte states across runs.
+Fast-forwarding at capture time closes that window. See issue #35.
 """
 from pathlib import Path
 import json
@@ -156,7 +165,7 @@ with sync_playwright() as p:
             shot = OUT/f'{platform}-{screen}.png'
             child.evaluate(HIDE_TRANSIENT_JS)
             child.evaluate(SETTLE_JS)
-            page.screenshot(path=str(shot),full_page=True)
+            page.screenshot(path=str(shot),full_page=True,animations='disabled')
             # Record the size of the FILE that was just written, not the child
             # frame's viewport. The screenshot is full_page and covers the whole
             # wrapper (masthead + device shell + footer), so its pixel size is
@@ -203,7 +212,7 @@ with sync_playwright() as p:
         assert child.locator('#settings-panel h2').is_visible()
         child.evaluate(HIDE_TRANSIENT_JS)
         child.evaluate(SETTLE_JS)
-        page.screenshot(path=str(OUT/('settings-'+setting.split()[0].lower()+'.png')),full_page=True)
+        page.screenshot(path=str(OUT/('settings-'+setting.split()[0].lower()+'.png')),full_page=True,animations='disabled')
     child.locator('[data-setting="Appearance"]').click()
     child.locator('[data-toggle="motion"]').click()
     assert child.locator('[data-toggle="motion"]').get_attribute('aria-checked')=='false'
@@ -228,7 +237,7 @@ with sync_playwright() as p:
     assert page.locator('#brand-guide').is_visible()
     page.evaluate(HIDE_TRANSIENT_JS)
     page.evaluate(SETTLE_JS)
-    page.screenshot(path=str(OUT/'brand-identity.png'),full_page=True)
+    page.screenshot(path=str(OUT/'brand-identity.png'),full_page=True,animations='disabled')
     page.keyboard.press('Escape')
     assert not page.locator('#brand-guide').is_visible()
     report['checks'].append('Minimize/restore, maximize/exit focus, shell mode and brand guide dialog')
@@ -240,7 +249,7 @@ with sync_playwright() as p:
         child=page.frames[1]
         child.evaluate(HIDE_TRANSIENT_JS)
         child.evaluate(SETTLE_JS)
-        page.screenshot(path=str(OUT/f'responsive-{width}.png'),full_page=True)
+        page.screenshot(path=str(OUT/f'responsive-{width}.png'),full_page=True,animations='disabled')
     report['checks'].append('390px and 768px responsive wrapper without horizontal overflow')
     # Legacy prefs retain user collections and migrate the old lime accent.
     page.set_viewport_size({'width':1440,'height':1100})

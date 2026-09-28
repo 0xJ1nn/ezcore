@@ -29,7 +29,10 @@ All notable changes to ezCORE are documented here. The format follows
   fade-in and could commit a semi-transparent overlay with the library legible
   through it. Capture is now deterministic — `reduced_motion='reduce'` (which
   the prototype already honours), pinned Chromium colour/raster flags, and an
-  explicit wait for every animation to finish before each screenshot. The run
+  explicit wait for every animation to finish before each screenshot, and
+  every capture passes Playwright's `animations='disabled'`, which
+  fast-forwards transitions that start after the wait — a transition tail was
+  flipping `responsive-768.png` between two byte states across runs. The run
   also asserts the overlay still has a working `backdrop-filter` and a scrim
   opaque enough to obscure content without it, and now records each state's
   `height`/`scrollHeight`, which it previously never captured.
