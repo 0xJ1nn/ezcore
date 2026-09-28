@@ -20,7 +20,7 @@
 │                ezCore Runtime  (C11, ABI v1)                  │
 │  runtime/src/runtime.c        session lifecycle · frame loop  │
 │  runtime/src/dynload_*.c      dlopen / LoadLibrary seam       │
-│  AV buffers · input · save states · SRAM handoff · cheats     │
+│  AV buffers · input · save states · cheats                    │
 │  Exports: runtime/include/ezcore_runtime.h                    │
 └──────────────────────────┬────────────────────────────────────┘
                            │ libretro C API
@@ -41,9 +41,10 @@ loudly if they are missing.
 
 ## Rules
 
-1. **Cores never touch Flutter.** Every core speaks the runtime ABI
-   (`runtime/include/ezcore_runtime.h`, versioned `EZCORE_ABI_VERSION`).
-   A core that satisfies the ABI works on every platform unchanged.
+1. **Cores never touch Flutter.** Every core speaks the **libretro** API
+   (`RETRO_API_VERSION` 1). Only the runtime speaks the ezcore ABI
+   (`runtime/include/ezcore_runtime.h`, versioned `EZCORE_ABI_VERSION`) to
+   Dart. A core that satisfies libretro works on every platform unchanged.
 
 2. **The runtime owns execution.** Lifecycle, game loading, frame
    execution, video/audio plumbing, input, save states, cheats,

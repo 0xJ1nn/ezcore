@@ -39,13 +39,11 @@ An opaque handle to a loaded libretro core session. Created by `ezcore_load`, de
 
 ### Pixel Format
 
-```c
-#define EZCORE_PIXEL_XRGB8888 0
-#define EZCORE_PIXEL_0RGB1555 1
-#define EZCORE_PIXEL_RGB565   2
-```
-
-The runtime always presents frames as XRGB8888 to the frontend. Cores that request other formats are converted internally.
+The runtime always presents frames as XRGB8888 to the frontend. Cores that
+request another format (`RETRO_PIXEL_FORMAT_0RGB1555`, `RETRO_PIXEL_FORMAT_RGB565`)
+are converted internally (`runtime/src/runtime.c:128-140`). No pixel-format
+constants are exported — the presentation format is fixed by the ABI, not
+selectable. (Pixel-format selection is a P1b idea, tracked in the roadmap.)
 
 ### Error Buffer
 
@@ -141,6 +139,23 @@ Initializes the core. Calls `retro_init`. Most cores don't need this explicitly 
 
 ---
 
+#### `ezcore_reset`
+
+```c
+void ezcore_reset(ezcore_session *s);
+```
+
+Soft-resets the currently loaded game (calls the core's `retro_reset`). A
+no-op when no game is loaded or the core does not export `retro_reset`.
+
+**Parameters:**
+- `s` — session pointer
+
+**Thread safety:** Not thread-safe. Call from the emulation thread; safe only
+after `ezcore_load_game`.
+
+---
+
 ### Game Loading
 
 #### `ezcore_load_game`
@@ -232,6 +247,54 @@ Queries the system AV info for the currently loaded game. Returns base width, ba
 
 ---
 
+#### `ezcore_sample_rate`
+
+```c
+double ezcore_sample_rate(ezcore_session *s);
+```
+
+Returns the audio sample rate from the core's AV timing. `0.0` when no game
+is loaded.
+
+**Parameters:**
+- `s` — session pointer
+
+**Thread safety:** Not thread-safe — queries the core
+(`retro_get_system_av_info`) directly, so it must run on the emulation thread.
+
+---
+
+### Input
+
+#### `ezcore_set_button`
+
+```c
+void ezcore_set_button(ezcore_session *s, unsigned port,
+                       unsigned button_id, bool pressed);
+```
+
+Sets one button's pressed state. `button_id` is a `RETRO_DEVICE_ID_JOYPAD_*`
+value; `port` is the player index (0–3). Out-of-range values are ignored.
+
+**Thread safety:** Not thread-safe. The state is read by `ezcore_run_frame`'s
+input poll — the caller must serialise against it (the frontend routes input
+through its emulation worker).
+
+---
+
+#### `ezcore_clear_buttons`
+
+```c
+void ezcore_clear_buttons(ezcore_session *s, unsigned port);
+```
+
+Clears all pressed buttons for one port (0–3). Out-of-range ports are ignored.
+
+**Thread safety:** Not thread-safe — same serialisation duty as
+`ezcore_set_button`.
+
+---
+
 ### Video
 
 #### `ezcore_frame_pixels`
@@ -253,6 +316,35 @@ Returns a pointer to the latest video frame. The frame is in XRGB8888 format (4 
 
 ---
 
+#### `ezcore_frame_size`
+
+```c
+void ezcore_frame_size(ezcore_session *s, unsigned *w, unsigned *h);
+```
+
+Returns the latest frame's dimensions in pixels. `0`/`0` when no frame has
+been produced yet.
+
+---
+
+#### `ezcore_frame_pixels_copy`
+
+```c
+size_t ezcore_frame_pixels_copy(ezcore_session *s, uint8_t *out,
+                                size_t out_size);
+```
+
+Copies the latest frame into `out` as RGBA bytes. `out` must be at least
+`w * h * 4` bytes.
+
+**Returns:** Bytes copied (`w * h * 4`), or `0` if no frame has been produced
+yet.
+
+**Thread safety:** Not thread-safe — reads the frame state `ezcore_run_frame`
+writes; call from the emulation thread.
+
+---
+
 ### Audio
 
 #### `ezcore_audio_drain`
@@ -270,7 +362,41 @@ Drains audio frames from the ring buffer. Audio is stereo signed 16-bit PCM.
 
 **Returns:** Number of frames actually drained (may be less than requested if ring is empty).
 
-**Thread safety:** Safe to call from a different thread than `ezcore_run_frame`.
+**Thread safety:** Not thread-safe. The drain is an unsynchronised
+`memcpy`/`memmove` on the session's ring buffer
+(`runtime/src/runtime.c:433-443`); the caller must serialise against
+`ezcore_run_frame`, which appends to the same ring.
+
+---
+
+#### `ezcore_audio_drain_copy`
+
+```c
+size_t ezcore_audio_drain_copy(ezcore_session *s, int16_t *out,
+                               size_t max_frames);
+```
+
+Drains up to `max_frames` stereo s16 samples into `out` — the copy variant of
+`ezcore_audio_drain`.
+
+**Returns:** Frames drained; may be less than requested when the ring is
+empty.
+
+**Thread safety:** Not thread-safe — same unsynchronised ring access as
+`ezcore_audio_drain`.
+
+---
+
+#### `ezcore_audio_pending`
+
+```c
+size_t ezcore_audio_pending(ezcore_session *s);
+```
+
+Returns the number of audio frames currently queued in the ring buffer.
+
+**Thread safety:** Not thread-safe. Reads the ring's fill level without
+synchronisation.
 
 ---
 
@@ -392,14 +518,22 @@ The Flutter layer checks all return values and surfaces errors to the user.
 | `ezcore_core_version` | Thread-safe (read-only) |
 | `ezcore_system_geometry` | Not thread-safe (call from emulation thread) |
 | `ezcore_frame_pixels` | Not thread-safe (call from emulation thread) |
-| `ezcore_audio_drain` | Thread-safe (safe from audio thread) |
+| `ezcore_audio_drain` | Not thread-safe (serialise against `ezcore_run_frame`) |
+| `ezcore_reset` | Not thread-safe (emulation thread) |
+| `ezcore_sample_rate` | Not thread-safe (emulation thread — queries the core) |
+| `ezcore_set_button` | Not thread-safe (emulation thread) |
+| `ezcore_clear_buttons` | Not thread-safe (emulation thread) |
+| `ezcore_frame_size` | Not thread-safe (emulation thread) |
+| `ezcore_frame_pixels_copy` | Not thread-safe (emulation thread) |
+| `ezcore_audio_drain_copy` | Not thread-safe (serialise against `ezcore_run_frame`) |
+| `ezcore_audio_pending` | Not thread-safe (emulation thread) |
 | `ezcore_cheat_reset` | Not thread-safe |
 | `ezcore_cheat_set` | Not thread-safe |
 | `ezcore_serialize_size` | Not thread-safe |
 | `ezcore_serialize` | Not thread-safe |
 | `ezcore_unserialize` | Not thread-safe |
 
-**Typical usage:** One emulation thread runs `ezcore_run_frame` in a loop. The audio thread calls `ezcore_audio_drain`. The main thread calls everything else (load, unload, cheats, saves) when the user interacts.
+**Typical usage:** One thread owns the session and runs `ezcore_run_frame` in a loop. Everything else — audio drain, input, cheats, save states — happens on that thread, or between frames with the caller serialising. The runtime has no internal locks; the frontend owns the concurrency.
 
 ---
 
