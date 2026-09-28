@@ -16,8 +16,8 @@
 #
 # iOS note: cores ship as versioned .framework bundles embedded via the
 # Xcode project (scripts/ios_frameworks.sh, run once per core set — NOT
-# per release), and the runtime links statically (scripts/build_runtime.sh
-# ios --static, linked in Runner.xcodeproj). Until a signing identity is
+# per release), and the runtime is built by scripts/build_runtime.sh ios
+# and linked in Runner.xcodeproj. Until a signing identity is
 # configured, iOS stops after an unsigned --no-codesign build.
 set -euo pipefail
 
