@@ -329,7 +329,19 @@ class PackageInstaller {
       );
     }
 
-    // (6) Success. The "Unverified" label remains a warning on the report so
+    // (6) Stage the manifest (and shipped .info) alongside the library: the
+    // vault directory becomes self-describing, so discovery can register
+    // the core on later boots without the bundled catalog knowing it. These
+    // are data files — validated before this point, never executed.
+    await manifestFile.copy('${vaultRoot.path}/cores/$id/manifest.json');
+    final infoFile = File('${package.path}/info/$id.info');
+    if (await infoFile.exists()) {
+      final infoDir = Directory('${vaultRoot.path}/cores/$id/info');
+      await infoDir.create(recursive: true);
+      await infoFile.copy('${infoDir.path}/$id.info');
+    }
+
+    // (7) Success. The "Unverified" label remains a warning on the report so
     // the caller (UI) can render the trust state plainly.
     return PackageInstallReport(
       ok: true,

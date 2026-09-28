@@ -128,6 +128,12 @@ void main() {
     expect(await File(stagedPath).readAsBytes(), libBytes);
     // Sidecar written for fast re-verification (matches core_staging layout).
     expect(File('$stagedPath.ezpin').existsSync(), isTrue);
+    // The staged manifest makes the vault self-describing: discovery can
+    // register the core on later boots without the bundled catalog.
+    expect(
+      File('${vault.path}/cores/testcore/manifest.json').existsSync(),
+      isTrue,
+    );
   });
 
   test('pin mismatch: refused, nothing staged', () async {
