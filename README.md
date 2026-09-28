@@ -115,6 +115,26 @@ never presented as a core that plays.
 
 ## Latest progress
 
+### Progress log — 2026-09-28
+
+**Current checkpoint: ezCORE `v0.2.0` — public experimental build.**
+
+- **The ABI documentation is now mechanically true.** `docs/API.md` and
+  `docs/ARCHITECTURE.md` were audited against the exported header; fabricated
+  constants and impossible thread-safety claims are gone, and a new
+  stdlib-only gate (`scripts/check_api_docs.py`) is wired into the native test
+  suite — it fails with the offending name if documentation and ABI drift
+  apart again, and was mutation-tested in both directions.
+- **Design evidence is deterministic.** The Orbit screenshot verifier now
+  freezes the clock, dismisses transient UI, and fast-forwards transitions at
+  capture time; three consecutive runs produce byte-identical evidence, and
+  the pre-commit hook refuses to ship unreconciled screenshots.
+- **The linux-x64 tier is rebuilt and re-pinned** on the current toolchain —
+  SameBoy and Mupen64Plus-Next rebuilt byte-identically across machines, and
+  the native boot tests now cover three cores end to end.
+- **The app runs on Linux with 14 bundled cores verified in the vault** —
+  zero staging refusals, every staged artifact matching its committed pin.
+
 ### Progress log — 2026-09-25
 
 **Current checkpoint: ezCORE `v0.2.0` — public experimental build.**
@@ -145,7 +165,7 @@ experience. Recent milestones include:
 | Target platform shells | **5** |
 | Responsive layout families | **5** |
 | Shared runtime ABI | **1** |
-| Native CTest baseline on the current Linux checkout | **3 / 3** |
+| Native CTest baseline on the current Linux checkout | **10 / 10** |
 
 The numbers are a snapshot, not a finish line. They show the shape of the
 platform taking form: one shared surface, many systems, and a growing set of
@@ -240,8 +260,9 @@ feel like features instead of friction.
 #### The platform program
 
 The road ahead is sequenced deliberately. The keystone is finishing what the
-kernel can offer a core — today it answers only **7 of 96** libretro environment
-requests, which is why some systems in the catalog are listed as built but not
+kernel can offer a core — today it answers only **7 of the 92** libretro environment
+requests the vendored header defines, which is why some systems in the catalog
+are listed as built but not
 yet frame-verified in [`docs/MATRIX.md`](docs/MATRIX.md).
 
 | # | Focus | Why it is here |
