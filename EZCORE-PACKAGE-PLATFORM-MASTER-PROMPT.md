@@ -93,8 +93,10 @@ A package is a directory (or a zip of one) with this shape:
 6. Trust label: **ezCORE Verified** (reviewed) vs **Unverified** (labelled,
    opt-in, never auto-updated) — the P5 tiers.
 
-**The signature slot (P7):** packages carry a `signature` field today as
-`dev-unsigned`; signing becomes real when P7 lands. Never hand-roll crypto.
+**The signature slot (P7):** package *manifests* carry no signature in v1
+  (the field is rejected as unknown — registry-level signing, `cores/registry.json`,
+  arrives with P7). Installing unsigned packages is consent-gated and
+  labelled Unverified. Never hand-roll crypto.
 
 ## 4. Crash containment (the "OS" promise)
 
