@@ -41,6 +41,11 @@ const Set<String> kKnownManifestFields = <String>{
   'execution',
   'bios_notes',
   'provenance',
+  // Policy fields written by fill_manifest_data.py / build_catalog.py on
+  // real manifests: legal holds, gated (license) cores, and free-form notes.
+  'blocked_reason',
+  'gated_reason',
+  'notes',
 };
 
 /// Result of validating a core package directory.
@@ -73,7 +78,8 @@ class PackageValidationReport {
   static const int defaultMaxManifestBytes = 1 * 1024 * 1024; // 1 MiB
 
   @override
-  String toString() => 'PackageValidationReport(ok=$ok, '
+  String toString() =>
+      'PackageValidationReport(ok=$ok, '
       'errors=${errors.length}, warnings=${warnings.length})';
 
   /// Validates the core package at [package].
@@ -149,9 +155,13 @@ class PackageValidationReport {
 
   static final RegExp _idRegex = RegExp(r'^[a-z0-9_]+$');
   static final RegExp _pinRegex = RegExp(r'^[0-9a-f]{64}$');
+  // The delivery vocabulary matches the app's manifest model
+  // (lib/models/core_manifest.dart: 'bundled' | 'download' | 'absent') and
+  // every real manifest; `on-demand` was a P2-brief invention no consumer
+  // uses — a manifest carrying it fails the validator, by design.
   static const Set<String> _allowedDelivery = <String>{
     'bundled',
-    'on-demand',
+    'download',
     'absent',
   };
 
@@ -176,7 +186,10 @@ class PackageValidationReport {
         report.errors.add('id "$id" must match [a-z0-9_]+');
       }
       final parts = package.path.split(Platform.pathSeparator);
-      final dirName = parts.lastWhere((p) => p.isNotEmpty, orElse: () => package.path);
+      final dirName = parts.lastWhere(
+        (p) => p.isNotEmpty,
+        orElse: () => package.path,
+      );
       if (id != dirName) {
         report.errors.add('id "$id" does not match directory name "$dirName"');
       }
@@ -200,7 +213,7 @@ class PackageValidationReport {
       }
     }
 
-    // delivery: values must be bundled | on-demand | absent.
+    // delivery: values must be bundled | download | absent.
     final delivery = manifest['delivery'];
     if (delivery != null) {
       if (delivery is! Map) {
@@ -211,7 +224,7 @@ class PackageValidationReport {
           if (value is! String || !_allowedDelivery.contains(value)) {
             report.errors.add(
               'delivery for "${e.key}" must be one of '
-              'bundled|on-demand|absent, got: $value',
+              'bundled|download|absent, got: $value',
             );
           }
         }
@@ -223,7 +236,9 @@ class PackageValidationReport {
     final biosFiles = manifest['bios_files'];
     if (biosRequired &&
         (biosFiles == null || biosFiles is! List || biosFiles.isEmpty)) {
-      report.warnings.add('bios_required is true but no bios_files are declared');
+      report.warnings.add(
+        'bios_required is true but no bios_files are declared',
+      );
     }
   }
 
@@ -237,7 +252,10 @@ class PackageValidationReport {
     int totalBytes = 0;
     var oversize = false;
     try {
-      await for (final entity in package.list(recursive: true, followLinks: false)) {
+      await for (final entity in package.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is Link) {
           report.errors.add('symlink found in package: ${entity.path}');
           continue;
