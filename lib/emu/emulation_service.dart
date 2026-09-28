@@ -78,6 +78,22 @@ class EmulationService {
   }
 
   void reset() => runtime.reset(_active);
+
+  /// Reads back the option set the loaded core registered. Returns
+  /// `(key, defaultValue, value)` per index, or null when the index is out
+  /// of range. Values live until the core re-registers or the session ends.
+  List<({String key, String defaultValue, String value})> coreOptions() {
+    final count = runtime.coreOptionCount(_active);
+    return [
+      for (var i = 0; i < count; i++) ?runtime.coreOption(_active, i),
+    ];
+  }
+
+  /// Sets one core option on the live session. Returns false when the
+  /// key matches no registered option (the caller reports it; nothing
+  /// throws — an unknown option is user-data, not a program fault).
+  bool setCoreOption(String key, String value) =>
+      runtime.setCoreOption(_active, key, value);
   Uint8List? saveState() => runtime.saveState(_active);
   bool loadState(Uint8List bytes) => runtime.loadState(_active, bytes);
 
