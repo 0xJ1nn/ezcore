@@ -278,6 +278,13 @@ listed here rather than silently corrected in passing.
 | `cores/registry.json` | declares a signature from `scripts/sign_registry.py`; **that script does not exist**, and nothing reads this file | Medium |
 | `runtime/src/runtime.c` | `ez_dyn_open` / `ez_dyn_sym` / `ez_dyn_close` are exported from the runtime library although declared internal to `dynload.h` | Low — ABI hygiene |
 
+**Status (2026-09-28):** rows 1–7 corrected by P1a; the mechanical gate is
+`scripts/check_api_docs.py`, wired into the runtime ctest suite. Row 8 is
+deferred to P8 — hiding those exports is a build-surface change, not
+documentation (`KNOWN_ISSUES.md`, technical debt). Two defects beyond the
+table, found by the new gate: the thread-safety table and the "Typical usage"
+prose also prescribed the unsynchronised pattern the runtime cannot honour.
+
 **Durable fix (part of P1):** a test that enumerates the exported symbols in
 `runtime/include/ezcore_runtime.h` and fails when one is undocumented, and a
 check that documented macros exist in the source. Documentation rot is

@@ -1,6 +1,6 @@
 {
   "registry_version": 1,
-  "signature": "dev-unsigned (scripts/sign_registry.py lands with release pipeline)",
+  "signature": "dev-unsigned (registry signing lands with P7 — signature/trust hardening)",
   "cores": [
     "pocketbit",
     "realmode",

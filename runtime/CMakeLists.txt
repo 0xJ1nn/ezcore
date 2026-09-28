@@ -106,6 +106,15 @@ add_dependencies(test_optional_cheats
 enable_testing()
 add_test(NAME abi_version COMMAND test_abi)
 
+# docs/API.md must describe the ABI the header exports (docs/PLATFORM.md §8).
+# stdlib-only python; skipped silently on hosts without python3.
+find_program(PYTHON3_EXECUTABLE python3)
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME api_docs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_api_docs.py)
+endif()
+
 # Native core lifecycle test (synthetic — deterministic, no copyrighted content)
 add_test(NAME core_player
   COMMAND test_core_player
