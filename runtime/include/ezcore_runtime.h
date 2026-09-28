@@ -79,6 +79,65 @@ size_t ezcore_serialize_size(ezcore_session *s);
 bool ezcore_serialize(ezcore_session *s, void *out, size_t size);
 bool ezcore_unserialize(ezcore_session *s, const void *data, size_t size);
 
+/* --- Core Options & Capability Surface ---
+ * The runtime stores deep copies of everything the core hands to
+ * env_cb via the libretro environment calls below.  Strings originate
+ * from the core (core-owned lifetimes) and are duplicated into
+ * runtime-owned heap memory so they remain valid for the lifetime of
+ * the session.  All out-pointers point into runtime-owned memory valid
+ * until ezcore_unload or the next SET_CORE_OPTIONS* call. */
+
+/* Number of core options registered by the loaded core (via
+ * RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2 or SET_CORE_OPTIONS_INTL).
+ * Returns 0 when none have been registered or the session is invalid. */
+unsigned ezcore_get_core_option_count(ezcore_session *s);
+
+/* Retrieve a core option by zero-based index.
+ * On success, fills any non-NULL out-params with runtime-owned strings
+ * (key, default_value, current value).  Returns false if the index is
+ * out of range or the session is invalid. */
+bool ezcore_get_core_option(ezcore_session *s, unsigned index,
+                            const char **key, const char **default_value,
+                            const char **value);
+
+/* Set the current value of a core option by key.  The value is deep-copied
+ * into runtime memory; the caller's string may be freed or reused afterwards.
+ * Returns true when the key matched an existing option, false otherwise. */
+bool ezcore_set_core_option(ezcore_session *s, const char *key,
+                            const char *value);
+
+/* Number of input descriptors registered via
+ * RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS.  Returns 0 when none or
+ * the session is invalid. */
+unsigned ezcore_get_input_descriptor_count(ezcore_session *s);
+
+/* Retrieve an input descriptor by zero-based index.  On success fills any
+ * non-NULL out-params.  Returns false if the index is out of range. */
+bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
+                                 unsigned *port, unsigned *device,
+                                 unsigned *desc_index, unsigned *id,
+                                 const char **description);
+
+/* Number of controller ports with info registered via
+ * RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.  Returns 0 when none or
+ * the session is invalid. */
+unsigned ezcore_get_controller_port_count(ezcore_session *s);
+
+/* Number of memory-map descriptors registered via
+ * RETRO_ENVIRONMENT_SET_MEMORY_MAPS.  Returns 0 when none or
+ * the session is invalid. */
+unsigned ezcore_get_memory_descriptor_count(ezcore_session *s);
+
+/* Retrieve a memory-map descriptor by zero-based index.  On success fills
+ * any non-NULL out-params.  The \c ptr field points into core-owned memory
+ * (NOT copied by the runtime); all other fields are runtime-owned copies.
+ * Returns false if the index is out of range. */
+bool ezcore_get_memory_descriptor(ezcore_session *s, unsigned index,
+                                  uint64_t *flags, void **ptr,
+                                  size_t *offset, size_t *start,
+                                  size_t *select, size_t *disconnect,
+                                  size_t *len, const char **addrspace);
+
 #ifdef __cplusplus
 }
 #endif

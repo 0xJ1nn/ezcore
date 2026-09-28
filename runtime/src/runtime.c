@@ -12,6 +12,66 @@
 
 #include "libretro.h"
 
+/* ---- Core options & capability storage (host-owned deep copies) ---- */
+
+/* Core options API version reported to cores via GET_CORE_OPTIONS_VERSION.
+ * 0x10000 = v1, 0x20000 = v2 (categories, intl). */
+#define EZCORE_CORE_OPTIONS_VERSION 0x20000u
+
+/* A deep-copied core option definition.  All char* fields are heap-owned
+ * by the runtime; the values/labels arrays are NULL-terminated. */
+struct ezcore_core_option {
+  char *key;
+  char *desc;
+  char *value;          /* current value — a frontend-set selection    */
+  char *default_value;  /* deep copy of the core's default_value       */
+  char **values;        /* NULL-terminated array of deep-copied values */
+  char **labels;        /* parallel array of labels (may hold NULL)    */
+  unsigned num_values;  /* non-NULL entries in values/labels            */
+};
+
+/* A deep-copied retro_input_descriptor. */
+struct ezcore_input_desc {
+  unsigned port;
+  unsigned device;
+  unsigned index;
+  unsigned id;
+  char *description;
+};
+
+/* A deep-copied retro_controller_description. */
+struct ezcore_controller_desc {
+  char *desc;
+  unsigned id;
+};
+
+/* One emulated input port with its supported device types. */
+struct ezcore_controller_port {
+  struct ezcore_controller_desc *types;  /* length == num_types           */
+  unsigned num_types;
+};
+
+/* A deep-copied retro_memory_descriptor.  ptr is intentionally NOT
+ * copied — it aliases core-owned memory valid for the session lifetime. */
+struct ezcore_mem_desc {
+  uint64_t flags;
+  void *ptr;            /* core-owned — not freed by the runtime */
+  size_t offset;
+  size_t start;
+  size_t select;
+  size_t disconnect;
+  size_t len;
+  char *addrspace;      /* deep copy */
+};
+
+static char *ezcore_strdup(const char *s) {
+  if (!s) return NULL;
+  size_t len = strlen(s);
+  char *copy = (char *)malloc(len + 1);
+  if (copy) memcpy(copy, s, len + 1);
+  return copy;
+}
+
 struct ezcore_session {
   void *handle;
   char core_path[1024];
@@ -44,6 +104,15 @@ struct ezcore_session {
   char version[64];
   bool game_loaded;
   bool inited;
+  /* --- Core options & capability surface (host-owned deep copies) --- */
+  struct ezcore_core_option *core_options;
+  unsigned num_core_options;
+  struct ezcore_input_desc *input_descs;
+  unsigned num_input_descs;
+  struct ezcore_controller_port *controller_ports;
+  unsigned num_controller_ports;
+  struct ezcore_mem_desc *mem_descs;
+  unsigned num_mem_descs;
 };
 
 static ezcore_session *g_active = NULL;
@@ -67,6 +136,62 @@ static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
 void ezcore_set_dirs(const char *system_dir, const char *save_dir) {
   if (system_dir) snprintf(g_system_dir, sizeof(g_system_dir), "%s", system_dir);
   if (save_dir) snprintf(g_save_dir, sizeof(g_save_dir), "%s", save_dir);
+}
+
+/* --- Free deep-copied capability storage in a session --- */
+
+static void ezcore_free_core_options(ezcore_session *s) {
+  if (!s->core_options) return;
+  for (unsigned i = 0; i < s->num_core_options; i++) {
+    struct ezcore_core_option *co = &s->core_options[i];
+    free(co->key);
+    free(co->desc);
+    free(co->value);
+    free(co->default_value);
+    if (co->values) {
+      for (unsigned j = 0; j < co->num_values; j++) free(co->values[j]);
+      free(co->values);
+    }
+    if (co->labels) {
+      for (unsigned j = 0; j < co->num_values; j++) free(co->labels[j]);
+      free(co->labels);
+    }
+  }
+  free(s->core_options);
+  s->core_options = NULL;
+  s->num_core_options = 0;
+}
+
+static void ezcore_free_input_descs(ezcore_session *s) {
+  if (!s->input_descs) return;
+  for (unsigned i = 0; i < s->num_input_descs; i++)
+    free(s->input_descs[i].description);
+  free(s->input_descs);
+  s->input_descs = NULL;
+  s->num_input_descs = 0;
+}
+
+static void ezcore_free_controller_ports(ezcore_session *s) {
+  if (!s->controller_ports) return;
+  for (unsigned i = 0; i < s->num_controller_ports; i++) {
+    struct ezcore_controller_port *p = &s->controller_ports[i];
+    if (p->types) {
+      for (unsigned j = 0; j < p->num_types; j++) free(p->types[j].desc);
+      free(p->types);
+    }
+  }
+  free(s->controller_ports);
+  s->controller_ports = NULL;
+  s->num_controller_ports = 0;
+}
+
+static void ezcore_free_mem_descs(ezcore_session *s) {
+  if (!s->mem_descs) return;
+  for (unsigned i = 0; i < s->num_mem_descs; i++)
+    free(s->mem_descs[i].addrspace);
+  free(s->mem_descs);
+  s->mem_descs = NULL;
+  s->num_mem_descs = 0;
 }
 
 static bool env_cb(unsigned cmd, void *data) {
@@ -107,6 +232,171 @@ static bool env_cb(unsigned cmd, void *data) {
     case RETRO_ENVIRONMENT_SET_MESSAGE: {
       const struct retro_message *msg = data;
       if (msg && msg->msg) fprintf(stderr, "[core] %s\n", msg->msg);
+      return true;
+    }
+    /* ---- P1b: core options & capability surface ---- */
+    case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
+      /* Core asks the host which options API version it supports.
+       * We report v2, enabling SET_CORE_OPTIONS_V2 / V2_INTL. */
+      if (data) *(unsigned *)data = EZCORE_CORE_OPTIONS_VERSION;
+      return true;
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2: {
+      /* Deep-copy a v2 option set into the session.  The core retains
+       * ownership of all strings; we duplicate them so they survive
+       * beyond the env_cb call. */
+      const struct retro_core_options_v2 *opts = data;
+      if (!g_active) return false;
+      ezcore_free_core_options(g_active);
+      if (!opts || !opts->definitions) return true;
+      /* definitions is terminated by a zeroed-out struct (key == NULL) */
+      unsigned count = 0;
+      while (count < 1024 && opts->definitions[count].key) count++;
+      if (count == 0) return true;
+      g_active->core_options =
+          (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
+      if (!g_active->core_options) return false;
+      g_active->num_core_options = count;
+      for (unsigned i = 0; i < count; i++) {
+        const struct retro_core_option_v2_definition *d = &opts->definitions[i];
+        struct ezcore_core_option *co = &g_active->core_options[i];
+        co->key = ezcore_strdup(d->key);
+        co->desc = ezcore_strdup(d->desc);
+        co->default_value = ezcore_strdup(d->default_value);
+        co->value = ezcore_strdup(d->default_value); /* init current = default */
+        /* values[] is terminated by { NULL, NULL } */
+        unsigned nv = 0;
+        while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
+               d->values[nv].value) nv++;
+        co->num_values = nv;
+        if (nv > 0) {
+          co->values = (char **)calloc(nv + 1, sizeof(char *));
+          co->labels = (char **)calloc(nv + 1, sizeof(char *));
+          if (co->values && co->labels) {
+            for (unsigned j = 0; j < nv; j++) {
+              co->values[j] = ezcore_strdup(d->values[j].value);
+              co->labels[j] = ezcore_strdup(d->values[j].label);
+            }
+          }
+        }
+      }
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL: {
+      /* v1 INTL variant.  We store the US (English) definitions using
+       * the same internal representation as V2.  The translated `local`
+       * set is intentionally not stored: the host option surface exposes
+       * the canonical US strings so that option *keys* and *values*
+       * (which must be language-independent) are queryable. */
+      const struct retro_core_options_intl *opts_intl = data;
+      if (!g_active) return false;
+      ezcore_free_core_options(g_active);
+      if (!opts_intl || !opts_intl->us) return true;
+      /* us array is terminated by an entry with key == NULL */
+      unsigned count = 0;
+      while (count < 1024 && opts_intl->us[count].key) count++;
+      if (count == 0) return true;
+      g_active->core_options =
+          (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
+      if (!g_active->core_options) return false;
+      g_active->num_core_options = count;
+      for (unsigned i = 0; i < count; i++) {
+        const struct retro_core_option_definition *d = &opts_intl->us[i];
+        struct ezcore_core_option *co = &g_active->core_options[i];
+        co->key = ezcore_strdup(d->key);
+        co->desc = ezcore_strdup(d->desc);
+        co->default_value = ezcore_strdup(d->default_value);
+        co->value = ezcore_strdup(d->default_value);
+        unsigned nv = 0;
+        while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
+               d->values[nv].value) nv++;
+        co->num_values = nv;
+        if (nv > 0) {
+          co->values = (char **)calloc(nv + 1, sizeof(char *));
+          co->labels = (char **)calloc(nv + 1, sizeof(char *));
+          if (co->values && co->labels) {
+            for (unsigned j = 0; j < nv; j++) {
+              co->values[j] = ezcore_strdup(d->values[j].value);
+              co->labels[j] = ezcore_strdup(d->values[j].label);
+            }
+          }
+        }
+      }
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS: {
+      /* Array is terminated by a zeroed-out descriptor (description == NULL). */
+      const struct retro_input_descriptor *descs = data;
+      if (!g_active) return false;
+      ezcore_free_input_descs(g_active);
+      if (!descs) return true;
+      unsigned count = 0;
+      while (count < 1024 && descs[count].description) count++;
+      if (count == 0) return true;
+      g_active->input_descs =
+          (struct ezcore_input_desc *)calloc(count, sizeof(*g_active->input_descs));
+      if (!g_active->input_descs) return false;
+      g_active->num_input_descs = count;
+      for (unsigned i = 0; i < count; i++) {
+        g_active->input_descs[i].port = descs[i].port;
+        g_active->input_descs[i].device = descs[i].device;
+        g_active->input_descs[i].index = descs[i].index;
+        g_active->input_descs[i].id = descs[i].id;
+        g_active->input_descs[i].description = ezcore_strdup(descs[i].description);
+      }
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_CONTROLLER_INFO: {
+      /* Array is terminated by a zeroed-out entry. */
+      const struct retro_controller_info *infos = data;
+      if (!g_active) return false;
+      ezcore_free_controller_ports(g_active);
+      if (!infos) return true;
+      unsigned count = 0;
+      while (count < 1024 && (infos[count].types || infos[count].num_types))
+        count++;
+      if (count == 0) return true;
+      g_active->controller_ports =
+          (struct ezcore_controller_port *)calloc(count, sizeof(*g_active->controller_ports));
+      if (!g_active->controller_ports) return false;
+      g_active->num_controller_ports = count;
+      for (unsigned i = 0; i < count; i++) {
+        unsigned nt = infos[i].num_types;
+        g_active->controller_ports[i].num_types = nt;
+        if (nt > 0 && infos[i].types) {
+          g_active->controller_ports[i].types =
+              (struct ezcore_controller_desc *)calloc(nt, sizeof(struct ezcore_controller_desc));
+          for (unsigned j = 0; j < nt; j++) {
+            g_active->controller_ports[i].types[j].desc =
+                ezcore_strdup(infos[i].types[j].desc);
+            g_active->controller_ports[i].types[j].id = infos[i].types[j].id;
+          }
+        }
+      }
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_MEMORY_MAPS: {
+      const struct retro_memory_map *map = data;
+      if (!g_active) return false;
+      ezcore_free_mem_descs(g_active);
+      if (!map || !map->descriptors) return true;
+      unsigned count = map->num_descriptors;
+      if (count == 0) return true;
+      g_active->mem_descs =
+          (struct ezcore_mem_desc *)calloc(count, sizeof(*g_active->mem_descs));
+      if (!g_active->mem_descs) return false;
+      g_active->num_mem_descs = count;
+      for (unsigned i = 0; i < count; i++) {
+        const struct retro_memory_descriptor *md = &map->descriptors[i];
+        g_active->mem_descs[i].flags = md->flags;
+        /* ptr aliases core-owned memory; we store it but do NOT free it */
+        g_active->mem_descs[i].ptr = md->ptr;
+        g_active->mem_descs[i].offset = md->offset;
+        g_active->mem_descs[i].start = md->start;
+        g_active->mem_descs[i].select = md->select;
+        g_active->mem_descs[i].disconnect = md->disconnect;
+        g_active->mem_descs[i].len = md->len;
+        g_active->mem_descs[i].addrspace = ezcore_strdup(md->addrspace);
+      }
       return true;
     }
     default:
@@ -298,6 +588,10 @@ void ezcore_unload(ezcore_session *s) {
     s->retro_deinit();
     s->inited = false;
   }
+  ezcore_free_core_options(s);
+  ezcore_free_input_descs(s);
+  ezcore_free_controller_ports(s);
+  ezcore_free_mem_descs(s);
   ez_dyn_close(s->handle);
   free(s->frame);
   free(s->audio);
@@ -471,4 +765,83 @@ bool ezcore_serialize(ezcore_session *s, void *out, size_t size) {
 bool ezcore_unserialize(ezcore_session *s, const void *data, size_t size) {
   if (!s || !s->game_loaded || !s->retro_unserialize || !data) return false;
   return s->retro_unserialize(data, size);
+}
+
+/* ---- Core Options & Capability Surface ---- */
+
+/* Returns the version that the host reported to the core via
+ * RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION.  Stored by the core in its
+ * library_version string at load time; callers verify it there. */
+
+unsigned ezcore_get_core_option_count(ezcore_session *s) {
+  return s ? s->num_core_options : 0;
+}
+
+bool ezcore_get_core_option(ezcore_session *s, unsigned index,
+                            const char **key, const char **default_value,
+                            const char **value) {
+  if (!s || index >= s->num_core_options) return false;
+  const struct ezcore_core_option *co = &s->core_options[index];
+  if (key) *key = co->key;
+  if (default_value) *default_value = co->default_value;
+  if (value) *value = co->value;
+  return true;
+}
+
+bool ezcore_set_core_option(ezcore_session *s, const char *key,
+                            const char *value) {
+  if (!s || !key) return false;
+  for (unsigned i = 0; i < s->num_core_options; i++) {
+    struct ezcore_core_option *co = &s->core_options[i];
+    if (co->key && strcmp(co->key, key) == 0) {
+      free(co->value);
+      co->value = ezcore_strdup(value);
+      return true;
+    }
+  }
+  return false;
+}
+
+unsigned ezcore_get_input_descriptor_count(ezcore_session *s) {
+  return s ? s->num_input_descs : 0;
+}
+
+bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
+                                 unsigned *port, unsigned *device,
+                                 unsigned *desc_index, unsigned *id,
+                                 const char **description) {
+  if (!s || index >= s->num_input_descs) return false;
+  const struct ezcore_input_desc *d = &s->input_descs[index];
+  if (port) *port = d->port;
+  if (device) *device = d->device;
+  if (desc_index) *desc_index = d->index;
+  if (id) *id = d->id;
+  if (description) *description = d->description;
+  return true;
+}
+
+unsigned ezcore_get_controller_port_count(ezcore_session *s) {
+  return s ? s->num_controller_ports : 0;
+}
+
+unsigned ezcore_get_memory_descriptor_count(ezcore_session *s) {
+  return s ? s->num_mem_descs : 0;
+}
+
+bool ezcore_get_memory_descriptor(ezcore_session *s, unsigned index,
+                                  uint64_t *flags, void **ptr,
+                                  size_t *offset, size_t *start,
+                                  size_t *select, size_t *disconnect,
+                                  size_t *len, const char **addrspace) {
+  if (!s || index >= s->num_mem_descs) return false;
+  const struct ezcore_mem_desc *md = &s->mem_descs[index];
+  if (flags) *flags = md->flags;
+  if (ptr) *ptr = md->ptr;
+  if (offset) *offset = md->offset;
+  if (start) *start = md->start;
+  if (select) *select = md->select;
+  if (disconnect) *disconnect = md->disconnect;
+  if (len) *len = md->len;
+  if (addrspace) *addrspace = md->addrspace;
+  return true;
 }

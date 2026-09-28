@@ -82,6 +82,17 @@ if(APPLE)
   set_target_properties(synth_no_set_cheat_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- Synthetic core that exercises core-options & capability env calls ---
+add_library(synth_options_libretro SHARED
+  test/synth_core/synth_options_core.c
+)
+target_include_directories(synth_options_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_options_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Tests ---
 add_executable(test_abi test/test_abi.c)
 target_link_libraries(test_abi PRIVATE ezcore_runtime)
@@ -119,6 +130,16 @@ endif()
 add_test(NAME core_player
   COMMAND test_core_player
   ${CMAKE_BINARY_DIR}/libsynth_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Core-options & capability surface test (uses synth_options_libretro)
+add_executable(test_core_options test/test_core_options.c)
+target_link_libraries(test_core_options PRIVATE ezcore_runtime)
+target_include_directories(test_core_options PRIVATE include)
+add_dependencies(test_core_options synth_options_libretro)
+
+add_test(NAME core_options
+  COMMAND test_core_options
+  ${CMAKE_BINARY_DIR}/libsynth_options_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
 
 # Regression coverage for cores that omit each optional cheat symbol.
 add_test(NAME optional_cheat_symbols_none
