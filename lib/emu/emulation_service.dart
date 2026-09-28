@@ -63,18 +63,18 @@ class EmulationService {
 
   /// Applies [cheats] to the live session (reset-first, mirroring
   /// RetroArch). Each entry is `(index, enabled, code)`. Returns the
-  /// indices the core rejected.
+  /// indices the runtime could not dispatch to a core hook.
   List<int> applyCheats(List<({int index, bool enabled, String code})> cheats) {
     final session = _active;
     runtime.cheatReset(session);
-    final rejected = <int>[];
+    final notDispatched = <int>[];
     for (final c in cheats) {
       if (c.code.trim().isEmpty) continue;
       if (!runtime.cheatSet(session, c.index, c.enabled, c.code)) {
-        rejected.add(c.index);
+        notDispatched.add(c.index);
       }
     }
-    return rejected;
+    return notDispatched;
   }
 
   void reset() => runtime.reset(_active);

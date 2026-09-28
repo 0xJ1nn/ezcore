@@ -282,7 +282,8 @@ Drains audio frames from the ring buffer. Audio is stereo signed 16-bit PCM.
 void ezcore_cheat_reset(ezcore_session *s);
 ```
 
-Resets all cheats. Calls `retro_cheat_reset`.
+Resets all cheats. Calls `retro_cheat_reset` when the core exports it;
+otherwise this is a safe no-op.
 
 **Parameters:**
 - `s` — session pointer
@@ -296,7 +297,9 @@ bool ezcore_cheat_set(ezcore_session *s, unsigned index, bool enabled,
                       const char *code);
 ```
 
-Sets a cheat code. Calls `retro_cheat_set`.
+Attempts to set a cheat code. Calls `retro_cheat_set` when the core exports it.
+The libretro hook has no return value, so this does not validate the code or
+confirm that the core applied its effect.
 
 **Parameters:**
 - `s` — session pointer
@@ -304,7 +307,9 @@ Sets a cheat code. Calls `retro_cheat_set`.
 - `enabled` — whether the cheat is active
 - `code` — cheat code string (GameShark/Action Replay format)
 
-**Returns:** `true` on success, `false` on failure (e.g., invalid code format).
+**Returns:** `true` when a non-null code was dispatched to an available core
+hook; `false` when the runtime cannot dispatch it (for example, a missing core
+hook or null code). It does not indicate code validity.
 
 ---
 

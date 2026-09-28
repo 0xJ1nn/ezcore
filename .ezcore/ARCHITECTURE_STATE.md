@@ -67,7 +67,7 @@ Pinned modular core artifacts
 
 - `runtime/include/ezcore_runtime.h` defines ABI v1.
 - `runtime/src/runtime.c` adapts libretro callbacks for lifecycle, video,
-  audio, input, cheats, and optional save-state entry points.
+  audio, input, and optional cheat/save-state entry points.
 - `runtime/src/dynload_posix.c` and `dynload_win32.c` isolate dynamic loading.
 - Cores are separate, manifest-described libretro artifacts. Manifests carry
   license/provenance, system and extension data, execution policy, delivery,

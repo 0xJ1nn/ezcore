@@ -114,8 +114,9 @@ explicitly "macOS + Windows/Linux desktop, mobile beta to follow."
   review; local vault fully covers v1).
 - Out-of-process crash isolation, rewind, per-game core options (ABI v2),
   netplay.
-- Native hardening (small, could ride along): make `retro_cheat_*` symbols
-  optional at load instead of failing cores without them.
+- Native hardening (small, could ride along): **DONE** — the runtime treats
+  `retro_cheat_*` symbols as optional, with a synthetic-core regression test in
+  the Linux CTest suite. Other platform builds were not rerun for this slice.
 
 Commercial-game compatibility claims, RetroAchievements, libretro-database
 cheat downloads (ship the comment fix only), Firebase/Stripe scaffolding
