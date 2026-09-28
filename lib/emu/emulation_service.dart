@@ -84,9 +84,7 @@ class EmulationService {
   /// of range. Values live until the core re-registers or the session ends.
   List<({String key, String defaultValue, String value})> coreOptions() {
     final count = runtime.coreOptionCount(_active);
-    return [
-      for (var i = 0; i < count; i++) ?runtime.coreOption(_active, i),
-    ];
+    return [for (var i = 0; i < count; i++) ?runtime.coreOption(_active, i)];
   }
 
   /// Sets one core option on the live session. Returns false when the

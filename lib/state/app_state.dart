@@ -49,8 +49,7 @@ class AppState extends ChangeNotifier {
   /// Pass the startup-resolved provider from `main()` on mobile; desktop
   /// resolves synchronously when omitted.
   factory AppState({LocalDataDirProvider? dirProvider}) {
-    final resolved =
-        dirProvider ?? PlatformLocalDataDirProvider();
+    final resolved = dirProvider ?? PlatformLocalDataDirProvider();
     final dir = Directory(resolved.localDataDirPath());
     final saves = LocalSaveSyncProvider(dir);
     final persistence = PersistenceService(resolved);
@@ -78,8 +77,8 @@ class AppState extends ChangeNotifier {
     required this.saves,
     this.documentsProvider,
     CoreDownloader? downloader,
-  }) : _downloader = downloader ??
-            CoreDownloader(dirs: PlatformLocalDataDirProvider());
+  }) : _downloader =
+           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider());
 
   final CoreDownloader _downloader;
 
@@ -98,6 +97,11 @@ class AppState extends ChangeNotifier {
   /// Null when the bundle predates hybrid delivery (ADR-013); downloads
   /// then fail with an honest message instead of guessing a URL.
   CoreRelease? coreRelease;
+
+  /// The core root resolved during [load] — the vault (or the bundled/dev
+  /// fallback) that discovery scanned. Reused by [rediscoverCores] so
+  /// packages installed after boot join the same scan.
+  String? coreRootPath;
 
   List<GameEntry> games = [];
   final Map<String, List<CheatEntry>> cheatsByGame = {};
@@ -182,13 +186,18 @@ class AppState extends ChangeNotifier {
         cheatsByGame.addAll(persisted.cheatsByGame);
         _settings = Map<String, dynamic>.from(persisted.settings);
       }
-      final coreRoot = _settings['coreDirectory'] as String? ??
+      final coreRoot =
+          _settings['coreDirectory'] as String? ??
           Platform.environment['EZCORE_CORES_DIR'] ??
           await _stagedVaultRoot() ??
           _bundledCoresRoot() ??
-          RepoLayout.stagedCoresRoot(executablePath: Platform.resolvedExecutable) ??
+          RepoLayout.stagedCoresRoot(
+            executablePath: Platform.resolvedExecutable,
+          ) ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
-          RepoLayout.coresRoot() ?? 'native/cores';
+          RepoLayout.coresRoot() ??
+          'native/cores';
+      coreRootPath = coreRoot;
       final discovery = CoreDiscovery(Directory(coreRoot));
       await discovery.discover(registry);
       coreDiscoveryErrors = Map.unmodifiable(discovery.errors);
@@ -196,6 +205,18 @@ class AppState extends ChangeNotifier {
       loadError = e.toString();
     }
     loaded = true;
+    notifyListeners();
+  }
+
+  /// Re-runs discovery over the core root resolved during [load]: registers
+  /// user-installed packages staged after boot. Never throws — per-id
+  /// failures surface through [coreDiscoveryErrors].
+  Future<void> rediscoverCores() async {
+    final root = coreRootPath;
+    if (root == null) return;
+    final discovery = CoreDiscovery(Directory(root));
+    await discovery.discover(registry);
+    coreDiscoveryErrors = Map.unmodifiable(discovery.errors);
     notifyListeners();
   }
 
@@ -234,7 +255,8 @@ class AppState extends ChangeNotifier {
     }
     registry.install(
       m,
-      expectedSha256: m.artifacts[key] ??
+      expectedSha256:
+          m.artifacts[key] ??
           m.artifacts.values.firstOrNull ??
           'dev-unverified',
     );
@@ -244,11 +266,13 @@ class AppState extends ChangeNotifier {
   Future<void> persist() async {
     final p = persistence;
     if (p == null) return;
-    await p.saveAll(PersistedState(
-      games: games,
-      cheatsByGame: cheatsByGame,
-      settings: _settings,
-    ));
+    await p.saveAll(
+      PersistedState(
+        games: games,
+        cheatsByGame: cheatsByGame,
+        settings: _settings,
+      ),
+    );
   }
 
   Future<void> _persist() => persist();
@@ -263,8 +287,9 @@ class AppState extends ChangeNotifier {
   }
 
   void setCore(String id, String coreId) {
-    games =
-        games.map((g) => g.id == id ? g.copyWith(coreId: coreId) : g).toList();
+    games = games
+        .map((g) => g.id == id ? g.copyWith(coreId: coreId) : g)
+        .toList();
     notifyListeners();
     _persist();
   }
@@ -291,9 +316,9 @@ class AppState extends ChangeNotifier {
   }
 
   void setStateCount(String id, int count) {
-    games =
-        games.map((g) => g.id == id ? g.copyWith(stateCount: count) : g)
-            .toList();
+    games = games
+        .map((g) => g.id == id ? g.copyWith(stateCount: count) : g)
+        .toList();
     notifyListeners();
     _persist();
   }
@@ -309,15 +334,17 @@ class AppState extends ChangeNotifier {
   }
 
   void toggleCheat(String gameId, int index) {
-    cheatsByGame[gameId] =
-        cheatsFor(gameId).map((c) => c.index == index ? c.toggled() : c).toList();
+    cheatsByGame[gameId] = cheatsFor(
+      gameId,
+    ).map((c) => c.index == index ? c.toggled() : c).toList();
     _syncCheatCount(gameId);
     _persist();
   }
 
   void deleteCheat(String gameId, int index) {
-    cheatsByGame[gameId] =
-        cheatsFor(gameId).where((c) => c.index != index).toList();
+    cheatsByGame[gameId] = cheatsFor(
+      gameId,
+    ).where((c) => c.index != index).toList();
     _syncCheatCount(gameId);
     _persist();
   }
@@ -330,7 +357,8 @@ class AppState extends ChangeNotifier {
 
   void _syncCheatCount(String gameId) {
     final on = cheatsFor(gameId).where((c) => c.enabled).length;
-    games = games.map((g) => g.id == gameId ? g.copyWith(cheatsOn: on) : g)
+    games = games
+        .map((g) => g.id == gameId ? g.copyWith(cheatsOn: on) : g)
         .toList();
     notifyListeners();
   }
@@ -342,7 +370,10 @@ class AppState extends ChangeNotifier {
   List<String> get romFolders {
     final raw = _settings[romFoldersKey];
     if (raw is! List) return const [];
-    return [for (final e in raw) if (e is String && e.isNotEmpty) e];
+    return [
+      for (final e in raw)
+        if (e is String && e.isNotEmpty) e,
+    ];
   }
 
   Future<void> addRomFolder(String path) async {
@@ -352,10 +383,10 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> removeRomFolder(String path) async {
-    await setSetting(
-      romFoldersKey,
-      [for (final p in romFolders) if (p != path) p],
-    );
+    await setSetting(romFoldersKey, [
+      for (final p in romFolders)
+        if (p != path) p,
+    ]);
   }
 
   // --- managed "ezCORE ROMs" folder: one home for imported games ---

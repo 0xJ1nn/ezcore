@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../cores/core_registry.dart';
 import '../models/core_manifest.dart';
 import '../services/bios_check.dart';
+import '../services/core_package_installer.dart';
 import '../state/app_state.dart';
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
@@ -197,6 +201,11 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                         selectedId = null;
                       }),
                     ),
+                  IconButton(
+                    tooltip: 'Install a core package from a folder',
+                    icon: const Icon(Icons.folder_open),
+                    onPressed: _installPackageFlow,
+                  ),
                   if (!portrait && !short) ...[
                     const Spacer(),
                     Text(
@@ -321,6 +330,9 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                       manifest: list[i],
                       selected: i == selIndex,
                       installed: widget.state.registry.isInstalled(list[i].id),
+                      unverified: widget.state.registry.isUserPackage(
+                        list[i].id,
+                      ),
                       onTap: () {
                         if (i == selIndex) {
                           _coreActions(list[i]);
@@ -659,6 +671,92 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     return about[m.id] ?? '${m.systems.join(' · ')} — ${m.license}.';
   }
 
+  /// Install-from-disk flow: pick a package folder, state plainly what
+  /// installing means (native code, unverified, opt-in), then run the
+  /// installer and report its verdict. Installer refusals surface verbatim —
+  /// validation errors, pin mismatches, legal holds — nothing throws at the
+  /// user.
+  Future<void> _installPackageFlow() async {
+    if (_busyId != null) return;
+    final dirPath = await getDirectoryPath();
+    if (dirPath == null) return;
+    if (!mounted) return;
+    var coreId = 'this core';
+    try {
+      final raw =
+          jsonDecode(await File('$dirPath/manifest.json').readAsString())
+              as Map<String, dynamic>;
+      coreId = raw['id'] as String? ?? coreId;
+    } catch (_) {
+      // No readable manifest — the installer reports it precisely.
+    }
+    if (!mounted) return;
+    final consented = await showOrbitDialog<bool>(
+      context,
+      Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('INSTALL CORE PACKAGE', style: Tokens.eyebrow),
+            const SizedBox(height: 10),
+            Text(
+              'This installs native emulator code from a folder on disk. '
+              'Packages installed this way are unverified: they are not '
+              'reviewed by the project, they never auto-update, and they run '
+              'only because you chose to install them. An install never '
+              'touches your saves.',
+              style: Tokens.body(size: 13),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Package: $coreId',
+              style: Tokens.body(size: 13, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('CANCEL'),
+                ),
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('INSTALL'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    if (consented != true) return;
+    setState(() => _busyId = coreId);
+    try {
+      final report = await PackageInstaller().install(
+        Directory(dirPath),
+        userConsented: true,
+      );
+      if (!mounted) return;
+      setState(() => _busyId = null);
+      orbitToast(
+        context,
+        report.ok
+            ? '${report.coreId} installed — unverified package'
+            : 'Install refused: '
+                  '${report.refusedCode ?? report.errors.first}',
+      );
+      if (report.ok) await widget.state.rediscoverCores();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _busyId = null);
+      orbitToast(context, e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
   void _install(CoreManifest m) {
     if (_busyId != null) return;
     final downloads = widget.state.needsDownload(m);
@@ -814,11 +912,13 @@ class _CoreCard extends StatelessWidget {
     required this.manifest,
     required this.selected,
     required this.installed,
+    required this.unverified,
     required this.onTap,
   });
   final CoreManifest manifest;
   final bool selected;
   final bool installed;
+  final bool unverified;
   final VoidCallback onTap;
 
   @override
@@ -873,7 +973,7 @@ class _CoreCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text(
                             installed
-                                ? 'ADDED'
+                                ? (unverified ? 'UNVERIFIED' : 'ADDED')
                                 : manifest.blocked
                                 ? 'HOLD'
                                 : 'AVAILABLE',

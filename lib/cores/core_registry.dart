@@ -19,15 +19,31 @@ class CoreRegistry extends ChangeNotifier {
   final Map<String, String> _installed = {}; // id -> version
   final Map<String, String> _artifactSha = {}; // id -> verified sha256
 
-  List<CoreManifest> get catalog => _catalog.values.toList()
-    ..sort((a, b) => a.name.compareTo(b.name));
+  List<CoreManifest> get catalog =>
+      _catalog.values.toList()..sort((a, b) => a.name.compareTo(b.name));
 
-  List<CoreManifest> get installedCores => _catalog.values
-      .where((m) => _installed.containsKey(m.id))
-      .toList()
-    ..sort((a, b) => a.name.compareTo(b.name));
+  List<CoreManifest> get installedCores =>
+      _catalog.values.where((m) => _installed.containsKey(m.id)).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
 
   bool isInstalled(String id) => _installed.containsKey(id);
+
+  final Set<String> _userPackageIds = {};
+
+  /// Cores installed from user packages (the package path, not the bundled
+  /// catalog). Always rendered as **Unverified**: native code is opt-in,
+  /// never auto-updated, and — until P7 signatures land — unsigned.
+  bool isUserPackage(String id) => _userPackageIds.contains(id);
+
+  /// Registers a user-installed package manifest: it joins the catalog (so
+  /// it renders and resolves compatibility like any core) and is marked
+  /// installed at its own declared version.
+  void addUserPackage(CoreManifest m) {
+    _catalog[m.id] = m;
+    _installed[m.id] = m.version;
+    _userPackageIds.add(m.id);
+    notifyListeners();
+  }
 
   CoreStatus statusOf(CoreManifest m) {
     if (m.blocked) return CoreStatus.blocked;
@@ -86,6 +102,7 @@ class CoreRegistry extends ChangeNotifier {
   int remove(String id, {int artifactBytes = 0}) {
     _installed.remove(id);
     _artifactSha.remove(id);
+    _userPackageIds.remove(id);
     notifyListeners();
     return artifactBytes;
   }

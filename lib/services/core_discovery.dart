@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
+
 import '../cores/core_registry.dart';
 import '../models/core_manifest.dart';
 import 'hash_verifier.dart';
@@ -61,6 +63,34 @@ class CoreDiscovery {
         }
       } catch (error) {
         errors[manifest.id] = error.toString();
+      }
+    }
+    // User-installed packages: root directories carrying their own
+    // manifest.json that the bundled catalog does not know. The staged copy
+    // was pin-verified at install time; re-verified here like any core.
+    // Validation failures surface as errors keyed by id, never throw.
+    await for (final entity in root.list(followLinks: false)) {
+      if (entity is! Directory) continue;
+      final manifestFile = File('${entity.path}/manifest.json');
+      if (!await manifestFile.exists()) continue;
+      final id = entity.uri.pathSegments.where((s) => s.isNotEmpty).last;
+      if (registry.isInstalled(id)) continue;
+      try {
+        final manifest = CoreManifest.fromJson(
+          jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>,
+        );
+        final problems = manifest.validate();
+        if (problems.isNotEmpty) {
+          errors['$id (package)'] = problems.join(', ');
+          continue;
+        }
+        final path = await verifiedPath(manifest);
+        if (path != null) {
+          registry.addUserPackage(manifest);
+          paths[manifest.id] = path;
+        }
+      } catch (error) {
+        errors['$id (package)'] = error.toString();
       }
     }
     return paths;
