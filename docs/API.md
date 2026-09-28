@@ -492,6 +492,143 @@ Restores a previously saved state. Calls `retro_unserialize`.
 
 ---
 
+## Core Options & Capability Surface
+
+The runtime deep-copies every string the core supplies via the libretro
+environment calls (`RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2`,
+`SET_CORE_OPTIONS_INTL`, `SET_INPUT_DESCRIPTORS`, `SET_CONTROLLER_INFO`,
+`SET_MEMORY_MAPS`).  The host-owned copies persist until `ezcore_unload`
+or the next `SET_CORE_OPTIONS*` call.  All out-pointer parameters return
+pointers into runtime-owned memory — do **not** free them.
+
+### Core Options
+
+#### `ezcore_get_core_option_count`
+
+```c
+unsigned ezcore_get_core_option_count(ezcore_session *s);
+```
+
+Returns the number of core options registered by the loaded core via
+`RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2` or `SET_CORE_OPTIONS_INTL`.
+
+**Parameters:**
+- `s` — session pointer
+
+**Returns:** Option count (0 when none registered or `s` is invalid).
+
+#### `ezcore_get_core_option`
+
+```c
+bool ezcore_get_core_option(ezcore_session *s, unsigned index,
+                            const char **key, const char **default_value,
+                            const char **value);
+```
+
+Retrieves a stored core option by zero-based index.  The `value` field is
+the current selection (initialised to `default_value` when the option is
+registered, then changed by `ezcore_set_core_option`).
+
+**Parameters:**
+- `s` — session pointer
+- `index` — zero-based option index
+- `key` — output: option key
+- `default_value` — output: default value for the option
+- `value` — output: current value (may differ from default after
+  `ezcore_set_core_option`)
+
+**Returns:** `true` on success, `false` if the index is out of range or
+`s` is invalid.
+
+#### `ezcore_set_core_option`
+
+```c
+bool ezcore_set_core_option(ezcore_session *s, const char *key,
+                            const char *value);
+```
+
+Sets the current value of a core option identified by `key`.  The new
+value is deep-copied into runtime memory; the caller's `value` pointer
+may be freed or reused immediately after the call returns.
+
+**Parameters:**
+- `s` — session pointer
+- `key` — option key (must match a registered option)
+- `value` — new value string
+
+**Returns:** `true` when `key` matched a registered option, `false`
+otherwise (including when `s` or `key` is NULL).
+
+### Input Descriptors
+
+#### `ezcore_get_input_descriptor_count`
+
+```c
+unsigned ezcore_get_input_descriptor_count(ezcore_session *s);
+```
+
+Returns the number of input descriptors registered via
+`RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS`.  Returns 0 when none or
+`s` is invalid.
+
+#### `ezcore_get_input_descriptor`
+
+```c
+bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
+                                 unsigned *port, unsigned *device,
+                                 unsigned *desc_index, unsigned *id,
+                                 const char **description);
+```
+
+Retrieves a stored input descriptor by zero-based index.  Any of the
+out-params may be NULL (skipped).  The `description` pointer is
+runtime-owned (do not free).
+
+**Returns:** `true` on success, `false` if the index is out of range.
+
+### Controller Info
+
+#### `ezcore_get_controller_port_count`
+
+```c
+unsigned ezcore_get_controller_port_count(ezcore_session *s);
+```
+
+Returns the number of controller ports with info registered via
+`RETRO_ENVIRONMENT_SET_CONTROLLER_INFO`.  Returns 0 when none or
+`s` is invalid.
+
+### Memory Map
+
+#### `ezcore_get_memory_descriptor_count`
+
+```c
+unsigned ezcore_get_memory_descriptor_count(ezcore_session *s);
+```
+
+Returns the number of memory-map descriptors registered via
+`RETRO_ENVIRONMENT_SET_MEMORY_MAPS`.  Returns 0 when none or `s` is
+invalid.
+
+#### `ezcore_get_memory_descriptor`
+
+```c
+bool ezcore_get_memory_descriptor(ezcore_session *s, unsigned index,
+                                  uint64_t *flags, void **ptr,
+                                  size_t *offset, size_t *start,
+                                  size_t *select, size_t *disconnect,
+                                  size_t *len, const char **addrspace);
+```
+
+Retrieves a stored memory descriptor by zero-based index.  The `ptr`
+field aliases core-owned memory (valid for the session lifetime); all
+other out-params copy runtime-owned metadata.  Any out-param may be
+NULL.
+
+**Returns:** `true` on success, `false` if the index is out of range.
+
+---
+
 ## Error Handling
 
 All functions that can fail follow one of two patterns:
@@ -532,6 +669,14 @@ The Flutter layer checks all return values and surfaces errors to the user.
 | `ezcore_serialize_size` | Not thread-safe |
 | `ezcore_serialize` | Not thread-safe |
 | `ezcore_unserialize` | Not thread-safe |
+| `ezcore_get_core_option_count` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_core_option` | Not thread-safe (reads session-owned storage) |
+| `ezcore_set_core_option` | Not thread-safe (mutates session-owned storage) |
+| `ezcore_get_input_descriptor_count` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_input_descriptor` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_controller_port_count` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_memory_descriptor_count` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_memory_descriptor` | Not thread-safe (reads session-owned storage) |
 
 **Typical usage:** One thread owns the session and runs `ezcore_run_frame` in a loop. Everything else — audio drain, input, cheats, save states — happens on that thread, or between frames with the caller serialising. The runtime has no internal locks; the frontend owns the concurrency.
 
