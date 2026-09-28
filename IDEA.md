@@ -187,23 +187,42 @@ Animations feel intentional and premium — not flashy for the sake of being fla
 Keep important utility screens fast, readable, and efficient. The design language balances: **Cinematic + Functional + Fast**. Do not sacrifice usability for spectacle.
 
 ## Long-Term Roadmap Themes
-1. **Universal Modular Core System** — any core satisfying the ABI works everywhere
-2. **Cloud Saves & Sync** — iCloud / OneDrive / account sync via swappable `SaveSyncProvider`
-3. **Achievements** — per-game, per-core
-4. **Netplay** — where cores expose it
-5. **Screenshots / Recording / Replay** — instant capture, instant share
-6. **Core Discovery & Update System** — one-tap install, one-tap update, SHA-pinned
-7. **AI-Assisted Optimization** — automatic per-game performance tuning
-8. **Community Themes & Skin System** — user-generated visual identity
-9. **3D Spatial Library** — cinematic discovery for users who want it
-10. **Handheld / TV / Desktop Adaptive Shells** — same platform, different form factors
+
+> The authoritative, status-tracked plan is [`ROADMAP.md`](ROADMAP.md) — see
+> its **Platform program** for delivery order and gates. The binding platform
+> contract is [`docs/PLATFORM.md`](docs/PLATFORM.md). The themes below express
+> *direction*; where they conflict with either of those, those win.
+
+1. **Universal Modular Core System** — any core satisfying the libretro ABI
+   works everywhere, added by anyone, without forking the app
+2. **Core Packages** — the emulator plus its touch controls, skin, cheats, and
+   functions as one validated, installable unit
+3. **Trust & Safety Tiers** — reviewed *ezCORE Verified* cores labelled as
+   such; self-serve cores opt-in, labelled, and never auto-updated
+4. **Crash Containment** — a faulty core never takes down the application
+5. **Cloud Saves & Sync** — iCloud / OneDrive / account sync via swappable `SaveSyncProvider`
+6. **Achievements** — per-game, per-core
+7. **Netplay** — where cores expose it
+8. **Screenshots / Recording / Replay** — instant capture, instant share
+9. **Core Discovery & Update System** — one-tap install, one-tap update, SHA-pinned
+10. **AI-Assisted Optimization** — automatic per-game performance tuning
+11. **Community Themes & Skin System** — user-generated visual identity
+12. **3D Spatial Library** — cinematic discovery for users who want it
+13. **Handheld / TV / Desktop Adaptive Shells** — same platform, different form factors
+14. **Current-Generation & PC-Game Targets** — supervised engines driven through
+    the shell, scoped honestly as supervision rather than embedding
 
 ## What This Document Is
 This is a **product vision and design principles** document. It establishes **product direction**, not implementation details. It belongs in the project root and governs the Moonboard, the design system, and the architecture.
+
+The **engineering** counterpart is [`docs/PLATFORM.md`](docs/PLATFORM.md): what
+the platform is, the core/runtime/UI boundary, the package format, the security
+model, and the invariants that may not be broken.
 
 ## What This Document Is Not
 - It is not a technical spec for any given core
 - It is not a substitute for TRADEMARKS.md or DMCA.md
 - It is not an API reference (see docs/ARCHITECTURE.md)
-- It is not a feature roadmap with dates
+- It is not an engineering contract (see docs/PLATFORM.md)
+- It is not a feature roadmap with dates (see ROADMAP.md)
 - It is not a build guide (see README.md)

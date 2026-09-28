@@ -1,5 +1,8 @@
 # Codex Instructions
 
+- `../docs/PLATFORM.md` — the platform contract: what ezCORE is, the
+  core/runtime/UI boundary, the package format, the security model, and
+  the **platform invariants that may not be broken**
 > **Canonical engineering rules:** [`project.md`](project.md) is the single source
 > of truth for how ezCORE is developed. Read it before every meaningful task.
 >

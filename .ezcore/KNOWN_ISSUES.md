@@ -223,3 +223,23 @@
 - Local save states are opaque core bytes; ezCORE does not guarantee that a
   state from one core version loads in another.
 - The roadmap is a plan, not evidence of implementation.
+
+## Technical debt (not fixed in passing)
+
+- **Broken relative links in the AI agent profile files** (observed 2026-09-26,
+  pre-existing). `.github/copilot-instructions.md`, `.cursor/rules/ezcore.mdc`,
+  `.codex/instructions.md`, `.windsurf/rules/ezcore.md`, and
+  `.continue/rules/ezcore.md` link `project.md`, `README.md`, `CHANGELOG.md`,
+  `docs/ARCHITECTURE.md`, and `docs/MATRIX.md` as if those files were siblings,
+  but the files live in nested directories, so the targets do not resolve. The
+  platform-program links added on 2026-09-26 are depth-correct; the older links
+  were left alone rather than folded into a documentation task. Fix is a
+  one-pass rewrite of the link prefixes per file. Suggested gate: a repository
+  link checker in `scripts/` alongside the existing content, license, and
+  artwork gates, so this class of rot is caught mechanically.
+- **`runtime/src/runtime.c` exports internal dynload symbols.**
+  `ez_dyn_open`, `ez_dyn_sym`, and `ez_dyn_close` are declared internal to
+  `dynload.h` but appear as exported `T` symbols in the built runtime library
+  (ABI hygiene, low severity). Fix belongs in the P8 renderer/runtime task, not
+  in a documentation change.
+

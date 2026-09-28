@@ -17,6 +17,14 @@
 > one change. The code, tests, [`docs/MATRIX.md`](docs/MATRIX.md), and
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) are the evidence for what is
 > real. Release-specific gates live in [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md).
+>
+> **Platform contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md) defines what
+> ezCORE is, how cores are delivered as packages, the security model, and the
+> **platform invariants that may not be broken**. Decisions of record are
+> ADR-014 … ADR-017 in [`docs/DECISIONS.md`](docs/DECISIONS.md). The *Platform
+> program* below is the authoritative delivery order for making ezCORE a
+> platform; the phase list that follows it remains the long-range product
+> surface.
 
 ## Status key
 
@@ -57,13 +65,56 @@ tested baseline and sanitized visual previews, and its public claims and
 compatibility boundaries are documented without expanding device claims. The
 next task is capability-contract research, not another responsive-shell pass.
 
+## Platform program — making ezCORE an emulator platform
+
+**Goal:** one application that runs third-party and first-party cores as
+replaceable, self-serve packages, from handheld systems to current-generation
+targets, without forking the app to add a console.
+
+**Binding contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md). **Do not begin a
+later item before its stated gate.**
+
+The platform direction rests on one verified fact: ezCORE cores are already
+**libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
+ecosystem is reachable by finishing the kernel rather than by writing new
+cores. The kernel currently answers only **7 of 96** environment commands
+(`runtime.c:71-114`), which is the binding constraint on the whole product.
+
+| # | Item | Status | Exit condition | Gate |
+|---|---|---|---|---|
+| **P1** | Documentation truth + kernel core options and capability surface | [ ] Planned | `docs/API.md`/`ARCHITECTURE.md` match source; a test fails if a header symbol is undocumented; options, input descriptors, controller info and memory maps are implemented additively; the blocked cores advance in [`docs/MATRIX.md`](docs/MATRIX.md) | — (first) |
+| **P2** | libretro `.info` support, core package format, package validator | [ ] Planned | A core ships as a complete validated package; existing `manifest.json` files validate unchanged | P1 |
+| **P3** | Input device model — analog, mouse, lightgun, touch-to-core, multiple ports | [ ] Planned | Non-`RETRO_DEVICE_JOYPAD` devices reach cores; the Dart port-0 hardcode is gone | P1 |
+| **P4** | Control layouts, skins, battery saves, cheat packaging | [ ] Planned | Touch layouts are data files a third party can ship with no ezCORE code; battery saves round-trip | P2, P3 |
+| **P5** | ezCORE Verified list and trust tiers | [ ] Planned | Reviewed cores are labelled and updatable; unverified cores are opt-in and never auto-updated | P2, P6 |
+| **P6** | Crash containment — one supervised process per core session | [ ] Planned | A deliberately crashing core does not terminate the app; library and saves survive | **P1** |
+| **P7** | Signature/trust hardening; make `cores/registry.json` real or remove it | [ ] Planned | Tampered packages and bad signatures are rejected by test | P5 |
+| **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [ ] Planned | GL-default cores render on a verified platform; the CPU path stays green | P1 |
+| **P9** | Tier-2 engine supervision (current-generation console, PC-game stacks) | [?] Needs research | An external engine is launched, driven, and supervised with library/save continuity | P1, experimental |
+
+**Sequencing rules for this program:**
+
+- **P1 is the keystone.** Do not start P5, P6, P8, or P9 before P1 lands and
+  the cores currently blocked in `MATRIX.md` reach `RENDERS`. Those four items
+  are the most expensive and most cross-platform; built against an unfinished
+  kernel contract, they get built twice.
+- **Capability before content** ([`PLATFORM.md`](docs/PLATFORM.md) §6.6). Do not add
+  a console or system to the catalog until the kernel can run and verify it.
+- **Never trade the core contract for one core's convenience.** Per-core hacks
+  belong in `runtime/src/` with a comment naming the cause; per-core hacks
+  outside the kernel are forbidden. This is the failure mode that turns a
+  platform into a pile of special cases.
+- **iOS is a build-time target, not an install-time one.** iOS does not permit
+  runtime loading of third-party native code. Self-serve core installation is
+  not an iOS feature; do not let a plan imply otherwise.
+
 ## Prioritized delivery phases
 
 | Phase | Scope | Status | Exit condition |
 |---|---|---|---|
 | 0 | Project control, roadmap, state, test workflow | [~] Partially implemented | Clean, evidence-backed baseline and a focused next task |
-| 1 | Runtime/core contract, capabilities, configuration, diagnostics | [~] Partially implemented | Core-independent lifecycle and capability seams are tested |
-| 2 | Controller profiles and layouts | [ ] Planned | Global → system → core → game overrides work with portable packages |
+| 1 | Runtime/core contract, capabilities, configuration, diagnostics (= platform program **P1**) | [~] Partially implemented | Core-independent lifecycle and capability seams are tested |
+| 2 | Controller profiles and layouts (**P3**, **P4**) | [ ] Planned | Global → system → core → game overrides work with portable packages |
 | 3 | Library, metadata, artwork, collections, search | [~] Partially implemented | Provider-independent library model with durable local data |
 | 4 | BIOS/firmware manager | [~] Partially implemented | Detection, validation, and user guidance are complete |
 | 5 | Time Capsule and save portability | [~] Partially implemented | Backups, migration, thumbnails, and import/export are tested |
@@ -265,20 +316,34 @@ Game modifications, patches, assets, and profiles.
 
 ## Next task queue
 
-1. **M0-01 — Complete:** the signed replacement stack was independently
-   reviewed and merged through PRs #29, #30, and #31; artwork provenance and
-   five-layout claims are recorded in the public evidence.
-2. **M1-01 — Capability contract research:** specify the smallest capability
-   object and lifecycle compatibility rules before changing the ABI.
-3. **M1-02 — Configuration hierarchy:** define global/system/core/game
-   precedence and migration behavior for the existing flat settings map.
-4. **M1-03 — Structured diagnostics:** centralize existing errors without
-   moving unrelated logic.
-5. **M2-01 — Controller profile foundation:** model the override hierarchy
-   before adding visual layout customization.
+Ordered by the platform program's gates. Each item must become a focused
+branch, failing-first test where applicable, reviewable diff, and
+maintainer-approved PR before the next item begins.
 
-Each item must become a focused branch, failing-first test where applicable,
-reviewable diff, and maintainer-approved PR before the next item begins.
+1. **P1a — Documentation truth:** correct `docs/API.md` (three documented
+   `EZCORE_PIXEL_*` macros do not exist in the repository; 10 of 25 exported
+   functions are undocumented; the thread-safety claim is wrong) and
+   `docs/ARCHITECTURE.md` (rule 1 misstates the core ABI; the SRAM claim is
+   unimplemented). Add the header-symbol coverage test. Full defect list in
+   [`docs/PLATFORM.md`](docs/PLATFORM.md) §8. **No runtime or UI changes.**
+2. **P1b — Core options and capability surface:** implement
+   `GET_CORE_OPTIONS_VERSION`, `SET_CORE_OPTIONS_V2(_INTL)`, `SET_INPUT_DESCRIPTORS`,
+   `SET_CONTROLLER_INFO`, `SET_MEMORY_MAPS` in `env_cb`, add the host-side
+   option read/write surface, and land the global → system → core → game
+   configuration resolver. Additive and soft-resolved only;
+   `test_core_player` must pass unmodified.
+3. **P1c — Core authoring documentation:** the "build, package, and declare a
+   core" walkthrough third parties actually need, built on `P1a`/`P1b` and
+   pointing at the libretro specification for the parts that are not ours.
+4. **P2 — Packages:** libretro `.info` parsing, the package format, and the
+   package validator.
+5. **P3 — Input devices**; **P4 — control layouts, skins, battery saves**.
+6. **M1-01 … M1-03 (earlier research items) — folded in.** Capability-contract
+   research and structured diagnostics are now P1b and P5 respectively;
+   configuration hierarchy is P1b. These are no longer separate tasks.
+7. **M2-01 — Controller profile foundation** is covered by P3/P4.
+
+**Held until their gate:** P5, P6, P7, P8, P9.
 
 ## Evidence and change rules
 
@@ -288,3 +353,11 @@ reviewable diff, and maintainer-approved PR before the next item begins.
 - ROMs, BIOS/firmware, keys, and unlicensed content never enter the repository.
 - User data and save formats are treated as compatibility-sensitive.
 - No roadmap item authorizes a broad rewrite or an online service by itself.
+- **The platform invariants in [`docs/PLATFORM.md`](docs/PLATFORM.md) §6 are
+  binding on every task in this roadmap.** A change that breaks one is not a
+  refactor; it requires an ADR and explicit maintainer approval.
+- **The core ABI is libretro.** A new core-facing `ezcore_*` entry point is
+  forbidden. Host-side growth is additive and soft-resolved only.
+- **Read the platform contract before changing the core/runtime/UI boundary.**
+  ezCORE is developed with fast AI-assisted iteration; the invariants exist
+  because that speed is only safe when the fixed points are written down.

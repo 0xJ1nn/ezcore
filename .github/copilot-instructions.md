@@ -24,6 +24,9 @@
 Before changing any code for a non-trivial task, **STOP** and inspect:
 
 - [`project.md`](project.md) — engineering governance (this is the rulebook)
+- [`../docs/PLATFORM.md`](../docs/PLATFORM.md) — **what ezCORE is, the
+  core/runtime/UI boundary, and the platform invariants that may not be
+  broken**
 - [`README.md`](README.md) — what the project is
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how the code is laid out
 - [`ROADMAP.md`](../ROADMAP.md) — authoritative long-term roadmap / [`docs/RELEASE_PLAN.md`](../docs/RELEASE_PLAN.md) — release gates
@@ -79,6 +82,13 @@ Before changing any code for a non-trivial task, **STOP** and inspect:
 ## What AI must NOT do silently
 
 - Make major architectural, product, UX, compatibility, licensing, dependency, or scope decisions
+- Invent a new core ABI, or add a core-facing `ezcore_*` function
+- Weaken a platform invariant in [`../docs/PLATFORM.md`](../docs/PLATFORM.md) §6
+- Start a platform program item (P2–P9) before its stated gate
+- Branch on core identity in the Flutter layer
+- Execute untrusted native code, or imply that running it is made safe
+- Add a package format that can execute code, fetch URLs, or escape its
+  directory
 - Copy external code without license/provenance checks
 - Change generated files (change the source instead)
 - Execute destructive commands (`rm`, `git reset --hard`, force push) without explaining first

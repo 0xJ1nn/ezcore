@@ -4,6 +4,13 @@
 > This file describes the current implementation, not the long-term wish list.
 > Detailed as-built documentation remains in
 > [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
+>
+> **Engineering contract:** [`../docs/PLATFORM.md`](../docs/PLATFORM.md) defines
+> the core/runtime/UI boundary and the platform invariants that may not be
+> broken. **Decisions of record:** ADR-014 (the core ABI is libretro, not an
+> ezCORE SDK), ADR-015 (crash containment), ADR-016 (self-serve + Verified
+> trust tiers), ADR-017 (Tier-2 engines are supervised, not embedded) in
+> [`../docs/DECISIONS.md`](../docs/DECISIONS.md).
 
 ## Current layer map
 
