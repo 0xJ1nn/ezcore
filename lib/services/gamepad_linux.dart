@@ -13,6 +13,12 @@ import 'dart:typed_data';
 /// nothing; the connection announces only on the first real gamepad
 /// event. Nodes without read permission are skipped. Stick deflection
 /// normalizes against per-axis observed extremes with a 50% threshold.
+///
+/// Pointer motion is decoded but kept off the joypad path: EV_REL
+/// (REL_X/REL_Y/REL_WHEEL) is forwarded to the optional [onPointer]
+/// callback as raw axis deltas, never as a button and never as a
+/// connection announcement (a mouse node streams EV_REL continuously
+/// and would otherwise present itself as a gamepad).
 class LinuxEvdevPads {
   LinuxEvdevPads();
 
@@ -22,6 +28,7 @@ class LinuxEvdevPads {
   final _announced = <String>{};
 
   static const evKey = 1;
+  static const evRel = 2;
   static const evAbs = 3;
 
   // Linux input-event-codes.h button numbers.
@@ -46,6 +53,13 @@ class LinuxEvdevPads {
 
   static const absAxes = <int>{0, 1, 3, 4}; // ABS_X/Y/RX/RY
 
+  // Linux input-event-codes.h relative-axis numbers.
+  static const relCodes = <int, String>{
+    0: 'rel_x', // REL_X
+    1: 'rel_y', // REL_Y
+    8: 'rel_wheel', // REL_WHEEL
+  };
+
   /// Pure helper: decodes one 24-byte input_event into (type, code, value).
   static (int, int, int)? parseEvent(Uint8List bytes, [int offset = 0]) {
     if (bytes.length - offset < 24) return null;
@@ -68,17 +82,31 @@ class LinuxEvdevPads {
     return null;
   }
 
+  /// Pure helper: decodes a relative-axis event into (axis, delta), or
+  /// null when the event is not a tracked EV_REL axis. EV_REL values are
+  /// signed and unbounded, so they are passed through verbatim rather
+  /// than thresholded (see [stickCode] for the absolute-axis case).
+  static (String, int)? relDelta(int type, int code, int value) {
+    if (type != evRel) return null;
+    final axis = relCodes[code];
+    if (axis == null) return null;
+    return (axis, value);
+  }
+
   void start(void Function(String code, bool pressed) onButton,
-      void Function(bool connected, String name) onConnection) {
+      void Function(bool connected, String name) onConnection, [
+      void Function(String axis, int delta)? onPointer,
+    ]) {
     if (_running) return;
     _running = true;
-    _scan(onButton, onConnection);
+    _scan(onButton, onConnection, onPointer);
     _rescan = Timer.periodic(const Duration(seconds: 2),
-        (_) => _running ? _scan(onButton, onConnection) : null);
+        (_) => _running ? _scan(onButton, onConnection, onPointer) : null);
   }
 
   void _scan(void Function(String, bool) onButton,
-      void Function(bool, String) onConnection) {
+      void Function(bool, String) onConnection,
+      [void Function(String, int)? onPointer]) {
     for (var i = 0; i < 32; i++) {
       final path = '/dev/input/event$i';
       if (_devices.containsKey(path)) continue;
@@ -100,7 +128,8 @@ class LinuxEvdevPads {
       }
 
       _devices[path] = dev;
-      unawaited(_pump(dev, onButton, announce, onConnection));
+      unawaited(
+          _pump(dev, onButton, announce, onConnection, onPointer));
     }
   }
 
@@ -108,7 +137,8 @@ class LinuxEvdevPads {
       _EvdevDevice dev,
       void Function(String, bool) onButton,
       void Function() announce,
-      void Function(bool, String) onConnection) async {
+      void Function(bool, String) onConnection,
+      [void Function(String, int)? onPointer]) async {
     try {
       while (_running && _devices[dev.path] == dev) {
         final bytes = await dev.raf.read(24 * 8);
@@ -116,7 +146,8 @@ class LinuxEvdevPads {
         for (var off = 0; off + 24 <= bytes.length; off += 24) {
           final parsed = parseEvent(bytes, off);
           if (parsed == null) continue;
-          dev.handle(parsed.$1, parsed.$2, parsed.$3, onButton, announce);
+          dev.handle(parsed.$1, parsed.$2, parsed.$3, onButton, announce,
+              onPointer);
         }
       }
     } catch (_) {
@@ -157,7 +188,9 @@ class _EvdevDevice {
 
   void handle(int type, int code, int value,
       void Function(String code, bool pressed) onButton,
-      void Function() announce) {
+      void Function() announce, [
+      void Function(String axis, int delta)? onPointer,
+    ]) {
     if (type == LinuxEvdevPads.evKey) {
       final mapped = LinuxEvdevPads.keyCodes[code];
       if (mapped == null) return;
@@ -168,6 +201,16 @@ class _EvdevDevice {
       } else if (!down && held.remove(mapped)) {
         onButton(mapped, false);
       }
+      return;
+    }
+    if (type == LinuxEvdevPads.evRel) {
+      // Pointer motion is NOT a gamepad signal: never a button, never an
+      // announcement. Mouse and trackball nodes stream EV_REL constantly,
+      // so feeding this to onButton/announce would present the desktop's
+      // own pointer as a connected gamepad.
+      final rel = LinuxEvdevPads.relDelta(type, code, value);
+      if (rel == null) return;
+      onPointer?.call(rel.$1, rel.$2);
       return;
     }
     if (type == LinuxEvdevPads.evAbs) {
