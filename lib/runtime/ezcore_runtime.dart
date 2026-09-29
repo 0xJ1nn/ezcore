@@ -261,6 +261,22 @@ class EzCoreRuntime {
           'ezcore_get_controller_port_count',
         )
         .asFunction<int Function(Pointer<Void>)>();
+    _controllerPortTypeCount = _lib
+        .lookup<NativeFunction<Uint32 Function(Pointer<Void>, Uint32)>>(
+          'ezcore_get_controller_port_type_count',
+        )
+        .asFunction<int Function(Pointer<Void>, int)>();
+    _controllerPortType = _lib
+        .lookup<
+          NativeFunction<
+            Bool Function(Pointer<Void>, Uint32, Uint32, Pointer<Uint32>,
+                Pointer<Pointer<Uint8>>)
+          >
+        >('ezcore_get_controller_port_type')
+        .asFunction<
+          bool Function(Pointer<Void>, int, int, Pointer<Uint32>,
+              Pointer<Pointer<Uint8>>)
+        >();
     _memoryDescriptorCount = _lib
         .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
           'ezcore_get_memory_descriptor_count',
@@ -360,6 +376,9 @@ class EzCoreRuntime {
   )
   _getInputDescriptor;
   late final int Function(Pointer<Void>) _controllerPortCount;
+  late final int Function(Pointer<Void>, int) _controllerPortTypeCount;
+  late final bool Function(Pointer<Void>, int, int, Pointer<Uint32>,
+      Pointer<Pointer<Uint8>>) _controllerPortType;
   late final int Function(Pointer<Void>) _memoryDescriptorCount;
   late final bool Function(
     Pointer<Void>,
@@ -607,6 +626,40 @@ class EzCoreRuntime {
   /// RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.
   int controllerPortCount(Pointer<Void> session) {
     return _controllerPortCount(session);
+  }
+
+  /// Number of device types the core registered for [port] via
+  /// RETRO_ENVIRONMENT_SET_CONTROLLER_INFO. Returns 0 when the port is out of
+  /// range or the core registered none.
+  int controllerPortTypeCount(Pointer<Void> session, int port) {
+    return _controllerPortTypeCount(session, port);
+  }
+
+  /// One device type of [port] as (id, description), or null when the port or
+  /// [typeIndex] is out of range.
+  ///
+  /// Iterate `port` over `0..controllerPortCount` and `typeIndex` over
+  /// `0..controllerPortTypeCount` to enumerate every device a core accepts on
+  /// every port. That is what a frontend needs to offer the right control
+  /// scheme per port, and the prerequisite for non-joypad device support:
+  /// until a core's declared capabilities were readable, a frontend could
+  /// only assume every port was a joypad.
+  ({int id, String description})? controllerPortType(
+    Pointer<Void> session,
+    int port,
+    int typeIndex,
+  ) {
+    final id = callocUint32();
+    final description = _allocBytes(sizeOf<IntPtr>()).cast<Pointer<Uint8>>();
+    try {
+      if (!_controllerPortType(session, port, typeIndex, id, description)) {
+        return null;
+      }
+      return (id: id.value, description: _fromNativeUtf8(description.value));
+    } finally {
+      _free(id);
+      _free(description);
+    }
   }
 
   /// Number of memory-map descriptors registered via

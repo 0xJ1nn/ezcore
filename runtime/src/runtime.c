@@ -854,6 +854,23 @@ unsigned ezcore_get_controller_port_count(ezcore_session *s) {
   return s ? s->num_controller_ports : 0;
 }
 
+unsigned ezcore_get_controller_port_type_count(ezcore_session *s, unsigned port) {
+  if (!s || port >= s->num_controller_ports) return 0;
+  return s->controller_ports[port].num_types;
+}
+
+bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
+                                     unsigned type_index, unsigned *id,
+                                     const char **description) {
+  if (!s || port >= s->num_controller_ports) return false;
+  const struct ezcore_controller_port *p = &s->controller_ports[port];
+  if (type_index >= p->num_types) return false;
+  const struct ezcore_controller_desc *d = &p->types[type_index];
+  if (id) *id = d->id;
+  if (description) *description = d->desc;
+  return true;
+}
+
 unsigned ezcore_get_memory_descriptor_count(ezcore_session *s) {
   return s ? s->num_mem_descs : 0;
 }
