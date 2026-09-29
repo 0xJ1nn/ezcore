@@ -1,10 +1,44 @@
 # ezCORE Known Issues
 
-> Snapshot date: 2026-09-25
+> Snapshot date: 2026-09-29
 > This file records observed problems separately from the roadmap. Historical
 > release checkpoints remain in [`../docs/IMPLEMENTATION_STATUS.md`](../docs/IMPLEMENTATION_STATUS.md).
 
 ## Open issues
+
+### EZC-017 — `crash_core` fixture fails the RENDERS restore gate (exit 6)
+
+**Status:** open, not a regression. Reproduces on pristine `origin/main`, so it
+predates #83 and is not caused by it.
+
+`test_core_boot` returns 6 (restore-fidelity) for a *clean* run of the
+synthetic `crash_core` fixture. Its pixel sum drifts ~3.4% across a single
+frame advance, because the fixture encodes `g_frame` into the low byte of every
+pixel - so the sum is effectively a frame-counter readout, and the 2% restore
+tolerance cannot survive one frame. `g_frame` round-trips through
+serialize/unserialize exactly, so **the fixture restores correctly**; the
+instrument is wrong, not the restore.
+
+**No real core is affected.** All 18 staged `linux-x64` cores were run through
+the pristine-main harness: each either passed or failed with exit 2/3/4
+(rejecting an NES ROM - wrong system for those cores). Zero exit-6 restore
+failures, so the RENDERS gate is sound for real cores.
+
+**Two fixes were tried and reverted** - recorded so they are not re-attempted:
+
+1. Reorder `retro_run` to draw before incrementing. The baseline still failed.
+2. Compare the post-restore sum against the pre-restore frame instead of the
+   diverged one. This degenerates into comparing the framebuffer against
+   itself and can **never** fail - a mutation that disabled
+   `retro_unserialize` entirely still exited 0. A gate that cannot fail is
+   worse than no gate.
+
+**What the fix needs:** a fixture framebuffer that is not a frame-counter
+readout, or a restore probe that compares like-with-like (restore, then read
+the latched framebuffer with no intervening `retro_run`). This is a judgement
+call on what the synthetic fixture should assert, so it is flagged rather than
+fixed. It is not run by any CTest in clean mode, which is why `ctest` is green.
+
 
 ### EZC-001 — Resolved: analyzer gate is clean
 
