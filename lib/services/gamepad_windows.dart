@@ -103,6 +103,7 @@ class WindowsXInputPoller {
     return <String>{};
   }
 
+
   /// Pure helper: directions implied by one stick's raw XInput axes.
   ///
   /// Public and side-effect-free so the deadzone boundary can be asserted
@@ -114,6 +115,63 @@ class WindowsXInputPoller {
     final out = <String>{};
     _stick(out, x, y);
     return out;
+  }
+
+  /// Pure helper: the transition decision for one poll tick, given what this
+  /// poller last emitted ([was]) and what the pad reports now ([now]).
+  /// Returns `(presses, releases)` — the codes to emit this tick, in that
+  /// order — so the diff is testable without an XInput DLL.
+  ///
+  /// This is the exact arithmetic the poller loop performs; it is extracted,
+  /// not redesigned. After [forgottenHeld] ([was] emptied) an unchanged
+  /// physical press shows up in [presses] again, which is what re-syncs the
+  /// host after it dropped our input.
+  static (Set<String>, Set<String>) tickTransitions(
+    Set<String> was,
+    Set<String> now,
+  ) =>
+      (now.difference(was), was.difference(now));
+
+  /// Pure helper: the "the host dropped this input behind our back" reset.
+  /// Returns a copy of [lastDirs] with every pad's held set emptied and every
+  /// key preserved.
+  ///
+  /// Emits NOTHING, deliberately: the host already cleared its own state, so a
+  /// second release would be a lie, and a release here would also mask the
+  /// re-press. Takes no callback to make that guarantee structural.
+  static Map<int, Set<String>> forgottenHeld(Map<int, Set<String>> lastDirs) =>
+      Map<int, Set<String>>.of(lastDirs)
+        ..updateAll((_, _) => <String>{});
+
+  /// Forgets every held code for every pad, so the next poll treats what the
+  /// pad still reports as new and re-emits it as pressed.
+  ///
+  /// Needed because the host can clear input behind the poller's back: the C
+  /// runtime's `ezcore_reset` memsets `input_buttons`, and pausing flushes
+  /// every port. Without this the frontend still believes the code is held, so
+  /// it appears in both `was` and `now`, `now.difference(was)` is empty, and
+  /// nothing is ever re-sent — the core then reads a physically held control
+  /// as released until the player re-presses it.
+  ///
+  /// CALLER — NOT WIRED HERE, seam unverified: the UI-isolate owner of
+  /// `GamepadService` that calls `PlayerController.setPaused(...)` /
+  /// `reset()`. `GamepadService` keeps the poller in a private `_winPoller`
+  /// field, so that owner needs a route to this method (or `GamepadService`
+  /// needs a `forgetHeld()` that no-ops off Windows). The worker isolate
+  /// cannot be the caller: it holds no reference to the poller.
+  void forgetHeld() {
+    // Compute BEFORE mutating: in a Dart cascade the sections run left to
+    // right, so `_lastDirs..clear()..addAll(forgottenHeld(_lastDirs))` would
+    // evaluate the argument against an already-cleared map and add nothing.
+    // Every pad's held set becomes empty, so the next poll sees the code in
+    // `now` but not in `was` and re-emits it as a fresh press. Nothing is
+    // emitted here: the host already cleared its own state, so a release
+    // would be a lie and would also mask the re-press.
+    final emptied = forgottenHeld(_lastDirs);
+    _lastDirs
+      ..clear()
+      ..addAll(emptied);
+
   }
 
   static void _stick(Set<String> out, int x, int y) {
@@ -200,10 +258,11 @@ class WindowsXInputPoller {
         ry: ry,
       );
       final was = _lastDirs[pad] ?? const <String>{};
-      for (final code in now.difference(was)) {
+      final (presses, releases) = tickTransitions(was, now);
+      for (final code in presses) {
         onButton(code, true);
       }
-      for (final code in was.difference(now)) {
+      for (final code in releases) {
         onButton(code, false);
       }
       _lastDirs[pad] = now;

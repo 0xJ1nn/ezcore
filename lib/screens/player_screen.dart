@@ -222,6 +222,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
+      // The worker's pause path releases every button, so the poller's view
+      // of what it has emitted is now stale: forget it here or a control
+      // still held on return produces no transition and never re-sent.
+      _gamepads.forgetHeld();
       unawaited(_action(() => player.setPaused(true)));
       if (widget.state.settings['autosave'] != false) {
         unawaited(_autoSave());
@@ -458,6 +462,11 @@ class _PlayerScreenState extends State<PlayerScreen>
                       if (paused) {
                         await _action(() => player.setPaused(false));
                       } else {
+                        // Pausing releases every button host-side, so the
+                        // poller's emitted-set goes stale; forget it here
+                        // or a control still held on resume produces no
+                        // transition and is never re-sent.
+                        _gamepads.forgetHeld();
                         await _action(() => player.setPaused(true));
                         if (mounted) _session();
                       }

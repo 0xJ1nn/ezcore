@@ -207,6 +207,26 @@ class LinuxEvdevPads {
     _devices.clear();
     _announced.clear();
   }
+
+  /// Drop every button this poller believes it has emitted, WITHOUT
+  /// emitting a release.
+  ///
+  /// The host can clear input behind the poller's back — the C runtime's
+  /// `ezcore_reset` and the worker's pause path both do — while evdev events
+  /// are only emitted on *transitions*. A code still held physically would
+  /// then appear in both the previous and the current read, produce no
+  /// transition, and never be re-sent, so the core reads the control as
+  /// released until the user re-presses it.
+  ///
+  /// Emitting nothing is deliberate: the host already cleared its own state,
+  /// so a release would be a lie and would mask the re-press. A no-op when
+  /// no device is open.
+  void forgetHeld() {
+    for (final dev in _devices.values) {
+      dev.held.clear();
+      dev.stickDirs.clear();
+    }
+  }
 }
 
 class _EvdevDevice {
