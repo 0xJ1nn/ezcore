@@ -127,6 +127,13 @@ void retro_set_input_state(retro_input_state_t cb) { input_state_cb = cb; }
 
 bool retro_load_game(const struct retro_game_info *game) {
     (void)game;
+    /* EZCORE_SYNTH_FAIL_LOAD: reject content-less loads so a test can drive
+     * ezcore_load_game()'s failure path. Everything else behaves normally. */
+#ifdef EZCORE_SYNTH_FAIL_LOAD
+    if (!game || !game->path || game->path[0] == '\0' || game->size == 0) {
+        return false;
+    }
+#endif
     g_state.frame_counter = 0;
     g_state.audio_sample_counter = 0;
     g_cheat_reset_seen = false;
