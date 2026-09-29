@@ -1,6 +1,13 @@
 /* ezCore runtime — loads a libretro core dylib and forwards the session API.
  * Desktop/Android path: dynload seam at runtime after sha256 verification.
  * iOS path: cores are linked/bundled; ezcore_load resolves bundled symbols.
+ *
+ * Input: ezcore_reset() deliberately releases every held button (all four
+ * ports) before dispatching retro_reset(). Frontends sample the pad
+ * asynchronously, so a button still down at the instant the user taps reset
+ * would otherwise stay latched in the session's input_buttons and the core
+ * would read 1 for that bit on every subsequent frame — the character keeps
+ * moving after a reset. Reset means a clean slate, input included.
  */
 #include "ezcore_runtime.h"
 
@@ -623,9 +630,17 @@ void ezcore_run_frame(ezcore_session *s) {
   s->retro_run();
 }
 
-/* Reset the currently loaded game. Safe to call only after load_game. */
+/* Reset the currently loaded game. Safe to call only after load_game.
+ * Also releases every held button on all four ports (see the note at the top
+ * of this file): clearing happens after the guard, so the early-out stays a
+ * true no-op, but before retro_reset() so the core sees a clean input state
+ * as it resets. A session that is valid and has a game loaded but no
+ * retro_reset is left untouched — such a core cannot be reset at all, so
+ * silently dropping the player's current input there would change behaviour
+ * without delivering a reset. */
 void ezcore_reset(ezcore_session *s) {
   if (!s || !s->game_loaded || !s->retro_reset) return;
+  memset(s->input_buttons, 0, sizeof(s->input_buttons));
   s->retro_reset();
 }
 
