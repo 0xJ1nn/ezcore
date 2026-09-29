@@ -313,6 +313,15 @@ int main(int argc, char** argv) {
     } else {
       rc = run_boot_test(core_path, rom_path);
     }
+    /* _exit() bypasses stdio flushing, so every printf the child made is
+     * still buffered when the process image is torn down and is discarded.
+     * All the evidence this harness exists to produce -- geometry, pixel
+     * sum, save-state size, the restore verdict -- went to stdout, so
+     * `ctest -V` printed nothing and a real boot was indistinguishable
+     * from a harness that silently did nothing. _exit is still correct
+     * (it must not run the parent's atexit handlers); it just needs the
+     * flush done for it. */
+    fflush(NULL);
     _exit(rc);
   }
 

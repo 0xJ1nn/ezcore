@@ -85,3 +85,9 @@ dist/
 # Local ROM drop folder for development. ROMs are never committed — see
 # CONTRIBUTING.md hard rule 1; the pre-commit hook blocks them anyway.
 roms/
+
+# Git worktrees. `git worktree add .worktrees/<name>` makes a real checkout
+# with its own .git file; without this it shows as untracked, and a routine
+# `git clean -fdx` would delete every one of them along with any uncommitted
+# work inside. That is not recoverable from the branch.
+.worktrees/
