@@ -13,6 +13,13 @@
  *   - Reset: zeroes frame_counter, audio_sample_counter
  *   - Green high bits expose optional cheat-hook dispatch to the test
  *   - Serialize: 16-byte state blob
+ *
+ * Build variants: EZCORE_SYNTH_NO_CHEAT / _NO_CHEAT_RESET / _NO_CHEAT_SET
+ * drop the optional cheat entry points. EZCORE_SYNTH_ALL_PORTS switches the
+ * input path to poll buttons 0 and 9 on all four ports and packs the result
+ * into one byte (bit N = port N button 0, bit 4+N = port N button 9) XORed
+ * into the audio sample, so a single sample shows every port's state. The
+ * default build keeps the original per-bit port-0 behaviour unchanged.
  */
 #include <stdint.h>
 #include <stdbool.h>
@@ -141,22 +148,50 @@ void retro_reset(void) {
     g_cheat_set_seen = false;
 }
 
+/* Only compiled into the EZCORE_SYNTH_ALL_PORTS variant. Reads two buttons
+ * (id 0 and id 9) on every port through the host's input_state callback and
+ * packs them into a byte: bit N = "port N has button 0 held", bit 4+N = "port
+ * N has button 9 held". Both the low and high nibbles are XORed into the
+ * audio sample, so a single sample shows the full state of all four ports. */
+#if defined(EZCORE_SYNTH_ALL_PORTS)
+#define SYNTH_HIGH_BUTTON_ID 9u
+
+static uint32_t poll_all_ports(void) {
+    uint32_t packed = 0;
+    for (unsigned port = 0; port < 4; port++) {
+        if (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, 0))
+            packed |= (1u << port);
+        if (input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, SYNTH_HIGH_BUTTON_ID))
+            packed |= (1u << (4 + port));
+    }
+    return packed;
+}
+#endif
+
 void retro_run(void) {
     if (input_poll_cb) input_poll_cb();
 
     if (input_state_cb) {
+#if defined(EZCORE_SYNTH_ALL_PORTS)
+        g_state.button_state = poll_all_ports();
+#else
         uint32_t mask = 0;
         for (unsigned id = 0; id < 16; id++) {
             if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, id))
                 mask |= (1u << id);
         }
         g_state.button_state = mask;
+#endif
     }
 
     g_state.frame_counter++;
 
+#if defined(EZCORE_SYNTH_ALL_PORTS)
+    int16_t sample = (int16_t)(0x1000 ^ (g_state.button_state & 0xFF));
+#else
     uint8_t btn_lo = (uint8_t)(g_state.button_state & 0x00FF);
     int16_t sample = (int16_t)(0x1000 ^ btn_lo);
+#endif
 
     static int16_t audio_buf[2048];
     for (size_t i = 0; i < AUDIO_FRAMES_PER_RUN; i++) {

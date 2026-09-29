@@ -106,6 +106,22 @@ if(APPLE)
   set_target_properties(crash_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- Synthetic core that echoes every port's button 0 into the audio sample.
+# Used by the stuck-input regression test (test_input_reset) so a reset's
+# effect on input can be observed through the real input_state path.
+add_library(synth_all_ports_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_all_ports_libretro PRIVATE
+  EZCORE_SYNTH_ALL_PORTS
+)
+target_include_directories(synth_all_ports_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_all_ports_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Tests ---
 add_executable(test_abi test/test_abi.c)
 target_link_libraries(test_abi PRIVATE ezcore_runtime)
@@ -126,6 +142,12 @@ add_dependencies(test_optional_cheats
   synth_no_reset_cheat_libretro
   synth_no_set_cheat_libretro
 )
+
+# Stuck-input regression: ezcore_reset must release held buttons.
+add_executable(test_input_reset test/test_input_reset.c)
+target_link_libraries(test_input_reset PRIVATE ezcore_runtime)
+target_include_directories(test_input_reset PRIVATE include)
+add_dependencies(test_input_reset synth_all_ports_libretro)
 
 enable_testing()
 add_test(NAME abi_version COMMAND test_abi)
@@ -153,6 +175,11 @@ add_dependencies(test_core_options synth_options_libretro)
 add_test(NAME core_options
   COMMAND test_core_options
   ${CMAKE_BINARY_DIR}/libsynth_options_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Regression: a button held at reset time must not stay latched afterwards.
+add_test(NAME input_reset_clears_buttons
+  COMMAND test_input_reset
+  $<TARGET_FILE:synth_all_ports_libretro>)
 
 # Regression coverage for cores that omit each optional cheat symbol.
 add_test(NAME optional_cheat_symbols_none
