@@ -82,6 +82,34 @@ class LinuxEvdevPads {
     return null;
   }
 
+  /// Pure helper: emit a release for every code the device still believes
+  /// it is holding, so a pad unplugged mid-press cannot leave a direction
+  /// stuck down for the rest of the session.
+  ///
+  /// [held] is the device's key/button set and [stickDirs] its per-axis
+  /// direction map (`abs0` -> 'right', `abs1` -> null, ...). A code that
+  /// appears in both (a stick direction is also added to `held`) is
+  /// released exactly once. Returns the flushed codes, sorted, so callers
+  /// and tests get a deterministic result. Neither input is mutated, and a
+  /// device holding nothing emits nothing.
+  static List<String> releaseOnDisconnect(
+    Set<String> held,
+    Map<String, String?> stickDirs,
+    void Function(String code, bool pressed) onButton,
+  ) {
+    final out = <String>{
+      for (final code in held)
+        if (code.isNotEmpty) code,
+      for (final dir in stickDirs.values)
+        if (dir != null && dir.isNotEmpty) dir,
+    }.toList()
+      ..sort();
+    for (final code in out) {
+      onButton(code, false);
+    }
+    return out;
+  }
+
   /// Pure helper: decodes a relative-axis event into (axis, delta), or
   /// null when the event is not a tracked EV_REL axis. EV_REL values are
   /// signed and unbounded, so they are passed through verbatim rather
@@ -158,6 +186,11 @@ class LinuxEvdevPads {
       try {
         await dev.raf.close();
       } catch (_) {}
+      // A device that vanishes mid-press never sends its own key-up, so
+      // flush whatever it still believed held before announcing the drop.
+      // Without this the core keeps reading that direction as pressed for
+      // the rest of the session.
+      releaseOnDisconnect(dev.held, dev.stickDirs, onButton);
       if (wasAnnounced && _announced.isEmpty) onConnection(false, '');
     }
   }
