@@ -93,6 +93,19 @@ if(APPLE)
   set_target_properties(synth_options_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- P6 spike: core that crashes on demand, so crash containment can be
+# exercised against a real signal instead of a simulated one. Same binary runs
+# clean or faults, selected by EZCORE_CRASH_AFTER at retro_run time. ---
+add_library(crash_libretro SHARED
+  test/crash_core.c
+)
+target_include_directories(crash_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(crash_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Tests ---
 add_executable(test_abi test/test_abi.c)
 target_link_libraries(test_abi PRIVATE ezcore_runtime)
