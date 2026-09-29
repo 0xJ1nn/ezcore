@@ -137,8 +137,13 @@ class PlayerController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> button(int id, bool pressed) async {
-    if (running && !paused && !_closed) await worker.button(id, pressed);
+  /// Sends a RetroPad transition for controller [port] (0-3, port 0 is
+  /// player one). Defaults to 0 so the on-screen pad and keyboard are
+  /// unchanged; a second gamepad routes through `port: 1`.
+  Future<void> button(int id, bool pressed, {int port = 0}) async {
+    if (running && !paused && !_closed) {
+      await worker.button(id, pressed, port: port);
+    }
   }
 
   /// Applies [entries] to the live session (reset-first). Returns the
