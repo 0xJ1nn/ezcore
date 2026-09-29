@@ -215,6 +215,69 @@
   full Flutter suite and analyzer remain green.
 - **Status:** Resolved for the replacement stack.
 
+### EZC-015 — `gambatte` is pinned and RENDERS-verified but ships nowhere
+
+- **Description:** `docs/MATRIX.md` records `gambatte` as `RENDERS` on macOS
+  with `BUILT` on iOS and Android, and `cores/catalog.json` carries sha256 pins
+  for `macos-arm64`, `linux-x64` and `android-arm64` — but the same catalog
+  entry sets `delivery: absent` on **all five** platforms. `delivery` is what
+  `CoreStagingService` honours, so the core is not bundled or downloadable
+  anywhere, despite having passed the strongest evidence bar the project
+  defines. Its licence is `GPL-2.0-only`, i.e. freely redistributable, unlike
+  the three cores that are correctly `absent` for licence reasons (`superfx` /
+  `blastproc` / `coinbox`, all non-commercial).
+- **Affected platform:** All five.
+- **Affected core/system:** `gambatte` (GB/GBC).
+- **Reproduction:**
+  ```bash
+  python3 -c "import json;print(json.load(open('cores/catalog.json'))['gambatte']['delivery'])"
+  python3 -c "import json;print(json.load(open('cores/catalog.json'))['gambatte']['artifacts'])"
+  ```
+  Pins print, and every delivery value prints `absent`.
+- **Severity:** Medium — the app silently omits a verified, distributable
+  system, and the matrix advertises a system users cannot obtain.
+- **Workaround:** None from the app. A user must add the core as a
+  user-installed package.
+- **Status:** Open — **not fixed here.** Flipping `delivery` is a
+  distribution/licensing decision under `project.md` §28, not a documentation
+  edit, so it is recorded rather than silently changed. The matrix row now
+  carries a ⚠ marking the contradiction.
+- **Follow-up:** Maintainer decides whether `gambatte` should be `bundled` on
+  macOS/Linux/Android, then `scripts/pin_artifacts.py <plat> --check` and the
+  staging test must agree with the chosen value.
+
+### EZC-016 — Verification counts in docs drift from the kernel
+
+- **Description:** `ROADMAP.md` and `docs/MATRIX.md` both claimed the kernel
+  answers "7 of 92" / "13 of the 92" environment commands. The correct current
+  figures, measured against the **vendored** header, are **13 of 93**, and the
+  quoted `env_cb` line range (`runtime.c:71-114`) was stale — `env_cb` now
+  starts at `runtime.c:197`. The two numbers are load-bearing: the roadmap
+  gates P5/P6/P8/P9 on P1, and P1's exit condition is kernel capability, so a
+  wrong denominator misstates how far the keystone has advanced.
+- **Affected platform:** Documentation only.
+- **Affected core/system:** None.
+- **Reproduction:** The two `grep` commands are now printed inline in both
+  files, so any reader can recompute them.
+- **Severity:** Low, but it feeds a gating decision.
+- **Status:** Resolved for the counts. Both files now cite 13/93, the correct
+  line, and carry the commands that derive the number.
+- **Second correction (same day):** the first fix wrote **96**, from a plain
+  `grep -o 'RETRO_ENVIRONMENT_[A-Z0-9_]*'`. That pattern also matches doc-comment
+  references such as `\\ref RETRO_ENVIRONMENT_GET_ASSET_DIRECTORY`, so it
+  counted 3 names that are not commands
+  (`GET_ASSET_DIRECTORY`, `GET_MEMORY_MAPS`, `SET_LOG_INTERFACE`). The
+  denominator is the count of `#define`d commands: **93**, of which 13 are
+  answered and 80 hit `default: return false`. The documented command is now
+  anchored on the `#define`, so a reader reproduces 93 rather than 96.
+  **Lesson:** a verification count is only as good as the command that produces
+  it — one that over-matches is worse than no number, because it looks
+  reproducible and is not.
+- **Follow-up:** A CI or `scripts/` doc gate that fails when the quoted
+  denominator stops matching the anchored `grep` output would stop this
+  recurring; the existing link-checker suggestion in the technical-debt section
+  is the place to add it.
+
 ## Known limitations that are not defects
 
 - No ROMs, BIOS, firmware, keys, or proprietary content are distributed.
