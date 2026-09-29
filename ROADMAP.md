@@ -77,8 +77,33 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers only **7 of the 92** environment commands
-(`runtime.c:71-114`), which is the binding constraint on the whole product.
+cores. The kernel currently answers **13 of the 93** environment commands
+(`env_cb` at `runtime/src/runtime.c:197`), which is the binding constraint on
+the whole product.
+
+> **How to re-check those two numbers** (the counts drift as the kernel grows,
+> so verify before quoting them):
+>
+> ```bash
+> # commands DEFINED by the vendored libretro header (93).
+> # Anchor on the #define: a plain substring grep also matches doc-comment
+> # references like \ref RETRO_ENVIRONMENT_GET_ASSET_DIRECTORY, which are not
+> # real commands — that is what produced the earlier, wrong "96".
+> grep -oE '^#\s*define\s+RETRO_ENVIRONMENT_[A-Z0-9_]+' \
+>   runtime/external/libretro-common/include/libretro.h \
+>   | awk '{print $2}' | sort -u | wc -l
+> # commands the kernel actually answers (13)
+> grep -oE 'case RETRO_ENVIRONMENT_[A-Z0-9_]+' \
+>   runtime/src/runtime.c | sort -u | wc -l
+> ```
+>
+> Both commands must be run against the **vendored** header
+> (`runtime/external/libretro-common/include/libretro.h`). A per-core copy
+> vendored under `native/src/<upstream>/` can be a different, older revision
+> and will report a different total. The earlier figure in this file
+> ("7 of 92") predates the vendored header and the P1b capability work
+> (PRs #45/#48/#50), which added core options v2 + intl, input descriptors,
+> controller info and memory maps.
 
 | # | Item | Status | Exit condition | Gate |
 |---|---|---|---|---|

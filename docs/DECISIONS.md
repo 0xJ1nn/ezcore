@@ -545,10 +545,11 @@ The code already answers it, and the documentation does not. A core is a
 surface — is host-facing: Dart calls it to drive a core *through* the runtime,
 and no core ever calls it. `docs/ARCHITECTURE.md:44-46` states the opposite
 ("Every core speaks the runtime ABI"), which is false and would actively mislead
-every third-party author. Separately, the kernel implements **7 of the 92**
-`RETRO_ENVIRONMENT_*` commands (`runtime.c:71-114`, `default: return false`),
-which is why `MATRIX.md` records PS2/N64/GameCube/Wii/Dreamcast as
-frame-unverified.
+every third-party author. Separately, the kernel implements **13 of the 93**
+`RETRO_ENVIRONMENT_*` commands (`runtime/src/runtime.c:197`,
+`default: return false`), counted against the vendored header
+`runtime/external/libretro-common/include/libretro.h`, which is why
+`MATRIX.md` records PS2/N64/GameCube/Wii/Dreamcast as frame-unverified.
 
 ### Decision
 

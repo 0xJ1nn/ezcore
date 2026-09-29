@@ -79,10 +79,13 @@ govern sequencing:
 - Cores are **libretro** plugins; the `ezcore_*` header is host-facing. The
   claim in `docs/ARCHITECTURE.md:44-46` that cores speak the runtime ABI is
   false and is corrected in platform program P1a.
-- The kernel implements **7 of the 92** `RETRO_ENVIRONMENT_*` commands
-  (`runtime/src/runtime.c:71-114`). This, not the UI, is the binding constraint
-  on the product, and it is why several catalog cores are built but not
-  frame-verified.
+- The kernel implements **13 of the 93** `RETRO_ENVIRONMENT_*` commands
+  (`runtime/src/runtime.c:197`), counted against the vendored header
+  `runtime/external/libretro-common/include/libretro.h`. This, not the UI, is
+  the binding constraint on the product, and it is why several catalog cores
+  are built but not frame-verified. (This entry recorded 7 of 92; the figure
+  was stale — P1b landed core options, input descriptors, controller info and
+  memory maps, and the vendored header defines 93 commands.)
 - Cores run **in-process**; `lib/emu/emulation_worker.dart:11-12` states that a
   native crash can terminate the app. Containment is ADR-015 / P6.
 - **P6, P8, P9 are gated behind P1.** Expensive cross-platform layers built on
