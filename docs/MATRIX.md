@@ -1,7 +1,7 @@
 # ezCORE Core × Platform Matrix
 
 > **Last verified:** 2026-09-28 — P1b capability surface merged: `env_cb` answers
-> **13 of the 93** environment requests (core options v2 + intl, input
+> **17 of the 93** environment requests (core options v2 + intl, input
 > descriptors, controller info, memory maps), with the Dart bindings, the
 > 4-layer global/system/core/game resolver, and the worker protocol landed via
 > #45/#48/#50. The option surface removes the kernel blocker for frame

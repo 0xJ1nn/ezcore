@@ -214,6 +214,22 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_env_coverage_docs.py)
 endif()
 
+
+# A synthetic core that REQUIRES hardware rendering, in the shape of the six
+# cores P8 exists for. Synthetic and CC0: no copyrighted core, no ROM, no
+# gameplay. It is the only test that can prove env_cb is actually wired --
+# the seam test proves a context can be made, not that a core can get one.
+add_library(synth_hw_core SHARED test/synth_core/synth_hw_core.c)
+target_include_directories(synth_hw_core PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include)
+set_target_properties(synth_hw_core PROPERTIES PREFIX "")
+
+add_executable(test_hw_render_core test/test_hw_render_core.c)
+target_include_directories(test_hw_render_core PRIVATE include)
+target_link_libraries(test_hw_render_core PRIVATE ezcore_runtime ${CMAKE_DL_LIBS})
+add_test(NAME hw_render_core COMMAND test_hw_render_core
+         $<TARGET_FILE:synth_hw_core>)
+
 # GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed
 # reason where it does not -- a GPU test that fails without a GPU would only
