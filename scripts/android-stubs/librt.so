@@ -1,0 +1,35 @@
+/* librt stub for Android (bionic).
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * native/src/beetle-pce/Makefile adds `-lrt` unconditionally on every
+ * non-Haiku platform (Makefile:80, :126, :153, :343, :356). Glibc needs
+ * that: it is where clock_gettime, timer_create and the POSIX realtime
+ * functions live. Android's bionic does not ship librt at all -- those
+ * functions are in libc -- so the link fails with
+ *
+ *     cannot find -lrt: No such file or directory
+ *
+ * and the cardcon core cannot be built for android-arm64, which is one
+ * reason android tops out at 7 bundled cores against desktop's 11.
+ *
+ * WHAT THIS IS
+ * ------------
+ * A GNU ld LINKER SCRIPT named librt.so, not a compiled object. The
+ * linker only wants a file by that name to satisfy `-lrt`; it needs no
+ * symbols FROM it, because every symbol the core actually calls is
+ * already in libc. `INPUT(-lc)` makes the dependency explicit rather
+ * than relying on the linker's implicit search, and an empty
+ * `GROUP`/`OUTPUT` body means the archive contributes no definitions --
+ * so this can never shadow a real libc symbol. That is the whole safety
+ * argument: the stub satisfies the *name*, and adds nothing.
+ *
+ * Verified, not assumed: clock_gettime is declared in the NDK sysroot's
+ * usr/include/time.h, and the NDK has no librt.so anywhere. See
+ * test/android_stub_test.dart, which asserts both the file exists and
+ * that a link against it resolves clock_gettime from libc.
+ *
+ * This file is referenced from scripts/build_core.sh:299, which puts
+ * this directory on LIBRARY_PATH for android builds only.
+ */
+INPUT(-lc)

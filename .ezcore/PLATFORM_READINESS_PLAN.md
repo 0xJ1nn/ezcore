@@ -100,9 +100,14 @@ merely less complete.
 - **`scripts/ios_frameworks.sh` — MISSING.** `scripts/release.sh:18` references
   it; the iOS delivery design is built around it. iOS cannot be cut as a
   release until it exists.
-- **`scripts/android-stubs/` — MISSING.** Required by
-  `scripts/build_core.sh:299` for cardcon's `-lrt` linker stub. This is why
-  Android tops out at 7 bundled cores.
+- ~~**`scripts/android-stubs/` — MISSING.**~~ **NOW SHIPPED.** Required by
+  `scripts/build_core.sh:299` for cardcon's `-lrt` linker stub. `librt.so` is a
+  text GNU ld script (`INPUT(-lc)`) that satisfies `-lrt` on bionic, which has
+  no librt, and contributes no definitions of its own so it can never shadow a
+  real libc symbol. Covered by `test/android_stub_test.dart`, which links a
+  renamed copy and runs it, with a negative control proving the stub is
+  load-bearing. Android still tops out at 7 bundled cores until the next
+  release re-pins, so treat that count as not-yet-advanced.
 - **0 on-demand cores on either mobile platform.** Desktop has 3 each; mobile
   has none. Either the on-demand path is unported to mobile, or it is
   intentionally off — either way it is undocumented.
@@ -154,6 +159,7 @@ an unfinished kernel contract is exactly this case.
    The doc gate is also in.
 3. **Decide ADR-018** — your call, gates all of P8
 4. **P8 Vulkan (desktop)** then **Metal (Apple)** — unblocks 4 + 2 cores
-5. **`ios_frameworks.sh` + `android-stubs/`** — unblocks iOS/Android release
+5. **`ios_frameworks.sh`** — still missing. `android-stubs/` is **done**;
+   the remaining half of this item is iOS only.
 6. **P6 real supervision** — once P1 is closed
 7. **P5/P7 trust + EZC-015 decision** — before public release

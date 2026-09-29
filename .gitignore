@@ -30,6 +30,15 @@ runtime/external/
 *.o
 *.a
 
+# ...except the Android librt linker stub, which is SOURCE, not a build
+# artifact. It is a text GNU ld script named *.so so the linker will find it
+# for `-lrt`, which native/src/beetle-pce/Makefile links unconditionally
+# (Makefile:80). Android's bionic has no librt, so without this file the
+# cardcon core cannot be built for android-arm64 and every Android release
+# build fails at the link step. The blanket *.so rule above would have
+# excluded it from every clone, so the ignore is negated explicitly here.
+!scripts/android-stubs/*.so
+
 # IntelliJ related
 *.iml
 *.ipr
