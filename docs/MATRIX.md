@@ -7,7 +7,7 @@
 > #45/#48/#50. The option surface removes the kernel blocker for frame
 > verification of the built-but-unverified systems; their RENDERS evidence
 > still accrues per system below. The `linux-x64` tier was rebuilt on the
-> current toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 11/11
+> current toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 14/14
 > including `boot_pocketbit`; the app stages 14 bundled cores with zero pin
 > refusals. macOS arm64 remains run-verified from v0.1.1 (2026-09-19).
 >
@@ -38,8 +38,8 @@ CC0 ROMs. Per-file, with evidence:
 | Fixture | Status | Evidence |
 |---|---|---|
 | `ezcore_nes_minimal.nes` | **CC0 / public domain** — self-authored, generated in-tree | generator prints `License: CC0 / public domain (original code)` at `scripts/gen_nes_minimal_rom.py:136`; header comment `scripts/gen_nes_minimal_rom.py:10` |
-| `cpu_instrs.gb` | **Copyrighted** — Blargg's CPU instruction test suite, no CC0/PD grant in-tree | consumed by `boot_pocketbit` (`runtime/CMakeLists.txt:185-188`) and mapped at `test/core_matrix_test.dart:52-53`; suite described as "(Blargg)" in the Fixtures section below |
-| `test.gba` | **No declared licence** — third-party GBA homebrew (4 KB OBJTEST) | consumed by `boot_advancebit` (`runtime/CMakeLists.txt:190-193`) and mapped at `test/core_matrix_test.dart:54` |
+| `cpu_instrs.gb` | **Copyrighted** — Blargg's CPU instruction test suite, no CC0/PD grant in-tree | consumed by `boot_pocketbit` (`runtime/CMakeLists.txt:278-281`) and mapped at `test/core_matrix_test.dart:52-53`; suite described as "(Blargg)" in the Fixtures section below |
+| `test.gba` | **No declared licence** — third-party GBA homebrew (4 KB OBJTEST) | consumed by `boot_advancebit` (`runtime/CMakeLists.txt:283-286`) and mapped at `test/core_matrix_test.dart:54` |
 
 Only the generated NES ROM carries a redistribution statement. The other two
 have no per-file LICENSE and are developer-local only
@@ -60,7 +60,7 @@ rewriting the header as if it had been wrong.
 | BUILT | Compiles + links for the target triple | `file`/`readelf`/`vtool` arch + platform + minos, `nm` retro exports |
 | PINNED | sha256 recorded in `cores/<id>/manifest.json` | `scripts/pin_artifacts.py` + review |
 | IDENTIFIES | Loads + inits; the harness **prints** the reported name and version | `test_core_boot --identify-only` exit 0 |
-| RENDERS | Boots content: 30 frames with a reported pixel sum, plus a serialize/`ezcore_unserialize` round trip | `test_core_boot <rom>` exit 0 |
+| RENDERS | Boots content: 30 frames, a nonzero pre-restore pixel sum, and a serialize/`ezcore_unserialize` round trip whose post-restore pixel sum stays within `RESTORE_PIXEL_SUM_TOLERANCE_REL` (2%) | `test_core_boot <rom>` exit 0 |
 | SHIPPED | In `release.sh` bundles for that OS | Bundle inspection |
 
 Rules: pins are evidence, never aspirational (`pin_artifacts.py` refuses
@@ -75,18 +75,17 @@ levels previously claimed more than the harness asserts):
   and returns 0 unconditionally at `runtime/test/test_core_boot.c:161`; the
   printed name is **never checked for NULL or emptiness**. A core that
   reports an empty name still earns IDENTIFIES.
-- `RENDERS` proves a frame loop ran and a *callable* round trip, not state
-  fidelity. After `ezcore_unserialize` returns true
-  (`runtime/test/test_core_boot.c:112`), the harness computes a post-restore
-  pixel sum and prints it (`runtime/test/test_core_boot.c:122-125`) but
-  **never compares it to the pre-restore sum and never asserts it is
-  nonzero**. So "save/restore" here means serialize + unserialize both
-  succeed; pixel-exact restoration is **unproven by this harness**.
-- Caveat on the RENDERS row above: whether the *pre*-restore pixel sum is
-  asserted nonzero was **not re-verified for this edit** (the review window
-  covered `runtime/test/test_core_boot.c:100-174` only). The row says
-  "reported pixel sum" deliberately, so it overclaims nothing either way.
-  Recorded per project.md §30/§74 rather than guessing.
+- `RENDERS` now checks state fidelity, not just that a round trip was
+  callable. The **pre**-restore pixel sum is asserted nonzero (a zero sum
+  returns 3), and the **post**-restore sum must stay within
+  `RESTORE_PIXEL_SUM_TOLERANCE_REL` (2%) of it or the harness exits 6. The
+  tolerance is deliberate: the harness cannot distinguish "restore lost
+  pixels" from "this renderer is not a pure function of emulated state", so
+  exact equality would fail cores that are correct.
+- What the RENDERS gate is **still not**: pixel-exact. A 2% sum tolerance is a
+  loose smoke gate — a core that swaps two equally-weighted sprites can still
+  pass. The drained audio frame count and the `cheat_reset`/`cheat_set` calls
+  remain print-only and are not asserted at all.
 
 ## Cores × platforms
 
@@ -95,7 +94,7 @@ levels previously claimed more than the harness asserts):
 | pocketbit | RENDERS | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race); Linux verified with live boot test (Damuel.gb: load/init/frames/save-restore) |
 | gambatte | RENDERS ⚠ | BUILT | BUILT | — | — | ⚠ **Catalog contradiction:** `cores/catalog.json` records `delivery: absent` on *all five* platforms, so staging ships it nowhere, while artifact pins exist for `macos-arm64` / `linux-x64` / `android-arm64`. Its licence is **GPL-2.0-only** (distributable — unlike `superfx`/`blastproc`/`coinbox`, which are non-commercial and are correctly `absent`). A pin plus a RENDERS result implies it was meant to ship. Resolving this is a distribution decision under `project.md` §28, not a docs edit — tracked, see `.ezcore/KNOWN_ISSUES.md`. Android via `unix` (no android branch upstream) |
 | advancebit | RENDERS | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
-| nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` (TLS requires minos 9+). **Cell is one run behind its own infrastructure:** the CC0 fixture is on disk, a `boot_nesbyte` CTest is registered (`runtime/CMakeLists.txt:195-199`) and the Dart matrix maps it (`test/core_matrix_test.dart:55`), so promoting to RENDERS needs only running the existing harness — `ctest -R boot_nesbyte` or `flutter test test/core_matrix_test.dart`. Not promoted here: no harness was run for this edit, so the result would be unverified (project.md §74) |
+| nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` (TLS requires minos 9+). **Cell is one run behind its own infrastructure:** the CC0 fixture is on disk, a `boot_nesbyte` CTest is registered (`runtime/CMakeLists.txt:288-291`) and the Dart matrix maps it (`test/core_matrix_test.dart:55`), so promoting to RENDERS needs only running the existing harness — `ctest -R boot_nesbyte` or `flutter test test/core_matrix_test.dart`. Not promoted here: no harness was run for this edit, so the result would be unverified (project.md §74) |
 | superfx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |
 | blastproc | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
 | joystick | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |

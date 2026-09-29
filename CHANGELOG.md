@@ -6,6 +6,58 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Held input can no longer latch.** Pressing reset no longer leaves a button
+  held down, loading a game no longer carries held buttons across the boundary,
+  and unplugging a controller mid-press no longer leaves that direction stuck for
+  the rest of the session — on Windows and on Linux.
+- **The second player's controller now reaches port 1.** The input path
+  hardcoded port 0, so no controller could address a second port. It now carries
+  the port, defaults to 0 so existing behaviour is unchanged, and pausing
+  releases every port.
+- **Stick and trigger calibration.** The Windows deadzone swallowed more than a
+  third of full stick deflection, and analog triggers registered as pressed at
+  30 of 255 — so a trigger resting from ordinary drift read as fully pulled. Both
+  are now proportionate to full scale. On Linux, stick range is read from the
+  kernel's real axis range (`EVIOCGABS`) instead of being seeded from whatever
+  the stick happened to report first, which could permanently latch a direction
+  after a single spike at connect.
+- **A control held across a pause or app switch now re-sends on resume.** The
+  host releases held buttons when paused, but the input poller only emits on
+  transitions, so a still-held control went silent until it was released and
+  re-pressed. The poller now re-syncs with the host.
+- **Linux mouse movement is no longer discarded.** Relative-axis (`EV_REL`)
+  events were read and thrown away, so no mouse or trackball could ever reach a
+  core. They are now decoded and surfaced.
+
+### Added
+
+- The crash-containment spike's exit-code contract now has automated coverage: a
+  test core that faults on demand proves that a real segmentation fault is
+  classified as a crash. This validates the contract only — **the app still
+  terminates with a crashing core**, and process isolation is not implemented.
+
+### Changed
+
+- **The RENDERS verification level now proves save/restore fidelity.** The boot
+  harness previously printed the post-restore pixel sum without checking it, so a
+  core whose restore corrupted the framebuffer still counted as verified. The
+  sum is now compared against the pre-restore value within a documented 2%
+  tolerance, and a lossy restore fails. This is a loose smoke gate, not
+  pixel-exactness: a core swapping two equally-weighted sprites can still pass.
+  Existing verification levels are unchanged; the maintainer should re-run the
+  boot matrix to confirm no cell regressed.
+- Corrected the documented kernel capability count, which had gone stale in six
+  files. The kernel answers 13 of the 93 environment commands the vendored
+  libretro header defines, not the 7 of 92 previously claimed. The counting
+  command is now printed in the documentation so the figure can be recomputed
+  rather than trusted.
+- Documented the verification levels against what the harness actually asserts,
+  and recorded per-file licence provenance for the local test fixtures: one of
+  the three is CC0, one is a third-party copyrighted suite, and one has no
+  declared licence.
+
 ### Changed
 
 - Reworked desktop and phone Library browsing into a responsive cover-flow

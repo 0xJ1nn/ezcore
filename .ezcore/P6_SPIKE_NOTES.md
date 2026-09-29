@@ -25,7 +25,7 @@ change when the default flips.
 - `isCrashContained` returns `false` for `inProcess`. The seam does not
   overclaim.
 - A 30s watchdog wraps every command, matching today's `_request` timeout
-  (`emulation_worker.dart:56-57`), and converts a `TimeoutException` into a
+  (`lib/emu/emulation_worker.dart:95`), and converts a `TimeoutException` into a
   `HungSessionException` after closing the session.
 
 ## Exit-code contract

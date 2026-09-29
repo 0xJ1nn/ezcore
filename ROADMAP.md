@@ -109,10 +109,35 @@ the whole product.
 |---|---|---|---|---|
 | **P1** | Documentation truth + kernel core options and capability surface | [ ] Planned | `docs/API.md`/`ARCHITECTURE.md` match source; a test fails if a header symbol is undocumented; options, input descriptors, controller info and memory maps are implemented additively; the blocked cores advance in [`docs/MATRIX.md`](docs/MATRIX.md) | — (first) |
 | **P2** | libretro `.info` support, core package format, package validator | [ ] Planned | A core ships as a complete validated package; existing `manifest.json` files validate unchanged | P1 |
-| **P3** | Input device model — analog, mouse, lightgun, touch-to-core, multiple ports | [ ] Planned | Non-`RETRO_DEVICE_JOYPAD` devices reach cores; the Dart port-0 hardcode is gone | P1 |
+| **P3** | Input device model — analog, mouse, lightgun, touch-to-core, multiple ports | [~] Partially implemented | Non-`RETRO_DEVICE_JOYPAD` devices reach cores; the Dart port-0 hardcode is gone | P1 |
+
+> **P3 progress (2026-09-29).** The port-0 hardcode is gone: the worker button
+> payload carries a port, defaults to 0, and pause releases all four
+> (#68), and held input no longer survives a reset (#74) or a game load
+> (#79). Stale state that used to latch a direction is flushed when a pad
+> disconnects on both Windows (#75) and Linux (#76), and the poller can
+> re-sync after the host drops its input (#80). Deadzone and trigger
+> calibration were corrected on Windows (#77) and Linux sticks now
+> calibrate from the kernel's real axis range via `EVIOCGABS` (#82); Linux
+> mouse `EV_REL` deltas are decoded instead of discarded (#71).
+> **Still not done, and not claimed:** true analog does not reach any core
+> — `runtime/src/runtime.c` rejects every device that is not
+> `RETRO_DEVICE_JOYPAD`, so P3's own exit condition is **not** met. Mouse
+> and lightgun are decoded but unrouted. The `forgetHeld` seam is wired on
+> Windows and Linux only.
 | **P4** | Control layouts, skins, battery saves, cheat packaging | [ ] Planned | Touch layouts are data files a third party can ship with no ezCORE code; battery saves round-trip | P2, P3 |
 | **P5** | ezCORE Verified list and trust tiers | [ ] Planned | Reviewed cores are labelled and updatable; unverified cores are opt-in and never auto-updated | P2, P6 |
-| **P6** | Crash containment — one supervised process per core session | [ ] Planned | A deliberately crashing core does not terminate the app; library and saves survive | **P1** |
+| **P6** | Crash containment — one supervised process per core session | [~] Seam only; no transport | A deliberately crashing core does not terminate the app; library and saves survive | **P1** |
+
+> **P6 progress (2026-09-29).** The exit-code contract is proven against a
+> real SIGSEGV: `crash_core` faults on demand and `crash_signal_exit_code`
+> asserts the child dies on signal 11 and is classified as 9 (#78). A
+> `SupervisorSession` seam exists and `ContainmentMode` defaults to today's
+> in-process path per ADR-015. **The app still dies with the core** —
+> `supervisedProcess` throws `UnsupportedContainmentError` and no child
+> process is ever spawned. Treat this as a spike, not as containment. The
+> P6 exit condition is **not** met, and P6 remains gated on P1 regardless of
+> how complete the seam looks.
 | **P7** | Signature/trust hardening; make `cores/registry.json` real or remove it | [ ] Planned | Tampered packages and bad signatures are rejected by test | P5 |
 | **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [ ] Planned | GL-default cores render on a verified platform; the CPU path stays green | P1 |
 | **P9** | Tier-2 engine supervision (current-generation console, PC-game stacks) | [?] Needs research | An external engine is launched, driven, and supervised with library/save continuity | P1, experimental |
