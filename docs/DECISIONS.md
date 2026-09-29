@@ -737,10 +737,66 @@ Claiming in-process embedding would be a promise the project cannot keep.
 
 ## ADR-018: The GPU video path — who owns the render context
 
-**Status:** **Proposed** (2026-09-29). Not a decision. The maintainer selects
-the context-ownership option and the first API to implement; this record
-exists so the choice is made on evidence rather than by whoever writes the
-code first. Program item **P8**, gated on P1 (`ROADMAP.md` → *Platform
+**Status:** **Accepted — Option B** (2026-09-29, maintainer decision).
+Context ownership is **the runtime's own EGL/GLES and Vulkan surfaces**, not
+Flutter's engine context. Both GL and Vulkan are in scope, and the design must
+be platform-neutral: no per-platform rework of the presentation path.
+
+Rationale as given by the maintainer, which the evidence supports: Flutter's
+native context "doesn't seem tested for gaming". The record's own Option A
+analysis had already found that Flutter exposes a render *target* to plugins
+and no shareable context, so A was never going to answer `SET_HW_RENDER` on
+desktop, where the Vulkan cores matter most.
+
+The remaining open questions below are answered as follows; the superseded
+text is retained so the reasoning is auditable.
+
+1. **Context ownership** — B. *(decided)*
+2. **First API cut** — the full set (`SET_HW_RENDER`,
+   `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE`,
+   `SET_PROC_ADDRESS_CALLBACK`, plus `context_negotiation` so context loss is
+   reportable). A partial cut that answers `true` to `SET_HW_RENDER` without
+   being able to report loss is the failure mode to avoid.
+3. **Verified platform** — Linux desktop is where the existing gates run, so
+   it is the platform that gates P8. Android and Windows follow the same code
+   path; per-platform context creation is isolated behind one seam so none of
+   them needs the others reworked.
+4. **Vulkan in scope** — **yes**, and explicitly: `geometry1`, `powercube`,
+   `portcomp` and `dreamarc` all reference `vkCreateInstance`, PS2 (issue #55)
+   requires Vulkan, and `libretro_vulkan.h` is already vendored. `rcp64` and
+   `dualscreen` are GL-only (0 `vkCreateInstance` symbols, 3199 and 15 GL
+   symbols), so both backends are required to unblock all six.
+5. **`video_cb(NULL)` dupe defect** — out of scope for P8. It is a CPU-path
+   correctness bug unrelated to hardware rendering and must not land inside a
+   change whose purpose is to avoid disturbing the CPU path. Tracked
+   separately.
+6. **New dependencies** — none for a first cut. The existing `dynload.h` seam
+   resolves `libEGL`/`libGLESv2`/`libvulkan` at runtime; the runtime stays
+   free of link-time GL/Vulkan dependencies, which keeps `PLATFORM.md` §6
+   true.
+
+### Verification available for this item (checked 2026-09-29)
+
+P8 is **verifiable on the development host**, not only on paper:
+
+- Vulkan 1.4.357 instance, with both `nvidia_icd.json` and `radeon_icd.json`
+  present.
+- EGL 1.5 initialises; a GLES **3.2** context on a pbuffer binds a
+  framebuffer object reporting `GL_FRAMEBUFFER_COMPLETE` on real hardware
+  (AMD Radeon, Mesa 26.2.3).
+
+So the GL/GLES seam can be exercised by ctest, and the Vulkan seam can at
+minimum have its instance/device/queue negotiation exercised, on the same
+machine the rest of the gates run on.
+
+---
+
+## Superseded: the original proposal (retained for audit)
+
+**Original status:** **Proposed** (2026-09-29). Not a decision. The maintainer
+selects the context-ownership option and the first API to implement; this
+record exists so the choice is made on evidence rather than by whoever writes
+the code first. Program item **P8**, gated on P1 (`ROADMAP.md` → *Platform
 program*). Platform contract: [`PLATFORM.md`](PLATFORM.md) §2, §6, §7.
 
 ### Current architecture (verified 2026-09-29)
