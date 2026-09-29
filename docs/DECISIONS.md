@@ -545,7 +545,7 @@ The code already answers it, and the documentation does not. A core is a
 surface — is host-facing: Dart calls it to drive a core *through* the runtime,
 and no core ever calls it. `docs/ARCHITECTURE.md:44-46` states the opposite
 ("Every core speaks the runtime ABI"), which is false and would actively mislead
-every third-party author. Separately, the kernel implements **13 of the 93**
+every third-party author. Separately, the kernel implements **17 of the 93**
 `RETRO_ENVIRONMENT_*` commands (`runtime/src/runtime.c:197`,
 `default: return false`), counted against the vendored header
 `runtime/external/libretro-common/include/libretro.h`, which is why
@@ -805,7 +805,7 @@ Verified in this worktree, not recalled:
 
 - A core is a libretro plugin. The kernel is `runtime/src/runtime.c`
   (C11, `EZCORE_ABI_VERSION 1`, `runtime/include/ezcore_runtime.h:12`).
-- `env_cb` (`runtime/src/runtime.c:197`) answers **13 of the 93**
+- `env_cb` (`runtime/src/runtime.c:197`) answers **17 of the 93**
   `RETRO_ENVIRONMENT_*` commands; everything else hits
   `default: return false` (`:402-403`).
   **`SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE` and

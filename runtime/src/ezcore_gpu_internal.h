@@ -20,6 +20,44 @@
 
 #include "ezcore_gpu.h"
 
+/* --- libretro's Vulkan hardware-render interface, without the Vulkan SDK ---
+ *
+ * libretro_vulkan.h defines retro_hw_render_interface_vulkan, but including it
+ * pulls in <vulkan/vulkan.h>, which would make the RUNTIME require the Vulkan
+ * SDK at build time. That contradicts the decision to have no Vulkan
+ * dependency at all (ADR-018 Q6), and it is a build-time cost paid by everyone
+ * to serve a struct only a Vulkan core ever reads.
+ *
+ * So the layout is mirrored here, field for field, from
+ * libretro_vulkan.h:236. Every Vk* field is an OPAQUE POINTER, which is
+ * exactly what they are in the real struct -- handles, never dereferenced by
+ * us -- so the mirror cannot be wrong about size or alignment in any way that
+ * matters. The one field that is a real function pointer is declared with the
+ * same signature.
+ *
+ * IF THE VENDORED HEADER CHANGES, THIS MUST CHANGE WITH IT. That is the
+ * trade being made: a checked-in copy of a struct layout in exchange for not
+ * needing an SDK, and the whole point of naming the source line here is that
+ * a re-vendor is the moment to notice.
+ */
+/* RETRO_HW_RENDER_INTERFACE_VULKAN_VERSION, mirrored from
+ * libretro_vulkan.h:29 (value 5) for the same no-SDK reason as the struct
+ * below. If the vendored header is re-vendored, re-check this number. */
+#define EZCORE_HW_RENDER_INTERFACE_VULKAN_VERSION 5
+
+struct ezcore_hw_iface_vulkan {
+  int interface_type;   /* enum retro_hw_render_interface_type */
+  unsigned interface_version;
+  void *handle;
+  void *instance;       /* VkInstance       */
+  void *gpu;            /* VkPhysicalDevice */
+  void *device;         /* VkDevice         */
+  void *(*get_device_proc_addr)(void *, const char *);
+  void *(*get_instance_proc_addr)(void *, const char *);
+  void *queue;          /* VkQueue */
+  unsigned queue_index;
+};
+
 enum ezcore_gpu_backend_id {
   EZCORE_BACKEND_NONE = 0,
   EZCORE_BACKEND_WINDOW = 1, /* EGL / WGL / CGL */
