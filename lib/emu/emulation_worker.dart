@@ -6,6 +6,44 @@ import 'dart:typed_data';
 import '../runtime/ezcore_runtime.dart';
 import 'emulation_service.dart';
 
+/// Controller ports the native runtime keeps live (`input_buttons[4]` in the
+/// C bridge). Ports outside this range are rejected before they reach it.
+const int kControllerPorts = 4;
+
+/// Decodes a `button` command payload `[port, id, pressed]` and hands it to
+/// [send]. Lives outside the isolate loop so port routing is testable without
+/// a native session; the worker wires [send] to `EmulationService.setButton`.
+void dispatchButton(
+  void Function(int port, int id, bool pressed) send,
+  dynamic value,
+) {
+  final list = value as List;
+  if (list.length != 3) {
+    throw StateError(
+      'Malformed button payload: expected [port, id, pressed], '
+      'got ${list.length} value(s)',
+    );
+  }
+  final port = list[0] as int;
+  final id = list[1] as int;
+  final pressed = list[2] as bool;
+  if (port < 0 || port >= kControllerPorts) {
+    throw RangeError.range(port, 0, kControllerPorts - 1, 'port');
+  }
+  if (id < 0 || id > 15) throw RangeError.range(id, 0, 15);
+  send(port, id, pressed);
+}
+
+/// Releases every RetroPad button on every controller port. Used when the
+/// session pauses so a button held on any pad is not stuck down afterwards.
+void clearAllButtons(void Function(int port, int id, bool pressed) send) {
+  for (var port = 0; port < kControllerPorts; port++) {
+    for (var id = 0; id < 16; id++) {
+      send(port, id, false);
+    }
+  }
+}
+
 /// Single native-session owner. Every native call runs in this isolate.
 /// Request/response frames provide backpressure: the host requests the next
 /// frame only after consuming the previous video/audio packet. This is NOT
@@ -74,9 +112,14 @@ class EmulationWorker {
     await _request('pause', value);
   }
 
-  Future<void> button(int id, bool pressed) async {
+  /// Sends a RetroPad button transition for controller [port] (0-3, port 0
+  /// is player one). Defaults to 0 so single-player callers are unchanged.
+  Future<void> button(int id, bool pressed, {int port = 0}) async {
     if (id < 0 || id > 15) throw RangeError.range(id, 0, 15);
-    await _request('button', [id, pressed]);
+    if (port < 0 || port >= kControllerPorts) {
+      throw RangeError.range(port, 0, kControllerPorts - 1, 'port');
+    }
+    await _request('button', [port, id, pressed]);
   }
 
   Future<Uint8List> save() async => await _request('save') as Uint8List;
@@ -181,12 +224,12 @@ Future<void> _workerMain(SendPort ready) async {
           case 'pause':
             paused = value as bool;
             if (paused) {
-              for (var id = 0; id < 16; id++) {
-                active.setButton(0, id, false);
-              }
+              // Release every button on every port: a pad held by player two
+              // would otherwise stay stuck down across the pause.
+              clearAllButtons(active.setButton);
             }
           case 'button':
-            active.setButton(0, value[0] as int, value[1] as bool);
+            dispatchButton(active.setButton, value);
           case 'save':
             result = active.saveState();
             if (result == null) {
