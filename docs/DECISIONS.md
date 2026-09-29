@@ -733,6 +733,424 @@ Claiming in-process embedding would be a promise the project cannot keep.
 - **Ignore these targets.** Rejected: the maintainer named them explicitly, and
   the supervision scope is deliverable and honest.
 
+---
+
+## ADR-018: The GPU video path — who owns the render context
+
+**Status:** **Proposed** (2026-09-29). Not a decision. The maintainer selects
+the context-ownership option and the first API to implement; this record
+exists so the choice is made on evidence rather than by whoever writes the
+code first. Program item **P8**, gated on P1 (`ROADMAP.md` → *Platform
+program*). Platform contract: [`PLATFORM.md`](PLATFORM.md) §2, §6, §7.
+
+### Current architecture (verified 2026-09-29)
+
+Verified in this worktree, not recalled:
+
+- A core is a libretro plugin. The kernel is `runtime/src/runtime.c`
+  (C11, `EZCORE_ABI_VERSION 1`, `runtime/include/ezcore_runtime.h:12`).
+- `env_cb` (`runtime/src/runtime.c:197`) answers **13 of the 93**
+  `RETRO_ENVIRONMENT_*` commands; everything else hits
+  `default: return false` (`:402-403`).
+  **`SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE` and
+  `SET_PROC_ADDRESS_CALLBACK` are all unimplemented.** A grep for
+  `context_reset` and `RETRO_HW` in `runtime.c` returns **zero hits**: the
+  runtime has no concept of a graphics context, cannot report one as lost,
+  and cannot advertise its pixel format to a core through the hardware-render
+  interface.
+- **Every frame on screen is a CPU copy.** `video_cb`
+  (`runtime.c:407-409`) `memcpy`s each scanline into a session-owned heap
+  buffer `s->frame` (`:411-424`), converting 0RGB1555/RGB565 to XRGB8888 in
+  software (`:426+`); `ezcore_frame_pixels_copy` (`:697-710`) then expands
+  that to RGBA bytes across FFI into a Dart `Uint8List`; the player turns it
+  into a `RawImage` (`lib/screens/player_screen.dart:386`). At 320×240 that
+  is ~307 KB of runtime copy plus ~307 KB of FFI copy per frame, ~18 MB/s at
+  60 fps — arithmetic from the code, **not a measured figure**.
+- The published contract is `ezcore_frame_pixels` → *"Returns const pointer to
+  latest frame (XRGB8888). Do NOT free. Fast read access."*
+  (`runtime/include/ezcore_runtime.h:65-66`).
+
+**Consequence:** cores that default to a GPU renderer refuse to run.
+`geometry1` (PSX), `rcp64` (N64), `dualscreen` (NDS), `portcomp` (PSP),
+`dreamarc` (DC) and `powercube` (GC/Wii, GPU-only) are blocked, and
+`MATRIX.md` records them as frame-unverified. The CPU path stays green for
+`pocketbit`, `advancebit` and `nesbyte`.
+
+### The problem
+
+P8 cannot be "add `SET_HW_RENDER`". The command is a request from the core
+for *a render context*; the host must already own one and be able to (a) hand
+it a context or a context-creating capability, (b) tell the core which
+context version to use, (c) resolve the GL/Vulkan entry points the core needs
+(`SET_PROC_ADDRESS_CALLBACK`), and (d) survive a context loss
+(`RETRO_ENVIRONMENT_SET_HW_RENDER_CONTEXT_NEGOTIATION` /
+`context_reset`). ezCORE currently owns none of that, and the runtime
+deliberately has **no external library dependencies** beyond the vendored
+`libretro-common` headers (`docs/ARCHITECTURE.md:35-38`).
+
+There is a second, smaller problem that is easy to miss because it is one
+line: `video_cb` returns immediately when `data == NULL`
+(`runtime.c:409`). In libretro, `video_cb(NULL, …)` is the **"repeat the
+previous frame"** signal — a 30 fps core on a 60 Hz display calls it every
+other frame. `GET_CAN_DUPE` is answered `true` (`runtime.c:199-202`) on the
+stated belief that *"we keep the last decoded frame"*, but the callback drops
+the dupe instead of preserving it, so the *host* does not re-present the
+retained frame. Whether that is a defect to fix inside P8 or a separate
+one-line fix is an open question below.
+
+### The three context-ownership options
+
+Presented as options, not as a recommendation. The maintainer picks.
+
+| | **A — reuse Flutter's context** | **B — C-side EGL/GLES context** | **C — readback only** |
+|---|---|---|---|
+| Who creates the context | Flutter's renderer | `runtime/src/` on a dedicated render thread | `runtime/src/` on a dedicated render thread |
+| What reaches the screen | Flutter-composited external texture | External texture fed from our own GL context | The **existing** `Uint8List` → `RawImage` path, unchanged |
+| Dart/UI changes | Texture registration, `Texture` widget, lifecycle | Texture registration **and** a GL→texture upload path | **None** |
+| Host ABI changes | additive query | additive query | none required |
+| Context loss handling | not ours | ours (`context_reset`) | ours |
+| Unblocks the 5 GL-default cores | yes, if the context is actually obtainable | yes | yes |
+| Zero-copy | possible | possible | **no** — the readback the item exists to avoid still happens |
+
+#### Option A — reuse Flutter's renderer context
+
+**Pros.** No second GL context on the device; no extra EGL surface to
+manage; the most direct route to zero-copy compositing through Flutter's
+`TextureRegistry`; natural fit on Android, where the host already owns an EGL
+context on a dedicated GL thread — which is exactly the arrangement RetroArch
+uses there.
+
+**Cons, and one of them is structural.** Flutter's `TextureRegistry` hands a
+native plugin a *render target* (a GL texture id, a `SurfaceTexture`/`GLTexture`,
+an iOS `CVPixelBuffer`/texture), **not a shareable GL context**. I could not
+find a supported Flutter API that exports the engine's own context for sharing
+with third-party native code, and I did not verify Flutter's or Impeller's
+sources in this pass — **stated as uncertainty, not as a finding**. So the
+practical form of A is *"host provides a render target"*, whereas libretro's
+`SET_HW_RENDER` asks for a *context*. The gap between those two is bridged in
+the libretro world by the host also implementing
+`retro_hw_render_callback::get_current_framebuffer` with a real
+`GLuint` framebuffer — i.e. A still requires a runtime-side GL surface and a
+`context_reset` path even when the context itself comes from Flutter.
+
+**Costs.** Android-only in practice. Desktop (Linux/Windows/macOS) Flutter
+gives the host no comparable handle today, so A does not reach the platforms
+where `dreamarc` and `powercube` matter most. The external-texture
+registration lifecycle (create → attach → dispose on session end) is new Dart
+code with real leak potential.
+
+#### Option B — a C-side EGL/GLES context owned by the runtime
+
+**Pros.** Matches what libretro cores are written and tested against;
+uniform across Android and desktop, so one design serves all five GL-default
+cores; the runtime fully controls `context_reset`, the swap interval, FBO
+creation, and (later) the shader work the Graphics and Shaders roadmap items
+want; the presentation seam is a single `TextureRegistry` call regardless of
+platform.
+
+**Cons.** The runtime acquires platform GL/EGL responsibilities it has never
+had — and `PLATFORM.md` §6 is a list of things that may not quietly become
+false, so "the runtime has no external dependencies" and "the runtime creates
+a GL context" are in tension and the maintainer should decide which way to
+bend. Per-platform context code (EGL on Android/Linux, WGL/ANGLE on Windows,
+CGL/NSOpenGL on macOS) is the largest new surface in this item. Then the
+compositing question is unsolved by B: our own context still has to hand its
+output to Flutter, which is an external texture again — so **B and A
+converge on the same Dart-side integration**; they differ in who owns the
+context, not in whether a texture is involved. Windows is the sharp edge:
+depending on what the loader resolves, a machine without
+`opengl32.dll`/`libEGL.dll` has no path, and ANGLE would be a new dependency
+(see below).
+
+#### Option C — readback only: keep the core's GL internal, `glReadPixels` into today's buffer
+
+**Pros.** **Zero Dart/UI change.** `video_cb` is unchanged, `s->frame` is
+unchanged, `ezcore_frame_pixels*` and the `RawImage` path are unchanged, and
+every existing test stays valid by construction. It is the smallest change
+that makes the five blocked cores boot and present, and it is therefore the
+cheapest way to get evidence about which cores actually work on which
+platform before committing to a presentation architecture. It also keeps the
+`RawImage` screenshot/thumbnail path free (`ROADMAP.md` → *Capture*:
+screenshots are "written locally and used as cover art"). All the hard parts
+that matter for correctness — `SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
+`GET_HW_RENDER_INTERFACE`, `SET_PROC_ADDRESS_CALLBACK`, `context_reset` — are
+still genuinely implemented and still exercised.
+
+**Cons, stated plainly.** It does **not** deliver the performance outcome the
+item is for: a frame still crosses GPU→CPU→GPU every frame, at full
+resolution, plus a second FFI copy. For 320×240 that is affordable; for a
+720p/1080p N64 or GameCube frame it is not. It buys *unblocking*, not
+*acceleration*. It also means the CPU mirror is mandatory, not optional, which
+is a constraint on the ABI question below.
+
+### The `ezcore_frame_pixels` ownership contract and the CPU mirror
+
+The published promise is a valid pointer to the latest XRGB8888 frame
+(`ezcore_runtime.h:65`). Three ways to keep that promise once a GPU path
+exists, all presented for choice:
+
+1. **Always mirror (C, and B with a capture tap).** `s->frame` stays
+   authoritative. The contract is literally unchanged, screenshots and
+   thumbnails keep working, and the CPU path is untouched. Cost: on the GPU
+   path there are now *two* copies per frame, and one of them exists only to
+   honour a promise nobody exercises at full rate.
+2. **Additive, soft-resolved capability query.** Add
+   `ezcore_frame_source(s) -> enum { CPU, GL_TEXTURE, VULKAN_TEXTURE }` and
+   let `ezcore_frame_pixels` return `NULL` when the source is not CPU.
+   Honest, cheap, and — per `ADR-014` and `PLATFORM.md` §6.2 — **additive and
+   soft-resolved, so `EZCORE_ABI_VERSION` stays 1.** The cost is a real
+   behaviour change behind an unchanged signature, so the header comment must
+   change from "do NOT free" to "returns NULL when the session is not on the
+   CPU path".
+3. **Lazy readback.** `ezcore_frame_pixels` triggers a `glReadPixels` into a
+   session scratch buffer on first call per frame. The contract stays true
+   and the cost moves to whoever asks (thumbnails, a screenshot, a test).
+   Adds a GPU→CPU stall on an unpredictable caller; needs a per-frame
+   "already read back" guard.
+
+**No `EZCORE_ABI_VERSION` bump is required** for 1, 2 or 3, because each grows
+the surface additively. A bump would only be justified if a *core* had to
+implement something new — which `PLATFORM.md` §6.1 forbids — or if we chose
+to redefine an existing signature. `PLATFORM.md` §6.12 permits the bump only
+with a recorded, reviewed decision; this ADR does not request one, and I am
+not confident a bump is the right call for a host-only additive surface.
+
+### Loaders, and the dependency question
+
+Cores load their own GL entry points; the runtime does not need a full
+loader for the *core's* sake. What the runtime itself needs is a small
+subset — `eglGetProcAddress`/`eglCreateContext`/`eglMakeCurrent` (or the
+platform equivalent) to create and current a context under **B**/**C**, and
+`glReadPixels` + `glGenTextures`/`glBindTexture`/`glTexImage2D` to read back
+under **C** or to upload under **B**.
+
+- **No new third-party dependency is required to get there.** The runtime
+  already has a dynamic-loader seam (`dynload.h` / `dynload_posix.c` /
+  `dynload_win32.c`); resolving those symbols through it keeps the build
+  dependency-free, which is the status quo worth protecting.
+- **Platform *headers* are still needed** (EGL + GLESv2 on Android/Linux,
+  OpenGL on macOS, GL on Windows), and on Windows that is where a real
+  dependency question appears.
+- **Vendoring glad/glew, or linking ANGLE, is a separate decision** under
+  `project.md` §26 and is **not** authorised by this ADR. ANGLE in
+  particular would change what "supports OpenGL" means on Windows and is a
+  large, separately-reviewable commitment.
+- **Uncertain:** the exact `retro_hw_render_interface` revision available in
+  the vendored `runtime/external/libretro-common/include/libretro.h` (which
+  `interface_version` / `context_negotiation` / `proc_address` fields exist
+  at the pinned revision). I did not verify this in this pass; it must be
+  confirmed before any interface struct is filled in.
+
+### Risk to the currently-green CPU path
+
+`pocketbit`, `advancebit` and `nesbyte` are the only render-verified cores, and
+they are the tripwire. The specific danger is that a core which *can* use a
+GPU path will *take* it as soon as `SET_HW_RENDER` returns `true` — so
+answering the command at all is a behaviour change for working cores, not
+just for blocked ones.
+
+Mitigations, in order of strength:
+
+1. **The `SET_HW_RENDER` answer is itself the switch.** Answering `false`
+   puts every core back on the software `video_cb` path, byte for byte, with
+   no flag in the runtime. P8 can therefore ship dark and be switched on per
+   session.
+2. **Opt-in flag, default off**, exposed per session (player setting) and
+   defaulting to off. Optional refinement for the maintainer: allow the
+   manifest to *permit* the GPU path per core, so enabling it globally still
+   cannot move an unvetted core — but that touches core data, so it is a
+   proposal, not a decision.
+3. **`test_core_player` and `test_core_boot` must pass unmodified**
+   (`PLATFORM.md` §6.3). They run with the path off; any kernel change that
+   needs them edited is rejected by contract.
+4. **Golden-frame check.** The synthetic core's deterministic output
+   (`runtime/test/synth_core/`) is the regression tripwire for "the CPU path
+   did not move". The `ezcore_frame_pixels` NULL-dup interaction in particular
+   will be caught here if a test covers a `video_cb(NULL, …)` frame.
+
+### Benefits, costs and risks
+
+**Benefits (common to A, B and C).** `SET_HW_RENDER` /
+`GET_PREFERRED_HW_RENDER` / `GET_HW_RENDER_INTERFACE` /
+`SET_PROC_ADDRESS_CALLBACK` answered, plus a real `context_reset` story.
+`geometry1`, `rcp64`, `dualscreen`, `portcomp` and `dreamarc` become eligible
+to reach `RENDERS` in `MATRIX.md`, which is the P8 exit condition. The
+`RawImage` screenshot path keeps working regardless of session mode.
+
+**Costs.** A new render thread and a GL lifecycle in the kernel; a texture
+registration seam in Dart (A and B only); per-platform GL code; a larger
+kernel with more platform-specific branches. C avoids the Dart and
+presentation costs entirely and is the only option that ships without
+touching the UI layer.
+
+**Risks.**
+
+- *Kernel regression on the green path* — mitigated by 1–4 above.
+- *Black screen on device* — a core that takes the GPU path and cannot
+  present gives no frame and no error. Mitigation: a watchdog — if no frame
+  arrives within N frames of `retro_run`, fall back to the CPU path for that
+  session and record it in diagnostics. **Whether the maintainer wants that
+  auto-fallback or a hard failure is unresolved.**
+- *Vulkan left out.* `SET_HW_RENDER` supports
+  `RETRO_HW_CONTEXT_VULKAN`/`OPENGL`; PCSX2 (PS2, issue #55) needs
+  **Vulkan specifically, not OpenGL**, which no GL-only implementation
+  reaches. Whether P8 ships GL-only with PS2 explicitly out of reach, or
+  negotiates both contexts from the first cut, is an open question.
+- *Context loss* on Android (app backgrounded) and on desktop GPU driver
+  reset: cores that have not implemented `context_reset` recovery will show a
+  black frame until the session is restarted. `dolphin`-class cores in
+  particular are known to be demanding here — **I have not verified that
+  claim about any specific core in this pass; treat it as a risk to test, not
+  as a fact.**
+- *PowerCube is GPU-only.* If it does not present correctly, there is no
+  software fallback for it at all.
+
+### Migration plan
+
+Each step is independently releasable and independently revertible; each
+keeps the previous step's behaviour intact when the flag is off.
+
+- **P8-0 — truthfulness, no GPU.** Answer `GET_PREFERRED_HW_RENDER` and
+  `SET_HW_RENDER` with `false` explicitly rather than falling through to
+  `default: return false`, and add the host-side renderer-kind query
+  (additive, soft-resolved) so Dart can state what the session is doing. No
+  behaviour change; removes an ambiguity.
+- **P8-1 — renderer seam in the kernel.** Introduce an internal video-backend
+  interface in `runtime/src/` (`cpu` | `gl`) with the current code as the
+  `cpu` implementation, plus the opt-in flag plumbing. Still no GL.
+- **P8-2 — context + interface.** Implement `SET_HW_RENDER`,
+  `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE`,
+  `SET_PROC_ADDRESS_CALLBACK` and `context_reset` behind the flag. If the
+  maintainer picks C, the first presentation is `glReadPixels` into `s->frame`
+  and **no Dart change ships at all** — that is the cheapest possible proof
+  that the command set is right.
+- **P8-3 — presentation.** Only if A or B is chosen and C is insufficient:
+  texture registration in Dart, upload or external texture, session
+  lifecycle, and the frame-loss watchdog.
+- **P8-4 — negotiation breadth.** Vulkan context, if the maintainer scopes it
+  into P8; otherwise a recorded deferral with PS2 stated as not reached.
+- Gates: P1 must have landed and the P1-blocked cores reached `RENDERS`
+  before P8-2 starts (`ROADMAP.md` → *Sequencing rules*).
+
+### Rollback plan
+
+- **Fast path (the one that matters):** the opt-in flag off. `SET_HW_RENDER`
+  returns `false`, every core falls back to software `video_cb`, and the
+  product is byte-for-byte the product we have today. This must remain
+  possible in every released build — a flag that cannot be turned off is not
+  a rollback plan.
+- **P8-0 and P8-1 are revertible by deleting them**; neither changes a
+  published signature.
+- **P8-2/P8-3 revert** is: drop the GL sources from the kernel build, delete
+  the additive host queries, keep `EZCORE_ABI_VERSION` at 1. Because the
+  surface grew additively, the pre-P8 binary and the post-P8 binary are
+  mutually usable — the query returns "CPU" and the UI takes the old path.
+- If a **dependency** was introduced under `project.md` §26, it must be
+  removable without touching anything else in the build. That is a condition
+  of approving it, not a hope.
+- **Frame-level rollback:** if a session misbehaves on the GPU path, the
+  watchdog in *Risks* (if adopted) drops that session to the CPU path without
+  an app restart, and the failure is recorded in diagnostics rather than
+  being a silent black screen.
+
+### Test plan
+
+Native (CTest, no content required):
+
+1. `test_core_player` and `test_core_boot` pass **unmodified** with the flag
+   off and on (`PLATFORM.md` §6.3). This is the primary tripwire.
+2. A synth-core mode that calls `SET_HW_RENDER` with each
+   `RETRO_HW_CONTEXT_*` value, plus `SET_PROC_ADDRESS_CALLBACK`, asserting the
+   runtime's answers: unknown context → `false`; known context with the path
+   off → `false`; with the path on → `true` with a populated interface.
+3. `context_reset` handling: force a reset notification and assert the core
+   re-creates its resources and frames resume, with no leak (sanitizer run).
+4. Golden-frame equality: with the flag **off**, the synth core's frames are
+   byte-identical to the pre-P8 output (guards the CPU path).
+5. A `video_cb(NULL, w, h, pitch)` test asserting the dupe is preserved and
+   re-presented — **this test is the definition of the fix for the NULL-dup
+   defect**, and whether the fix is in P8's scope decides whether it is
+   written here or in a separate change.
+
+Flutter:
+
+6. Unit tests for the opt-in flag: default off; renderer-kind query result
+   drives the presentation branch; turning it off mid-session is safe.
+
+Per-core (fork-isolated, as the existing boot tests are):
+
+7. Boot-level checks for `geometry1`, `rcp64`, `dualscreen`, `portcomp` and
+   `dreamarc` on the path-on configuration. **These need game content and
+   therefore cannot be verified in-repo** — the P8 exit condition ("GL-default
+   cores render on a verified platform") is satisfied by a maintainer-run
+   check on the platform named in the open questions below, recorded in
+   `MATRIX.md` with whatever honesty about that platform's evidence.
+
+Platform:
+
+8. Android: real-device check including background/foreground (context loss)
+   and a driver-reset if one can be provoked. Desktop: one platform, GL and —
+   if P8-4 is in scope — Vulkan.
+9. `flutter analyze`, the full Flutter suite, and the Linux CTest suite stay
+   green, recorded per `ROADMAP.md` → *Evidence and change rules*.
+
+### Alternatives considered (for the item as a whole)
+
+- **Ship `SET_HW_RENDER` returning `false` and call P8 done.** Rejected as
+  dishonest: it changes no capability and would let the roadmap claim an
+  unlock that has not happened.
+- **Adopt a third-party frontend's video driver design wholesale.** Rejected
+  as a starting point: it presumes the context question is already answered
+  and smuggles a large dependency in under a capability item.
+- **Defer P8 until PS2's Vulkan requirement is settled.** Rejected: Vulkan
+  would then gate five GL-default cores behind a much harder target, and
+  `PLATFORM.md` §6.6 forbids holding verifiable capability for a harder
+  cousin.
+- **Make the GPU path the only path.** Rejected: it would put the three
+  render-verified cores at risk for no user-visible gain, and it removes the
+  rollback that makes P8 safe to attempt at all.
+
+### Open questions for the maintainer
+
+These are the decisions. Nothing below is settled, and the implementation
+should not start until they are answered (`project.md` §1).
+
+1. **Context ownership: A, B, or C?** Note that A and B both require a
+   Flutter external texture to get anything on screen, and differ only in who
+   creates the context; C requires no UI work at all and no zero-copy. If the
+   priority is "unblock the five cores with the least risk", C is the
+   cheapest. If it is "make Dolphin and Flycast playable at native
+   resolution", C is insufficient and the choice is A or B. **Is the first
+   P8 cut an unblocking cut or a performance cut?**
+2. **Which API first: `SET_HW_RENDER` alone, or `SET_HW_RENDER` +
+   `GET_HW_RENDER_INTERFACE` + `SET_PROC_ADDRESS_CALLBACK` +
+   `context_negotiation` together?** I have presented the full set, because a
+   partial set that answers `true` to `SET_HW_RENDER` without being able to
+   report context loss is the failure mode I would most want to avoid — but
+   that argues for a larger first step, not automatically the right one.
+3. **Which platform is "the verified platform" for the P8 exit condition?**
+   Android (EGL, GLES3, the texture path, and the platform with the most
+   cores in use) and Linux desktop (the platform the existing gates run on)
+   are the two defensible answers and they imply different amounts of work.
+   And: **is Vulkan in P8's scope at all**, given PS2 (issue #55) requires
+   it and the exit condition as written says "GL-default cores"?
+4. **Is the `video_cb(NULL, …)` dupe defect in P8's scope?** It is a small,
+   independent correctness fix, and it is *not* caused by hardware rendering.
+   My reading is that it should be its own change with its own test — but it
+   touches the CPU path that P8 is simultaneously trying not to disturb, so
+   it is the maintainer's call whether the two land together.
+5. **`ezcore_frame_pixels` on the GPU path:** always mirror, soft-resolved
+   capability query returning `NULL`, or lazy readback? And confirmation
+   that **`EZCORE_ABI_VERSION` stays 1** (my reading: it should, since all
+   three options are additive host-side surface).
+6. **Does any new dependency get approved under `project.md` §26?** My
+   reading is that the existing `dynload.h` seam is sufficient for a first
+   cut and no dependency is needed at all — but Windows and macOS are where I
+   am least certain, and I did not verify the platform SDK/header situation
+   on either.
+
+---
+
 ## Open Decisions
 
 These need to be made before Phase 1:
