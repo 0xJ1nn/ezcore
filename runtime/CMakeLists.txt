@@ -19,8 +19,24 @@ else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
 endif()
 
+# GPU render context (ADR-018, Option B). ezcore_gpu.c is the only file that
+# knows which backend is in play; exactly one *_platform backend is compiled in
+# per platform, and the Vulkan backend is portable because it goes through the
+# loader rather than linking libvulkan. No EGL/GLES/Vulkan library is linked
+# here on purpose -- see the comment at the top of ezcore_gpu_egl.c.
+if(WIN32)
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_wgl.c)
+elseif(APPLE)
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_cgl.c)
+else()
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_egl.c)
+endif()
+
 add_library(ezcore_runtime SHARED
   src/runtime.c
+  src/ezcore_gpu.c
+  src/ezcore_gpu_vulkan.c
+  ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
 )
 target_include_directories(ezcore_runtime PUBLIC
@@ -197,6 +213,15 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_env_coverage_docs.py)
 endif()
+
+# GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
+# and a real Vulkan device where the host has them, and SKIPS with a printed
+# reason where it does not -- a GPU test that fails without a GPU would only
+# ever be runnable on one machine, and would get deleted.
+add_executable(test_gpu_context test/test_gpu_context.c)
+target_include_directories(test_gpu_context PRIVATE src)
+target_link_libraries(test_gpu_context PRIVATE ezcore_runtime)
+add_test(NAME gpu_context COMMAND test_gpu_context)
 
 # Native core lifecycle test (synthetic — deterministic, no copyrighted content)
 add_test(NAME core_player

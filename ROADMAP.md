@@ -26,6 +26,8 @@
 > platform; the phase list that follows it remains the long-range product
 > surface.
 
+
+
 ## Status key
 
 - `[x] Complete` — implemented, integrated, tested to the stated scope, and
@@ -149,7 +151,25 @@ the whole product.
 > P6 exit condition is **not** met, and P6 remains gated on P1 regardless of
 > how complete the seam looks.
 | **P7** | Signature/trust hardening; make `cores/registry.json` real or remove it | [ ] Planned | Tampered packages and bad signatures are rejected by test | P5 |
-| **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [ ] Planned | GL-default cores render on a verified platform; the CPU path stays green | P1 |
+| **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [~] Context seam landed | GL-default cores render on a verified platform; the CPU path stays green | P1 |
+
+> **P8 progress (2026-09-29).** ADR-018 is **Accepted — Option B**: the runtime
+> owns its own EGL/GLES and Vulkan surfaces, and the design is platform-neutral.
+> The render-context seam now exists and is verified on real hardware on the
+> development host: a GLES **3.2** context on a pbuffer binds a
+> `GL_FRAMEBUFFER_COMPLETE` FBO that survives a clear-and-readback, and a Vulkan
+> instance, physical device, device and queue are negotiated against two live
+> ICDs.
+>
+> **The six cores are still blocked.** `env_cb` does not yet answer
+> `SET_HW_RENDER`, and no core has been driven through this context, so nothing
+> in `MATRIX.md` advances. What exists is the context, not the integration.
+> Honest gap: the Vulkan per-frame image handoff (`set_image`) and the Flutter
+> external-texture presentation are both **not implemented** — the surface a
+> core writes into is negotiated, but nothing presents it to the screen yet.
+> The Windows (WGL) and macOS (CGL) backends are deliberate no-ops that report
+> "unavailable" so a core falls back to software rather than crashing; on
+> Windows and macOS the portable Vulkan path is the one that carries GPU cores.
 | **P9** | Tier-2 engine supervision (current-generation console, PC-game stacks) | [?] Needs research | An external engine is launched, driven, and supervised with library/save continuity | P1, experimental |
 
 **Sequencing rules for this program:**
