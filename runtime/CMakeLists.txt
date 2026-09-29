@@ -236,6 +236,22 @@ add_executable(test_core_boot test/test_core_boot.c)
 target_link_libraries(test_core_boot PRIVATE ezcore_runtime)
 target_include_directories(test_core_boot PRIVATE include)
 
+# P6 exit-code contract: proves crash_libretro still faults on demand and that
+# a real signal death is classified as exit 9 (kCrashExitCode), the mapping
+# test_core_boot.c already uses. Until this existed the fixture was built and
+# never run, so `ctest` could not have told a maintainer it had rotted.
+# POSIX-only: needs fork()/WIFSIGNALED to isolate the faulting grandchild.
+add_executable(test_crash_signal test/test_crash_signal.c)
+target_link_libraries(test_crash_signal PRIVATE ezcore_runtime)
+target_include_directories(test_crash_signal PRIVATE include)
+add_dependencies(test_crash_signal crash_libretro)
+
+if(NOT WIN32)
+  add_test(NAME crash_signal_exit_code
+    COMMAND test_crash_signal
+    $<TARGET_FILE:crash_libretro>)
+endif()
+
 # Boot tests for cores that have test ROMs available.
 # Fixture-gated: skipped when native/test-roms/ is absent (fresh clones, CI
 # without fixtures). Core tree follows the host platform:
