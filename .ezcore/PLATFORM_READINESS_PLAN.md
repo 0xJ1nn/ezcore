@@ -97,9 +97,19 @@ starts. This is the biggest single engineering item on the board.
 Not a P-item; it's tooling, and it is what makes the app unavailable rather than
 merely less complete.
 
-- **`scripts/ios_frameworks.sh` — MISSING.** `scripts/release.sh:18` references
-  it; the iOS delivery design is built around it. iOS cannot be cut as a
-  release until it exists.
+- ~~**`scripts/ios_frameworks.sh` — MISSING.**~~ **NOW WRITTEN.** The dangling
+  reference at `scripts/release.sh:18` is resolved. It wraps each staged
+  `native/cores-ios-arm64/<id>/*.dylib` into an `<id>.framework` bundle with an
+  `Info.plist` and an `@rpath`-correct install name, skips the legal-hold cores
+  so a blocked core can never reach an archive, and has a `--check` mode that
+  fails on a missing/malformed bundle or an install name that disagrees with
+  its path — the corruption that would otherwise only surface as a `dlopen`
+  failure on a user's device. It deliberately does NOT re-patch minos:
+  `ios_fix_min_version` (core_platform.sh:74) already does that at stage time
+  and refuses the build if it fails; re-patching here would rewrite the bytes
+  the committed pins were computed from. **iOS still has no verified
+  artifact** — this makes iOS *buildable*; issue #65 still has to produce and
+  verify one on a macOS host.
 - ~~**`scripts/android-stubs/` — MISSING.**~~ **NOW SHIPPED.** Required by
   `scripts/build_core.sh:299` for cardcon's `-lrt` linker stub. `librt.so` is a
   text GNU ld script (`INPUT(-lc)`) that satisfies `-lrt` on bionic, which has
@@ -159,7 +169,8 @@ an unfinished kernel contract is exactly this case.
    The doc gate is also in.
 3. **Decide ADR-018** — your call, gates all of P8
 4. **P8 Vulkan (desktop)** then **Metal (Apple)** — unblocks 4 + 2 cores
-5. **`ios_frameworks.sh`** — still missing. `android-stubs/` is **done**;
-   the remaining half of this item is iOS only.
+5. ~~**`ios_frameworks.sh`**~~ — **done.** Both halves of this item are now
+   written; what remains is *verifying* them, which needs a macOS host and is
+   issue #65's work.
 6. **P6 real supervision** — once P1 is closed
 7. **P5/P7 trust + EZC-015 decision** — before public release
