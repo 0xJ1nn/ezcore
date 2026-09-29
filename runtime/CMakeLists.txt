@@ -122,6 +122,25 @@ if(APPLE)
   set_target_properties(synth_all_ports_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- Synthetic core that echoes every port AND rejects a content-less load.
+# Used by the load-game stuck-input regression test (test_loadgame_input):
+# the all-ports build proves a successful load clears held buttons, and this
+# build's EZCORE_SYNTH_FAIL_LOAD guard lets the same test prove that a FAILED
+# load leaves the still-running session's input untouched.
+add_library(synth_all_ports_fail_load_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_all_ports_fail_load_libretro PRIVATE
+  EZCORE_SYNTH_ALL_PORTS
+  EZCORE_SYNTH_FAIL_LOAD
+)
+target_include_directories(synth_all_ports_fail_load_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_all_ports_fail_load_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Tests ---
 add_executable(test_abi test/test_abi.c)
 target_link_libraries(test_abi PRIVATE ezcore_runtime)
@@ -148,6 +167,16 @@ add_executable(test_input_reset test/test_input_reset.c)
 target_link_libraries(test_input_reset PRIVATE ezcore_runtime)
 target_include_directories(test_input_reset PRIVATE include)
 add_dependencies(test_input_reset synth_all_ports_libretro)
+
+# Stuck-input regression: ezcore_load_game must release held buttons on a
+# successful load, and must NOT touch them when the load fails.
+add_executable(test_loadgame_input test/test_loadgame_input.c)
+target_link_libraries(test_loadgame_input PRIVATE ezcore_runtime)
+target_include_directories(test_loadgame_input PRIVATE include)
+add_dependencies(test_loadgame_input
+  synth_all_ports_libretro
+  synth_all_ports_fail_load_libretro
+)
 
 enable_testing()
 add_test(NAME abi_version COMMAND test_abi)
@@ -180,6 +209,13 @@ add_test(NAME core_options
 add_test(NAME input_reset_clears_buttons
   COMMAND test_input_reset
   $<TARGET_FILE:synth_all_ports_libretro>)
+
+# Regression: a button held when a second game is loaded must not stay latched
+# across the game boundary, and a failed load must leave input alone.
+add_test(NAME loadgame_clears_buttons
+  COMMAND test_loadgame_input
+  $<TARGET_FILE:synth_all_ports_libretro>
+  $<TARGET_FILE:synth_all_ports_fail_load_libretro>)
 
 # Regression coverage for cores that omit each optional cheat symbol.
 add_test(NAME optional_cheat_symbols_none
