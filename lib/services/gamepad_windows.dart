@@ -18,7 +18,34 @@ class WindowsXInputPoller {
   final _connected = <int>{};
   bool _running = false;
 
-  static const _deadzone = 12000;
+  /// Stick deadzone, in raw XInput axis units.
+  ///
+  /// An `XINPUT_GAMEPAD` stick axis is a signed 16-bit value, so full scale
+  /// is 32767 (positive) / 32768 (negative). This is 8000, i.e. ~24.4% of
+  /// full scale. That is the right ballpark for a thumbstick: it is wide
+  /// enough to swallow resting drift and sensor noise in a worn pad, but
+  /// narrow enough that the inner quarter of travel stays usable. The old
+  /// value of 12000 was 36.6% — a third of the stick's travel dead on every
+  /// side, which read as a hole in the middle of the stick.
+  ///
+  /// The comparison is strictly greater-than, so the boundary is exact:
+  /// |axis| == 8000 registers nothing, 8001 does.
+  static const int stickDeadzone = 8000;
+
+  /// Analog trigger threshold, in raw XInput trigger units.
+  ///
+  /// `bLeftTrigger` / `bRightTrigger` are unsigned bytes, so full scale is
+  /// 255. 64 is 25.1% of full scale — a deliberate quarter pull, which is
+  /// where a real press becomes unambiguous while everything below it (rest
+  /// value plus drift) stays silent. The old value of 30 was 11.8%: a
+  /// trigger merely resting at 40 from ordinary drift read as permanently
+  /// pressed. This runtime has no analog passthrough (see
+  /// runtime/src/runtime.c, which rejects every non-RETRO_DEVICE_JOYPAD
+  /// device), so a trigger can only ever be on or off here — the threshold
+  /// has to do the noise rejection alone.
+  ///
+  /// Strictly greater-than: 64 does not fire, 65 does.
+  static const int triggerThreshold = 64;
 
   /// Button mask bits mapped to canonical codes.
   static const buttonCodes = <int, String>{
@@ -52,8 +79,8 @@ class WindowsXInputPoller {
     for (final entry in buttonCodes.entries) {
       if (buttons & entry.key != 0) out.add(entry.value);
     }
-    if (leftTrigger > 30) out.add('lt');
-    if (rightTrigger > 30) out.add('rt');
+    if (leftTrigger > triggerThreshold) out.add('lt');
+    if (rightTrigger > triggerThreshold) out.add('rt');
     _stick(out, lx, ly);
     _stick(out, rx, ry);
     return out;
@@ -76,16 +103,29 @@ class WindowsXInputPoller {
     return <String>{};
   }
 
+  /// Pure helper: directions implied by one stick's raw XInput axes.
+  ///
+  /// Public and side-effect-free so the deadzone boundary can be asserted
+  /// without hardware. Axes are raw int16 (-32768..32767); Y is up-positive
+  /// in XInput. Deflection past [stickDeadzone] on an axis yields exactly one
+  /// direction; within the deadzone it yields none. Diagonals are two codes,
+  /// which is the pre-existing behaviour.
+  static Set<String> stickCodes(int x, int y) {
+    final out = <String>{};
+    _stick(out, x, y);
+    return out;
+  }
+
   static void _stick(Set<String> out, int x, int y) {
-    if (x > _deadzone) {
+    if (x > stickDeadzone) {
       out.add('right');
-    } else if (x < -_deadzone) {
+    } else if (x < -stickDeadzone) {
       out.add('left');
     }
     // Y is up-positive in XInput.
-    if (y > _deadzone) {
+    if (y > stickDeadzone) {
       out.add('up');
-    } else if (y < -_deadzone) {
+    } else if (y < -stickDeadzone) {
       out.add('down');
     }
   }
