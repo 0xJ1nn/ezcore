@@ -32,6 +32,24 @@ class GamepadService {
   WindowsXInputPoller? _winPoller;
   LinuxEvdevPads? _linuxPads;
 
+  /// Forget every button the host believes this poller sent, WITHOUT
+  /// emitting a release.
+  ///
+  /// Needed because the host can clear input behind the poller's back: the C
+  /// runtime's `ezcore_reset` and the worker's pause path both drop held
+  /// buttons, while the poller only emits on *transitions*. Without this,
+  /// a code still held physically is present in both the previous and the
+  /// current poll, so no event is ever re-sent and the core reads the
+  /// control as released until the user re-presses it.
+  ///
+  /// Emitting nothing here is deliberate: the host already cleared its own
+  /// state, so a release would be a lie and would also mask the re-press.
+  /// A no-op on every backend that has no held-set of its own.
+  void forgetHeld() {
+    _winPoller?.forgetHeld();
+    _linuxPads?.forgetHeld();
+  }
+
   /// RetroPad id for a canonical [code], or null to ignore.
   static int? toRetroPad(String code) => switch (code) {
         'b' => 0,
