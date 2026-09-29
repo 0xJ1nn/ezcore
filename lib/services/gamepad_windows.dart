@@ -115,8 +115,9 @@ class WindowsXInputPoller {
     final out = <String>{};
     _stick(out, x, y);
     return out;
+  }
 
-/// Pure helper: the transition decision for one poll tick, given what this
+  /// Pure helper: the transition decision for one poll tick, given what this
   /// poller last emitted ([was]) and what the pad reports now ([now]).
   /// Returns `(presses, releases)` — the codes to emit this tick, in that
   /// order — so the diff is testable without an XInput DLL.
