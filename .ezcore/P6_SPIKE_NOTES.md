@@ -45,6 +45,28 @@ unit-tested with no FFI and no processes.
 already returns 9 for `WIFSIGNALED(status)`. Reusing it means the C harness and
 the Dart classifier agree on one number.
 
+**This contract now has automated coverage.** CTest test
+`crash_signal_exit_code` (`runtime/test/test_crash_signal.c`, added to
+`runtime/CMakeLists.txt`) drives the real fixture end to end: with
+`EZCORE_CRASH_AFTER` unset the core must load and run 30 frames to a clean
+exit 0, and with `EZCORE_CRASH_AFTER=3` set **in the forked child only** the
+child must die on a real SIGSEGV that the same `WIFEXITED`/`WIFSIGNALED`
+mapping classifies as 9. The clean case is the control: it is what makes the
+crash case mean something, since a fixture that faulted unconditionally would
+otherwise also "pass" the crash assertion. The test is POSIX-only
+(`if(NOT WIN32)`) because it needs `fork()` to keep the faulting grandchild
+from killing the runner; on Windows the fixture is still built but neither
+half is asserted.
+
+**What that coverage does NOT claim.** It is a fixture-level test. It proves
+the crash fixture faults on demand and that the fork harness reports a signal
+death as 9. It proves nothing about the app surviving a crash: no core is
+isolated from a faulting one at app level, because
+`ContainmentMode.supervisedProcess` still throws
+`UnsupportedContainmentError` and no child process is ever spawned. A
+maintainer seeing `crash_signal_exit_code` pass should conclude "the seam's
+contract and its fixture are intact", not "the app is crash-safe".
+
 **Watchdog outranks the exit code.** Killing a wedged child makes it die on
 SIGKILL, which the supervisor would also report as a signal-derived 9. Without
 the ordering rule a hang would file itself as a segfault bug report. A hang
@@ -56,6 +78,9 @@ produced no exit code of its own, so it is classified `hung`.
 - `runtime/test/crash_core.c` + `crash_libretro` CMake target — one binary,
   faults on the Nth `retro_run` when `EZCORE_CRASH_AFTER=N` is set, runs clean
   otherwise.
+- `runtime/test/test_crash_signal.c` + CTest test
+  `crash_signal_exit_code` — the automated proof that the fixture above still
+  faults and that a signal death is classified as 9.
 - `test/supervisor_session_test.dart` — classifier contract only.
 
 ## NOT implemented
@@ -80,13 +105,21 @@ produced no exit code of its own, so it is classified `hung`.
 `crash_core.c` faults inside `retro_run`, which runs in *this* process once the
 core is dlopen'd. Loading it from a Dart test would kill the whole `flutter
 test` runner with SIGSEGV — not a clean failure, a truncated log and a dead
-suite. Real-signal coverage must live where a process boundary already exists:
-`test_core_boot.c`'s fork/waitpid harness. The Dart test deliberately covers
+suite. Real-signal coverage must live where a process boundary already exists,
+and that is what `runtime/test/test_crash_signal.c` does via
+`test_core_boot.c`'s fork/waitpid pattern. The Dart test deliberately covers
 the classifier alone; a future in-process containment change must add a forked
-child-process test, not extend this one.
+child-process test on the Dart side too, not extend the existing one.
 
 ## Unverified
 
 Nothing was compiled or executed. See the delivery report; `libretro.h` is not
 vendored in this worktree and Dart deps were never fetched, so both toolchains
 had no way to check these files.
+
+That still applies to the later addition of `test_crash_signal.c` and its
+CTest registration: the test was written by reading `crash_core.c`,
+`test_core_boot.c` and `test_input_reset.c`, but has never been built or run.
+Its assertions are therefore an argument from the code, not an observed pass.
+The first `ctest` run on a machine with vendored `libretro.h` is what will
+actually confirm it.
