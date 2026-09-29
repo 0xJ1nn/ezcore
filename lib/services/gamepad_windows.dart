@@ -59,6 +59,23 @@ class WindowsXInputPoller {
     return out;
   }
 
+  /// Pure helper: emit a release for every code in [held] and return the
+  /// now-empty set, so a pad that goes away mid-press cannot leave a
+  /// direction stuck down for the rest of the session.
+  ///
+  /// Order-independent: callers that need determinism should pass a sorted
+  /// set. Never throws for an empty or null-ish input; a pad that held
+  /// nothing emits nothing.
+  static Set<String> releaseHeld(
+    Set<String> held,
+    void Function(String code, bool pressed) onButton,
+  ) {
+    for (final code in held) {
+      onButton(code, false);
+    }
+    return <String>{};
+  }
+
   static void _stick(Set<String> out, int x, int y) {
     if (x > _deadzone) {
       out.add('right');
@@ -108,6 +125,13 @@ class WindowsXInputPoller {
     try {
       final rc = _getState(pad, state.cast());
       if (rc != 0) {
+        // The pad stopped responding: release anything we still believe is
+        // held BEFORE dropping the record, otherwise a direction held at
+        // unplug time stays pressed forever.
+        final held = _lastDirs[pad];
+        if (held != null && held.isNotEmpty) {
+          releaseHeld(held, onButton);
+        }
         if (_connected.remove(pad)) {
           onConnection(false, '');
         }
