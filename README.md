@@ -279,7 +279,7 @@ feel like features instead of friction.
 #### The platform program
 
 The road ahead is sequenced deliberately. The keystone is finishing what the
-kernel can offer a core — today it answers only **7 of the 92** libretro environment
+kernel can offer a core — today it answers **13 of the 93** libretro environment
 requests the vendored header defines, which is why some systems in the catalog
 are listed as built but not yet frame-verified in
 [`docs/MATRIX.md`](docs/MATRIX.md).

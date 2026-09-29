@@ -1,24 +1,26 @@
 # ezCORE Core × Platform Matrix
 
-> **Last verified:** 2026-09-28 (P1b capability surface merged: env_cb answers
-> 13 of the 92 environment requests — core options v2+intl, input descriptors,
-> controller info, memory maps — with the Dart bindings, the 4-layer
-> global/system/core/game resolver, and the worker protocol landed via
+> **Last verified:** 2026-09-28 — P1b capability surface merged: `env_cb` answers
+> **13 of the 93** environment requests (core options v2 + intl, input
+> descriptors, controller info, memory maps), with the Dart bindings, the
+> 4-layer global/system/core/game resolver, and the worker protocol landed via
 > #45/#48/#50. The option surface removes the kernel blocker for frame
 > verification of the built-but-unverified systems; their RENDERS evidence
-> still accrues per system below. The linux-x64 tier was also rebuilt on the
+> still accrues per system below. The `linux-x64` tier was rebuilt on the
 > current toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 11/11
 > including `boot_pocketbit`; the app stages 14 bundled cores with zero pin
-> refusals. The 2026-09-22 record below documents the enablement that
-> reached
-> toolchain and re-pinned — `fix/linux-x64-repin`; native ctest 10/10 on the
-> Linux checkout including `boot_pocketbit`; the app stages 14 bundled cores
-> with zero pin refusals. The 2026-09-22 record below documents the enablement
-> that reached
-> 14 cores built + pin-verified (12 boot-tested natively; pocketbit live-boot verified,
-> rcp64 ABI-verified); app launch verified — vault staging, library auto-import via watched
-> ROM folders, 3 CC0 test ROMs listed). macOS arm64 remains run-verified from v0.1.1
-> (2026-09-19).
+> refusals. macOS arm64 remains run-verified from v0.1.1 (2026-09-19).
+>
+> Re-check the kernel coverage count against the **vendored** header before
+> quoting it — see the note in [`../ROADMAP.md`](../ROADMAP.md):
+>
+> ```bash
+> grep -o 'RETRO_ENVIRONMENT_[A-Z0-9_]*' \
+>   runtime/external/libretro-common/include/libretro.h | sort -u | wc -l   # -> 93
+> grep -oE 'case RETRO_ENVIRONMENT_[A-Z0-9_]+' \
+>   runtime/src/runtime.c | sort -u | wc -l                               # -> 13
+> ```
+>
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
 >
@@ -48,7 +50,7 @@ enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Notes |
 |---|---|---|---|---|---|---|
 | pocketbit | RENDERS | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race); Linux verified with live boot test (Damuel.gb: load/init/frames/save-restore) |
-| gambatte | RENDERS | BUILT | BUILT | — | — | Android via `unix` (no android branch upstream) |
+| gambatte | RENDERS ⚠ | BUILT | BUILT | — | — | ⚠ **Catalog contradiction:** `cores/catalog.json` records `delivery: absent` on *all five* platforms, so staging ships it nowhere, while artifact pins exist for `macos-arm64` / `linux-x64` / `android-arm64`. Its licence is **GPL-2.0-only** (distributable — unlike `superfx`/`blastproc`/`coinbox`, which are non-commercial and are correctly `absent`). A pin plus a RENDERS result implies it was meant to ship. Resolving this is a distribution decision under `project.md` §28, not a docs edit — tracked, see `.ezcore/KNOWN_ISSUES.md`. Android via `unix` (no android branch upstream) |
 | advancebit | RENDERS | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
 | nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` (TLS requires minos 9+) |
 | superfx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |

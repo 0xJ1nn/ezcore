@@ -77,16 +77,20 @@ it.
 3. The largest single blocker is not architecture — it is that the kernel
    answers "no" to almost everything a core asks.
 
-**The keystone gap (verified 2026-09-26; count re-verified 2026-09-28 — 92 is
+**The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
-`libretro.h`, reproducible with one grep):** `env_cb` implements **7 of the 92**
-`RETRO_ENVIRONMENT_*` commands; everything else hits `default: return false`
-(`runtime/src/runtime.c:71-114`). Unimplemented: `GET_CORE_OPTIONS_V2*`,
-`GET_VARIABLE*`, `SET_CORE_OPTIONS_V2*`, `SET_INPUT_DESCRIPTORS`,
-`SET_CONTROLLER_INFO`, `SET_MEMORY_MAPS`, `GET_RUMBLE_INTERFACE`,
-`SET_HW_RENDER`, `SET_GEOMETRY`, `SET_PERFORMANCE_LEVEL`, `GET_LANGUAGE`, and
-more. This single fact is why `MATRIX.md` records PS2, N64, GameCube, Wii,
-Dreamcast and PC-architecture cores as frame-unverified.
+`runtime/external/libretro-common/include/libretro.h`, reproducible with one
+grep):** `env_cb` implements **13 of the 93** `RETRO_ENVIRONMENT_*` commands;
+everything else hits `default: return false` (`runtime/src/runtime.c:197`).
+Still unimplemented and relevant here: `SET_HW_RENDER`,
+`GET_HW_RENDER_INTERFACE`, `GET_RUMBLE_INTERFACE`, `SET_GEOMETRY`,
+`SET_PERFORMANCE_LEVEL`, `GET_LANGUAGE`, and the `GET_VARIABLE*` /
+`SET_PERFORMANCE_LEVEL` family. Landed since the previous revision of this
+file, and no longer "unimplemented": `SET_CORE_OPTIONS_V2*` (both v2 and intl
+variants), `SET_INPUT_DESCRIPTORS`, `SET_CONTROLLER_INFO`, and
+`SET_MEMORY_MAPS` (PRs #45/#48/#50). This single fact is why `MATRIX.md`
+records PS2, N64, GameCube, Wii, Dreamcast and PC-architecture cores as
+frame-unverified.
 
 Related, same audit: input is **digital only** — `RETRO_DEVICE_JOYPAD` is the
 only handled device (`runtime.c:181-190`); the Dart layer sends **port 0 only**
