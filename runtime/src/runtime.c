@@ -615,11 +615,26 @@ bool ezcore_init(ezcore_session *s) {
   return true;
 }
 
+/* Load content into the session. Also releases every held button on all four
+ * ports when the new game takes over (same stuck-input class as
+ * ezcore_reset, see the note at the top of this file): frontends sample the
+ * pad asynchronously, so a button still down when the user loads a game into
+ * a live session stays latched in input_buttons and the freshly loaded core
+ * reads 1 for that bit on its very first frames — phantom input held across
+ * the game boundary. ezcore_unload needs no clear because it frees the
+ * session outright.
+ *
+ * Placement is deliberate: after retro_load_game() and only on success. A
+ * failed load leaves the session still running the previous game, so its
+ * input state is live player input and must survive the attempt — clearing
+ * unconditionally at the top would silently drop held buttons for a game that
+ * never went away. Only the game boundary itself resets the pad. */
 bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
                    size_t size) {
   if (!s) return false;
   struct retro_game_info info = {rom_path, data, size, NULL};
   bool ok = s->retro_load_game(&info);
+  if (ok) memset(s->input_buttons, 0, sizeof(s->input_buttons));
   s->game_loaded = ok;
   return ok;
 }
