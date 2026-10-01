@@ -17,6 +17,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../models/core_manifest.dart';
+
 /// Top-level fields permitted in a core package `manifest.json`.
 ///
 /// Mirrors the reference shape of `cores/nesbyte/manifest.json`. Passed as the
@@ -46,6 +48,8 @@ const Set<String> kKnownManifestFields = <String>{
   'blocked_reason',
   'gated_reason',
   'notes',
+  // Recommended starting values for the core's own options (data only).
+  'default_options',
 };
 
 /// Result of validating a core package directory.
@@ -230,6 +234,12 @@ class PackageValidationReport {
         }
       }
     }
+
+    // default_options: a capped string -> string map, one rule shared with
+    // the app model.
+    report.errors.addAll(
+      CoreManifest.parseDefaultOptions(manifest['default_options']).errors,
+    );
 
     // Soft policy: bios_required without bios_files.
     final biosRequired = manifest['bios_required'] == true;
