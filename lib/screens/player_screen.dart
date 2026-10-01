@@ -3,7 +3,8 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../controls/builtin_layouts.dart';
+import '../controls/layout_editor.dart';
+import '../controls/layout_store.dart';
 import '../controls/control_layout.dart';
 import '../controls/control_overlay.dart';
 import '../emu/player_controller.dart';
@@ -66,6 +67,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   /// off on desktop (keyboard and pads); the player can flip it any time.
   bool padVisible = true;
   final _overlayKey = GlobalKey<ControlOverlayState>();
+  late final _layouts = LayoutStore(widget.state);
   bool _menuOpen = false;
   String? launchError;
   bool leaving = false;
@@ -374,7 +376,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _stage(String system, Size size) {
     final portrait = size.height > size.width;
-    final layout = builtinLayout(system, portrait: portrait);
+    final layout = _layouts.resolve(system, portrait: portrait);
     final showControls = padVisible && player.running;
     final screen = showControls
         ? layout.screen
@@ -511,6 +513,19 @@ class _PlayerScreenState extends State<PlayerScreen>
             ),
           ),
         );
+      case 'edit':
+        final size = MediaQuery.sizeOf(context);
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => LayoutEditorScreen(
+              store: _layouts,
+              system: game.system,
+              portrait: size.height > size.width,
+              frame: player.frame,
+            ),
+          ),
+        );
+        if (mounted) setState(() {});
       case 'controls':
         setState(() => padVisible = !padVisible);
         await widget.state.setSetting('touchOverlay', padVisible);
@@ -623,6 +638,7 @@ class _PauseMenu extends StatelessWidget {
                     ),
                     item('shot', Icons.photo_camera_outlined, 'Screenshot',
                         enabled: hasFrame),
+                    item('edit', Icons.tune, 'Edit controls'),
                     item('reset', Icons.restart_alt, 'Reset game', enabled: running),
                   ],
                 ),
