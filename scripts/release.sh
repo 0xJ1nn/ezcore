@@ -152,6 +152,8 @@ case "$PLATFORM" in
     DIST="$ROOT/build/windows/x64/runner/Release"
     [ -d "$DIST" ] || fail "missing $DIST"
     gate cp "$RUNTIME_OUT/libezcore_runtime.dll" "$DIST/"
+    # Crash-containment helper (P6): must sit beside the runtime DLL.
+    gate cp "$RUNTIME_OUT/ezcore_core_host.exe" "$DIST/"
     gate mkdir -p "$DIST/cores" && stage_bundled "$CORES_OUT" windows "$DIST/cores"
     (cd "$ROOT/build/windows/x64/runner" && zip -qr "$OUT/ezcore-$VERSION-windows-x64.zip" Release)
     ;;
@@ -159,6 +161,8 @@ case "$PLATFORM" in
     DIST="$ROOT/build/linux/x64/release/bundle"
     [ -d "$DIST" ] || fail "missing $DIST"
     gate cp "$RUNTIME_OUT/libezcore_runtime.so" "$DIST/"
+    # Crash-containment helper (P6): finds the runtime beside it ($ORIGIN).
+    gate cp "$RUNTIME_OUT/ezcore_core_host" "$DIST/"
     gate mkdir -p "$DIST/cores" && stage_bundled "$CORES_OUT" linux "$DIST/cores"
     (cd "$ROOT/build/linux/x64/release" && tar -czf "$OUT/ezcore-$VERSION-linux-x64.tar.gz" bundle)
     ;;

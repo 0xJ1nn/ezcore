@@ -38,3 +38,18 @@ Future<Map<String, String?>> resolveRuntimeRef({NativeDirs? native}) async {
   throw StateError(
       'Native runtime not found. Build it (scripts/build_runtime.sh) or set EZCORE_RUNTIME_LIB.');
 }
+
+/// Where `ezcore_core_host` (the crash-containment helper, P6) lives for the
+/// runtime [runtimeRef] points at: always beside the runtime library, in the
+/// build tree and in a release bundle alike. Null when it is not there, or on
+/// platforms that cannot start a helper process (iOS forbids it; Android is
+/// not wired yet).
+String? resolveCoreHostPath(Map<String, String?> runtimeRef) {
+  if (Platform.isIOS || Platform.isAndroid) return null;
+  final lib = runtimeRef['path'];
+  if (lib == null || lib.isEmpty) return null;
+  final dir = File(lib).parent.path;
+  final name = Platform.isWindows ? 'ezcore_core_host.exe' : 'ezcore_core_host';
+  final host = File('$dir${Platform.pathSeparator}$name');
+  return host.existsSync() ? host.path : null;
+}

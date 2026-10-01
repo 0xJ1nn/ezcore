@@ -345,6 +345,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
+          'Crash protection',
+          'Runs each game\'s core in a separate process, so a crashing core '
+              'ends only that game. Experimental; desktop only.',
+          OrbitToggle(
+            label: 'Crash protection',
+            value: _pref('crashContainment', false),
+            onChanged: (v) => _set('crashContainment', v),
+          ),
+        ),
+        _row(
           'Fast-forward speed',
           'Frames stepped per tick while fast-forward is on.',
           OrbitSelect<String>(
