@@ -34,20 +34,49 @@
 </p>
 
 <p align="center">
-  <img alt="ezCORE library with Resume, Continue playing and every game" src="docs/images/library.png" width="900">
+  <img alt="The ezCORE library: a 3D shelf of games with reflections, the front game's dock with Resume" src="docs/images/library.png" width="900">
 </p>
 
 ---
 
 ## What it feels like
 
-**Resume, in one tap.** ezCORE opens on the game you played last — whatever
-system it is — and puts you back exactly where you stopped. No menus, no
+ezCORE is built like an operating system for your games: one top bar, four
+spaces — **Library**, **Systems**, **Capsule** and **Settings** — and keys
+<kbd>1</kbd>–<kbd>4</kbd> to move between them.
+
+**Your collection on a shelf.** Games stand on a glossy 3D shelf, the one in
+front lit up over its own art. Swipe, scroll, use the arrow keys or a
+controller's d-pad; the dock underneath tells you what it is and offers one
+thing to do — **Resume** if you've played it, **Let's play** if not.
+
+<p align="center">
+  <img alt="Browsing the shelf with the arrow keys" src="docs/images/shelf.gif" width="800">
+</p>
+
+**Resume, in one tap.** The shelf opens on the game you played last — whatever
+system it is — and Resume puts you back exactly where you stopped. No menus, no
 choosing an emulator, no hunting for a save.
 
-**One library for everything.** Add a file or a whole folder; ezCORE works out
-what each game is and which core plays it. Search, filter by system, favourite,
-and keep going from *Continue playing*.
+**3D, Grid or List.** Prefer a wall of covers or a tidy list? Switch views top
+right; ezCORE remembers. Grid and List keep Resume and *Continue playing* on
+top. Add a file or a whole folder and ezCORE works out what each game is and
+which core plays it; filter by system, favourite, sort, search with <kbd>/</kbd>.
+
+<p align="center">
+  <img alt="The library as a grid, with Resume and Continue playing" src="docs/images/library-grid.png" width="900">
+</p>
+
+**Systems: cores you can see.** Every emulator core is shown by the systems it
+plays, with honest status (ready, needs BIOS, update available) and whether the
+project has verified it. Install, update or remove one like an app.
+
+<p align="center">
+  <img alt="Systems: installed cores as cards with their hardware, and the details of the selected one" src="docs/images/cores.png" width="900">
+</p>
+
+**Capsule: every save, for every game.** Save states are kept per game, named
+in plain words, and one tap from the rail.
 
 **A real page for every game.** Its own art, Resume or Play, every save as a
 card you can load or delete, the core it uses, cheats, and the file.
@@ -63,13 +92,18 @@ DS shows its two screens as a clamshell with a hinge. Drag, resize, fade or hide
 any button and save it per system; **Reset** brings the default back.
 
 <p align="center">
-  <img alt="The Nintendo DS clamshell layout (no game running)" src="docs/images/controls-ds.png" width="260">
+  <img alt="The library on a phone" src="docs/images/library-phone.png" width="260">
   &nbsp;&nbsp;
+  <img alt="The Nintendo DS clamshell layout (no game running)" src="docs/images/controls-ds.png" width="260">
+</p>
+
+<p align="center">
   <img alt="The NES layout in landscape, showing a frame from the project's own CC0 test ROM" src="docs/images/player-landscape.png" width="560">
 </p>
 
-**Bring your controller.** Remap any button by pressing it. Hold **Select +
-Start** for the pause menu. The d-pad drives every menu, A chooses, B goes back.
+**Bring your controller.** It drives every screen; remap any button by pressing
+it; hold **Select + Start** for the pause menu. A **P1** badge in the top bar
+tells you it's connected.
 
 **A pause menu that respects your progress.** Resume, save and load, cheats,
 edit controls, fast-forward, screenshot, reset and quit. Back never drops you
@@ -78,13 +112,6 @@ out of a game by accident.
 **Crash protection** *(experimental, desktop)*. Turn it on and each core runs in
 its own helper process: if a core crashes or freezes, only that game ends, with
 a plain message. The app, your library and your saves are untouched.
-
-<table>
-  <tr>
-    <td><img alt="Cores, listed by the systems they play" src="docs/images/cores.png"></td>
-    <td width="30%"><img alt="The library on a phone" src="docs/images/library-phone.png"></td>
-  </tr>
-</table>
 
 ---
 
@@ -103,10 +130,11 @@ platform named. Evidence for every cell is in [`docs/MATRIX.md`](docs/MATRIX.md)
 | NES / Famicom | NesByte (Mesen) | ✅ Boots and saves (Linux) |
 | PlayStation | Geometry1 (SwanStation) | ✅ Boots and saves (Linux) |
 | Nintendo DS | DualScreen (melonDS) | ✅ Boots and saves (Linux) |
-| Nintendo 64 | RCP64 (Mupen64Plus-Next) | ✅ Boots and saves on its software renderer (Linux) |
+| Nintendo 64 | RCP64 (Mupen64Plus-Next) | ✅ Boots and saves on the GPU (GLideN64) and in software (Linux) |
+| Dreamcast | DreamArc (Flycast) | ✅ Boots and saves on the GPU (OpenGL, Linux) |
 | PC Engine / TurboGrafx-16 · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Starts; not yet verified with content |
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Starts; content verification in progress |
-| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Needs GPU support (in progress) |
+| PSP · GameCube / Wii | PortComp · PowerCube | GPU context works; booting content is still being fixed |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Work, but their licences forbid redistribution: build them yourself |
 | PS2 · 3DS · Switch | — | Held: not built or shipped under project policy |
 
@@ -194,10 +222,10 @@ Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Where it's going
 
-Next up, in order: analog sticks, keyboard and mouse for every core (unlocking
-DOS and analog-heavy 3D games); GPU rendering (PSP, Dreamcast, GameCube and
-faster N64); crash protection on every desktop and Android; single-file core
-packages anyone can share; and verified builds for every platform. The full plan
+Next up: PSP and GameCube on the GPU, Vulkan for the cores that prefer it,
+crash protection on every desktop and Android, single-file core packages anyone
+can share, and verified builds for every platform. Sticks, keyboard, mouse and
+touch already reach every core. The full plan
 is [`ROADMAP.md`](ROADMAP.md); what changed lately is in
 [`CHANGELOG.md`](CHANGELOG.md).
 
@@ -258,7 +286,8 @@ code, testing, bug reports, art and docs count just as much. Security:
 
 ezCORE stands on the work of the [libretro](https://www.libretro.com/) community
 and the open-source emulator ecosystem. Screenshots show invented titles with
-generated cover art; the in-game frame is the project's own CC0 test ROM.
+generated cover art; the in-game frame is the project's own CC0 test ROM. The
+brand files and how they are made: [`docs/BRAND.md`](docs/BRAND.md).
 
 <p align="center">
   <sub>One home for every game you own.</sub>
