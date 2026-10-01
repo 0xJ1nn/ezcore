@@ -1333,11 +1333,14 @@ cannot exhaust disk or memory.
 
 ## ADR-020: On-screen controls are data (`ezcore.controls/1`)
 
-**Status:** **Proposed** (2026-10-01). Direction set by the maintainer
-(2026-10-01): customisable on-screen buttons, reset to default, shell-like
-layouts (a DS-style clamshell), shipped by core packages, fully user
-customisable. Program item **P4**. Implemented for built-ins in
-`lib/controls/`; package-supplied layouts and the editor follow.
+**Status:** **Accepted** (2026-10-01). The maintainer set the direction
+(customisable on-screen buttons, reset to default, shell-like layouts such
+as a DS clamshell, shipped by core packages, fully user customisable) and
+delegated acceptance of the format ("do the right thing", 2026-10-01).
+Program item **P4**. Built-ins, the user editor and package-supplied
+layouts all use this one format. The three open questions below stay open
+and do not block v1: no shell images, no analog/touch-region controls, and
+family labels rather than core-descriptor labels until each is decided.
 
 ### Context
 
