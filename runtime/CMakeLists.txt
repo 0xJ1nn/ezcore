@@ -252,6 +252,21 @@ target_link_libraries(test_hw_render_core PRIVATE ezcore_runtime ${CMAKE_DL_LIBS
 add_test(NAME hw_render_core COMMAND test_hw_render_core
          $<TARGET_FILE:synth_hw_core>)
 
+# Drawing variant of the same core: renders a known picture and submits it
+# with RETRO_HW_FRAME_BUFFER_VALID, so GPU readback can be checked.
+add_library(synth_hw_draw SHARED test/synth_core/synth_hw_core.c)
+target_compile_definitions(synth_hw_draw PRIVATE EZCORE_SYNTH_HW_DRAW)
+target_include_directories(synth_hw_draw PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include)
+set_target_properties(synth_hw_draw PROPERTIES PREFIX "")
+
+add_executable(test_hw_readback test/test_hw_readback.c)
+target_include_directories(test_hw_readback PRIVATE include)
+target_link_libraries(test_hw_readback PRIVATE ezcore_runtime)
+add_dependencies(test_hw_readback synth_hw_draw)
+add_test(NAME hw_readback COMMAND test_hw_readback
+         $<TARGET_FILE:synth_hw_draw>)
+
 # GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed
 # reason where it does not -- a GPU test that fails without a GPU would only
