@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
-import 'package:ezcore/screens/library_screen.dart';
+import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/screens/settings_screen.dart';
 import 'package:ezcore/screens/vault_screen.dart';
 import 'package:ezcore/state/app_state.dart';
@@ -29,9 +29,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('library featured game + tabs render on a phone viewport', (
-    tester,
-  ) async {
+  testWidgets('library renders on a phone viewport', (tester) async {
     final state = AppState();
     state.games = const [
       GameEntry(
@@ -41,15 +39,14 @@ void main() {
         filePath: '~/Games/gba/mydump.gba',
         extension: 'gba',
         coreId: 'advancebit',
+        lastPlayedMs: 1758000000000,
       ),
     ];
-    await pumpPhone(tester, LibraryScreen(state: state));
-    // Phone portrait follows the studio plate: the All/Favorites/Recent
-    // tabs and a featured game with a "Play" call to action.
-    expect(find.text('All'), findsOneWidget);
-    expect(find.text('Favorites'), findsWidgets);
-    expect(find.text('Recent'), findsOneWidget);
-    expect(find.text('Play'), findsWidgets);
+    await pumpPhone(tester, HomeScreen(state: state));
+    // Phone portrait: Resume for the last game, the add button, filters.
+    expect(find.text('Resume'), findsOneWidget);
+    expect(find.byTooltip('Add games'), findsOneWidget);
+    expect(find.text('All · 1'), findsOneWidget);
     expect(find.text('My GBA Dump'), findsWidgets);
   });
 

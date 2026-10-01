@@ -214,44 +214,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'A little more you.',
+          'Appearance',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Midnight surfaces, electric-blue highlights. Make it yours.',
-          style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
         _row(
-          'Brand palette',
-          'Finalized: black, electric blue, silver, white.',
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final c in const [
-                Color(0xFF0A0A0A),
-                Color(0xFF007BFF),
-                Color(0xFFDDE6F4),
-                Colors.white,
-              ])
-                Container(
-                  width: 25,
-                  height: 25,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: c,
-                    border: Border.all(color: const Color(0x50DDE6F4)),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        _row(
           'Ambient motion',
-          'Planet limb, drifting stars, and the occasional meteor. '
-              'Turn off for a completely still sky.',
+          'Drifting stars behind the library. Turn off for a still '
+              'background.',
           OrbitToggle(
             label: 'Ambient motion',
             value: _pref('motion', true),
@@ -259,57 +229,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
-          'Cover reflections',
-          'A subtle echo beneath every world.',
-          OrbitToggle(
-            label: 'Cover reflections',
-            value: _pref('reflection', true),
-            onChanged: (v) => _set('reflection', v),
-          ),
-        ),
-        _row(
-          'Cover flow feel',
-          'Choose the depth and snap used on desktop and phone covers.',
-          OrbitSelect<String>(
-            value: _pref('coverFlowStyle', 'classic'),
-            options: const ['classic', 'gentle', 'flat'],
-            labels: const {
-              'classic': 'Classic',
-              'gentle': 'Gentle',
-              'flat': 'Flat',
-            },
-            onChanged: (v) => _set('coverFlowStyle', v ?? 'classic'),
-          ),
-        ),
-        _row(
-          'Default library view',
-          'Desktop and phone browsing. Tablets keep their focused hub.',
-          OrbitSelect<String>(
-            value: _pref('layout', 'flow'),
-            options: const ['flow', 'grid'],
-            onChanged: (v) => _set('layout', v ?? 'flow'),
-          ),
-        ),
-        _row(
-          'Compact system list',
-          'A little less space between generations.',
-          OrbitToggle(
-            label: 'Compact system list',
-            value: _pref('dense', false),
-            onChanged: (v) => _set('dense', v),
-          ),
-        ),
-        _row(
           'Reset',
-          'Back to the approved defaults.',
+          'Back to the defaults.',
           OrbitSecondary(
             label: 'Reset appearance',
             onPressed: () async {
               await _set('motion', true);
-              await _set('reflection', true);
-              await _set('coverFlowStyle', 'classic');
-              await _set('layout', 'flow');
-              await _set('dense', false);
               if (mounted) {
                 orbitToast(context, 'Appearance reset');
               }

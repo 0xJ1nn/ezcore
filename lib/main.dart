@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'services/local_data_dir.dart';
 import 'state/app_state.dart';
 import 'screens/core_manager_screen.dart';
-import 'screens/library_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
@@ -99,86 +99,44 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
+/// Three destinations (layout option A): Library (home), Cores, Settings.
+/// A rail on wide screens, a bottom bar on phones in portrait; the same
+/// three either way. Saves live with their game and in the pause menu, and
+/// the full save vault is reachable from Settings.
 class _ShellState extends State<Shell> {
   String page = 'library';
-  String? libraryFilter;
 
-  void _go(String p) {
-    if (p == 'continue' || p == 'favorites') {
-      _filterLibrary(p == 'continue' ? 'Continue' : 'Favorites');
-      return;
-    }
-    if (p == 'library') {
-      _filterLibrary(null);
-      return;
-    }
-    setState(() => page = p);
-  }
+  void _go(String p) => setState(() => page = p);
 
-  String get _activeRailPage {
-    if (page != 'library') return page;
-    return switch (libraryFilter) {
-      'Continue' => 'continue',
-      'Favorites' => 'favorites',
-      _ => 'library',
-    };
-  }
-
-  /// Sends the library to a filter (a core, or a system from the picker)
-  /// and brings the Library space forward.
-  void _filterLibrary(String? filter) {
-    setState(() {
-      libraryFilter = filter;
-      page = 'library';
-    });
-  }
-
-  void _onLibraryFilterChanged(String? filter) {
-    if (libraryFilter == filter) return;
-    setState(() => libraryFilter = filter);
-  }
-
-  void _browseCore(String coreId) => _filterLibrary('core:$coreId');
-
-  /// Per-system game counts, for the "Select system" sheet.
-  Map<String, int> _systemCounts() {
-    final out = <String, int>{};
-    for (final g in widget.state.games) {
-      out[g.system] = (out[g.system] ?? 0) + 1;
-    }
-    return out;
-  }
-
-  Future<void> _openSystemPicker() async {
-    final selected = libraryFilter;
-    if (selected != null && selected.startsWith('core:')) return;
-    await showSystemPicker(
-      context,
-      counts: _systemCounts(),
-      selected: selected ?? 'All systems',
-      favoriteCount: widget.state.games.where((g) => g.favorite).length,
-      onPick: _filterLibrary,
-    );
-  }
+  void _openVault() => Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => Scaffold(
+        backgroundColor: Tokens.bg,
+        appBar: AppBar(
+          backgroundColor: Tokens.bg,
+          title: Text('Saves', style: Tokens.display(size: 18)),
+        ),
+        body: VaultScreen(state: widget.state),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final layout = Layout.of(context);
-    final short = Layout.isShort(layout);
-    final osPad = Tokens.osPad(
-      size.width,
-      portrait: Layout.isPortrait(layout),
-      short_: short,
-    );
     final hasRail = Layout.hasRail(layout);
+    final short = Layout.isShort(layout);
+    final content = SafeArea(
+      bottom: hasRail,
+      left: !hasRail,
+      child: _page(),
+    );
 
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.digit1): () => _go('library'),
-        const SingleActivator(LogicalKeyboardKey.digit2): () => _go('systems'),
-        const SingleActivator(LogicalKeyboardKey.digit3): () => _go('vault'),
-        const SingleActivator(LogicalKeyboardKey.digit4): () => _go('settings'),
+        const SingleActivator(LogicalKeyboardKey.digit2): () => _go('cores'),
+        const SingleActivator(LogicalKeyboardKey.digit3): () => _go('settings'),
       },
       child: Focus(
         autofocus: true,
@@ -191,53 +149,14 @@ class _ShellState extends State<Shell> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    OrbitRail(page: _activeRailPage, onGo: _go, short: short),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(osPad, 0, osPad, 0),
-                            child: OrbitTopbar(
-                              compact: short,
-                              leading: OrbitIconButton(
-                                icon: Icons.menu,
-                                tooltip: 'Select system',
-                                onPressed: _openSystemPicker,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: _page()),
-                          if (layout == OrbitLayout.desktop)
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(osPad, 0, osPad, 6),
-                              child: const OrbitFooter(),
-                            ),
-                        ],
-                      ),
-                    ),
+                    OrbitRail(page: page, onGo: _go, short: short),
+                    Expanded(child: content),
                   ],
                 )
               else
                 Column(
                   children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(osPad, 6, osPad, 0),
-                      child: OrbitTopbar(
-                        centered: true,
-                        leading: OrbitIconButton(
-                          icon: Icons.menu,
-                          tooltip: 'Select system',
-                          onPressed: _openSystemPicker,
-                        ),
-                        trailing: OrbitIconButton(
-                          icon: Icons.settings_outlined,
-                          tooltip: 'Settings',
-                          onPressed: () => _go('settings'),
-                        ),
-                      ),
-                    ),
-                    Expanded(child: _page()),
+                    Expanded(child: content),
                     OrbitBottomNav(page: page, onGo: _go),
                   ],
                 ),
@@ -249,25 +168,20 @@ class _ShellState extends State<Shell> {
   }
 
   Widget _page() {
-    final libIndex = 0, sysIndex = 1, vaultIndex = 2, settingsIndex = 3;
-    final current = switch (page) {
-      'systems' => sysIndex,
-      'vault' => vaultIndex,
-      'settings' => settingsIndex,
-      _ => libIndex,
+    final index = switch (page) {
+      'cores' => 1,
+      'settings' => 2,
+      _ => 0,
     };
     return IndexedStack(
-      index: current,
+      index: index,
       children: [
-        LibraryScreen(
+        HomeScreen(state: widget.state, onOpenCores: () => _go('cores')),
+        CoreManagerScreen(
           state: widget.state,
-          onGo: _go,
-          filter: libraryFilter,
-          onFilterChanged: _onLibraryFilterChanged,
+          onBrowseCore: (_) => _go('library'),
         ),
-        CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
-        VaultScreen(state: widget.state),
-        SettingsScreen(state: widget.state, onGoVault: () => _go('vault')),
+        SettingsScreen(state: widget.state, onGoVault: _openVault),
       ],
     );
   }
