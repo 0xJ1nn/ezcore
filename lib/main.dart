@@ -11,6 +11,7 @@ import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
 import 'widgets/orbit_widgets.dart';
+import 'widgets/pad_navigator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,7 @@ class EmuApp extends StatefulWidget {
 
 class _EmuAppState extends State<EmuApp> {
   late final AppState state;
+  final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -54,6 +56,10 @@ class _EmuAppState extends State<EmuApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
+      // A controller drives every menu (d-pad focus, A select, B back).
+      builder: (context, child) =>
+          PadNavigator(navigatorKey: _navigatorKey, child: child!),
       title: 'ezCORE',
       debugShowCheckedModeBanner: false,
       theme: Tokens.theme(),

@@ -13,6 +13,8 @@ import '../services/bios_check.dart';
 import '../services/core_discovery.dart';
 import '../services/cover_art.dart';
 import '../services/gamepad.dart';
+import '../services/pad_mapping.dart';
+import '../widgets/pad_navigator.dart';
 import '../services/core_staging.dart';
 import '../services/repo_layout.dart';
 import '../services/runtime_loader.dart';
@@ -46,7 +48,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     with WidgetsBindingObserver {
   final player = PlayerController();
   final _scoped = createScopedFiles();
-  final _gamepads = GamepadService();
+  final _gamepads = GamepadService.shared;
   VoidCallback? _cancelPad;
 
   /// Staged vault cores (populated at startup by [CoreStagingService]).
@@ -79,10 +81,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     player.addListener(_refresh);
-    _cancelPad = _gamepads.onButton((event) {
-      final id = event.retroPadId;
-      if (id != null) _action(() => player.button(id, event.pressed));
-    });
+    // The game owns the controller while it runs; the menu navigator
+    // gets it back while the pause menu or an editor is open.
+    padNavigationEnabled.value = false;
+    _cancelPad = _gamepads.onButton(_onPad);
     padVisible = widget.state.settings['touchOverlay'] as bool? ??
         (Platform.isAndroid || Platform.isIOS);
     opening = _launch();
@@ -263,9 +265,9 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    padNavigationEnabled.value = true;
     leaving = true;
     _cancelPad?.call();
-    _gamepads.dispose();
     WidgetsBinding.instance.removeObserver(this);
     player.removeListener(_refresh);
     unawaited(opening.whenComplete(player.dispose));
@@ -332,6 +334,30 @@ class _PlayerScreenState extends State<PlayerScreen>
     } catch (_) {
       // No haptics channel on this platform; touch still works.
     }
+  }
+
+  final _chord = PadChord();
+  late final _padMap = PadMapping(widget.state);
+
+  /// Controller input during play, through the user's button mapping.
+  /// Select + Start together opens the pause menu (see [PadChord]).
+  void _onPad(GamepadEvent e) {
+    switch (_chord.feed(e.code, e.pressed)) {
+      case ChordResult.openMenu:
+        for (final b in PadChord.buttons) {
+          final id = _padMap.retroIdFor(b);
+          if (id != null) _action(() => player.button(id, false));
+        }
+        unawaited(_openMenu());
+        return;
+      case ChordResult.swallow:
+        return;
+      case ChordResult.pass:
+        break;
+    }
+    if (_menuOpen) return;
+    final id = _padMap.retroIdFor(e.code);
+    if (id != null) _action(() => player.button(id, e.pressed));
   }
 
   Future<void> _hostInput(String input) async {
@@ -485,6 +511,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   Future<void> _openMenu() async {
     if (_menuOpen || leaving) return;
     _menuOpen = true;
+    padNavigationEnabled.value = true;
     _overlayKey.currentState?.releaseAll();
     // Pausing releases every button host-side, so the poller's emitted set
     // goes stale; forget it or a control still held on resume is never
@@ -514,6 +541,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       ),
     );
     _menuOpen = false;
+    padNavigationEnabled.value = choice == 'quit' || choice == 'edit' ||
+        choice == 'cheats';
     if (!mounted) return;
     switch (choice) {
       case 'save':
@@ -533,6 +562,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             ),
           ),
         );
+        padNavigationEnabled.value = false;
       case 'edit':
         final size = MediaQuery.sizeOf(context);
         await Navigator.of(context).push<bool>(
@@ -545,6 +575,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             ),
           ),
         );
+        padNavigationEnabled.value = false;
         if (mounted) setState(() {});
       case 'controls':
         setState(() => padVisible = !padVisible);
