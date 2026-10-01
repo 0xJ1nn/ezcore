@@ -15,6 +15,9 @@ All notable changes to ezCORE are documented here. The format follows
   two screens as a clamshell with a hinge, side by side in landscape.
   Multi-touch, slide between buttons, diagonals on the d-pad. On by default on
   phones and tablets, off on desktop; toggle from the pause menu.
+- **Make the controls yours.** Pause menu → Edit controls: drag any button,
+  resize it, hide the ones you never use (Menu always stays), set opacity, save
+  — per system and orientation — or reset to default.
 - **A real pause menu.** Resume, save and load state, cheats, show/hide
   controls, fast-forward, screenshot, reset and quit — from the Menu button,
   Esc, or the system Back gesture (which no longer drops you out of a game).
