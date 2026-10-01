@@ -10,6 +10,7 @@ import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
+import 'widgets/fade_indexed_stack.dart';
 import 'widgets/orbit_widgets.dart';
 import 'widgets/pad_navigator.dart';
 
@@ -202,7 +203,7 @@ class _ShellState extends State<Shell> {
       'settings' => 2,
       _ => 0,
     };
-    return IndexedStack(
+    return FadeIndexedStack(
       index: index,
       children: [
         HomeScreen(

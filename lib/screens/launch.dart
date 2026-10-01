@@ -18,6 +18,9 @@ Future<void> launchGame(
   AppState state,
   GameEntry game, {
   bool resume = false,
+
+  /// Load this save right after boot (from the game page's saves).
+  String? slot,
 }) async {
   final compatible = state.registry.compatibleCores(game.extension);
   if (compatible.isEmpty) {
@@ -29,8 +32,7 @@ Future<void> launchGame(
   if (effective.id != game.coreId) {
     state.setCore(game.id, effective.id);
   }
-  String? slot;
-  if (resume) {
+  if (resume && slot == null) {
     try {
       final slots = await state.saves.list(game.id);
       if (slots.any((s) => s.id == autoSlot)) slot = autoSlot;

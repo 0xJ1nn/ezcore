@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -6,6 +8,7 @@ import '../services/human_time.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/focus_glow.dart';
 import '../widgets/orbit_widgets.dart';
 import 'game_detail_screen.dart';
 import 'import_screen.dart';
@@ -437,39 +440,72 @@ class _ResumeCard extends StatelessWidget {
     );
     final details = OrbitSecondary(label: 'Details', onPressed: onDetails);
 
-    return Container(
-      padding: EdgeInsets.all(compact || short ? 14 : 20),
-      decoration: BoxDecoration(
-        color: Tokens.dockTop,
-        borderRadius: BorderRadius.circular(Tokens.dockPanelRadius),
-        border: Border.all(color: Tokens.lineStrong),
-      ),
-      child: compact
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    cover,
-                    const SizedBox(width: 14),
-                    Expanded(child: info),
-                  ],
+    final content = compact
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  cover,
+                  const SizedBox(width: 14),
+                  Expanded(child: info),
+                ],
+              ),
+              const SizedBox(height: 14),
+              resume,
+            ],
+          )
+        : Row(
+            children: [
+              cover,
+              const SizedBox(width: 20),
+              Expanded(child: info),
+              const SizedBox(width: 16),
+              details,
+              const SizedBox(width: 12),
+              resume,
+            ],
+          );
+    final radius = BorderRadius.circular(Tokens.dockPanelRadius);
+    // The game's own art, blurred, behind the card: Resume opens on the game,
+    // not on a grey panel.
+    return ClipRRect(
+      borderRadius: radius,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Transform.scale(
+                scale: 1.4,
+                child: GameCover(
+                  gameId: game.id,
+                  title: '',
+                  system: '',
+                  radius: 0,
                 ),
-                const SizedBox(height: 14),
-                resume,
-              ],
-            )
-          : Row(
-              children: [
-                cover,
-                const SizedBox(width: 20),
-                Expanded(child: info),
-                const SizedBox(width: 16),
-                details,
-                const SizedBox(width: 12),
-                resume,
-              ],
+              ),
             ),
+          ),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xE6101B2B), Color(0x99101B2B)],
+                ),
+              ),
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.all(compact || short ? 14 : 20),
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(color: Tokens.lineStrong),
+            ),
+            child: content,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -491,42 +527,38 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: game.title,
-      hint: semanticsHint,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Tokens.radiusCover + 4),
-        focusColor: Tokens.systemLabelBg,
-        child: Padding(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: GameCover(
-                  gameId: game.id,
-                  title: game.title,
-                  system: shortSystemLabel(game.system),
-                ),
+    return FocusGlow(
+      onTap: onTap,
+      radius: Tokens.radiusCover,
+      semanticLabel: game.title,
+      semanticHint: semanticsHint,
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: GameCover(
+                gameId: game.id,
+                title: game.title,
+                system: shortSystemLabel(game.system),
               ),
-              const SizedBox(height: 8),
-              Text(
-                game.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Tokens.body(size: 13, weight: FontWeight.w600),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                footnote,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Tokens.body(size: 11, color: Tokens.muted),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              game.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Tokens.body(size: 13, weight: FontWeight.w600),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              footnote,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Tokens.body(size: 11, color: Tokens.muted),
+            ),
+          ],
         ),
       ),
     );

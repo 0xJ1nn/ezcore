@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/cover_art.dart';
 import '../theme/tokens.dart';
@@ -30,61 +29,6 @@ class Ambient extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Positioned.fill(child: SpaceBackdrop(motion: motion));
-}
-
-/// The ezCORE lockup (brand mark + wordmark).
-///
-/// Uses the committed brand asset so the mark can never drift from
-/// `assets/branding/`. If the asset is missing for any reason the widget
-/// falls back to the wordmark in display type — the shell still reads.
-class OrbitBrand extends StatelessWidget {
-  const OrbitBrand({super.key, this.height = 26, this.onTap});
-
-  /// Target lockup height in logical pixels.
-  final double height;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final lockup = Image.asset(
-      'assets/branding/lockup-light.png',
-      height: height,
-      // The asset is 950px wide; keep it sharp without letting it eat
-      // the row at large text scales.
-      filterQuality: FilterQuality.high,
-      errorBuilder: (context, error, stack) => _Wordmark(height: height),
-    );
-    if (onTap == null) return lockup;
-    return Semantics(
-      button: true,
-      label: 'ezCORE home',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(Tokens.radiusSm),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-          child: lockup,
-        ),
-      ),
-    );
-  }
-}
-
-class _Wordmark extends StatelessWidget {
-  const _Wordmark({required this.height});
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'ezCORE',
-      style: Tokens.display(
-        size: height * 0.86,
-        weight: FontWeight.w700,
-        ls: -1.0,
-      ),
-    );
-  }
 }
 
 class OrbitNavItem {
@@ -385,51 +329,6 @@ class OrbitSecondary extends StatelessWidget {
   }
 }
 
-class OrbitRoundButton extends StatelessWidget {
-  const OrbitRoundButton({
-    super.key,
-    required this.icon,
-    required this.onPressed,
-    this.tooltip,
-    this.active = false,
-  });
-  final IconData icon;
-  final VoidCallback? onPressed;
-  final String? tooltip;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip ?? '',
-      child: Material(
-        color: const Color(0x0ADDE6F4),
-        borderRadius: BorderRadius.circular(Tokens.radiusRound),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(Tokens.radiusRound),
-          onTap: onPressed,
-          child: Container(
-            width: 48,
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Tokens.radiusRound),
-              border: Border.all(
-                color: active ? Tokens.accent : const Color(0x26DDE6F4),
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: active ? Tokens.accent : Tokens.text,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class OrbitSearch extends StatelessWidget {
   const OrbitSearch({
     super.key,
@@ -589,24 +488,6 @@ class OrbitSelect<T> extends StatelessWidget {
   }
 }
 
-class SystemLabel extends StatelessWidget {
-  const SystemLabel({super.key, required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: Tokens.systemLabelBg,
-        borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Tokens.systemLabelBd),
-      ),
-      child: Text(text.toUpperCase(), style: Tokens.systemLabel),
-    );
-  }
-}
-
 /// Collection chip — pill style, blue fill when active (studio plate).
 class OrbitChip extends StatelessWidget {
   const OrbitChip({
@@ -668,106 +549,6 @@ class OrbitChip extends StatelessWidget {
                   ),
                 ],
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Segmented pill tabs — All / Favorites / Recent (studio plate).
-class OrbitTabs extends StatelessWidget {
-  const OrbitTabs({
-    super.key,
-    required this.value,
-    required this.onChanged,
-    this.height = 38,
-  });
-
-  final String value;
-  final ValueChanged<String> onChanged;
-  final double height;
-
-  static const tabs = <String, String>{
-    'all': 'All',
-    'favorites': 'Favorites',
-    'recent': 'Recent',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0x66070B12),
-        borderRadius: BorderRadius.circular(Tokens.pillRadius),
-        border: Border.all(color: Tokens.line),
-      ),
-      // Narrow phones cannot fit three fixed pills: shrink the padding
-      // (and the type) instead of overflowing.
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tight = constraints.maxWidth < 330;
-          return Row(
-            children: [
-              for (final e in tabs.entries)
-                Expanded(
-                  child: _TabButton(
-                    label: e.value,
-                    active: value == e.key,
-                    height: height - 8,
-                    tight: tight,
-                    onTap: () => onChanged(e.key),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.label,
-    required this.active,
-    required this.onTap,
-    required this.height,
-    this.tight = false,
-  });
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  final double height;
-  final bool tight;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: active,
-      child: Material(
-        color: active ? Tokens.accent : Colors.transparent,
-        borderRadius: BorderRadius.circular(Tokens.pillRadius),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(Tokens.pillRadius),
-          child: Container(
-            height: height,
-            alignment: Alignment.center,
-            padding: EdgeInsets.symmetric(horizontal: tight ? 6 : 18),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: Tokens.body(
-                size: tight ? 10 : 11,
-                weight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active ? Colors.white : Tokens.muted,
-              ),
             ),
           ),
         ),
@@ -1064,127 +845,6 @@ class _CoverPainter extends CustomPainter {
       old.spec.bottom != spec.bottom ||
       old.spec.motif != spec.motif ||
       old.spec.accent != spec.accent;
-}
-
-/// Core scopes segmented control (All / Added / Available).
-class CoreScopes extends StatelessWidget {
-  const CoreScopes({
-    super.key,
-    required this.scope,
-    required this.onScope,
-    this.expand = false,
-  });
-  final String scope;
-  final ValueChanged<String> onScope;
-  final bool expand;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0x880A0A0A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x1BDDE6F4)),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final s in const ['all', 'added', 'available'])
-            expand
-                ? Expanded(
-                    child: _ScopeBtn(
-                      label: s == 'all'
-                          ? 'All cores'
-                          : s[0].toUpperCase() + s.substring(1),
-                      active: scope == s,
-                      onTap: () => onScope(s),
-                    ),
-                  )
-                : _ScopeBtn(
-                    label: s == 'all'
-                        ? 'All cores'
-                        : s[0].toUpperCase() + s.substring(1),
-                    active: scope == s,
-                    onTap: () => onScope(s),
-                  ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScopeBtn extends StatelessWidget {
-  const _ScopeBtn({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? Tokens.chipActiveBg : Colors.transparent,
-      borderRadius: BorderRadius.circular(7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(7),
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          alignment: Alignment.center,
-          decoration: active
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(7),
-                  border: Border.all(color: const Color(0x14DDE6F4)),
-                )
-              : null,
-          child: Text(
-            label,
-            style: Tokens.body(
-              size: 11,
-              color: active ? Colors.white : Tokens.muted,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Future<T?> showOrbitDialog<T>(BuildContext context, Widget dialog) {
-  return showGeneralDialog<T>(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: 'Close',
-    barrierColor: Tokens.scrim,
-    transitionDuration: const Duration(milliseconds: 300),
-    transitionBuilder: (context, anim, _, child) {
-      final curved = CurvedAnimation(parent: anim, curve: Tokens.ease);
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
-    pageBuilder: (context, _, _) => Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 890, maxHeight: 640),
-          child: Material(
-            color: Colors.transparent,
-            child: Container(decoration: Tokens.dialogDecor, child: dialog),
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 // ---------------------------------------------------------------------------

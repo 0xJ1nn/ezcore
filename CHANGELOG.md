@@ -8,6 +8,14 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **A real page for every game.** Its own art fills the background; Resume
+  (or Play) is the big action, with Play from start beside it. Every save is a
+  card with a readable name — Automatic, Quick save, Saved 14:22 — that you can
+  load or delete. Choose the core, manage cheats, see the file, favourite it or
+  remove it from your library (the file itself is never deleted).
+- **See where you are.** Games and cores lift on hover, and keyboard or
+  controller focus shows a bright ring. The Resume card shows the game's art,
+  and moving between Library, Cores and Settings fades instead of cutting.
 - **Cores can ship their own controls.** A core package may include on-screen
   layouts (and device shells) for its systems; they are checked as strictly as
   everything else in a package and used for that core's games. Your own edited
