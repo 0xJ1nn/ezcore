@@ -52,6 +52,20 @@ licence status. This block adds the provenance that was missing; no prior
 "CC0" wording was overwritten. Stated per project.md §30 rather than silently
 rewriting the header as if it had been wrong.
 
+## Local test content (2026-10-01)
+
+Boot evidence dated 2026-10-01 used homebrew, freeware and shareware files
+downloaded from archive.org with maintainer approval. They are **not in the
+repository** and never bundled; they live in a developer-local folder with a
+`SOURCES.md` that records each file's archive.org item and SHA-256. Items:
+`controller-test-roms` (N64/GB/GBA/Genesis/Dreamcast/PSP test ROMs),
+`240p-test-suite-ps-1`, `240p_Test_Suite_v1.07_by_Artemio_Ua_PD`,
+`worldofsand-ds`, `cryptofthefungallord-dreamcast`, `doom_20230531`,
+`harry9c7_gmail_SKY`, `lsdoom`, `yokero-v-1.0.1.7z`. A Nintendo factory test
+cartridge in the controller pack is **not** used as evidence for any row.
+Re-running a row: `EZCORE_BOOT_OPTIONS="k=v;..." runtime/build-linux/test_core_boot <core> <rom>`
+(options support: #92).
+
 ## Levels
 
 | Level | Meaning | How proven |
@@ -96,18 +110,18 @@ levels previously claimed more than the harness asserts):
 | advancebit | RENDERS | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
 | nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` (TLS requires minos 9+). **Cell is one run behind its own infrastructure:** the CC0 fixture is on disk, a `boot_nesbyte` CTest is registered (`runtime/CMakeLists.txt:288-291`) and the Dart matrix maps it (`test/core_matrix_test.dart:55`), so promoting to RENDERS needs only running the existing harness — `ctest -R boot_nesbyte` or `flutter test test/core_matrix_test.dart`. Not promoted here: no harness was run for this edit, so the result would be unverified (project.md §74) |
 | superfx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |
-| blastproc | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
+| blastproc | IDENTIFIES (not distributed) | BUILT | BUILT | RENDERS (not distributed, 2026-10-01) | — | Linux: Genesis Plus GX boots the 240p Test Suite (Genesis). Non-commercial license — no binaries shipped; recipe only. Android via `unix` |
 | joystick | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |
 | cardcon | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `-lrt` wrapper (NDK has no librt) |
-| realmode | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
+| realmode | IDENTIFIES | BUILT | BUILT | BUILT · frames, no state (2026-10-01) | — | Linux: DOSBox Pure renders its start menu (640×400) from the DOOM shareware installer zip, but refuses to serialize until a program runs ("Unable to save state while game is not running"), so not RENDERS. Needs a self-running DOS fixture. Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
 | coinbox | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
-| pointclick | IDENTIFIES | — | BUILT | BUILT | — | macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
-| geometry1 | IDENTIFIES | — | — | BUILT | — | Default renderer needs GL context the runtime doesn't provide; frames unverified |
-| rcp64 | IDENTIFIES | — | — | BUILT | — | Same GL caveat (Angrylion path needs core options = ABI v2); Linux ABI-verified (Mupen64Plus-Next v2.8, api v1) |
-| dualscreen | IDENTIFIES | — | — | BUILT | — | Same GL caveat (software renderer needs core options) |
-| portcomp | IDENTIFIES | — | — | BUILT | — | Same GL caveat |
-| dreamarc | IDENTIFIES | — | — | BUILT | — | Same GL caveat |
-| powercube | IDENTIFIES | — (delivery absent) | — | BUILT | — | No software renderer exists: blocked on GPU context (post-v1), not attempted |
+| pointclick | IDENTIFIES | — | BUILT | BUILT · **crashes** (2026-10-01) | — | Linux: ScummVM segfaults after failing to open *Beneath a Steel Sky* given as a bare `sky.dsk` (no `sky.cpt`, no game directory) — a content-shape problem, but a crash on bad input still kills the app (P6). macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
+| geometry1 | IDENTIFIES | — | — | **RENDERS** (2026-10-01) | — | Linux: SwanStation boots the 240p Test Suite (PS1) on its **default software renderer** — 256×224, restore within 2%. The old "needs GL" note was wrong for this core. Fixture is local-only (see *Local test content*) |
+| rcp64 | IDENTIFIES | — | — | BUILT · **RENDERS on #93 build** (2026-10-01) | — | Default GLideN64 refuses without GL. The currently pinned Linux artifact has **no Angrylion compiled** (asking for it crashes in `plugin_start_gfx`); the #93 build (`HAVE_THR_AL=1 HAVE_PARALLEL_RSP=1 LLE=1`) with `mupen64plus-rdp-plugin=angrylion` + `rsp-plugin=parallel` (or `cxd4`) reaches RENDERS on two N64 homebrew ROMs, 640×480, restore exact. Needs #89 (option delivery) and #92 (harness options); app default via #94 |
+| dualscreen | IDENTIFIES | — | — | **RENDERS** (2026-10-01) | — | Linux: boots *World of Sand* (DS homebrew) on defaults — 256×384, restore exact. The old "needs core options" note no longer applies |
+| portcomp | IDENTIFIES | — | — | BUILT · **crashes on load** (2026-10-01) | — | Linux: PPSSPP renders zero pixels without a GPU context, then aborts (`terminate called without an active exception`, SIGABRT) — in the app this kills ezCORE (P6). Needs P8 |
+| dreamarc | IDENTIFIES | — | — | BUILT · load refused (2026-10-01) | — | Linux: Flycast refuses `load_game` on a Dreamcast homebrew `.cdi` without a GPU context. Needs P8 |
+| powercube | IDENTIFIES | — (delivery absent) | — | BUILT · load refused (2026-10-01) | — | Linux: Dolphin (Null video backend) refuses to boot a GameCube homebrew `.dol`. No software renderer exists: needs P8 |
 | twinsh | IDENTIFIES | — | — | BUILT | — | SH-2 interpreter; slow by nature, frames unverified |
 | citra/switch/ps2 | holds | holds | holds | holds | holds | Holds, never built |
 
