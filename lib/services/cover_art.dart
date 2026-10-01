@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/painting.dart';
+
 import 'package:flutter/foundation.dart';
 
 import '../services/local_data_dir.dart';
@@ -78,6 +80,11 @@ File? coverFileFor(String gameId) {
 }
 
 void invalidateCoverFile(String gameId) {
-  _coverFileCache.remove(gameId);
+  // Drop the decoded image once, here, where the file changes. (Evicting in
+  // the cover's build reloaded every cover from disk on every carousel frame.)
+  final old =
+      _coverFileCache.remove(gameId) ??
+      File('${PlatformLocalDataDirProvider.path()}/art/$gameId.png');
+  PaintingBinding.instance.imageCache.evict(FileImage(old));
   coverRevision.value++;
 }

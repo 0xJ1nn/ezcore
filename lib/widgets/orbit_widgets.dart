@@ -626,9 +626,6 @@ class GameCover extends StatelessWidget {
               valueListenable: coverRevision,
               builder: (_, revision, _) {
                 final art = coverFileFor(gameId);
-                if (art != null) {
-                  PaintingBinding.instance.imageCache.evict(FileImage(art));
-                }
                 return art == null
                     ? _GenerativeArt(gameId: gameId)
                     : Image.file(
