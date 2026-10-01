@@ -60,7 +60,7 @@ ones that catch agents most often:
    `runtime/test/test_core_player.c` must pass **unmodified**; if a change
    requires editing those tests to pass, the change is wrong.
 3. **The kernel's missing capability surface is the binding constraint, not the
-   UI.** `env_cb` implements 13 of the 93 `RETRO_ENVIRONMENT_*` commands
+   UI.** `env_cb` implements 17 of the 93 `RETRO_ENVIRONMENT_*` commands
    (`runtime/src/runtime.c:197`). Finishing it unlocks far more than new UI
    work. Re-derive the count before quoting it:
    `grep -oE '^#\s*define\s+RETRO_ENVIRONMENT_[A-Z0-9_]+' runtime/external/libretro-common/include/libretro.h | awk '{print $2}' | sort -u | wc -l`
