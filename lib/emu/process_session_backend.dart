@@ -72,6 +72,8 @@ class ProcessSessionBackend implements CoreSessionBackend {
   static const _opOpen = 1, _opFrame = 2, _opPause = 3, _opButton = 4;
   static const _opSave = 5, _opRestore = 6, _opCheats = 7, _opReset = 8;
   static const _opOptions = 9, _opSetOption = 10, _opClose = 11;
+  static const _opAnalog = 12, _opMouseMove = 13, _opMouseBtn = 14;
+  static const _opKey = 15, _opPointer = 16;
 
   Future<void> _ensureStarted() async {
     if (_process != null || lastExit != null) return;
@@ -268,6 +270,56 @@ class ProcessSessionBackend implements CoreSessionBackend {
   }
 
   @override
+  Future<void> analog(int port, int stick, int axis, int value) => _call(
+    _Writer()
+      ..u8(_opAnalog)
+      ..u32(port)
+      ..u32(stick)
+      ..u32(axis)
+      ..i32(value),
+  );
+
+  @override
+  Future<void> mouseMove(int dx, int dy) => _call(
+    _Writer()
+      ..u8(_opMouseMove)
+      ..i32(dx)
+      ..i32(dy),
+  );
+
+  @override
+  Future<void> mouseButton(int id, bool pressed) => _call(
+    _Writer()
+      ..u8(_opMouseBtn)
+      ..u32(id)
+      ..u8(pressed ? 1 : 0),
+  );
+
+  @override
+  Future<void> key(
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  }) => _call(
+    _Writer()
+      ..u8(_opKey)
+      ..u32(keycode)
+      ..u8(pressed ? 1 : 0)
+      ..u32(character)
+      ..u32(modifiers),
+  );
+
+  @override
+  Future<void> pointer(int x, int y, bool pressed) => _call(
+    _Writer()
+      ..u8(_opPointer)
+      ..i32(x)
+      ..i32(y)
+      ..u8(pressed ? 1 : 0),
+  );
+
+  @override
   Future<Uint8List> save() async =>
       (await _call(_Writer()..u8(_opSave))).blob();
 
@@ -350,6 +402,10 @@ class _Writer {
 
   void u32(int v) => _b.add(
     (ByteData(4)..setUint32(0, v, Endian.little)).buffer.asUint8List(),
+  );
+
+  void i32(int v) => _b.add(
+    (ByteData(4)..setInt32(0, v, Endian.little)).buffer.asUint8List(),
   );
 
   void str(String s) {

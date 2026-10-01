@@ -117,6 +117,17 @@ struct ezcore_session {
   size_t audio_cap, audio_len;
   /* input state: per-port button bitmask (up to 4 ports) */
   uint32_t input_buttons[4];
+  /* P3 devices. Analog: [port][stick: left/right][axis: x/y]. */
+  int16_t analog[4][2][2];
+  /* Mouse deltas the host reported since the last frame (pending), and the
+   * snapshot every read during the current frame returns (frame). */
+  int32_t mouse_pending_dx, mouse_pending_dy;
+  int16_t mouse_frame_dx, mouse_frame_dy;
+  uint32_t mouse_buttons; /* bit = RETRO_DEVICE_ID_MOUSE_* */
+  uint8_t keys[(RETROK_LAST + 7) / 8];
+  retro_keyboard_event_t keyboard_cb;
+  int16_t pointer_x, pointer_y;
+  bool pointer_pressed;
   char name[128];
   char version[64];
   bool game_loaded;
@@ -338,6 +349,21 @@ static void ezcore_free_mem_descs(ezcore_session *s) {
   s->num_mem_descs = 0;
 }
 
+/* Releases everything a player can hold: buttons on all four ports, sticks,
+ * mouse buttons and motion, keys and the pointer. Used at the game boundary
+ * and on reset, for the stuck-input reasons noted at the top of this file.
+ * The keyboard callback is a core registration, not input, and survives. */
+static void clear_input(ezcore_session *s) {
+  memset(s->input_buttons, 0, sizeof(s->input_buttons));
+  memset(s->analog, 0, sizeof(s->analog));
+  s->mouse_pending_dx = s->mouse_pending_dy = 0;
+  s->mouse_frame_dx = s->mouse_frame_dy = 0;
+  s->mouse_buttons = 0;
+  memset(s->keys, 0, sizeof(s->keys));
+  s->pointer_x = s->pointer_y = 0;
+  s->pointer_pressed = false;
+}
+
 static bool env_cb(unsigned cmd, void *data) {
   switch (cmd) {
     case RETRO_ENVIRONMENT_GET_CAN_DUPE:
@@ -467,6 +493,17 @@ static bool env_cb(unsigned cmd, void *data) {
       }
       return true;
     }
+    case RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK: {
+      /* Keyboard-driven cores (DOS, computers) want key events, not only
+       * polled state; ezcore_set_key delivers both. */
+      const struct retro_keyboard_callback *kb = data;
+      if (!g_active || !kb) return false;
+      g_active->keyboard_cb = kb->callback;
+      return true;
+    }
+    case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
+      /* The joypad state already answers RETRO_DEVICE_ID_JOYPAD_MASK. */
+      return true;
     case RETRO_ENVIRONMENT_GET_VARIABLE: {
       /* How a core reads an option value. Without this every core runs on
        * its own defaults whatever the host set. An unknown key is answered
@@ -759,16 +796,46 @@ static size_t audio_batch_cb(const int16_t *data, size_t frames) {
 
 static void input_poll_cb(void) {}
 
-/* Reads from g_active->input_buttons[port] so the host can drive input. */
+/* Answers a core's input queries from the state the host set. */
 static int16_t input_state_cb(unsigned port, unsigned device,
                               unsigned index, unsigned id) {
-  (void)index;
-  if (!g_active || device != RETRO_DEVICE_JOYPAD || port >= 4) return 0;
-  uint32_t mask = g_active->input_buttons[port];
-  if (id < 16) return (int16_t)((mask >> id) & 1);
-  /* RETRO_DEVICE_ID_JOYPAD_MASK: return full bitmask */
-  if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return (int16_t)mask;
-  return 0;
+  ezcore_session *s = g_active;
+  if (!s || port >= 4) return 0;
+  switch (device) {
+    case RETRO_DEVICE_JOYPAD: {
+      uint32_t mask = s->input_buttons[port];
+      if (id < 16) return (int16_t)((mask >> id) & 1);
+      /* RETRO_DEVICE_ID_JOYPAD_MASK: return full bitmask */
+      if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return (int16_t)mask;
+      return 0;
+    }
+    case RETRO_DEVICE_ANALOG:
+      if (index == RETRO_DEVICE_INDEX_ANALOG_BUTTON) {
+        /* Analog buttons (pressure triggers) follow the digital button:
+         * pressed reads fully pulled. */
+        if (id >= 16) return 0;
+        return ((s->input_buttons[port] >> id) & 1) ? 0x7fff : 0;
+      }
+      if (index > 1 || id > 1) return 0;
+      return s->analog[port][index][id];
+    case RETRO_DEVICE_MOUSE:
+      if (port != 0) return 0;
+      if (id == RETRO_DEVICE_ID_MOUSE_X) return s->mouse_frame_dx;
+      if (id == RETRO_DEVICE_ID_MOUSE_Y) return s->mouse_frame_dy;
+      return id < 32 ? (int16_t)((s->mouse_buttons >> id) & 1) : 0;
+    case RETRO_DEVICE_KEYBOARD:
+      if (port != 0 || id >= RETROK_LAST) return 0;
+      return (s->keys[id / 8] >> (id % 8)) & 1;
+    case RETRO_DEVICE_POINTER:
+      if (port != 0 || index != 0) return 0;
+      if (id == RETRO_DEVICE_ID_POINTER_X) return s->pointer_x;
+      if (id == RETRO_DEVICE_ID_POINTER_Y) return s->pointer_y;
+      if (id == RETRO_DEVICE_ID_POINTER_PRESSED) return s->pointer_pressed;
+      if (id == RETRO_DEVICE_ID_POINTER_COUNT) return s->pointer_pressed ? 1 : 0;
+      return 0;
+    default:
+      return 0;
+  }
 }
 
 /* ---- public API ---- */
@@ -933,7 +1000,7 @@ bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
   if (!s) return false;
   struct retro_game_info info = {rom_path, data, size, NULL};
   bool ok = s->retro_load_game(&info);
-  if (ok) memset(s->input_buttons, 0, sizeof(s->input_buttons));
+  if (ok) clear_input(s);
   s->game_loaded = ok;
   return ok;
 }
@@ -941,7 +1008,15 @@ bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
 void ezcore_run_frame(ezcore_session *s) {
   if (!s) return;
   g_active = s;
+  /* One mouse snapshot per frame: every read inside retro_run sees the same
+   * delta, and motion reported meanwhile waits for the next frame. */
+  s->mouse_frame_dx = (int16_t)(s->mouse_pending_dx > 32767 ? 32767
+                       : s->mouse_pending_dx < -32768 ? -32768 : s->mouse_pending_dx);
+  s->mouse_frame_dy = (int16_t)(s->mouse_pending_dy > 32767 ? 32767
+                       : s->mouse_pending_dy < -32768 ? -32768 : s->mouse_pending_dy);
+  s->mouse_pending_dx = s->mouse_pending_dy = 0;
   s->retro_run();
+  s->mouse_frame_dx = s->mouse_frame_dy = 0;
 }
 
 /* Reset the currently loaded game. Safe to call only after load_game.
@@ -954,7 +1029,7 @@ void ezcore_run_frame(ezcore_session *s) {
  * without delivering a reset. */
 void ezcore_reset(ezcore_session *s) {
   if (!s || !s->game_loaded || !s->retro_reset) return;
-  memset(s->input_buttons, 0, sizeof(s->input_buttons));
+  clear_input(s);
   s->retro_reset();
 }
 
@@ -1016,6 +1091,47 @@ void ezcore_set_button(ezcore_session *s, unsigned port, unsigned button_id,
 void ezcore_clear_buttons(ezcore_session *s, unsigned port) {
   if (!s || port >= 4) return;
   s->input_buttons[port] = 0;
+}
+
+void ezcore_set_analog(ezcore_session *s, unsigned port, unsigned stick,
+                       unsigned axis, int16_t value) {
+  if (!s || port >= 4 || stick > 1 || axis > 1) return;
+  s->analog[port][stick][axis] = value;
+}
+
+void ezcore_mouse_move(ezcore_session *s, int dx, int dy) {
+  if (!s) return;
+  /* Saturate rather than overflow if a host floods motion between frames. */
+  int64_t x = (int64_t)s->mouse_pending_dx + dx;
+  int64_t y = (int64_t)s->mouse_pending_dy + dy;
+  s->mouse_pending_dx = (int32_t)(x > 1000000 ? 1000000 : x < -1000000 ? -1000000 : x);
+  s->mouse_pending_dy = (int32_t)(y > 1000000 ? 1000000 : y < -1000000 ? -1000000 : y);
+}
+
+void ezcore_set_mouse_button(ezcore_session *s, unsigned id, bool pressed) {
+  if (!s || id >= 32) return;
+  if (pressed) s->mouse_buttons |= (1u << id);
+  else s->mouse_buttons &= ~(1u << id);
+}
+
+void ezcore_set_key(ezcore_session *s, unsigned keycode, bool pressed,
+                    uint32_t character, uint16_t modifiers) {
+  if (!s || keycode >= RETROK_LAST) return;
+  if (pressed) s->keys[keycode / 8] |= (uint8_t)(1u << (keycode % 8));
+  else s->keys[keycode / 8] &= (uint8_t)~(1u << (keycode % 8));
+  if (s->keyboard_cb) {
+    ezcore_session *prev = g_active;
+    g_active = s; /* the callback may query input state */
+    s->keyboard_cb(pressed, keycode, character, modifiers);
+    g_active = prev;
+  }
+}
+
+void ezcore_set_pointer(ezcore_session *s, int16_t x, int16_t y, bool pressed) {
+  if (!s) return;
+  s->pointer_x = x;
+  s->pointer_y = y;
+  s->pointer_pressed = pressed;
 }
 
 /* --- Safe frame/audio access (copies) --- */

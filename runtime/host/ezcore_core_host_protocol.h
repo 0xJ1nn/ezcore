@@ -37,6 +37,12 @@
  *                                         str value)
  *   SET_OPTION str key, str value      -> u8 matched
  *   CLOSE      (none)                  -> (nothing); the host then exits 0
+ *   ANALOG     u32 port, u32 stick, u32 axis, i32 value -> (nothing)
+ *   MOUSE_MOVE i32 dx, i32 dy          -> (nothing)
+ *   MOUSE_BTN  u32 id, u8 pressed      -> (nothing)
+ *   KEY        u32 keycode, u8 pressed, u32 character, u32 modifiers
+ *                                      -> (nothing)
+ *   POINTER    i32 x, i32 y, u8 pressed -> (nothing)
  *
  * The host exits 0 when its input reaches EOF (the app went away), so it
  * never outlives the app. A core crash kills the host; the app sees EOF on
@@ -61,6 +67,11 @@
 #define EZH_OP_OPTIONS 9
 #define EZH_OP_SET_OPTION 10
 #define EZH_OP_CLOSE 11
+#define EZH_OP_ANALOG 12
+#define EZH_OP_MOUSE_MOVE 13
+#define EZH_OP_MOUSE_BTN 14
+#define EZH_OP_KEY 15
+#define EZH_OP_POINTER 16
 
 /* Never sent by the app; lets the tests prove an unknown op is an error. */
 #define EZH_OP_BOGUS_FOR_TEST 250
