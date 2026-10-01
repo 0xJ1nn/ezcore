@@ -109,6 +109,17 @@ if(APPLE)
   set_target_properties(synth_options_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- Synthetic core that READS its options (GET_VARIABLE / _UPDATE) ---
+add_library(synth_variables_libretro SHARED
+  test/synth_core/synth_variables_core.c
+)
+target_include_directories(synth_variables_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_variables_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- P6 spike: core that crashes on demand, so crash containment can be
 # exercised against a real signal instead of a simulated one. Same binary runs
 # clean or faults, selected by EZCORE_CRASH_AFTER at retro_run time. ---
@@ -253,6 +264,17 @@ add_dependencies(test_core_options synth_options_libretro)
 add_test(NAME core_options
   COMMAND test_core_options
   ${CMAKE_BINARY_DIR}/libsynth_options_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Regression: an option value the host sets must reach the core through
+# GET_VARIABLE, with GET_VARIABLE_UPDATE raised exactly once per change.
+add_executable(test_core_variables test/test_core_variables.c)
+target_link_libraries(test_core_variables PRIVATE ezcore_runtime)
+target_include_directories(test_core_variables PRIVATE include)
+add_dependencies(test_core_variables synth_variables_libretro)
+
+add_test(NAME core_variables
+  COMMAND test_core_variables
+  $<TARGET_FILE:synth_variables_libretro>)
 
 # Regression: a button held at reset time must not stay latched afterwards.
 add_test(NAME input_reset_clears_buttons
