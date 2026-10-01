@@ -8,6 +8,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **A clear Cores screen.** Cores are listed by the systems they play, each
+  with a plain status (Ready, needs BIOS files, Download to install, Not
+  available on this device) and a Verified/Unverified label. Details and
+  actions sit beside the list on wide screens and open as a page on phones;
+  "Install core from file" is a labelled button. Show games opens the library
+  filtered to that system. Fixes the phone overflow on the old screen.
 - **Saved core settings are applied when a game starts.** Per-core and per-game
   option overrides are stored, resolved (a per-game value wins over a per-core
   value), and handed to the core after it loads but before the game does,
