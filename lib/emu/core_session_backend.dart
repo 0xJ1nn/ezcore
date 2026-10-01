@@ -27,6 +27,26 @@ abstract interface class CoreSessionBackend {
 
   Future<void> button(int id, bool pressed, {int port = 0});
 
+  /// Analog stick axis: [stick] 0 left / 1 right, [axis] 0 x / 1 y.
+  Future<void> analog(int port, int stick, int axis, int value);
+
+  /// Relative mouse motion (delivered to the core once per frame).
+  Future<void> mouseMove(int dx, int dy);
+
+  /// A mouse button (RETRO_DEVICE_ID_MOUSE_*).
+  Future<void> mouseButton(int id, bool pressed);
+
+  /// A key (RETROK_*), with the typed character and RETROKMOD_* modifiers.
+  Future<void> key(
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  });
+
+  /// The pointer/touchscreen across the whole output, -32767..32767.
+  Future<void> pointer(int x, int y, bool pressed);
+
   Future<Uint8List> save();
 
   Future<void> restore(Uint8List bytes);

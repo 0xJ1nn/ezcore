@@ -10,9 +10,9 @@ import 'pcm_output.dart';
 /// Frame scheduling/presentation only; native sessions belong to the worker.
 /// One outstanding frame bounds memory even when rendering is slower than emulation.
 class PlayerController extends ChangeNotifier {
-  PlayerController({PcmOutput? audio})
-      : audio = audio ?? createPlatformPcm();
+  PlayerController({PcmOutput? audio}) : audio = audio ?? createPlatformPcm();
   final PcmOutput audio;
+
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
   CoreSessionBackend worker = EmulationWorker();
@@ -22,6 +22,7 @@ class PlayerController extends ChangeNotifier {
     if (running) throw StateError('Cannot change backend of a live session');
     worker = backend;
   }
+
   ui.Image? frame;
   String? error;
   String? audioError;
@@ -155,6 +156,41 @@ class PlayerController extends ChangeNotifier {
     if (running && !paused && !_closed) {
       await worker.button(id, pressed, port: port);
     }
+  }
+
+  bool get _live => running && !paused && !_closed;
+
+  /// Analog stick axis for [port]: [stick] 0 left / 1 right, [axis] 0 x / 1 y.
+  Future<void> analog(int port, int stick, int axis, int value) async {
+    if (_live) await worker.analog(port, stick, axis, value);
+  }
+
+  Future<void> mouseMove(int dx, int dy) async {
+    if (_live && (dx != 0 || dy != 0)) await worker.mouseMove(dx, dy);
+  }
+
+  Future<void> mouseButton(int id, bool pressed) async {
+    if (_live) await worker.mouseButton(id, pressed);
+  }
+
+  Future<void> key(
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  }) async {
+    if (_live) {
+      await worker.key(
+        keycode,
+        pressed,
+        character: character,
+        modifiers: modifiers,
+      );
+    }
+  }
+
+  Future<void> pointer(int x, int y, bool pressed) async {
+    if (_live) await worker.pointer(x, y, pressed);
   }
 
   /// Applies [entries] to the live session (reset-first). Returns the

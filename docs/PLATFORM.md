@@ -80,7 +80,7 @@ it.
 **The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
 `runtime/external/libretro-common/include/libretro.h`, reproducible with one
-grep):** `env_cb` implements **19 of the 93** `RETRO_ENVIRONMENT_*` commands;
+grep):** `env_cb` implements **21 of the 93** `RETRO_ENVIRONMENT_*` commands;
 everything else hits `default: return false` (`runtime/src/runtime.c:197`).
 Still unimplemented and relevant here: `GET_RUMBLE_INTERFACE`,
 `SET_GEOMETRY`, `SET_SYSTEM_AV_INFO`, `SET_PERFORMANCE_LEVEL`,
@@ -91,11 +91,13 @@ since the previous revision of this file, and no longer "unimplemented":
 negotiation set `SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
 `GET_HW_RENDER_INTERFACE`, `SET_PROC_ADDRESS_CALLBACK` (#88); and
 `GET_VARIABLE` / `GET_VARIABLE_UPDATE`, without which no option value ever
-reached a core (#89). This single fact is why `MATRIX.md`
+reached a core (#89); and `SET_KEYBOARD_CALLBACK` / `GET_INPUT_BITMASKS` with the P3 input
+devices (analog, mouse, keyboard, pointer). This single fact is why `MATRIX.md`
 records PS2, N64, GameCube, Wii, Dreamcast and PC-architecture cores as
 frame-unverified.
 
-Related, same audit: input is **digital only** — `RETRO_DEVICE_JOYPAD` is the
+Related, same audit (since resolved by P3: analog, mouse, keyboard and
+pointer devices are answered): input was **digital only** — `RETRO_DEVICE_JOYPAD` was the
 only handled device (`runtime.c:181-190`); the Dart layer sends **port 0 only**
 (`lib/emu/emulation_worker.dart:171-172`) although the runtime holds 4 ports;
 there is no `RETRO_MEMORY_*` support, so battery saves are not round-tripped;

@@ -8,6 +8,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **The engine understands more than buttons.** Cores can now read analog
+  sticks (and pressure triggers), a mouse, a keyboard (including the key events
+  DOS and computer cores rely on) and a touchscreen pointer (the DS bottom
+  screen) — through both the normal and the crash-protected way of running a
+  core. Hooking these up to your controllers, keyboard, mouse and touch is the
+  next step.
 - **A real page for every game.** Its own art fills the background; Resume
   (or Play) is the big action, with Play from start beside it. Every save is a
   card with a readable name — Automatic, Quick save, Saved 14:22 — that you can
