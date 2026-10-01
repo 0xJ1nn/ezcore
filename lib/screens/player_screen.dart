@@ -146,6 +146,10 @@ class _PlayerScreenState extends State<PlayerScreen>
           contentPath: File(game.filePath).absolute.path,
           systemDir: system.path,
           saveDir: saves.path,
+          coreOptions: widget.state.coreOptionsFor(
+            coreId: manifest.id,
+            gameId: game.id,
+          ),
         );
       });
       if (!mounted || leaving) return;

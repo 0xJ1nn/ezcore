@@ -158,6 +158,7 @@ class SupervisorSession {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     if (_open) throw StateError('Session already open');
     _check('open');
@@ -168,6 +169,7 @@ class SupervisorSession {
         contentPath: contentPath,
         systemDir: systemDir,
         saveDir: saveDir,
+        coreOptions: coreOptions,
       ),
     );
     _open = true;
