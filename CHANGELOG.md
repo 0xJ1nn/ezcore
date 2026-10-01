@@ -8,6 +8,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **The ezCORE brand, everywhere.** The twin-hexagon mark, the "ez CORE"
+  wordmark, the app icon and its dark, light and blue variations are now exact
+  vector files generated from one source (`scripts/build_brand.py`), with
+  sharp launcher icons on Android, iOS, macOS, Windows and — new — Linux. The
+  app draws the same mark in its sidebar and the full lockup in About, and the
+  window is titled ezCORE. See `docs/BRAND.md`.
 - **Sticks, keyboard, mouse and touch reach your games.** Controller sticks
   are real analog input (Linux and Windows today). Every key reaches games that
   read a keyboard; in DOS and adventure games the keyboard is all theirs and
