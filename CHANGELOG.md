@@ -84,6 +84,11 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **A core that draws with OpenGL no longer crashes the app on its first
+  frame.** The runtime read the "frame is in the GPU" signal as a pixel address;
+  it now reads the frame back from the GPU (right way up) so it shows like any
+  other. Real GPU cores (N64's GLideN64, PSP, Dreamcast, GameCube) still need
+  further work before they render; see `docs/MATRIX.md`.
 - About showed version 0.1.0 in a 0.2.0 build. The version now comes from one
   place, with a test that fails if it drifts from the build.
 - After leaving a game, Settings stopped hearing controller events on Android

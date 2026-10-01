@@ -732,10 +732,60 @@ static bool env_cb(unsigned cmd, void *data) {
   }
 }
 
+/* Copies a GPU-rendered frame (OpenGL / GLES) into s->frame as XRGB8888, so
+ * the rest of the pipeline -- the player, screenshots, save-state checks --
+ * sees it exactly like a software frame. Reads the framebuffer the core drew
+ * into, then flips it when GL's origin is bottom-left (the libretro default).
+ * Returns false when there is nothing to read (no negotiated GL context, or
+ * a Vulkan core, whose frames arrive differently and are not handled yet). */
+static bool hw_readback(ezcore_session *s, unsigned width, unsigned height) {
+  if (!s->gpu || !s->gpu_negotiated) return false;
+  if (ezcore_gpu_api_of(s->gpu) == EZCORE_GPU_VULKAN) return false;
+  typedef void (*bindfb_t)(unsigned, unsigned);
+  typedef void (*readpixels_t)(int, int, int, int, unsigned, unsigned, void *);
+  typedef void (*pixelstore_t)(unsigned, int);
+  bindfb_t bind = (bindfb_t)ezcore_gpu_get_proc_address(s->gpu, "glBindFramebuffer");
+  readpixels_t read = (readpixels_t)ezcore_gpu_get_proc_address(s->gpu, "glReadPixels");
+  pixelstore_t store = (pixelstore_t)ezcore_gpu_get_proc_address(s->gpu, "glPixelStorei");
+  if (!bind || !read) return false;
+  size_t n = (size_t)width * height;
+  if (width != s->frame_w || height != s->frame_h || !s->frame) {
+    free(s->frame);
+    s->frame = malloc(n * 4);
+    if (!s->frame) { s->frame_w = s->frame_h = 0; return false; }
+    s->frame_w = width;
+    s->frame_h = height;
+  }
+  uint8_t *rgba = malloc(n * 4);
+  if (!rgba) return false;
+  bind(0x8D40 /* GL_FRAMEBUFFER */, ezcore_gpu_current_framebuffer(s->gpu));
+  if (store) store(0x0D05 /* GL_PACK_ALIGNMENT */, 1);
+  /* GL_RGBA + GL_UNSIGNED_BYTE is the one combination GLES guarantees. */
+  read(0, 0, (int)width, (int)height, 0x1908 /* GL_RGBA */,
+       0x1401 /* GL_UNSIGNED_BYTE */, rgba);
+  bool flip = !s->hw_render_cb || s->hw_render_cb->bottom_left_origin;
+  for (unsigned y = 0; y < height; y++) {
+    const uint8_t *src = rgba + (size_t)(flip ? height - 1 - y : y) * width * 4;
+    uint32_t *dst = s->frame + (size_t)y * width;
+    for (unsigned x = 0; x < width; x++, src += 4) {
+      dst[x] = 0xFF000000u | ((uint32_t)src[0] << 16) |
+               ((uint32_t)src[1] << 8) | src[2];
+    }
+  }
+  free(rgba);
+  return true;
+}
+
 static void video_cb(const void *data, unsigned width, unsigned height,
                      size_t pitch) {
   if (!g_active || !data || width == 0 || height == 0) return;
   ezcore_session *s = g_active;
+  /* A GPU core passes this sentinel instead of pixels: the frame is in its
+   * framebuffer. It is (void *)-1, so it must never be read as memory. */
+  if (data == RETRO_HW_FRAME_BUFFER_VALID) {
+    hw_readback(s, width, height);
+    return;
+  }
   if (width != s->frame_w || height != s->frame_h) {
     free(s->frame);
     s->frame = malloc((size_t)width * height * 4);

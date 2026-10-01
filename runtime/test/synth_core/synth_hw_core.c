@@ -104,7 +104,26 @@ void retro_get_system_av_info(struct retro_system_av_info *av) {
  * "require" hardware often fall back to software -- they never actually ask. */
 static retro_environment_t env_cb = NULL;
 void retro_set_environment(retro_environment_t cb) { env_cb = cb; }
+#ifdef EZCORE_SYNTH_HW_DRAW
+/* Drawing variant (synth_hw_draw target): it renders a known picture and
+ * submits it the way real GPU cores do, so readback can be checked. */
+static retro_video_refresh_t g_video = NULL;
+typedef void (*gl_bindfb_t)(unsigned, unsigned);
+typedef void (*gl_clearcolor_t)(float, float, float, float);
+typedef void (*gl_clear_t)(unsigned);
+typedef void (*gl_scissor_t)(int, int, int, int);
+typedef void (*gl_cap_t)(unsigned);
+typedef void (*gl_viewport_t)(int, int, int, int);
+static gl_bindfb_t p_bind;
+static gl_clearcolor_t p_clearcolor;
+static gl_clear_t p_clear;
+static gl_scissor_t p_scissor;
+static gl_cap_t p_enable, p_disable;
+static gl_viewport_t p_viewport;
+void retro_set_video_refresh(retro_video_refresh_t cb) { g_video = cb; }
+#else
 void retro_set_video_refresh(retro_video_refresh_t cb) { (void)cb; }
+#endif
 void retro_set_audio_sample(retro_audio_sample_t cb) { (void)cb; }
 void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { (void)cb; }
 void retro_set_input_poll(retro_input_poll_t cb) { (void)cb; }
@@ -181,6 +200,18 @@ bool retro_load_game(const struct retro_game_info *game) {
     p = (void *)resolver("glBindFramebuffer");
     if (p) g_proc_address_ok |= 4;
   }
+#ifdef EZCORE_SYNTH_HW_DRAW
+  p_bind = (gl_bindfb_t)resolver("glBindFramebuffer");
+  p_clearcolor = (gl_clearcolor_t)resolver("glClearColor");
+  p_clear = (gl_clear_t)resolver("glClear");
+  p_scissor = (gl_scissor_t)resolver("glScissor");
+  p_enable = (gl_cap_t)resolver("glEnable");
+  p_disable = (gl_cap_t)resolver("glDisable");
+  p_viewport = (gl_viewport_t)resolver("glViewport");
+  if (!p_bind || !p_clearcolor || !p_clear || !p_scissor || !p_enable ||
+      !p_disable || !p_viewport)
+    return false;
+#endif
 
   return true;
 }
@@ -194,6 +225,20 @@ void retro_run(void) {
   if (!g_cb || !g_have_context) return;
   if (g_framebuffer == 0xFFFFFFFFu) return;
   g_frames_drawn++;
+#ifdef EZCORE_SYNTH_HW_DRAW
+  /* Red everywhere, green in the top half in GL terms (bottom-left origin,
+   * so y = H/2 .. H is the top of the picture), then submit. */
+  p_bind(0x8D40 /* GL_FRAMEBUFFER */, (unsigned)g_cb->get_current_framebuffer());
+  p_viewport(0, 0, W, H);
+  p_clearcolor(1.0f, 0.0f, 0.0f, 1.0f);
+  p_clear(0x4000 /* GL_COLOR_BUFFER_BIT */);
+  p_enable(0x0C11 /* GL_SCISSOR_TEST */);
+  p_scissor(0, H / 2, W, H / 2);
+  p_clearcolor(0.0f, 1.0f, 0.0f, 1.0f);
+  p_clear(0x4000);
+  p_disable(0x0C11);
+  if (g_video) g_video(RETRO_HW_FRAME_BUFFER_VALID, W, H, 0);
+#endif
 }
 
 size_t retro_serialize_size(void) { return 0; }
