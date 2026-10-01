@@ -14,6 +14,9 @@ abstract interface class CoreSessionBackend {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+
+    /// Option values applied after the core loads and before the game does.
+    Map<String, String> coreOptions = const {},
   });
 
   /// Runs [count] frames (1-8); null when paused or no frame exists yet.
