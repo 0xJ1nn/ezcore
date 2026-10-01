@@ -14,6 +14,11 @@ All notable changes to ezCORE are documented here. The format follows
   because many cores read their options only while loading a game. A setting
   the core no longer declares is reported, not fatal. There is no settings
   screen for core options yet; this is the plumbing it will use.
+- **Cores can ship recommended settings.** A core manifest may declare
+  `default_options`: starting values for the core's own settings, validated as
+  plain strings and always overridden by your own choices. The N64 core uses it
+  to start on its software renderer, which is the only way it can draw until
+  GPU support lands.
 
 ### Fixed
 
