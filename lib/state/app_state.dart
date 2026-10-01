@@ -571,6 +571,12 @@ class AppState extends ChangeNotifier {
     required String gameId,
   }) {
     final resolver = CoreOptionsResolver();
+    // The core layer is the manifest's recommendation overlaid by the user's
+    // own per-core choice, so the user always wins over the manifest.
+    final manifest = registry.catalog.where((m) => m.id == coreId);
+    if (manifest.isNotEmpty) {
+      manifest.first.defaultOptions.forEach(resolver.setCore);
+    }
     _optionLayer(coreOptionsKey, coreId).forEach(resolver.setCore);
     _optionLayer(gameCoreOptionsKey, gameId).forEach(resolver.setGame);
     return {
