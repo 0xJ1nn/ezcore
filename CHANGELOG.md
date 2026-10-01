@@ -8,6 +8,11 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **Core settings now reach the core.** The runtime stored the options a core
+  declared and let the host change them, but never answered the two requests a
+  core uses to read them (`GET_VARIABLE`, `GET_VARIABLE_UPDATE`), so every core
+  silently ran on its built-in defaults. Covered by a new `core_variables`
+  native test that checks the value from the core's side, not the runtime's.
 - **Held input can no longer latch.** Pressing reset no longer leaves a button
   held down, loading a game no longer carries held buttons across the boundary,
   and unplugging a controller mid-press no longer leaves that direction stuck for
