@@ -6,6 +6,15 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Saved core settings are applied when a game starts.** Per-core and per-game
+  option overrides are stored, resolved (a per-game value wins over a per-core
+  value), and handed to the core after it loads but before the game does,
+  because many cores read their options only while loading a game. A setting
+  the core no longer declares is reported, not fatal. There is no settings
+  screen for core options yet; this is the plumbing it will use.
+
 ### Fixed
 
 - **Core settings now reach the core.** The runtime stored the options a core
