@@ -10,6 +10,7 @@ import '../services/core_package_installer.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/focus_glow.dart';
 import '../widgets/hardware_art.dart';
 import '../widgets/orbit_widgets.dart';
 
@@ -396,68 +397,66 @@ class _CoreRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = manifest;
-    return Material(
-      color: selected ? const Color(0x1A007BFF) : const Color(0x0CDDE6F4),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? const Color(0x66007BFF) : Tokens.line,
+    return FocusGlow(
+      onTap: onTap,
+      lift: 1.01,
+      semanticLabel: title,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0x1A007BFF) : const Color(0x0CDDE6F4),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? const Color(0x66007BFF) : Tokens.line,
+          ),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 56,
+                height: 56,
+                color: Tokens.dockTop,
+                child: Image.asset(
+                  hardwareArtworkAsset(m.id, systems: m.systems),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      const Icon(Icons.memory, color: Tokens.muted),
+                ),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  color: Tokens.dockTop,
-                  child: Image.asset(
-                    hardwareArtworkAsset(m.id, systems: m.systems),
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) =>
-                        const Icon(Icons.memory, color: Tokens.muted),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(size: 15, weight: FontWeight.w600),
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${m.name} ${m.version}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(size: 12, color: Tokens.muted),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    busy ? 'Working…' : status.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(size: 12, color: status.color),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Tokens.body(size: 15, weight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${m.name} ${m.version}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Tokens.body(size: 12, color: Tokens.muted),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      busy ? 'Working…' : status.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Tokens.body(size: 12, color: status.color),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              _TrustBadge(label: trust),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            _TrustBadge(label: trust),
+          ],
         ),
       ),
     );
