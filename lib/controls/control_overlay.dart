@@ -208,12 +208,7 @@ class ControlOverlayState extends State<ControlOverlay> {
                   Positioned.fromRect(
                     rect: ctl.rect.resolve(_size.width, _size.height),
                     child: IgnorePointer(
-                      child: ctl.type == ControlType.dpad
-                          ? _DPad(pressed: pressed)
-                          : _Button(
-                              spec: ctl,
-                              down: pressed.contains(ctl.input),
-                            ),
+                      child: ControlVisual(spec: ctl, pressed: pressed),
                     ),
                   ),
               ],
@@ -223,6 +218,19 @@ class ControlOverlayState extends State<ControlOverlay> {
       },
     );
   }
+}
+
+/// How one control looks, pressed or not. Shared by the game overlay and
+/// the layout editor so editing shows exactly what playing will.
+class ControlVisual extends StatelessWidget {
+  const ControlVisual({super.key, required this.spec, this.pressed = const {}});
+  final ControlSpec spec;
+  final Set<String> pressed;
+
+  @override
+  Widget build(BuildContext context) => spec.type == ControlType.dpad
+      ? _DPad(pressed: pressed)
+      : _Button(spec: spec, down: pressed.contains(spec.input));
 }
 
 class _Button extends StatelessWidget {
