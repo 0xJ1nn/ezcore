@@ -637,7 +637,15 @@ static bool env_cb(unsigned cmd, void *data) {
         case RETRO_HW_CONTEXT_OPENGLES2:    api = EZCORE_GPU_OPENGLES2; break;
         case RETRO_HW_CONTEXT_OPENGL_CORE:  api = EZCORE_GPU_OPENGL_CORE; break;
         case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
-        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
+        case RETRO_HW_CONTEXT_VULKAN:
+          /* Refused until frames can be handed over. ezcore_gpu_vulkan.c makes
+           * an instance and a device, but there is no set_image handoff and
+           * no readback, so saying yes would leave the core drawing into
+           * nothing -- Flycast then crashes on a renderer it never created.
+           * Refusing sends it to its OpenGL path, which works. */
+          fprintf(stderr, "[ezcore] SET_HW_RENDER vulkan refused: frame "
+                          "handoff not implemented yet\n");
+          return false;
         default: return false;   /* D3D/Metal/PS2: not offered, say so */
       }
 
@@ -663,22 +671,25 @@ static bool env_cb(unsigned cmd, void *data) {
       return true;
     }
     case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER: {
+      /* `data` is an OUT-PARAM (`unsigned *`): the frontend writes the context
+       * type it prefers. An earlier version read it as an input and echoed it
+       * back, but cores pass it uninitialised (Flycast: `u32 preferred;`), so
+       * the answer depended on stack garbage. When it came back false Flycast
+       * fell through to Vulkan, which we could not actually serve.
+       *
+       * Desktop GL first (what RetroArch's GL driver answers, and the path the
+       * most cores are tested on), GLES3 where only that exists. Never Vulkan
+       * while SET_HW_RENDER refuses it. Probing does not create a context. */
       if (!data) return false;
-      unsigned type = *(const unsigned *)data;
-      enum ezcore_gpu_api api;
-      switch (type) {
-        case RETRO_HW_CONTEXT_OPENGL:       api = EZCORE_GPU_OPENGL; break;
-        case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
-        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
-        default: return false;
+      if (ezcore_gpu_supported(EZCORE_GPU_OPENGL)) {
+        *(unsigned *)data = RETRO_HW_CONTEXT_OPENGL;
+        return true;
       }
-      /* Only advertise what ezcore_gpu_supported can actually create. This
-       * deliberately does NOT create a context: a core may ask this before it
-       * has decided, and paying for a context during capability probing would
-       * make the answer expensive on every session start. */
-      if (!ezcore_gpu_supported(api)) return false;
-      *(unsigned *)data = type;
-      return true;
+      if (ezcore_gpu_supported(EZCORE_GPU_OPENGLES3)) {
+        *(unsigned *)data = RETRO_HW_CONTEXT_OPENGLES3;
+        return true;
+      }
+      return false;
     }
     case RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE: {
       if (!g_active || !g_active->gpu || !data) return false;
