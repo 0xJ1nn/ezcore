@@ -8,6 +8,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Settings in plain words.** One "Settings" heading instead of slogans and a
+  "local preferences" badge; every section titled for what it is; jargon
+  ("frames stepped per tick", "emulated PCM", "native sink") replaced with
+  what it means for you. "Time capsule" is now simply Saves.
 - **A clear Cores screen.** Cores are listed by the systems they play, each
   with a plain status (Ready, needs BIOS files, Download to install, Not
   available on this device) and a Verified/Unverified label. Details and
@@ -57,6 +61,8 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- About showed version 0.1.0 in a 0.2.0 build. The version now comes from one
+  place, with a test that fails if it drifts from the build.
 - After leaving a game, Settings stopped hearing controller events on Android
   and iOS: each screen made its own controller service, and closing the
   player's cleared the channel for everyone. There is now one shared service.
