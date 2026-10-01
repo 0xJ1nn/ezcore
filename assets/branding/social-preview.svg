@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="ezCORE — Emulation shouldn't be hard.">
+  <title>ezCORE — Emulation shouldn't be hard.</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9EEF6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <g transform="translate(190 150) scale(0.62)">
+  <path fill-rule="evenodd" fill="#0A0A0A" d="M9 113.23Q0 100 9 86.77L59 13.23Q68 0 84 0L151 0Q167 0 175.23 13.72L278.77 186.28Q287 200 271 200L84 200Q68 200 59 186.77ZM105 60Q105 56 109 56L131 56Q135 56 135 60L135 81Q135 85 139 85L160 85Q164 85 164 89L164 111Q164 115 160 115L139 115Q135 115 135 119L135 140Q135 144 131 144L109 144Q105 144 105 140L105 119Q105 115 101 115L80 115Q76 115 76 111L76 89Q76 85 80 85L101 85Q105 85 105 81Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M469 86.77Q478 100 469 113.23L419 186.77Q410 200 394 200L327 200Q311 200 302.77 186.28L199.23 13.72Q191 0 207 0L394 0Q410 0 419 13.23ZM373 72A15 15 0 0 1 343 72A15 15 0 0 1 373 72ZM401 100A15 15 0 0 1 371 100A15 15 0 0 1 401 100ZM373 128A15 15 0 0 1 343 128A15 15 0 0 1 373 128ZM345 100A15 15 0 0 1 315 100A15 15 0 0 1 345 100Z"/>
+  <defs>
+    <linearGradient id="soc-g" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0" stop-color="#007BFF" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#7DB9FF" stop-opacity="1"/>
+      <stop offset="0.65" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#007BFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="soc-c" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0.2" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soc-blur" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <g stroke-linecap="round">
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#soc-g)" stroke-width="14" filter="url(#soc-blur)"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#soc-g)" stroke-width="4"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#soc-c)" stroke-width="1.6"/>
+  </g>
+  </g>
+  <g transform="translate(522.33 172.9) scale(0.78)"><path fill-rule="evenodd" fill="#0A0A0A" d="M66 67A33 33 0 1 0 59 87.32L50.73 80.85A22.5 22.5 0 1 1 55.5 67Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M9.5 61.75L66 61.75L66 72.25L9.5 72.25Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M74 35.5Q74 34 75.5 34L128.5 34Q130 34 130 35.5L130 43Q130 44.5 128.98 45.6L89.02 88.4Q88 89.5 89.5 89.5L128.5 89.5Q130 89.5 130 91L130 98.5Q130 100 128.5 100L75.5 100Q74 100 74 98.5L74 91Q74 89.5 75.02 88.4L114.98 45.6Q116 44.5 114.5 44.5L75.5 44.5Q74 44.5 74 43Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M286 0L204 0A50 50 0 0 0 204 100L286 100L286 74L204 74A24 24 0 0 1 204 26L286 26Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M354 0L386 0A50 50 0 0 1 386 100L354 100A50 50 0 0 1 354 0ZM354 26L386 26A24 24 0 0 1 386 74L354 74A24 24 0 0 1 354 26Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M454 0L480 0L480 100L454 100Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M454 0L547 0A31 31 0 0 1 547 62L454 62ZM480 24L547 24A8 8 0 0 1 547 40L480 40Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M514 61L542 61L578 100L550 100Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M728 0L646 0A50 50 0 0 0 646 100L728 100L728 74L646 74A24 24 0 0 1 646 26L728 26Z"/><path fill-rule="evenodd" fill="#0A0A0A" d="M620 38L714 38L714 62L620 62Z"/></g>
+  <text x="640.0" y="420" text-anchor="middle" font-family="Manrope, sans-serif" font-size="27" font-weight="500" letter-spacing="13" fill="#2A2F38">EMULATION SHOULDN’T BE HARD.</text>
+  <line x1="200" y1="470" x2="1080" y2="470" stroke="#C9D2DF" stroke-width="1.5"/>
+  <g font-family="Manrope, sans-serif" font-size="19" font-weight="500" letter-spacing="9" fill="#3A404B" text-anchor="middle">
+    <text x="360" y="528">SIMPLE</text><text x="640" y="528">POWERFUL</text><text x="920" y="528">EVERYWHERE</text>
+  </g>
+  <g stroke="#9AA6B8" stroke-width="1.5"><line x1="500" y1="508" x2="500" y2="534"/><line x1="780" y1="508" x2="780" y2="534"/></g>
+</svg>
