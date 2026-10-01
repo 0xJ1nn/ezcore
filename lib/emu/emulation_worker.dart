@@ -130,6 +130,29 @@ class EmulationWorker implements CoreSessionBackend {
   }
 
   @override
+  Future<void> analog(int port, int stick, int axis, int value) =>
+      _request('analog', [port, stick, axis, value]);
+
+  @override
+  Future<void> mouseMove(int dx, int dy) => _request('mouseMove', [dx, dy]);
+
+  @override
+  Future<void> mouseButton(int id, bool pressed) =>
+      _request('mouseButton', [id, pressed]);
+
+  @override
+  Future<void> key(
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  }) => _request('key', [keycode, pressed, character, modifiers]);
+
+  @override
+  Future<void> pointer(int x, int y, bool pressed) =>
+      _request('pointer', [x, y, pressed]);
+
+  @override
   Future<Uint8List> save() async => await _request('save') as Uint8List;
   @override
   Future<void> restore(Uint8List bytes) async {
@@ -248,6 +271,31 @@ Future<void> _workerMain(SendPort ready) async {
             }
           case 'button':
             dispatchButton(active.setButton, value);
+          case 'analog':
+            final a = value as List;
+            active.setAnalog(
+              a[0] as int,
+              a[1] as int,
+              a[2] as int,
+              a[3] as int,
+            );
+          case 'mouseMove':
+            final a = value as List;
+            active.mouseMove(a[0] as int, a[1] as int);
+          case 'mouseButton':
+            final a = value as List;
+            active.setMouseButton(a[0] as int, a[1] as bool);
+          case 'key':
+            final a = value as List;
+            active.setKey(
+              a[0] as int,
+              a[1] as bool,
+              character: a[2] as int,
+              modifiers: a[3] as int,
+            );
+          case 'pointer':
+            final a = value as List;
+            active.setPointer(a[0] as int, a[1] as int, a[2] as bool);
           case 'save':
             result = active.saveState();
             if (result == null) {

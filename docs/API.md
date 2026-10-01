@@ -293,6 +293,78 @@ Clears all pressed buttons for one port (0–3). Out-of-range ports are ignored.
 **Thread safety:** Not thread-safe — same serialisation duty as
 `ezcore_set_button`.
 
+#### `ezcore_set_analog`
+
+```c
+void ezcore_set_analog(ezcore_session *s, unsigned port, unsigned stick,
+                       unsigned axis, int16_t value);
+```
+
+Sets one analog stick axis for a port (0–3). `stick` is 0 (left) or 1
+(right), as `RETRO_DEVICE_INDEX_ANALOG_*`; `axis` is 0 (x) or 1 (y); `value`
+is −32768…32767. Analog-button reads (pressure triggers, index
+`RETRO_DEVICE_INDEX_ANALOG_BUTTON`) follow the digital button state: a pressed
+button reads `0x7fff`. Out-of-range arguments are ignored.
+
+**Thread safety:** Not thread-safe — same serialisation duty as
+`ezcore_set_button`.
+
+#### `ezcore_mouse_move`
+
+```c
+void ezcore_mouse_move(ezcore_session *s, int dx, int dy);
+```
+
+Adds relative mouse motion. Motion accumulates until the next
+`ezcore_run_frame`, which hands the core one delta for the whole frame; every
+read during that frame returns the same delta.
+
+**Thread safety:** Not thread-safe — same serialisation duty as
+`ezcore_set_button`.
+
+#### `ezcore_set_mouse_button`
+
+```c
+void ezcore_set_mouse_button(ezcore_session *s, unsigned id, bool pressed);
+```
+
+Sets a mouse button, where `id` is a `RETRO_DEVICE_ID_MOUSE_*` value (`LEFT`,
+`RIGHT`, `MIDDLE`, `WHEELUP`, …). Ids of 32 and above are ignored.
+
+**Thread safety:** Not thread-safe — same serialisation duty as
+`ezcore_set_button`.
+
+#### `ezcore_set_key`
+
+```c
+void ezcore_set_key(ezcore_session *s, unsigned keycode, bool pressed,
+                    uint32_t character, uint16_t modifiers);
+```
+
+Sets a keyboard key, where `keycode` is a `RETROK_*` value, `character` the
+UTF-32 character typed (or 0) and `modifiers` the `RETROKMOD_*` bits. Updates
+the polled key state and, when the core registered one through
+`RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK`, calls its keyboard callback.
+Keycodes of `RETROK_LAST` and above are ignored.
+
+**Thread safety:** Not thread-safe; the keyboard callback runs inside this
+call, on the caller's thread, so it must be the thread that runs frames.
+
+#### `ezcore_set_pointer`
+
+```c
+void ezcore_set_pointer(ezcore_session *s, int16_t x, int16_t y, bool pressed);
+```
+
+Sets the pointer (touchscreen). `x` and `y` span the core's whole output,
+−32767 (left/top) to 32767 (right/bottom).
+
+**Thread safety:** Not thread-safe — same serialisation duty as
+`ezcore_set_button`.
+
+All input — buttons, sticks, mouse buttons and motion, keys and the pointer —
+is released by `ezcore_reset` and by a successful `ezcore_load_game`.
+
 ---
 
 ### Video

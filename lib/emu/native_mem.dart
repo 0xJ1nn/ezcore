@@ -7,12 +7,15 @@ import 'dart:ffi';
 /// UTF-8 helpers in lib/runtime); these cover what the desktop PCM sinks
 /// need: allocation, C strings, and error-string decoding.
 final Pointer<Void> Function(int) cMalloc = DynamicLibrary.process()
-    .lookupFunction<Pointer<Void> Function(IntPtr),
-        Pointer<Void> Function(int)>('malloc');
+    .lookupFunction<
+      Pointer<Void> Function(IntPtr),
+      Pointer<Void> Function(int)
+    >('malloc');
 
 final void Function(Pointer<Void>) cFree = DynamicLibrary.process()
-    .lookupFunction<Void Function(Pointer<Void>),
-        void Function(Pointer<Void>)>('free');
+    .lookupFunction<Void Function(Pointer<Void>), void Function(Pointer<Void>)>(
+      'free',
+    );
 
 Pointer<Uint8> mallocBytes(int bytes) {
   final ptr = cMalloc(bytes).cast<Uint8>();
