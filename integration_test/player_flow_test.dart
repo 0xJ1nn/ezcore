@@ -27,7 +27,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp(home: Shell(state: state)));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Import').first);
+    await tester.tap(find.text('Add games').first);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextField).last,
