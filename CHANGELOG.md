@@ -6,6 +6,15 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Crash protection (experimental, off by default).** Settings > Emulation >
+  Crash protection runs each game's core in a separate helper process
+  (`ezcore_core_host`). If the core crashes or stops responding, only that game
+  ends, with a plain message; the app, your library and your saves are
+  untouched. Linux verified; Windows packaged but not yet run; macOS and Android
+  not wired yet; iOS cannot support it (Apple forbids helper processes).
+
 ### Fixed
 
 - **Held input can no longer latch.** Pressing reset no longer leaves a button
