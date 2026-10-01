@@ -60,8 +60,8 @@ older ad-hoc-signed app is not notarized.
 
    ![Empty library on first launch](images/library-empty.png)
 
-2. Import your own dumps: tap **Import** in the top bar (or "Import a
-   folder" in the empty state). In the Import screen you can **Browse
+2. Add your own dumps: tap **Add games** (at the top of the library, or in
+   the empty state). In the Import screen you can **Browse
    files** or type a folder path and **Scan** it, then **Import scanned
    content**. Imported games **stay where you keep them** — the library
    references your folder (on macOS, access is kept with a security-scoped
