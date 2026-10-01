@@ -38,7 +38,7 @@
   },
   "artifacts": {
     "macos-arm64": "26e13d6208392846f220d2971a9bf342565a51f9e7ec720e4ba1b988e09be222",
-    "linux-x64": "e7e1ab52cd7321e326616ab4177c7deddd6548abbbbfbab2255d899585984f10"
+    "linux-x64": "5c5cb08b9e25f3087c05e7b7ad515c094ed764999c57453bd1308ebf25c38ac6"
   },
   "provenance": {
     "upstream_license": "GPL-2.0-or-later",
