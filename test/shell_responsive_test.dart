@@ -7,6 +7,7 @@ import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
+import 'package:ezcore/widgets/collection_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,8 +77,13 @@ void main() {
     WidgetTester tester,
     Size size, {
     List<GameEntry> library = games,
+    CollectionView view = CollectionView.grid,
   }) async {
-    final state = AppState()..games = List.of(library);
+    // Ephemeral: nothing here may write the developer's real settings.
+    final state = AppState.ephemeral()..games = List.of(library);
+    // These tests describe the Grid layout (Resume card, Continue playing);
+    // the 3D view has its own tests.
+    await state.setSetting(libraryViewKey, view.value);
     state.registry.loadCatalog({core.id: jsonEncode(core.toJson())});
     state.registry.install(core, expectedSha256: 'test-pin');
     state.loaded = true;
@@ -125,6 +131,16 @@ void main() {
       expect(tester.takeException(), isNull,
           reason: 'layout overflow at ${entry.value}');
     });
+
+    for (final view in [CollectionView.flow, CollectionView.list]) {
+      testWidgets('${view.label} library has no overflow: ${entry.key}', (
+        tester,
+      ) async {
+        await pumpShell(tester, entry.value, view: view);
+        expect(tester.takeException(), isNull,
+            reason: '${view.label} layout overflow at ${entry.value}');
+      });
+    }
 
     testWidgets('empty library has no overflow: ${entry.key}', (
       tester,
