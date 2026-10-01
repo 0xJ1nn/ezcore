@@ -20,6 +20,8 @@ class CoreManifest {
     this.biosFiles = const [],
     this.blockedReason = '',
     this.execution = const {},
+    this.defaultOptions = const {},
+    this.defaultOptionsErrors = const [],
   });
 
   final String id;
@@ -41,9 +43,62 @@ class CoreManifest {
   /// Absent entries mean 'unknown'. iOS must never resolve to dynarec.
   final Map<String, String> execution;
 
+  /// Recommended starting values for this core's own options
+  /// (`default_options`): option key -> value. Data only. They sit below the
+  /// user's per-core and per-game choices (AppState.coreOptionsFor).
+  final Map<String, String> defaultOptions;
+
+  /// Problems found while parsing `default_options`; surfaced by [validate].
+  final List<String> defaultOptionsErrors;
+
+  /// Caps on `default_options`, shared with the package validator.
+  static const int maxDefaultOptions = 128;
+  static const int maxDefaultOptionLength = 256;
+
   bool get blocked => blockedReason.isNotEmpty;
 
+
+  /// Parses a raw `default_options` value strictly: only string keys with
+  /// string values are kept, nothing is stringified, and every problem is
+  /// reported. Shared with the package validator so both apply one rule.
+  static ({Map<String, String> options, List<String> errors})
+  parseDefaultOptions(dynamic raw) {
+    if (raw == null) return (options: const {}, errors: const []);
+    if (raw is! Map) {
+      return (
+        options: const {},
+        errors: const ['"default_options" must be an object'],
+      );
+    }
+    final errors = <String>[];
+    final options = <String, String>{};
+    if (raw.length > maxDefaultOptions) {
+      errors.add(
+        '"default_options" has ${raw.length} entries (max $maxDefaultOptions)',
+      );
+    }
+    for (final e in raw.entries) {
+      final k = e.key, v = e.value;
+      if (k is! String || v is! String) {
+        errors.add('default_options entry "$k" must be a string value');
+        continue;
+      }
+      if (k.isEmpty ||
+          k.length > maxDefaultOptionLength ||
+          v.length > maxDefaultOptionLength) {
+        errors.add(
+          'default_options entry "$k" is empty or longer than '
+          '$maxDefaultOptionLength characters',
+        );
+        continue;
+      }
+      options[k] = v;
+    }
+    return (options: options, errors: errors);
+  }
+
   factory CoreManifest.fromJson(Map<String, dynamic> json) {
+    final defaults = parseDefaultOptions(json['default_options']);
     return CoreManifest(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
@@ -60,6 +115,8 @@ class CoreManifest {
       biosFiles: _biosNames(json['bios_files']),
       blockedReason: json['blocked_reason'] as String? ?? '',
       execution: _strMap(json['execution']),
+      defaultOptions: defaults.options,
+      defaultOptionsErrors: defaults.errors,
     );
   }
 
@@ -92,6 +149,7 @@ class CoreManifest {
         'bios_files': biosFiles,
         if (blockedReason.isNotEmpty) 'blocked_reason': blockedReason,
         if (execution.isNotEmpty) 'execution': execution,
+        if (defaultOptions.isNotEmpty) 'default_options': defaultOptions,
       };
 
   /// Returns human-readable policy errors. Empty = valid.
@@ -109,6 +167,7 @@ class CoreManifest {
     if (blocked && artifacts.isNotEmpty) {
       errors.add('blocked core must not ship artifacts');
     }
+    errors.addAll(defaultOptionsErrors);
     for (final entry in execution.entries) {
       if (entry.value != 'interpreter' && entry.value != 'dynarec') {
         errors.add('bad execution strategy for ${entry.key}');

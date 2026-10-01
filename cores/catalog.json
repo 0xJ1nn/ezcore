@@ -788,6 +788,10 @@
       "n64_gameshark"
     ],
     "cheats_supported": true,
+    "default_options": {
+      "mupen64plus-rdp-plugin": "angrylion",
+      "mupen64plus-rsp-plugin": "parallel"
+    },
     "delivery": {
       "android": "absent",
       "ios": "absent",
