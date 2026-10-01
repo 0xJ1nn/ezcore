@@ -40,6 +40,7 @@ class PlayerController extends ChangeNotifier {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     final info = await worker.open(
       runtimeRef: runtimeRef,
@@ -47,6 +48,7 @@ class PlayerController extends ChangeNotifier {
       contentPath: contentPath,
       systemDir: systemDir,
       saveDir: saveDir,
+      coreOptions: coreOptions,
     );
     if (_closed) {
       await worker.close();
