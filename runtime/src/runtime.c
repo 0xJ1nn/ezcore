@@ -124,6 +124,9 @@ struct ezcore_session {
   /* --- Core options & capability surface (host-owned deep copies) --- */
   struct ezcore_core_option *core_options;
   unsigned num_core_options;
+  /* Raised when the host changes an option value; consumed (cleared) by the
+   * core's next RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE. */
+  bool core_options_dirty;
   struct ezcore_input_desc *input_descs;
   unsigned num_input_descs;
   struct ezcore_controller_port *controller_ports;
@@ -462,6 +465,31 @@ static bool env_cb(unsigned cmd, void *data) {
           }
         }
       }
+      return true;
+    }
+    case RETRO_ENVIRONMENT_GET_VARIABLE: {
+      /* How a core reads an option value. Without this every core runs on
+       * its own defaults whatever the host set. An unknown key is answered
+       * "no such option" (value NULL, false) per libretro.h. */
+      struct retro_variable *var = data;
+      if (!g_active || !var || !var->key) return false;
+      var->value = NULL;
+      for (unsigned i = 0; i < g_active->num_core_options; i++) {
+        const struct ezcore_core_option *co = &g_active->core_options[i];
+        if (co->key && strcmp(co->key, var->key) == 0) {
+          var->value = co->value;
+          return co->value != NULL;
+        }
+      }
+      return false;
+    }
+    case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE: {
+      /* Reports, then clears, whether any value changed since the last ask.
+       * Clearing on read is the libretro contract: cores poll this every
+       * frame and reconfigure when it is true. */
+      if (!g_active || !data) return false;
+      *(bool *)data = g_active->core_options_dirty;
+      g_active->core_options_dirty = false;
       return true;
     }
     case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS: {
@@ -1095,8 +1123,14 @@ bool ezcore_set_core_option(ezcore_session *s, const char *key,
   for (unsigned i = 0; i < s->num_core_options; i++) {
     struct ezcore_core_option *co = &s->core_options[i];
     if (co->key && strcmp(co->key, key) == 0) {
-      free(co->value);
-      co->value = ezcore_strdup(value);
+      /* Re-setting the current value is not a change: raising the update
+       * flag would make the core reconfigure for nothing. */
+      bool same = co->value && value && strcmp(co->value, value) == 0;
+      if (!same) {
+        free(co->value);
+        co->value = ezcore_strdup(value);
+        s->core_options_dirty = true;
+      }
       return true;
     }
   }
