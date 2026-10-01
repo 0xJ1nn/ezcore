@@ -1151,6 +1151,63 @@ should not start until they are answered (`project.md` §1).
 
 ---
 
+## ADR-020: On-screen controls are data (`ezcore.controls/1`)
+
+**Status:** **Proposed** (2026-10-01). Direction set by the maintainer
+(2026-10-01): customisable on-screen buttons, reset to default, shell-like
+layouts (a DS-style clamshell), shipped by core packages, fully user
+customisable. Program item **P4**. Implemented for built-ins in
+`lib/controls/`; package-supplied layouts and the editor follow.
+
+### Context
+
+The player's touch controls were eight text chips in a row: no layout per
+system, no shoulders, no shell, no customisation. `PACKAGE_FORMAT.md` already
+reserves a `layouts/` directory for this, "data-only by design".
+
+### Proposed decision
+
+One JSON format serves built-in layouts, a user's customised copy, and
+layouts a core package ships:
+
+- `format: "ezcore.controls/1"`, `id`, `name`, `systems`, `orientation`
+  (`portrait` | `landscape` | `any`), `opacity` (0.1–1).
+- `screen`: where the game picture goes, as fractions of the player area,
+  optionally `split: 2` with `arrange: stacked | side` and a `gap` — a DS
+  frame (two screens stacked) drawn as two panels.
+- `shell`: an optional fill colour, corner radius and hinge line. Declarative
+  only: no images, paths or URLs in v1.
+- `controls`: up to 64 of `dpad` or `button`, each a rectangle in fractions;
+  a button presses one RetroPad input (`a`, `b`, `x`, `y`, `l`, `r`, `l2`,
+  `r2`, `l3`, `r3`, `select`, `start`, directions) or a host action (`menu`,
+  `fast_forward`); optional label (≤12 chars) and shape.
+
+Validation is strict (`ControlLayout.parse`): unknown fields rejected, every
+number range-checked, rectangles confined to the player area, ids
+`[a-z0-9_]`, nothing that can execute, load or fetch. Every built-in layout
+must also pass geometry rules in tests: no overlapping controls, none
+covering the picture, and a Menu control so touch can always leave a game.
+
+### Alternatives
+
+- **Per-system hard-coded widgets.** Fast to write, impossible for a package
+  or a user to change — fails the stated goal.
+- **RetroArch overlay format (`.cfg` + images).** Large, image-driven and
+  loosely specified; adopting it would mean parsing an ad-hoc format and
+  accepting arbitrary images. May be worth an importer later, not as the
+  native format.
+
+### Open questions for the maintainer
+
+1. Shell images (a real device photo/vector) in a later version — needs the
+   same path-confinement rules as other package assets.
+2. Analog sticks and a touchscreen region (DS bottom screen, PSP stick)
+   depend on P3 input; reserved as future control types.
+3. Labels from the core's own input descriptors (`SET_INPUT_DESCRIPTORS`)
+   instead of family defaults — more accurate per core, needs a session.
+
+---
+
 ## Open Decisions
 
 These need to be made before Phase 1:
