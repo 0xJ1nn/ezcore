@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
-import 'package:ezcore/screens/library_screen.dart';
+import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/screens/settings_screen.dart';
 import 'package:ezcore/screens/vault_screen.dart';
 import 'package:ezcore/state/app_state.dart';
@@ -38,9 +38,9 @@ void main() {
   );
 
   final screens = <String, Widget Function(AppState)>{
-    'Library': (state) => LibraryScreen(state: state),
-    'Systems': (state) => CoreManagerScreen(state: state),
-    'Time Capsule': (state) => VaultScreen(state: state),
+    'Library': (state) => HomeScreen(state: state),
+    'Cores': (state) => CoreManagerScreen(state: state),
+    'Saves': (state) => VaultScreen(state: state),
     'Settings': (state) => SettingsScreen(state: state),
   };
 

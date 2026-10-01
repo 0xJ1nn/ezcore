@@ -6,6 +6,16 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- **A simpler home.** Three destinations — Library, Cores, Settings — on every
+  screen size. Library opens on **Resume**: one tap back into the game you
+  played last, from where you left off, whatever system it is. Below it,
+  Continue playing, filters named by system (never by core), and every game.
+  Removed: the decorative clock/Wi-Fi/"P1" bar, slogans, the duplicate system
+  menu, and the cover-flow carousel and its settings. Saves live with each game
+  and in Settings.
+
 ### Fixed
 
 - **Held input can no longer latch.** Pressing reset no longer leaves a button
