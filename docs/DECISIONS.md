@@ -1207,6 +1207,131 @@ should not start until they are answered (`project.md` §1).
 
 ---
 
+## ADR-019: Single-file core packages (`.ezpkg`)
+
+**Status:** **Proposed** (2026-10-01). The maintainer approved the *direction*
+("cores are like an exe or an apk — one file") on 2026-10-01; the format
+details, the dependency, and the open questions below are not yet decided.
+Program item **P2** follow-up. Platform contract: [`PLATFORM.md`](PLATFORM.md)
+§4, §5, §6.8–6.9. Format spec: [`PACKAGE_FORMAT.md`](PACKAGE_FORMAT.md).
+
+### Context (verified 2026-10-01)
+
+- `PACKAGE_FORMAT.md` §1 already defines a package as *"a directory (or a zip
+  of one)"*.
+- The installer refuses every zip up front
+  (`lib/services/core_package_installer.dart:147`, refusal code
+  `zip_not_supported`), because no zip reader is a dependency. So the spec
+  promises something the code refuses.
+- Installing a third-party core today means the user picks a **folder**
+  (`getDirectoryPath`, `lib/screens/core_manager_screen.dart:681`), and the
+  author must hand-write `manifest.json` including a SHA-256 pin per platform.
+  There is no packaging tool.
+- The product goal is an OS model: anyone can build a core, hand someone one
+  file, and that person can install or remove it. A folder is not a thing
+  people send to each other; a file is.
+
+### Proposed decision
+
+1. **`.ezpkg` is a zip archive containing exactly one top-level directory,
+   `<id>/`, laid out exactly as a v1 package directory** (`PACKAGE_FORMAT.md`
+   §1). No new manifest fields and no new metadata — a valid `.ezpkg` is a
+   valid directory package once extracted, and vice versa.
+2. **Install is extract-then-validate.** The archive is extracted into a
+   private staging directory under hostile-input rules (below). The existing
+   validator and install pipeline then run **unchanged** on the extracted
+   directory: validate → pin-verify → consent → stage. Nothing about trust
+   changes: a file-installed core is **Unverified**, opt-in, never
+   auto-updated (§6.9, ADR-016).
+3. **A packaging tool**, `scripts/ezpkg.py` (stdlib `zipfile` + `hashlib`, no
+   new dependency): `pack <dir>` validates the directory, computes the
+   artifact pin for each library present, writes it into `manifest.json`, and
+   emits a deterministic archive (sorted entries, fixed timestamps) so the
+   same input always produces the same bytes. `check <file.ezpkg>` runs the
+   same rules the app does.
+4. **iOS stays excluded.** iOS forbids loading native code at runtime
+   (`PLATFORM.md` §3); `.ezpkg` install is desktop and Android only.
+
+### Extraction rules (each one is a test)
+
+Zip archives are a well-known attack surface ("zip slip", zip bombs). Each
+rule below rejects the whole package — nothing is partially extracted into
+the vault:
+
+| Rule | Rejects |
+|---|---|
+| Single root | any entry not under exactly one `<id>/` directory |
+| Path confinement | absolute paths, drive letters, `..` segments, backslash separators, NUL bytes |
+| No links | entries whose external attributes mark a symlink or a device |
+| No duplicates | two entries whose paths collide after case folding (Windows/macOS file systems are case-insensitive) |
+| Size caps | total uncompressed > 512 MiB (the existing `defaultMaxPackageBytes`); more than 4,096 entries |
+| Bomb ratio | any entry whose uncompressed/compressed ratio exceeds 200:1 |
+| Plain storage | encrypted entries; compression methods other than stored (0) and deflate (8) |
+| Declared vs actual | an entry whose inflated size differs from the size the header declared |
+
+Extraction never writes outside the staging directory, never follows links,
+and enforces the size caps while inflating (not after) so a lying header
+cannot exhaust disk or memory.
+
+### Alternatives
+
+- **Keep folder packages only.** No dependency, no new attack surface. But
+  the spec/code mismatch stays, and "send someone a core" stays awkward. It
+  fails the stated product goal.
+- **A custom container format.** Avoids zip's quirks, but no tool on earth
+  can open it, authors need our tooling just to look inside, and we would
+  write a parser for a format nobody has security-reviewed. Worse on every
+  axis that matters.
+- **Signed packages now.** Signing is P7 and has its own ADR requirement;
+  bundling it here would couple two risky changes. `.ezpkg` reserves nothing
+  that blocks a later signature file inside `<id>/`.
+
+### What could break
+
+- A bug in path handling is the classic way an archive installer writes files
+  where it should not. Mitigated by the rules above, each with a hostile
+  fixture test, and by running the existing validator after extraction as a
+  second line of defence.
+- Adding a dependency adds supply-chain surface (`project.md` §26).
+- Existing directory packages are unaffected: the directory path stays
+  supported and is the code path every `.ezpkg` ends up on.
+
+### How it would be tested
+
+- Round trip: `ezpkg.py pack` a directory → install the `.ezpkg` → the staged
+  result is byte-identical to installing the directory.
+- One generated hostile archive per row of the rules table, each asserting
+  refusal **and** that the vault and staging directory are left empty.
+- The Python tool and the Dart installer run the same hostile fixtures, so
+  the author's `check` and the user's install can never disagree.
+
+### Open questions for the maintainer
+
+1. **Zip reader dependency** (`project.md` §26). Options:
+   (a) `package:archive` (MIT, pure Dart, widely used) — use only its parser
+   and do all path/size checks ourselves, never its "extract to disk" helper;
+   (b) a minimal in-repo reader for stored + deflate entries using
+   `dart:io`'s `ZLibCodec(raw: true)` — no dependency, but roughly 300 lines
+   of parser we must own. **Recommendation: (a)**, because a widely-used
+   parser is less likely to be wrong than a new one, and our own checks sit
+   on top either way.
+2. **One file per platform, or one file for all platforms?** v1 layout holds
+   one library per package, so the simplest `.ezpkg` is per-platform (like
+   per-ABI APKs). A "fat" package carrying Linux, Windows, macOS and Android
+   libraries in one file is friendlier for users but changes the v1 layout
+   (`lib/<platform-key>/…`) and needs a format version bump.
+   **Recommendation:** per-platform first, fat package as v2.
+3. **Extension name.** `.ezpkg` is proposed; any short, unregistered
+   extension works. Android file pickers match on MIME type, so the app would
+   also accept `application/zip`.
+4. **Removal.** Uninstalling a file-installed core already exists in the
+   registry; should removal also delete that core's saved options and
+   per-game overrides, or keep them in case it is reinstalled?
+   **Recommendation:** keep them (§6.11, never knowingly lose user data).
+
+---
+
+
 ## Open Decisions
 
 These need to be made before Phase 1:
