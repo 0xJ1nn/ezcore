@@ -37,7 +37,7 @@ class PlayerScreen extends StatefulWidget {
   final String gameId;
   final AppState state;
 
-  /// Save slot to restore right after boot (Time capsule resume).
+  /// Save slot to restore right after boot (Resume, or a chosen save).
   final String? initialSlot;
 
   @override
