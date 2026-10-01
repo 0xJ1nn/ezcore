@@ -111,6 +111,16 @@ the whole product.
 | **P2** | libretro `.info` support, core package format, package validator | [ ] Planned | A core ships as a complete validated package; existing `manifest.json` files validate unchanged | P1 |
 | **P3** | Input device model — analog, mouse, lightgun, touch-to-core, multiple ports | [~] Partially implemented | Non-`RETRO_DEVICE_JOYPAD` devices reach cores; the Dart port-0 hardcode is gone | P1 |
 
+> **P3 progress (2026-09-29, later).** A core's declared capabilities are
+> now readable. `SET_CONTROLLER_INFO` was already stored and counted, but the
+> per-port device types were unreachable through the ABI, so a frontend could
+> learn that a core *has* ports and nothing about what they accept.
+> `ezcore_get_controller_port_type_count` and
+> `ezcore_get_controller_port_type` (with Dart wrappers) close that, so
+> mouse and lightgun can be *offered* per port. `SET_MEMORY_MAPS` and
+> `GET_MEMORY_MAPS` were already complete — a plan draft claimed both were
+> missing, which was wrong.
+>
 > **P3 progress (2026-09-29).** The port-0 hardcode is gone: the worker button
 > payload carries a port, defaults to 0, and pause releases all four
 > (#68), and held input no longer survives a reset (#74) or a game load

@@ -47,8 +47,8 @@ blocked cores reach RENDERS. P1 is partly done and partly not:
 | `docs/API.md` + `ARCHITECTURE.md` exist | done | 20,072 B / 8,423 B |
 | Core options implemented | **done** | `runtime.c:250` `SET_CORE_OPTIONS_V2`, `:291` `_INTL` |
 | A test fails if a header symbol is undocumented | **MISSING** | no `api_doc`/`abi_doc` test in `test/` |
-| `GET_MEMORY_MAPS` | **MISSING** | 0 hits in `runtime.c` |
-| `GET_CONTROLLER_INFO` | **MISSING** | 0 hits in `runtime.c` |
+| `GET_MEMORY_MAPS` | **done** — `runtime.c:857,861` exports both halves. *This row was wrong when first written; the plan measured `GET_MEMORY_MAPS` as 0 hits when the real gap was that `SET_MEMORY_MAPS` was captured but the per-port `SET_CONTROLLER_INFO` content had no reader.* |
+| `GET_CONTROLLER_INFO` | **now done** — `runtime.c:857,862` add `ezcore_get_controller_port_type{,_count}` (memory-map readers at `:874,878`) plus Dart wrappers, with a C test proving order, per-port counts and bounds refusal |
 | 6 blocked cores → RENDERS | **blocked** | all 6 need `hw_render` |
 
 **This is the single highest-value item on the board.** The missing doc gate is
@@ -146,8 +146,12 @@ an unfinished kernel contract is exactly this case.
 
 ## Recommended order
 
-1. **P1 doc gate** (`api_doc` test) — small, and stops doc rot recurring
-2. **P1 `GET_MEMORY_MAPS` + `GET_CONTROLLER_INFO`** — additive, unblocks cheats/maps
+1. ~~**P1 doc gate**~~ — **DONE**, and extended: `check_api_docs.py` for
+   the ezCORE ABI plus a new `check_env_coverage_docs.py` for the libretro
+   capability figure, both wired into ctest (14 -> 15).
+2. ~~**`GET_MEMORY_MAPS` + `GET_CONTROLLER_INFO`**~~ — **DONE.** Memory maps
+   were already complete. Controller-info *reads* were added (see the P1 table).
+   The doc gate is also in.
 3. **Decide ADR-018** — your call, gates all of P8
 4. **P8 Vulkan (desktop)** then **Metal (Apple)** — unblocks 4 + 2 cores
 5. **`ios_frameworks.sh` + `android-stubs/`** — unblocks iOS/Android release
