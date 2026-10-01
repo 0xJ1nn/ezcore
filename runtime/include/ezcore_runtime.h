@@ -123,6 +123,18 @@ bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
  * the session is invalid. */
 unsigned ezcore_get_controller_port_count(ezcore_session *s);
 
+/* Number of device types the core registered for one port via
+ * RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.  Returns 0 when the port is out of
+ * range, the core registered none, or the session is invalid. */
+unsigned ezcore_get_controller_port_type_count(ezcore_session *s, unsigned port);
+
+/* Retrieve one device type of one port.  On success fills any non-NULL
+ * out-params; \c description is runtime-owned and valid for the session
+ * lifetime.  Returns false if the port or the type index is out of range. */
+bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
+                                     unsigned type_index, unsigned *id,
+                                     const char **description);
+
 /* Number of memory-map descriptors registered via
  * RETRO_ENVIRONMENT_SET_MEMORY_MAPS.  Returns 0 when none or
  * the session is invalid. */
