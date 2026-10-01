@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../brand/brand_mark.dart';
 import '../services/cover_art.dart';
 import '../theme/tokens.dart';
 import 'space_backdrop.dart';
@@ -41,11 +40,17 @@ class OrbitNavItem {
   final IconData filled;
 }
 
-/// The three destinations (layout option A). Settings is last; the rail
-/// pins it to the bottom edge.
+/// The four spaces of the OS, in order (keys 1–4): your games, the systems
+/// that play them (cores), the time capsule of saves, and settings.
 const orbitNavItems = [
   OrbitNavItem('library', 'Library', Icons.grid_view_outlined, Icons.grid_view),
-  OrbitNavItem('cores', 'Cores', Icons.memory_outlined, Icons.memory),
+  OrbitNavItem(
+    'cores',
+    'Systems',
+    Icons.sports_esports_outlined,
+    Icons.sports_esports,
+  ),
+  OrbitNavItem('capsule', 'Capsule', Icons.history_outlined, Icons.history),
   OrbitNavItem('settings', 'Settings', Icons.settings_outlined, Icons.settings),
 ];
 
@@ -69,30 +74,52 @@ class OrbitRail extends StatelessWidget {
         color: Color(0xE608101C),
         border: Border(right: BorderSide(color: Color(0x16DDE6F4))),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: short ? 8 : 10, vertical: 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final height = short ? 50.0 : 64.0;
-          Widget button(OrbitNavItem it) => _RailButton(
-            item: it,
-            active: page == it.id,
-            short: short,
-            height: height,
-            onTap: () => onGo(it.id),
-          );
-          final main = orbitNavItems.take(orbitNavItems.length - 1);
+          final height = short ? 50.0 : 84.0;
+          // The tagline only where there is room under the four spaces.
+          final tagline = !short && constraints.maxHeight >= 560;
           return Column(
             children: [
-              if (!short) ...[
-                const Padding(
-                  padding: EdgeInsets.only(top: 6),
-                  child: BrandMark(height: 22),
+              for (final it in orbitNavItems) ...[
+                _RailButton(
+                  item: it,
+                  active: page == it.id,
+                  short: short,
+                  height: height,
+                  onTap: () => onGo(it.id),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: short ? 4 : 12),
               ],
-              for (final it in main) ...[button(it), SizedBox(height: short ? 4 : 10)],
               const Spacer(),
-              button(orbitNavItems.last),
+              if (tagline)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ExcludeSemantics(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final w in const ['PLAY', 'PRESERVE', 'ANYWHERE'])
+                          Text(
+                            w,
+                            // Decorative small caps, hidden from screen
+                            // readers, so below the 12 px body floor.
+                            style: const TextStyle(
+                              fontFamily: Tokens.bodyFamily,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 2.6,
+                              color: Tokens.muted,
+                              height: 1.9,
+                            ),
+                          ),
+                        const SizedBox(height: 10),
+                        Container(width: 26, height: 2, color: Tokens.accent),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -117,59 +144,68 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = item.label;
     final foreground = active ? Colors.white : Tokens.muted;
-    final compact = short && height < 44;
-    final labelStyle = short
-        ? TextStyle(
-            fontFamily: Tokens.bodyFamily,
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
-            color: foreground,
-          )
-        : Tokens.body(size: 9, color: foreground);
+    final radius = BorderRadius.circular(short ? 10 : 14);
     return Semantics(
       button: true,
       selected: active,
-      label: label,
-      child: Material(
-        color: active ? Tokens.chipActiveBg : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(minHeight: height),
-            padding: EdgeInsets.symmetric(
-              vertical: short ? 2 : 12,
-              horizontal: 3,
-            ),
-            decoration: active
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x21DDE6F4)),
-                  )
-                : null,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  active ? item.filled : item.icon,
-                  size: short ? (compact ? 16 : 18) : 21,
-                  color: active ? Colors.white : Tokens.muted,
-                ),
-                SizedBox(height: short ? 2 : 8),
-                ExcludeSemantics(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: labelStyle,
+      label: item.label,
+      child: AnimatedContainer(
+        duration: Tokens.fastDur,
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          gradient: active
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0x40007BFF), Color(0x14007BFF)],
+                )
+              : null,
+          border: Border.all(
+            color: active ? const Color(0xB3007BFF) : Colors.transparent,
+            width: 1.2,
+          ),
+          boxShadow: active
+              ? const [BoxShadow(color: Color(0x55007BFF), blurRadius: 18)]
+              : null,
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: radius,
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              constraints: BoxConstraints(minHeight: height),
+              padding: EdgeInsets.symmetric(
+                vertical: short ? 2 : 10,
+                horizontal: 3,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    active ? item.filled : item.icon,
+                    size: short ? 18 : 26,
+                    color: foreground,
                   ),
-                ),
-              ],
+                  SizedBox(height: short ? 2 : 8),
+                  ExcludeSemantics(
+                    child: Text(
+                      item.label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: Tokens.body(
+                        size: short ? 10 : 12.5,
+                        weight: active ? FontWeight.w600 : FontWeight.w500,
+                        color: foreground,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -969,4 +1005,3 @@ class _BottomNavButton extends StatelessWidget {
     );
   }
 }
-

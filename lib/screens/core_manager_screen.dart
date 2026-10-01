@@ -166,12 +166,28 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Cores',
-                style: Tokens.display(
-                  size: compact ? 24 : 28,
-                  weight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'THE CORES THAT PLAY THEM',
+                    style: Tokens.body(
+                      size: 11,
+                      weight: FontWeight.w600,
+                      ls: 4,
+                      color: Tokens.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Systems',
+                    style: Tokens.display(
+                      size: compact ? 28 : 40,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
             CollectionViewSwitch(value: _view, onChanged: _setView),
