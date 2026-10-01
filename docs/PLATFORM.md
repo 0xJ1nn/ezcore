@@ -80,7 +80,7 @@ it.
 **The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
 `runtime/external/libretro-common/include/libretro.h`, reproducible with one
-grep):** `env_cb` implements **13 of the 93** `RETRO_ENVIRONMENT_*` commands;
+grep):** `env_cb` implements **17 of the 93** `RETRO_ENVIRONMENT_*` commands;
 everything else hits `default: return false` (`runtime/src/runtime.c:197`).
 Still unimplemented and relevant here: `SET_HW_RENDER`,
 `GET_HW_RENDER_INTERFACE`, `GET_RUMBLE_INTERFACE`, `SET_GEOMETRY`,
