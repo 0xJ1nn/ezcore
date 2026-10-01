@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import '../controls/layout_editor.dart';
+import '../controls/retro_keys.dart';
 import '../controls/layout_store.dart';
 import '../controls/control_layout.dart';
 import '../controls/control_overlay.dart';
@@ -32,8 +34,12 @@ import 'cheats_screen.dart';
 /// verified core launch, worker frames, PCM, pause, quick-save,
 /// fast-forward, screenshot, touch pad, cheats, save/load, reset.
 class PlayerScreen extends StatefulWidget {
-  const PlayerScreen(
-      {super.key, required this.gameId, required this.state, this.initialSlot});
+  const PlayerScreen({
+    super.key,
+    required this.gameId,
+    required this.state,
+    this.initialSlot,
+  });
   final String gameId;
   final AppState state;
 
@@ -50,6 +56,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   final _scoped = createScopedFiles();
   final _gamepads = GamepadService.shared;
   VoidCallback? _cancelPad;
+  VoidCallback? _cancelAxis;
 
   /// Staged vault cores (populated at startup by [CoreStagingService]).
   static String? _vaultCoresRoot() {
@@ -61,11 +68,14 @@ class _PlayerScreenState extends State<PlayerScreen>
   /// (or the vault was cleared): macOS `<app>/Contents/Resources/ezcore/cores`.
   static String? _bundledCoresRoot() {
     final roots = RepoLayout.bundledCoreRoots(
-        executablePath: Platform.resolvedExecutable);
+      executablePath: Platform.resolvedExecutable,
+    );
     return roots.isEmpty ? null : roots.first;
   }
+
   bool get paused => player.paused;
   bool get fastForward => player.fastForward;
+
   /// On-screen controls. On by default where touch is the main input,
   /// off on desktop (keyboard and pads); the player can flip it any time.
   bool padVisible = true;
@@ -85,7 +95,13 @@ class _PlayerScreenState extends State<PlayerScreen>
     // gets it back while the pause menu or an editor is open.
     padNavigationEnabled.value = false;
     _cancelPad = _gamepads.onButton(_onPad);
-    padVisible = widget.state.settings['touchOverlay'] as bool? ??
+    _cancelAxis = _gamepads.onAxis((e) {
+      final r = e.retro;
+      if (r == null || _menuOpen) return;
+      _action(() => player.analog(0, r.$1, r.$2, (e.value * 32767).round()));
+    });
+    padVisible =
+        widget.state.settings['touchOverlay'] as bool? ??
         (Platform.isAndroid || Platform.isIOS);
     opening = _launch();
   }
@@ -118,11 +134,14 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (!bios.satisfied) {
         throw StateError(bios.guidance);
       }
-      final root = widget.state.settings['coreDirectory'] as String? ??
+      final root =
+          widget.state.settings['coreDirectory'] as String? ??
           Platform.environment['EZCORE_CORES_DIR'] ??
           _vaultCoresRoot() ??
           _bundledCoresRoot() ??
-          RepoLayout.stagedCoresRoot(executablePath: Platform.resolvedExecutable) ??
+          RepoLayout.stagedCoresRoot(
+            executablePath: Platform.resolvedExecutable,
+          ) ??
           RepoLayout.coresRoot(executablePath: Platform.resolvedExecutable) ??
           RepoLayout.coresRoot() ??
           'native/cores';
@@ -187,6 +206,12 @@ class _PlayerScreenState extends State<PlayerScreen>
       player.ffFrames =
           int.tryParse('${prefs['ffFrames'] ?? '4'}')?.clamp(1, 8) ?? 4;
       await _applyCheats();
+      if (_keyboardFirst && mounted) {
+        orbitToast(
+          context,
+          'Keyboard and mouse go to the game. F12 opens the menu.',
+        );
+      }
       final slot = widget.initialSlot;
       if (slot != null && mounted && !leaving) {
         await _action(
@@ -209,8 +234,10 @@ class _PlayerScreenState extends State<PlayerScreen>
     try {
       final notDispatched = await player.applyCheats(cheats);
       if (notDispatched.isNotEmpty && mounted) {
-        orbitToast(context,
-            '${notDispatched.length} cheat(s) could not be dispatched');
+        orbitToast(
+          context,
+          '${notDispatched.length} cheat(s) could not be dispatched',
+        );
       }
     } catch (e) {
       if (mounted) orbitToast(context, 'Cheats did not apply: $e');
@@ -268,6 +295,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     padNavigationEnabled.value = true;
     leaving = true;
     _cancelPad?.call();
+    _cancelAxis?.call();
     WidgetsBinding.instance.removeObserver(this);
     player.removeListener(_refresh);
     unawaited(opening.whenComplete(player.dispose));
@@ -290,8 +318,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
       // Pin a copy as this game's cover so the library shows real captures.
       try {
-        final game =
-            widget.state.games.firstWhere((g) => g.id == widget.gameId);
+        final game = widget.state.games.firstWhere(
+          (g) => g.id == widget.gameId,
+        );
         final art = File('${data.path}/art/${game.id}.png');
         await art.parent.create(recursive: true);
         await file.copy(art.path);
@@ -310,8 +339,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     final stamp =
         '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
     await player.save(widget.state.saves, widget.gameId, 'slot0');
-    await player.save(
-        widget.state.saves, widget.gameId, 'slot-$stamp');
+    await player.save(widget.state.saves, widget.gameId, 'slot-$stamp');
     await _refreshStateCount();
   }
 
@@ -369,30 +397,106 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  /// Keyboard-and-mouse systems (DOS, adventures, computers): every key
+  /// goes to the core and the pause menu moves from Esc to F12.
+  bool get _keyboardFirst {
+    final g = widget.state.games
+        .where((g) => g.id == widget.gameId)
+        .firstOrNull;
+    return g != null && keyboardFirstSystems.contains(g.system);
+  }
+
   KeyEventResult _onKey(FocusNode _, KeyEvent event) {
-    if (event.logicalKey == LogicalKeyboardKey.escape) {
+    final kbFirst = _keyboardFirst;
+    final menuKey = kbFirst
+        ? LogicalKeyboardKey.f12
+        : LogicalKeyboardKey.escape;
+    if (event.logicalKey == menuKey) {
       if (event is KeyDownEvent) unawaited(_openMenu());
       return KeyEventResult.handled;
     }
-    final keys = {
-      LogicalKeyboardKey.arrowUp: 4,
-      LogicalKeyboardKey.arrowDown: 5,
-      LogicalKeyboardKey.arrowLeft: 6,
-      LogicalKeyboardKey.arrowRight: 7,
-      LogicalKeyboardKey.keyZ: 0,
-      LogicalKeyboardKey.keyX: 8,
-      LogicalKeyboardKey.keyA: 1,
-      LogicalKeyboardKey.keyS: 9,
-      LogicalKeyboardKey.keyQ: 10,
-      LogicalKeyboardKey.keyW: 11,
-      LogicalKeyboardKey.enter: 3,
-      LogicalKeyboardKey.shiftRight: 2,
-    };
-    final id = keys[event.logicalKey];
-    if (id == null) return KeyEventResult.ignored;
     if (event is KeyRepeatEvent) return KeyEventResult.handled;
-    _action(() => player.button(id, event is KeyDownEvent));
-    return KeyEventResult.handled;
+    final down = event is KeyDownEvent;
+    // Every key reaches a core that reads the keyboard; cores that don't,
+    // ignore it.
+    final retroKey = retroKeys[event.logicalKey];
+    if (retroKey != null) {
+      final ch = down ? (event.character?.runes.firstOrNull ?? 0) : 0;
+      _action(
+        () => player.key(
+          retroKey,
+          down,
+          character: ch,
+          modifiers: retroModifiers(),
+        ),
+      );
+    }
+    // Console games also get the keyboard as a pad.
+    int? padId;
+    if (!kbFirst) {
+      padId = {
+        LogicalKeyboardKey.arrowUp: 4,
+        LogicalKeyboardKey.arrowDown: 5,
+        LogicalKeyboardKey.arrowLeft: 6,
+        LogicalKeyboardKey.arrowRight: 7,
+        LogicalKeyboardKey.keyZ: 0,
+        LogicalKeyboardKey.keyX: 8,
+        LogicalKeyboardKey.keyA: 1,
+        LogicalKeyboardKey.keyS: 9,
+        LogicalKeyboardKey.keyQ: 10,
+        LogicalKeyboardKey.keyW: 11,
+        LogicalKeyboardKey.enter: 3,
+        LogicalKeyboardKey.shiftRight: 2,
+      }[event.logicalKey];
+      if (padId != null) _action(() => player.button(padId!, down));
+    }
+    return retroKey != null || padId != null
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored;
+  }
+
+  int _mouseButtons = 0;
+
+  /// Mouse over the game: motion and buttons go to the core's mouse, and the
+  /// cursor position drives its pointer. Touch on the picture (when the
+  /// on-screen controls are hidden) drives the pointer too.
+  void _onMouse(PointerEvent e, ScreenSpec screen, Size size) {
+    final frame = player.frame;
+    if (frame == null || !player.running) return;
+    final isMouse = e.kind == PointerDeviceKind.mouse;
+    if (isMouse && e.delta != Offset.zero) {
+      _action(() => player.mouseMove(e.delta.dx.round(), e.delta.dy.round()));
+    }
+    if (isMouse) {
+      const ids = {
+        kPrimaryMouseButton: 2,
+        kSecondaryMouseButton: 3,
+        kMiddleMouseButton: 6,
+      };
+      final now = e is PointerUpEvent || e is PointerCancelEvent
+          ? 0
+          : e.buttons;
+      for (final MapEntry(key: bit, value: id) in ids.entries) {
+        if ((now & bit) != (_mouseButtons & bit)) {
+          _action(() => player.mouseButton(id, (now & bit) != 0));
+        }
+      }
+      _mouseButtons = now;
+    }
+    final at = frameCoordinate(
+      screen,
+      size,
+      frame.width / frame.height,
+      e.localPosition,
+    );
+    if (at != null) {
+      final (x, y) = toPointer(at);
+      final pressed =
+          e is! PointerUpEvent &&
+          e is! PointerCancelEvent &&
+          (isMouse ? (e.buttons & kPrimaryMouseButton) != 0 : e.down);
+      _action(() => player.pointer(x, y, pressed));
+    }
   }
 
   @override
@@ -437,79 +541,116 @@ class _PlayerScreenState extends State<PlayerScreen>
     final box = screen.rect.resolve(size.width, size.height);
     final failed = launchError ?? player.error;
     final frame = player.frame;
-    return Stack(
-      children: [
-        if (showControls)
-          Positioned.fill(child: CustomPaint(painter: ShellPainter(layout.shell))),
-        if (frame != null && failed == null)
-          Positioned.fill(
-            child: CustomPaint(painter: GamePicturePainter(frame, screen)),
-          ),
-        if (failed != null || frame == null)
-          Positioned.fromRect(
-            rect: box,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: failed != null
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            failed,
-                            textAlign: TextAlign.center,
-                            style: Tokens.body(size: 13, color: Tokens.danger),
-                          ),
-                          const SizedBox(height: 16),
-                          OrbitSecondary(
-                            label: 'Back to library',
-                            onPressed: _exit,
-                          ),
-                        ],
-                      )
-                    : launching
-                        ? const CircularProgressIndicator(color: Tokens.accent)
-                        : Text('Waiting for video…',
-                            style: Tokens.body(size: 12, color: Tokens.muted)),
+    // Mouse always; touch only when the on-screen controls are hidden (the
+    // overlay owns touch otherwise, and routes picture touches itself).
+    void route(PointerEvent e) {
+      if (e.kind == PointerDeviceKind.mouse || !showControls) {
+        _onMouse(e, screen, size);
+      }
+    }
+
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: route,
+      onPointerMove: route,
+      onPointerHover: route,
+      onPointerUp: route,
+      onPointerCancel: route,
+      child: Stack(
+        children: [
+          if (showControls)
+            Positioned.fill(
+              child: CustomPaint(painter: ShellPainter(layout.shell)),
+            ),
+          if (frame != null && failed == null)
+            Positioned.fill(
+              child: CustomPaint(painter: GamePicturePainter(frame, screen)),
+            ),
+          if (failed != null || frame == null)
+            Positioned.fromRect(
+              rect: box,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: failed != null
+                      ? Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              failed,
+                              textAlign: TextAlign.center,
+                              style: Tokens.body(
+                                size: 13,
+                                color: Tokens.danger,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            OrbitSecondary(
+                              label: 'Back to library',
+                              onPressed: _exit,
+                            ),
+                          ],
+                        )
+                      : launching
+                      ? const CircularProgressIndicator(color: Tokens.accent)
+                      : Text(
+                          'Waiting for video…',
+                          style: Tokens.body(size: 12, color: Tokens.muted),
+                        ),
+                ),
               ),
             ),
-          ),
-        if (showControls)
-          Positioned.fill(
-            child: ControlOverlay(
-              key: _overlayKey,
-              layout: layout,
-              onInput: (input, pressed) {
-                final id = retroPadId(input);
-                if (id != null) _action(() => player.button(id, pressed));
-              },
-              onHostInput: _hostInput,
-              onTouch: _buzz,
-            ),
-          )
-        else
-          Positioned(
-            top: 8,
-            left: 8,
-            child: OrbitIconButton(
-              icon: Icons.menu,
-              tooltip: 'Menu (Esc)',
-              onPressed: _openMenu,
-            ),
-          ),
-        if (fastForward || player.audioError != null)
-          Positioned(
-            top: 10,
-            right: 12,
-            child: Text(
-              player.audioError ?? 'Fast-forward',
-              style: Tokens.body(
-                size: 12,
-                color: player.audioError != null ? Tokens.danger : Tokens.muted,
+          if (showControls)
+            Positioned.fill(
+              child: ControlOverlay(
+                key: _overlayKey,
+                layout: layout,
+                onInput: (input, pressed) {
+                  final id = retroPadId(input);
+                  if (id != null) _action(() => player.button(id, pressed));
+                },
+                onHostInput: _hostInput,
+                onTouch: _buzz,
+                toFrame: (p, sz) => frame == null
+                    ? null
+                    : frameCoordinate(
+                        screen,
+                        sz,
+                        frame.width / frame.height,
+                        p,
+                      ),
+                onPicture: (at, pressed) {
+                  final (x, y) = toPointer(at);
+                  _action(() => player.pointer(x, y, pressed));
+                },
+              ),
+            )
+          else
+            Positioned(
+              top: 8,
+              left: 8,
+              child: OrbitIconButton(
+                icon: Icons.menu,
+                tooltip: 'Menu (Esc)',
+                onPressed: _openMenu,
               ),
             ),
-          ),
-      ],
+          if (fastForward || player.audioError != null)
+            Positioned(
+              top: 10,
+              right: 12,
+              child: Text(
+                player.audioError ?? 'Fast-forward',
+                style: Tokens.body(
+                  size: 12,
+                  color: player.audioError != null
+                      ? Tokens.danger
+                      : Tokens.muted,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -548,8 +689,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       ),
     );
     _menuOpen = false;
-    padNavigationEnabled.value = choice == 'quit' || choice == 'edit' ||
-        choice == 'cheats';
+    padNavigationEnabled.value =
+        choice == 'quit' || choice == 'edit' || choice == 'cheats';
     if (!mounted) return;
     switch (choice) {
       case 'save':
@@ -624,20 +765,22 @@ class _PauseMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget item(String id, IconData icon, String label, {bool enabled = true}) =>
-        OutlinedButton.icon(
-          onPressed: enabled ? () => Navigator.of(context).pop(id) : null,
-          icon: Icon(icon, size: 18),
-          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            foregroundColor: Tokens.text,
-            side: const BorderSide(color: Tokens.lineStrong),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        );
+    Widget item(
+      String id,
+      IconData icon,
+      String label, {
+      bool enabled = true,
+    }) => OutlinedButton.icon(
+      onPressed: enabled ? () => Navigator.of(context).pop(id) : null,
+      icon: Icon(icon, size: 18),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: Tokens.text,
+        side: const BorderSide(color: Tokens.lineStrong),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
@@ -653,7 +796,10 @@ class _PauseMenu extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Paused',
-                        style: Tokens.display(size: 20, weight: FontWeight.w600),
+                        style: Tokens.display(
+                          size: 20,
+                          weight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     Flexible(
@@ -681,7 +827,12 @@ class _PauseMenu extends StatelessWidget {
                   crossAxisSpacing: 10,
                   childAspectRatio: 3.6,
                   children: [
-                    item('save', Icons.save_outlined, 'Save state', enabled: running),
+                    item(
+                      'save',
+                      Icons.save_outlined,
+                      'Save state',
+                      enabled: running,
+                    ),
                     item('load', Icons.history, 'Load state', enabled: running),
                     item('cheats', Icons.bolt_outlined, 'Cheats'),
                     item(
@@ -695,10 +846,19 @@ class _PauseMenu extends StatelessWidget {
                       fastForward ? 'Normal speed' : 'Fast-forward',
                       enabled: running,
                     ),
-                    item('shot', Icons.photo_camera_outlined, 'Screenshot',
-                        enabled: hasFrame),
+                    item(
+                      'shot',
+                      Icons.photo_camera_outlined,
+                      'Screenshot',
+                      enabled: hasFrame,
+                    ),
                     item('edit', Icons.tune, 'Edit controls'),
-                    item('reset', Icons.restart_alt, 'Reset game', enabled: running),
+                    item(
+                      'reset',
+                      Icons.restart_alt,
+                      'Reset game',
+                      enabled: running,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
