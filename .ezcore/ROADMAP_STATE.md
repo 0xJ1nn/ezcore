@@ -79,7 +79,7 @@ govern sequencing:
 - Cores are **libretro** plugins; the `ezcore_*` header is host-facing. The
   claim in `docs/ARCHITECTURE.md:44-46` that cores speak the runtime ABI is
   false and is corrected in platform program P1a.
-- The kernel implements **13 of the 93** `RETRO_ENVIRONMENT_*` commands
+- The kernel implements **19 of the 93** `RETRO_ENVIRONMENT_*` commands
   (`runtime/src/runtime.c:197`), counted against the vendored header
   `runtime/external/libretro-common/include/libretro.h`. This, not the UI, is
   the binding constraint on the product, and it is why several catalog cores

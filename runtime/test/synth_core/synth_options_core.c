@@ -89,13 +89,30 @@ static struct retro_input_descriptor g_input_descs[] = {
 };
 
 /* ---- Controller info ---- */
-static struct retro_controller_description g_controller_descs[] = {
-   { "ezTest Gamepad", RETRO_DEVICE_JOYPAD },
-   { NULL, 0 },  /* terminator */
+/* Port 0 declares three device types and port 1 declares one, so the
+ * reader tests can prove that per-port counts differ, that types come back
+ * in registration order, and that an out-of-range index is refused.  A
+ * single-type fixture would pass all of that while proving nothing. */
+/* num_types bounds the array exactly; there is deliberately no { NULL, 0 }
+ * sentinel inside it. libretro.h says "The number of elements in types", and
+ * the runtime honours that number literally -- an earlier version of this
+ * fixture declared 3 over a 4-entry array that included a sentinel, and the
+ * type_count assertion then failed with 4, which is how the inconsistency
+ * surfaced. A real core bounds the array with num_types, so that is what the
+ * fixture does. */
+static struct retro_controller_description g_controller_descs0[] = {
+   { "ezTest Gamepad",     RETRO_DEVICE_JOYPAD   },
+   { "ezTest Mouse",       RETRO_DEVICE_MOUSE    },
+   { "ezTest Lightgun",    RETRO_DEVICE_LIGHTGUN },
+};
+
+static struct retro_controller_description g_controller_descs1[] = {
+   { "ezTest Gamepad",     RETRO_DEVICE_JOYPAD   },
 };
 
 static struct retro_controller_info g_controller_infos[] = {
-   { g_controller_descs, 1 },
+   { g_controller_descs0, 3 },
+   { g_controller_descs1, 1 },
    { NULL, 0 },  /* terminator */
 };
 
@@ -165,7 +182,8 @@ bool retro_load_game(const struct retro_game_info *game) {
    memset(g_option_defs, 0, sizeof(g_option_defs));
    memset(g_option_defs_v1, 0, sizeof(g_option_defs_v1));
    memset(g_input_descs, 0, sizeof(g_input_descs));
-   memset(g_controller_descs, 0, sizeof(g_controller_descs));
+   memset(g_controller_descs0, 0, sizeof(g_controller_descs0));
+   memset(g_controller_descs1, 0, sizeof(g_controller_descs1));
    memset(g_controller_infos, 0, sizeof(g_controller_infos));
    memset(g_mem_descs, 0, sizeof(g_mem_descs));
    g_host_core_options_version = 0;

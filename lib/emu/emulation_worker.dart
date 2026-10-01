@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import '../runtime/ezcore_runtime.dart';
+import 'core_session_backend.dart';
 import 'emulation_service.dart';
 
 /// Controller ports the native runtime keeps live (`input_buttons[4]` in the
@@ -48,17 +49,19 @@ void clearAllButtons(void Function(int port, int id, bool pressed) send) {
 /// Request/response frames provide backpressure: the host requests the next
 /// frame only after consuming the previous video/audio packet. This is NOT
 /// process isolation: a native core crash can still terminate the application.
-class EmulationWorker {
+class EmulationWorker implements CoreSessionBackend {
   Isolate? _isolate;
   SendPort? _commands;
   bool _opening = false;
 
+  @override
   Future<Map<String, dynamic>> open({
     required Map<String, String?> runtimeRef,
     required String corePath,
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     if (_opening || _isolate != null) throw StateError('Worker already open');
     _opening = true;
@@ -73,6 +76,7 @@ class EmulationWorker {
               'content': contentPath,
               'system': systemDir,
               'save': saveDir,
+              'options': coreOptions,
             })
             as Map,
       );
@@ -102,18 +106,21 @@ class EmulationWorker {
     }
   }
 
+  @override
   Future<Map<String, dynamic>?> frame({int count = 1}) async {
     if (count < 1 || count > 8) throw RangeError.range(count, 1, 8);
     final value = await _request('frame', count);
     return value == null ? null : Map<String, dynamic>.from(value as Map);
   }
 
+  @override
   Future<void> pause(bool value) async {
     await _request('pause', value);
   }
 
   /// Sends a RetroPad button transition for controller [port] (0-3, port 0
   /// is player one). Defaults to 0 so single-player callers are unchanged.
+  @override
   Future<void> button(int id, bool pressed, {int port = 0}) async {
     if (id < 0 || id > 15) throw RangeError.range(id, 0, 15);
     if (port < 0 || port >= kControllerPorts) {
@@ -122,7 +129,9 @@ class EmulationWorker {
     await _request('button', [port, id, pressed]);
   }
 
+  @override
   Future<Uint8List> save() async => await _request('save') as Uint8List;
+  @override
   Future<void> restore(Uint8List bytes) async {
     await _request('restore', bytes);
   }
@@ -130,17 +139,20 @@ class EmulationWorker {
   /// Applies cheats to the live session. Each entry is
   /// `[index:int, enabled:bool, code:String]`; returns indices the runtime
   /// could not dispatch to a core hook.
+  @override
   Future<List<int>> applyCheats(List<List<Object>> cheats) async {
     final value = await _request('cheats', cheats);
     return List<int>.from(value as List);
   }
 
+  @override
   Future<void> reset() async {
     await _request('reset');
   }
 
   /// Reads back the option set the loaded core registered. Each entry is
   /// `{key, default, value}`; empty when the core registers no options.
+  @override
   Future<List<Map<String, String>>> coreOptions() async {
     final value = await _request('options');
     return [
@@ -151,9 +163,11 @@ class EmulationWorker {
   /// Sets one core option on the live session. Returns false when the key
   /// matched no registered option — surfacing user-data mistakes honestly
   /// instead of throwing.
+  @override
   Future<bool> setCoreOption(String key, String value) async =>
       await _request('setOption', {'key': key, 'value': value}) as bool;
 
+  @override
   Future<void> close() async {
     try {
       if (_commands != null) await _request('close');
@@ -188,6 +202,9 @@ Future<void> _workerMain(SendPort ready) async {
           corePath: args['core'] as String,
           romPath: args['content'] as String,
           rom: File(args['content'] as String).readAsBytesSync(),
+          coreOptions: Map<String, String>.from(
+            (args['options'] as Map?) ?? const {},
+          ),
         );
         final geo = service.geometry;
         result = {
@@ -196,6 +213,7 @@ Future<void> _workerMain(SendPort ready) async {
           'height': geo.h,
           'fps': geo.fps,
           'sampleRate': service.sampleRate,
+          'rejectedOptions': service.rejectedCoreOptions,
         };
       } else {
         final active = service;

@@ -1,3 +1,12 @@
+> **2026-10-01 — slice 1 landed (branch `feat/p6-core-host`).** A real
+> transport now exists: `runtime/host/ezcore_core_host.c` (protocol in
+> `ezcore_core_host_protocol.h`) and `lib/emu/process_session_backend.dart`,
+> selected by the off-by-default `crashContainment` setting. Proven by the
+> `core_host_contains_crash` ctest and `test/player_crash_containment_test.dart`.
+> The "NOT implemented" list below is the spike's record and is now partly
+> superseded: the transport, watchdog and setting exist; shared-memory frames,
+> macOS/Android wiring and Windows verification do not.
+
 # P6 Spike Notes — crash containment (ADR-015)
 
 > Record of a **spike**, not a feature. One question: if a native core

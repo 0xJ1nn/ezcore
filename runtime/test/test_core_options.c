@@ -22,6 +22,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* libretro.h for the RETRO_DEVICE_* ids the controller-info assertions
+ * compare against. ezcore_runtime.h is the ezCORE-owned ABI and does not
+ * carry them. */
+#include <libretro.h>
+
 #include "ezcore_runtime.h"
 
 #define CHECK(cond, msg)                                                       \
@@ -102,9 +107,54 @@ int main(int argc, char **argv) {
         desc != NULL && strcmp(desc, "Start") == 0,
         "input desc[1] text");
 
-  /* === SET_CONTROLLER_INFO stored === */
+  /* === SET_CONTROLLER_INFO stored AND readable ===
+   * Previously this only asserted the port COUNT. The device types a core
+   * registers were stored but unreachable through the ABI, so a frontend
+   * could learn that a core has ports and nothing about what they accept --
+   * which is precisely what P3 needs and why the reader functions were
+   * added. The counts below differ per port on purpose: a single-port,
+   * single-type fixture would pass while proving nothing. */
   unsigned port_count = ezcore_get_controller_port_count(s);
-  CHECK(port_count == 1, "one controller port stored");
+  CHECK(port_count == 2, "two controller ports stored");
+
+  CHECK(ezcore_get_controller_port_type_count(s, 0) == 3,
+        "port 0 declares three device types");
+  CHECK(ezcore_get_controller_port_type_count(s, 1) == 1,
+        "port 1 declares one device type");
+
+  unsigned dev_id = 0xFFFFFFFFu;
+  const char *dev_desc = NULL;
+  CHECK(ezcore_get_controller_port_type(s, 0, 0, &dev_id, &dev_desc),
+        "port 0 type 0 readable");
+  CHECK(dev_id == RETRO_DEVICE_JOYPAD, "port 0 type 0 is a joypad");
+  CHECK(dev_desc != NULL && strcmp(dev_desc, "ezTest Gamepad") == 0,
+        "port 0 type 0 description");
+
+  CHECK(ezcore_get_controller_port_type(s, 0, 1, &dev_id, &dev_desc),
+        "port 0 type 1 readable");
+  CHECK(dev_id == RETRO_DEVICE_MOUSE, "port 0 type 1 is a mouse");
+
+  CHECK(ezcore_get_controller_port_type(s, 0, 2, &dev_id, &dev_desc),
+        "port 0 type 2 readable");
+  CHECK(dev_id == RETRO_DEVICE_LIGHTGUN, "port 0 type 2 is a lightgun");
+
+  /* Order must follow registration, not be sorted or re-ordered. */
+  CHECK(ezcore_get_controller_port_type(s, 1, 0, &dev_id, &dev_desc),
+        "port 1 type 0 readable");
+  CHECK(dev_id == RETRO_DEVICE_JOYPAD, "port 1 accepts a joypad");
+
+  /* Out-of-range on either axis must be refused, not read past the end. */
+  CHECK(!ezcore_get_controller_port_type(s, 0, 3, &dev_id, &dev_desc),
+        "type index past the port's count is refused");
+  CHECK(!ezcore_get_controller_port_type(s, 2, 0, &dev_id, &dev_desc),
+        "port index past the port count is refused");
+  CHECK(ezcore_get_controller_port_type_count(s, 2) == 0,
+        "type count of an out-of-range port is 0, not a read past the end");
+
+  /* A NULL session must be safe, matching every other reader in the ABI. */
+  CHECK(ezcore_get_controller_port_count(NULL) == 0, "port count of NULL is 0");
+  CHECK(!ezcore_get_controller_port_type(NULL, 0, 0, &dev_id, &dev_desc),
+        "type read of NULL session is refused");
 
   /* === SET_MEMORY_MAPS stored === */
   unsigned mm_count = ezcore_get_memory_descriptor_count(s);
@@ -142,7 +192,7 @@ int main(int argc, char **argv) {
         "input desc[0] survives source zeroing");
 
   /* Controller info survives */
-  CHECK(ezcore_get_controller_port_count(s) == 1, "controller info survives zeroing");
+  CHECK(ezcore_get_controller_port_count(s) == 2, "controller info survives zeroing");
 
   /* Memory descriptors survive */
   CHECK(ezcore_get_memory_descriptor_count(s) == 2, "memory descs survive source zeroing");
@@ -159,7 +209,9 @@ int main(int argc, char **argv) {
   s = ezcore_load(core_path, err, sizeof(err));
   CHECK(s != NULL, "re-load options core ok");
   CHECK(ezcore_get_core_option_count(s) == 2, "fresh load has 2 options (no stale state)");
-  CHECK(ezcore_get_controller_port_count(s) == 1, "fresh load has controller info");
+  CHECK(ezcore_get_controller_port_count(s) == 2, "fresh load has controller info");
+  CHECK(ezcore_get_controller_port_type_count(s, 0) == 3,
+        "a fresh load still exposes the per-port device types");
   CHECK(ezcore_get_memory_descriptor_count(s) == 2, "fresh load has memory maps");
   ezcore_unload(s);
 

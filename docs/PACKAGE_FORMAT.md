@@ -54,8 +54,9 @@ The `options/`, `layouts/`, and `cheats/` directories are reserved for future us
 | `blocked_reason` | string | optional | Legal/IP hold explanation |
 | `gated_reason` | string | optional | License gate explanation |
 | `notes` | string | optional | Free-form operator notes |
+| `default_options` | object | optional | Recommended starting values for the core's own options |
 
-The known top-level field set is fixed at these 20 keys by the validator (`kKnownManifestFields`). No other top-level key is accepted, including a `signature` field (see §5.1).
+The known top-level field set is fixed at these 22 keys by the validator (`kKnownManifestFields`). No other top-level key is accepted, including a `signature` field (see §5.1).
 
 **Required-field summary:**
 
@@ -68,6 +69,8 @@ The known top-level field set is fixed at these 20 keys by the validator (`kKnow
 **`id`** — The core's stable identifier. MUST match `^[a-z0-9_]+$` and MUST equal the package directory name. For hold cores the directory carries a `_hold` suffix (e.g. `citra_hold`); the validator still requires exact `id`–directory match, so the `id` field itself bears the suffix.
 
 **`artifacts`** — Maps a platform-architecture identifier (`macos-arm64`, `linux-x64`, `android-arm64`, `windows-x64`, `ios-arm64`) to a 64-character lowercase hexadecimal SHA-256 pin of the exact core library bytes. A manifest with `blocked_reason` MUST have an empty `artifacts` object (`{}`).
+
+**`default_options`** — Maps a core option key (as the core declares it through `RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2`) to the value ezCORE should start with. Keys and values are non-empty strings of at most 256 characters; at most 128 entries. It is data, never code. It is the lowest-precedence layer: the user's per-core choice overrides it, and a per-game choice overrides both. Use it when a core's own default cannot run on ezCORE (for example, a GPU renderer before the GPU path exists), not to tune taste. A key the core does not declare is reported and ignored at session start, never fatal.
 
 **`delivery`** — Maps a platform identifier (`macos`, `windows`, `linux`, `android`, `ios`) to one of `bundled`, `download`, or `absent` (§3.5). iOS MUST never be `download` (App Store Review 2.5.2/4.7) — this constraint is enforced by the model and the catalog, not the validator.
 
@@ -153,7 +156,7 @@ Every rule below is enforced by `lib/services/core_package_validator.dart`. A pa
 
 ### 3.2 Top-level field set
 
-5. Every top-level key in `manifest.json` MUST be one of the 20 known fields. Any unrecognized key is REJECTED. This is the forward-safety mechanism described in §7. (The known set is `id`, `name`, `version`, `license`, `license_url`, `homepage`, `upstream`, `systems`, `extensions`, `cheats_supported`, `cheat_families`, `bios_required`, `bios_files`, `delivery`, `artifacts`, `execution`, `bios_notes`, `provenance`, `blocked_reason`, `gated_reason`, `notes`.)
+5. Every top-level key in `manifest.json` MUST be one of the 22 known fields. Any unrecognized key is REJECTED. This is the forward-safety mechanism described in §7. (The known set is `id`, `name`, `version`, `license`, `license_url`, `homepage`, `upstream`, `systems`, `extensions`, `cheats_supported`, `cheat_families`, `bios_required`, `bios_files`, `delivery`, `artifacts`, `execution`, `bios_notes`, `provenance`, `blocked_reason`, `gated_reason`, `notes`, `default_options`.)
 
 ### 3.3 Identifier
 
@@ -267,7 +270,7 @@ This specification is enforced by and must be read alongside these files:
 The following files were read and checked against this specification:
 
 - **`EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md`** — §3: format draft (directory shape, manifest fields, delivery vocabulary, signature slot, install contract, trust labels). §2.3: data-never-executes invariant. §2.4: opt-in native code consent. §4: crash containment.
-- **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (L25–49, 20 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
+- **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (22 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
 - **`cores/nesbyte/manifest.json`** — bundled core reference shape; `delivery: bundled` on all platforms; 3 artifact pins; `bios_files: ["disksys.rom"]`; provenance present.
 - **`cores/gambatte/manifest.json`** — gated core; `gated_reason` present; `delivery: absent` on all platforms; 3 artifact pins despite being gated.
 - **`cores/citra_hold/manifest.json`** — hold core; `blocked_reason` present; `artifacts: {}`; `bios_required: true` with `bios_files: []` (triggers §3.6 warning); `execution` absent.

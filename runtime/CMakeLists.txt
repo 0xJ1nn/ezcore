@@ -19,8 +19,24 @@ else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
 endif()
 
+# GPU render context (ADR-018, Option B). ezcore_gpu.c is the only file that
+# knows which backend is in play; exactly one *_platform backend is compiled in
+# per platform, and the Vulkan backend is portable because it goes through the
+# loader rather than linking libvulkan. No EGL/GLES/Vulkan library is linked
+# here on purpose -- see the comment at the top of ezcore_gpu_egl.c.
+if(WIN32)
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_wgl.c)
+elseif(APPLE)
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_cgl.c)
+else()
+  set(EZCORE_GPU_BACKEND src/ezcore_gpu_egl.c)
+endif()
+
 add_library(ezcore_runtime SHARED
   src/runtime.c
+  src/ezcore_gpu.c
+  src/ezcore_gpu_vulkan.c
+  ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
 )
 target_include_directories(ezcore_runtime PUBLIC
@@ -91,6 +107,17 @@ target_include_directories(synth_options_libretro PRIVATE
 )
 if(APPLE)
   set_target_properties(synth_options_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
+# --- Synthetic core that READS its options (GET_VARIABLE / _UPDATE) ---
+add_library(synth_variables_libretro SHARED
+  test/synth_core/synth_variables_core.c
+)
+target_include_directories(synth_variables_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_variables_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
 # --- P6 spike: core that crashes on demand, so crash containment can be
@@ -188,7 +215,40 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME api_docs
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_api_docs.py)
+  # The kernel capability count ("13 of 93 environment commands") lived in
+  # prose and sat wrong in six files simultaneously, because api_docs only
+  # checks the ezCORE-owned ABI and could never see a libretro figure. This
+  # gate recomputes both numbers from the vendored header and the runtime
+  # source on every run and compares them against what the docs claim.
+  add_test(NAME env_coverage_docs
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_env_coverage_docs.py)
 endif()
+
+
+# A synthetic core that REQUIRES hardware rendering, in the shape of the six
+# cores P8 exists for. Synthetic and CC0: no copyrighted core, no ROM, no
+# gameplay. It is the only test that can prove env_cb is actually wired --
+# the seam test proves a context can be made, not that a core can get one.
+add_library(synth_hw_core SHARED test/synth_core/synth_hw_core.c)
+target_include_directories(synth_hw_core PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include)
+set_target_properties(synth_hw_core PROPERTIES PREFIX "")
+
+add_executable(test_hw_render_core test/test_hw_render_core.c)
+target_include_directories(test_hw_render_core PRIVATE include)
+target_link_libraries(test_hw_render_core PRIVATE ezcore_runtime ${CMAKE_DL_LIBS})
+add_test(NAME hw_render_core COMMAND test_hw_render_core
+         $<TARGET_FILE:synth_hw_core>)
+
+# GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
+# and a real Vulkan device where the host has them, and SKIPS with a printed
+# reason where it does not -- a GPU test that fails without a GPU would only
+# ever be runnable on one machine, and would get deleted.
+add_executable(test_gpu_context test/test_gpu_context.c)
+target_include_directories(test_gpu_context PRIVATE src)
+target_link_libraries(test_gpu_context PRIVATE ezcore_runtime)
+add_test(NAME gpu_context COMMAND test_gpu_context)
 
 # Native core lifecycle test (synthetic — deterministic, no copyrighted content)
 add_test(NAME core_player
@@ -204,6 +264,17 @@ add_dependencies(test_core_options synth_options_libretro)
 add_test(NAME core_options
   COMMAND test_core_options
   ${CMAKE_BINARY_DIR}/libsynth_options_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Regression: an option value the host sets must reach the core through
+# GET_VARIABLE, with GET_VARIABLE_UPDATE raised exactly once per change.
+add_executable(test_core_variables test/test_core_variables.c)
+target_link_libraries(test_core_variables PRIVATE ezcore_runtime)
+target_include_directories(test_core_variables PRIVATE include)
+add_dependencies(test_core_variables synth_variables_libretro)
+
+add_test(NAME core_variables
+  COMMAND test_core_variables
+  $<TARGET_FILE:synth_variables_libretro>)
 
 # Regression: a button held at reset time must not stay latched afterwards.
 add_test(NAME input_reset_clears_buttons
@@ -246,9 +317,35 @@ target_link_libraries(test_crash_signal PRIVATE ezcore_runtime)
 target_include_directories(test_crash_signal PRIVATE include)
 add_dependencies(test_crash_signal crash_libretro)
 
+# P6 (ADR-015): the helper process that hosts one core session, so a core
+# crash ends that process instead of the app. Links the unchanged runtime.
+add_executable(ezcore_core_host host/ezcore_core_host.c)
+target_link_libraries(ezcore_core_host PRIVATE ezcore_runtime)
+target_include_directories(ezcore_core_host PRIVATE include)
+# Finds libezcore_runtime beside itself, in the build tree and in a release
+# bundle alike (release.sh ships the two side by side).
+if(APPLE)
+  set_target_properties(ezcore_core_host PROPERTIES
+    BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
+elseif(UNIX)
+  set_target_properties(ezcore_core_host PROPERTIES
+    BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+endif()
+
+# Drives the host over its pipe protocol: a good core end to end, a core that
+# segfaults mid-frame (only the host dies), and the host exiting when its
+# input closes. POSIX-only (fork/exec/waitpid).
+add_executable(test_core_host test/test_core_host.c)
+add_dependencies(test_core_host ezcore_core_host synth_libretro crash_libretro)
+
 if(NOT WIN32)
   add_test(NAME crash_signal_exit_code
     COMMAND test_crash_signal
+    $<TARGET_FILE:crash_libretro>)
+  add_test(NAME core_host_contains_crash
+    COMMAND test_core_host
+    $<TARGET_FILE:ezcore_core_host>
+    $<TARGET_FILE:synth_libretro>
     $<TARGET_FILE:crash_libretro>)
 endif()
 

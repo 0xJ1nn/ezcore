@@ -545,7 +545,7 @@ The code already answers it, and the documentation does not. A core is a
 surface — is host-facing: Dart calls it to drive a core *through* the runtime,
 and no core ever calls it. `docs/ARCHITECTURE.md:44-46` states the opposite
 ("Every core speaks the runtime ABI"), which is false and would actively mislead
-every third-party author. Separately, the kernel implements **13 of the 93**
+every third-party author. Separately, the kernel implements **17 of the 93**
 `RETRO_ENVIRONMENT_*` commands (`runtime/src/runtime.c:197`,
 `default: return false`), counted against the vendored header
 `runtime/external/libretro-common/include/libretro.h`, which is why
@@ -737,10 +737,66 @@ Claiming in-process embedding would be a promise the project cannot keep.
 
 ## ADR-018: The GPU video path — who owns the render context
 
-**Status:** **Proposed** (2026-09-29). Not a decision. The maintainer selects
-the context-ownership option and the first API to implement; this record
-exists so the choice is made on evidence rather than by whoever writes the
-code first. Program item **P8**, gated on P1 (`ROADMAP.md` → *Platform
+**Status:** **Accepted — Option B** (2026-09-29, maintainer decision).
+Context ownership is **the runtime's own EGL/GLES and Vulkan surfaces**, not
+Flutter's engine context. Both GL and Vulkan are in scope, and the design must
+be platform-neutral: no per-platform rework of the presentation path.
+
+Rationale as given by the maintainer, which the evidence supports: Flutter's
+native context "doesn't seem tested for gaming". The record's own Option A
+analysis had already found that Flutter exposes a render *target* to plugins
+and no shareable context, so A was never going to answer `SET_HW_RENDER` on
+desktop, where the Vulkan cores matter most.
+
+The remaining open questions below are answered as follows; the superseded
+text is retained so the reasoning is auditable.
+
+1. **Context ownership** — B. *(decided)*
+2. **First API cut** — the full set (`SET_HW_RENDER`,
+   `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE`,
+   `SET_PROC_ADDRESS_CALLBACK`, plus `context_negotiation` so context loss is
+   reportable). A partial cut that answers `true` to `SET_HW_RENDER` without
+   being able to report loss is the failure mode to avoid.
+3. **Verified platform** — Linux desktop is where the existing gates run, so
+   it is the platform that gates P8. Android and Windows follow the same code
+   path; per-platform context creation is isolated behind one seam so none of
+   them needs the others reworked.
+4. **Vulkan in scope** — **yes**, and explicitly: `geometry1`, `powercube`,
+   `portcomp` and `dreamarc` all reference `vkCreateInstance`, PS2 (issue #55)
+   requires Vulkan, and `libretro_vulkan.h` is already vendored. `rcp64` and
+   `dualscreen` are GL-only (0 `vkCreateInstance` symbols, 3199 and 15 GL
+   symbols), so both backends are required to unblock all six.
+5. **`video_cb(NULL)` dupe defect** — out of scope for P8. It is a CPU-path
+   correctness bug unrelated to hardware rendering and must not land inside a
+   change whose purpose is to avoid disturbing the CPU path. Tracked
+   separately.
+6. **New dependencies** — none for a first cut. The existing `dynload.h` seam
+   resolves `libEGL`/`libGLESv2`/`libvulkan` at runtime; the runtime stays
+   free of link-time GL/Vulkan dependencies, which keeps `PLATFORM.md` §6
+   true.
+
+### Verification available for this item (checked 2026-09-29)
+
+P8 is **verifiable on the development host**, not only on paper:
+
+- Vulkan 1.4.357 instance, with both `nvidia_icd.json` and `radeon_icd.json`
+  present.
+- EGL 1.5 initialises; a GLES **3.2** context on a pbuffer binds a
+  framebuffer object reporting `GL_FRAMEBUFFER_COMPLETE` on real hardware
+  (AMD Radeon, Mesa 26.2.3).
+
+So the GL/GLES seam can be exercised by ctest, and the Vulkan seam can at
+minimum have its instance/device/queue negotiation exercised, on the same
+machine the rest of the gates run on.
+
+---
+
+## Superseded: the original proposal (retained for audit)
+
+**Original status:** **Proposed** (2026-09-29). Not a decision. The maintainer
+selects the context-ownership option and the first API to implement; this
+record exists so the choice is made on evidence rather than by whoever writes
+the code first. Program item **P8**, gated on P1 (`ROADMAP.md` → *Platform
 program*). Platform contract: [`PLATFORM.md`](PLATFORM.md) §2, §6, §7.
 
 ### Current architecture (verified 2026-09-29)
@@ -749,7 +805,7 @@ Verified in this worktree, not recalled:
 
 - A core is a libretro plugin. The kernel is `runtime/src/runtime.c`
   (C11, `EZCORE_ABI_VERSION 1`, `runtime/include/ezcore_runtime.h:12`).
-- `env_cb` (`runtime/src/runtime.c:197`) answers **13 of the 93**
+- `env_cb` (`runtime/src/runtime.c:197`) answers **19 of the 93**
   `RETRO_ENVIRONMENT_*` commands; everything else hits
   `default: return false` (`:402-403`).
   **`SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE` and
@@ -1148,6 +1204,190 @@ should not start until they are answered (`project.md` §1).
    cut and no dependency is needed at all — but Windows and macOS are where I
    am least certain, and I did not verify the platform SDK/header situation
    on either.
+
+---
+
+## ADR-019: Single-file core packages (`.ezpkg`)
+
+**Status:** **Proposed** (2026-10-01). The maintainer approved the *direction*
+("cores are like an exe or an apk — one file") on 2026-10-01; the format
+details, the dependency, and the open questions below are not yet decided.
+Program item **P2** follow-up. Platform contract: [`PLATFORM.md`](PLATFORM.md)
+§4, §5, §6.8–6.9. Format spec: [`PACKAGE_FORMAT.md`](PACKAGE_FORMAT.md).
+
+### Context (verified 2026-10-01)
+
+- `PACKAGE_FORMAT.md` §1 already defines a package as *"a directory (or a zip
+  of one)"*.
+- The installer refuses every zip up front
+  (`lib/services/core_package_installer.dart:147`, refusal code
+  `zip_not_supported`), because no zip reader is a dependency. So the spec
+  promises something the code refuses.
+- Installing a third-party core today means the user picks a **folder**
+  (`getDirectoryPath`, `lib/screens/core_manager_screen.dart:681`), and the
+  author must hand-write `manifest.json` including a SHA-256 pin per platform.
+  There is no packaging tool.
+- The product goal is an OS model: anyone can build a core, hand someone one
+  file, and that person can install or remove it. A folder is not a thing
+  people send to each other; a file is.
+
+### Proposed decision
+
+1. **`.ezpkg` is a zip archive containing exactly one top-level directory,
+   `<id>/`, laid out exactly as a v1 package directory** (`PACKAGE_FORMAT.md`
+   §1). No new manifest fields and no new metadata — a valid `.ezpkg` is a
+   valid directory package once extracted, and vice versa.
+2. **Install is extract-then-validate.** The archive is extracted into a
+   private staging directory under hostile-input rules (below). The existing
+   validator and install pipeline then run **unchanged** on the extracted
+   directory: validate → pin-verify → consent → stage. Nothing about trust
+   changes: a file-installed core is **Unverified**, opt-in, never
+   auto-updated (§6.9, ADR-016).
+3. **A packaging tool**, `scripts/ezpkg.py` (stdlib `zipfile` + `hashlib`, no
+   new dependency): `pack <dir>` validates the directory, computes the
+   artifact pin for each library present, writes it into `manifest.json`, and
+   emits a deterministic archive (sorted entries, fixed timestamps) so the
+   same input always produces the same bytes. `check <file.ezpkg>` runs the
+   same rules the app does.
+4. **iOS stays excluded.** iOS forbids loading native code at runtime
+   (`PLATFORM.md` §3); `.ezpkg` install is desktop and Android only.
+
+### Extraction rules (each one is a test)
+
+Zip archives are a well-known attack surface ("zip slip", zip bombs). Each
+rule below rejects the whole package — nothing is partially extracted into
+the vault:
+
+| Rule | Rejects |
+|---|---|
+| Single root | any entry not under exactly one `<id>/` directory |
+| Path confinement | absolute paths, drive letters, `..` segments, backslash separators, NUL bytes |
+| No links | entries whose external attributes mark a symlink or a device |
+| No duplicates | two entries whose paths collide after case folding (Windows/macOS file systems are case-insensitive) |
+| Size caps | total uncompressed > 512 MiB (the existing `defaultMaxPackageBytes`); more than 4,096 entries |
+| Bomb ratio | any entry whose uncompressed/compressed ratio exceeds 200:1 |
+| Plain storage | encrypted entries; compression methods other than stored (0) and deflate (8) |
+| Declared vs actual | an entry whose inflated size differs from the size the header declared |
+
+Extraction never writes outside the staging directory, never follows links,
+and enforces the size caps while inflating (not after) so a lying header
+cannot exhaust disk or memory.
+
+### Alternatives
+
+- **Keep folder packages only.** No dependency, no new attack surface. But
+  the spec/code mismatch stays, and "send someone a core" stays awkward. It
+  fails the stated product goal.
+- **A custom container format.** Avoids zip's quirks, but no tool on earth
+  can open it, authors need our tooling just to look inside, and we would
+  write a parser for a format nobody has security-reviewed. Worse on every
+  axis that matters.
+- **Signed packages now.** Signing is P7 and has its own ADR requirement;
+  bundling it here would couple two risky changes. `.ezpkg` reserves nothing
+  that blocks a later signature file inside `<id>/`.
+
+### What could break
+
+- A bug in path handling is the classic way an archive installer writes files
+  where it should not. Mitigated by the rules above, each with a hostile
+  fixture test, and by running the existing validator after extraction as a
+  second line of defence.
+- Adding a dependency adds supply-chain surface (`project.md` §26).
+- Existing directory packages are unaffected: the directory path stays
+  supported and is the code path every `.ezpkg` ends up on.
+
+### How it would be tested
+
+- Round trip: `ezpkg.py pack` a directory → install the `.ezpkg` → the staged
+  result is byte-identical to installing the directory.
+- One generated hostile archive per row of the rules table, each asserting
+  refusal **and** that the vault and staging directory are left empty.
+- The Python tool and the Dart installer run the same hostile fixtures, so
+  the author's `check` and the user's install can never disagree.
+
+### Open questions for the maintainer
+
+1. **Zip reader dependency** (`project.md` §26). Options:
+   (a) `package:archive` (MIT, pure Dart, widely used) — use only its parser
+   and do all path/size checks ourselves, never its "extract to disk" helper;
+   (b) a minimal in-repo reader for stored + deflate entries using
+   `dart:io`'s `ZLibCodec(raw: true)` — no dependency, but roughly 300 lines
+   of parser we must own. **Recommendation: (a)**, because a widely-used
+   parser is less likely to be wrong than a new one, and our own checks sit
+   on top either way.
+2. **One file per platform, or one file for all platforms?** v1 layout holds
+   one library per package, so the simplest `.ezpkg` is per-platform (like
+   per-ABI APKs). A "fat" package carrying Linux, Windows, macOS and Android
+   libraries in one file is friendlier for users but changes the v1 layout
+   (`lib/<platform-key>/…`) and needs a format version bump.
+   **Recommendation:** per-platform first, fat package as v2.
+3. **Extension name.** `.ezpkg` is proposed; any short, unregistered
+   extension works. Android file pickers match on MIME type, so the app would
+   also accept `application/zip`.
+4. **Removal.** Uninstalling a file-installed core already exists in the
+   registry; should removal also delete that core's saved options and
+   per-game overrides, or keep them in case it is reinstalled?
+   **Recommendation:** keep them (§6.11, never knowingly lose user data).
+
+---
+
+## ADR-020: On-screen controls are data (`ezcore.controls/1`)
+
+**Status:** **Accepted** (2026-10-01). The maintainer set the direction
+(customisable on-screen buttons, reset to default, shell-like layouts such
+as a DS clamshell, shipped by core packages, fully user customisable) and
+delegated acceptance of the format ("do the right thing", 2026-10-01).
+Program item **P4**. Built-ins, the user editor and package-supplied
+layouts all use this one format. The three open questions below stay open
+and do not block v1: no shell images, no analog/touch-region controls, and
+family labels rather than core-descriptor labels until each is decided.
+
+### Context
+
+The player's touch controls were eight text chips in a row: no layout per
+system, no shoulders, no shell, no customisation. `PACKAGE_FORMAT.md` already
+reserves a `layouts/` directory for this, "data-only by design".
+
+### Proposed decision
+
+One JSON format serves built-in layouts, a user's customised copy, and
+layouts a core package ships:
+
+- `format: "ezcore.controls/1"`, `id`, `name`, `systems`, `orientation`
+  (`portrait` | `landscape` | `any`), `opacity` (0.1–1).
+- `screen`: where the game picture goes, as fractions of the player area,
+  optionally `split: 2` with `arrange: stacked | side` and a `gap` — a DS
+  frame (two screens stacked) drawn as two panels.
+- `shell`: an optional fill colour, corner radius and hinge line. Declarative
+  only: no images, paths or URLs in v1.
+- `controls`: up to 64 of `dpad` or `button`, each a rectangle in fractions;
+  a button presses one RetroPad input (`a`, `b`, `x`, `y`, `l`, `r`, `l2`,
+  `r2`, `l3`, `r3`, `select`, `start`, directions) or a host action (`menu`,
+  `fast_forward`); optional label (≤12 chars) and shape.
+
+Validation is strict (`ControlLayout.parse`): unknown fields rejected, every
+number range-checked, rectangles confined to the player area, ids
+`[a-z0-9_]`, nothing that can execute, load or fetch. Every built-in layout
+must also pass geometry rules in tests: no overlapping controls, none
+covering the picture, and a Menu control so touch can always leave a game.
+
+### Alternatives
+
+- **Per-system hard-coded widgets.** Fast to write, impossible for a package
+  or a user to change — fails the stated goal.
+- **RetroArch overlay format (`.cfg` + images).** Large, image-driven and
+  loosely specified; adopting it would mean parsing an ad-hoc format and
+  accepting arbitrary images. May be worth an importer later, not as the
+  native format.
+
+### Open questions for the maintainer
+
+1. Shell images (a real device photo/vector) in a later version — needs the
+   same path-confinement rules as other package assets.
+2. Analog sticks and a touchscreen region (DS bottom screen, PSP stick)
+   depend on P3 input; reserved as future control types.
+3. Labels from the core's own input descriptors (`SET_INPUT_DESCRIPTORS`)
+   instead of family defaults — more accurate per core, needs a session.
 
 ---
 

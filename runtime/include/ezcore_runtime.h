@@ -102,7 +102,12 @@ bool ezcore_get_core_option(ezcore_session *s, unsigned index,
 
 /* Set the current value of a core option by key.  The value is deep-copied
  * into runtime memory; the caller's string may be freed or reused afterwards.
- * Returns true when the key matched an existing option, false otherwise. */
+ * Returns true when the key matched an existing option, false otherwise.
+ * The core reads the value through RETRO_ENVIRONMENT_GET_VARIABLE; a value
+ * that differs from the current one is reported to it once through
+ * RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE.  Many cores read options only inside
+ * retro_load_game, so set them after ezcore_load and before
+ * ezcore_load_game for them to apply from the first frame. */
 bool ezcore_set_core_option(ezcore_session *s, const char *key,
                             const char *value);
 
@@ -122,6 +127,18 @@ bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
  * RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.  Returns 0 when none or
  * the session is invalid. */
 unsigned ezcore_get_controller_port_count(ezcore_session *s);
+
+/* Number of device types the core registered for one port via
+ * RETRO_ENVIRONMENT_SET_CONTROLLER_INFO.  Returns 0 when the port is out of
+ * range, the core registered none, or the session is invalid. */
+unsigned ezcore_get_controller_port_type_count(ezcore_session *s, unsigned port);
+
+/* Retrieve one device type of one port.  On success fills any non-NULL
+ * out-params; \c description is runtime-owned and valid for the session
+ * lifetime.  Returns false if the port or the type index is out of range. */
+bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
+                                     unsigned type_index, unsigned *id,
+                                     const char **description);
 
 /* Number of memory-map descriptors registered via
  * RETRO_ENVIRONMENT_SET_MEMORY_MAPS.  Returns 0 when none or

@@ -12,6 +12,7 @@ import '../models/game_entry.dart';
 import '../services/local_data_dir.dart';
 import '../services/core_discovery.dart';
 import '../services/core_downloader.dart';
+import '../services/core_options_resolver.dart';
 import '../services/core_path_resolver.dart';
 import '../services/core_staging.dart';
 import '../services/repo_layout.dart';
@@ -551,6 +552,88 @@ class AppState extends ChangeNotifier {
     _settings = {..._settings, key: value};
     notifyListeners();
     await _persist();
+  }
+
+  /// Persisted per-core option overrides: `{coreId: {optionKey: value}}`.
+  static const coreOptionsKey = 'coreOptions';
+
+  /// Persisted per-game option overrides: `{gameId: {optionKey: value}}`.
+  static const gameCoreOptionsKey = 'gameCoreOptions';
+
+  /// The option values to hand a core when [gameId] starts on [coreId].
+  ///
+  /// Resolved through [CoreOptionsResolver]: a per-game value beats a
+  /// per-core value. Only keys someone actually set appear; everything else
+  /// stays at the core's own default. A malformed persisted entry is skipped
+  /// rather than thrown, because a bad preference must never block a game.
+  Map<String, String> coreOptionsFor({
+    required String coreId,
+    required String gameId,
+  }) {
+    final resolver = CoreOptionsResolver();
+    // The core layer is the manifest's recommendation overlaid by the user's
+    // own per-core choice, so the user always wins over the manifest.
+    final manifest = registry.catalog.where((m) => m.id == coreId);
+    if (manifest.isNotEmpty) {
+      manifest.first.defaultOptions.forEach(resolver.setCore);
+    }
+    _optionLayer(coreOptionsKey, coreId).forEach(resolver.setCore);
+    _optionLayer(gameCoreOptionsKey, gameId).forEach(resolver.setGame);
+    return {
+      for (final e in resolver.resolveAll().entries) e.key: e.value.value,
+    };
+  }
+
+  /// Sets (or, with a null [value], clears) a per-core option override.
+  Future<void> setCoreOptionOverride(
+    String coreId,
+    String key,
+    String? value,
+  ) => _setOptionOverride(coreOptionsKey, coreId, key, value);
+
+  /// Sets (or, with a null [value], clears) a per-game option override.
+  Future<void> setGameCoreOptionOverride(
+    String gameId,
+    String key,
+    String? value,
+  ) => _setOptionOverride(gameCoreOptionsKey, gameId, key, value);
+
+  Map<String, String> _optionLayer(String settingKey, String id) {
+    final all = _settings[settingKey];
+    if (all is! Map) return const {};
+    final layer = all[id];
+    if (layer is! Map) return const {};
+    return {
+      for (final e in layer.entries)
+        if (e.key is String && e.value is String)
+          e.key as String: e.value as String,
+    };
+  }
+
+  Future<void> _setOptionOverride(
+    String settingKey,
+    String id,
+    String key,
+    String? value,
+  ) async {
+    final raw = _settings[settingKey];
+    final all = <String, dynamic>{
+      if (raw is Map)
+        for (final e in raw.entries)
+          if (e.key is String && e.value is Map) e.key as String: e.value,
+    };
+    final layer = Map<String, dynamic>.from(_optionLayer(settingKey, id));
+    if (value == null) {
+      layer.remove(key);
+    } else {
+      layer[key] = value;
+    }
+    if (layer.isEmpty) {
+      all.remove(id);
+    } else {
+      all[id] = layer;
+    }
+    await setSetting(settingKey, all);
   }
 
   Future<void> removeSetting(String key) async {

@@ -26,6 +26,8 @@
 > platform; the phase list that follows it remains the long-range product
 > surface.
 
+
+
 ## Status key
 
 - `[x] Complete` — implemented, integrated, tested to the stated scope, and
@@ -77,7 +79,7 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers **13 of the 93** environment commands
+cores. The kernel currently answers **19 of the 93** environment commands
 (`env_cb` at `runtime/src/runtime.c:197`), which is the binding constraint on
 the whole product.
 
@@ -111,6 +113,16 @@ the whole product.
 | **P2** | libretro `.info` support, core package format, package validator | [ ] Planned | A core ships as a complete validated package; existing `manifest.json` files validate unchanged | P1 |
 | **P3** | Input device model — analog, mouse, lightgun, touch-to-core, multiple ports | [~] Partially implemented | Non-`RETRO_DEVICE_JOYPAD` devices reach cores; the Dart port-0 hardcode is gone | P1 |
 
+> **P3 progress (2026-09-29, later).** A core's declared capabilities are
+> now readable. `SET_CONTROLLER_INFO` was already stored and counted, but the
+> per-port device types were unreachable through the ABI, so a frontend could
+> learn that a core *has* ports and nothing about what they accept.
+> `ezcore_get_controller_port_type_count` and
+> `ezcore_get_controller_port_type` (with Dart wrappers) close that, so
+> mouse and lightgun can be *offered* per port. `SET_MEMORY_MAPS` and
+> `GET_MEMORY_MAPS` were already complete — a plan draft claimed both were
+> missing, which was wrong.
+>
 > **P3 progress (2026-09-29).** The port-0 hardcode is gone: the worker button
 > payload carries a port, defaults to 0, and pause releases all four
 > (#68), and held input no longer survives a reset (#74) or a game load
@@ -139,7 +151,34 @@ the whole product.
 > P6 exit condition is **not** met, and P6 remains gated on P1 regardless of
 > how complete the seam looks.
 | **P7** | Signature/trust hardening; make `cores/registry.json` real or remove it | [ ] Planned | Tampered packages and bad signatures are rejected by test | P5 |
-| **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [ ] Planned | GL-default cores render on a verified platform; the CPU path stays green | P1 |
+| **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [~] Context seam landed | GL-default cores render on a verified platform; the CPU path stays green | P1 |
+
+> **P8 progress (2026-09-29).** ADR-018 is **Accepted — Option B**: the runtime
+> owns its own EGL/GLES and Vulkan surfaces, and the design is platform-neutral.
+> The render-context seam now exists and is verified on real hardware on the
+> development host: a GLES **3.2** context on a pbuffer binds a
+> `GL_FRAMEBUFFER_COMPLETE` FBO that survives a clear-and-readback, and a Vulkan
+> instance, physical device, device and queue are negotiated against two live
+> ICDs.
+>
+> `env_cb` now answers **`SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
+`GET_HW_RENDER_INTERFACE` and `SET_PROC_ADDRESS_CALLBACK`** (coverage moves
+13 -> **17 of 93**), and the core callback struct is chained rather than
+overwritten so a core's own `context_reset` still runs. A synthetic core that
+*requires* hardware rendering, in the shape of the six blocked ones, now
+negotiates and runs against a real GLES3 context on this host.
+
+**The six cores are still blocked, and nothing in `MATRIX.md` advances.**
+Not because the negotiation is missing -- it is wired and tested -- but
+because two links after it are not: the **Vulkan per-frame `set_image`
+handoff** and the **Flutter external-texture presentation**. A core can
+negotiate a context and render into its FBO; nothing presents that FBO to a
+screen yet. Both are recorded here rather than left for someone to discover
+from a black screen.
+
+The Windows (WGL) and macOS (CGL) backends remain deliberate no-ops reporting
+"unavailable", so a core falls back to software rather than crashing; the
+portable Vulkan path is what carries GPU cores on those platforms.
 | **P9** | Tier-2 engine supervision (current-generation console, PC-game stacks) | [?] Needs research | An external engine is launched, driven, and supervised with library/save continuity | P1, experimental |
 
 **Sequencing rules for this program:**

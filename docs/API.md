@@ -598,6 +598,42 @@ Returns the number of controller ports with info registered via
 `RETRO_ENVIRONMENT_SET_CONTROLLER_INFO`.  Returns 0 when none or
 `s` is invalid.
 
+#### `ezcore_get_controller_port_type_count`
+
+```c
+unsigned ezcore_get_controller_port_type_count(ezcore_session *s, unsigned port);
+```
+
+Returns the number of device types the core registered for one port via
+`RETRO_ENVIRONMENT_SET_CONTROLLER_INFO`.  Returns 0 when the port is out of
+range, the core registered none, or `s` is invalid.
+
+A port count of 1 tells you a core has ports, not which devices they accept.
+This is the first half of that answer.
+
+#### `ezcore_get_controller_port_type`
+
+```c
+bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
+                                     unsigned type_index, unsigned *id,
+                                     const char **description);
+```
+
+Retrieves one device type of one port.  On success fills any non-NULL
+out-params.  `description` is runtime-owned and valid for the session
+lifetime (do not free).
+
+**Returns:** `true` on success, `false` if the port or the type index is out
+of range.
+
+Iterate `port` over `0..ezcore_get_controller_port_count` and `type_index`
+over `0..ezcore_get_controller_port_type_count` to enumerate every device a
+core accepts on every port — `RETRO_DEVICE_JOYPAD`, `RETRO_DEVICE_MOUSE`,
+`RETRO_DEVICE_LIGHTGUN` and the rest.  This is what a frontend needs to offer
+the right control scheme per port, and it is the prerequisite for P3's
+non-joypad device support: until a core's declared capabilities were readable,
+a frontend could only assume every port is a joypad.
+
 ### Memory Map
 
 #### `ezcore_get_memory_descriptor_count`

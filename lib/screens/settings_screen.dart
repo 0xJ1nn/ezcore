@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../emu/pcm_output.dart';
 import '../services/gamepad.dart';
+import '../services/pad_mapping.dart';
 import '../state/app_state.dart';
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
@@ -27,7 +28,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late String tab;
-  final _gamepads = GamepadService();
+  final _gamepads = GamepadService.shared;
   String? _padName;
   VoidCallback? _cancelPadConn;
 
@@ -43,7 +44,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _cancelPadConn?.call();
-    _gamepads.dispose();
     super.dispose();
   }
 
@@ -214,44 +214,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'A little more you.',
+          'Appearance',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Midnight surfaces, electric-blue highlights. Make it yours.',
-          style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
         _row(
-          'Brand palette',
-          'Finalized: black, electric blue, silver, white.',
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final c in const [
-                Color(0xFF0A0A0A),
-                Color(0xFF007BFF),
-                Color(0xFFDDE6F4),
-                Colors.white,
-              ])
-                Container(
-                  width: 25,
-                  height: 25,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: c,
-                    border: Border.all(color: const Color(0x50DDE6F4)),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        _row(
           'Ambient motion',
-          'Planet limb, drifting stars, and the occasional meteor. '
-              'Turn off for a completely still sky.',
+          'Drifting stars behind the library. Turn off for a still '
+              'background.',
           OrbitToggle(
             label: 'Ambient motion',
             value: _pref('motion', true),
@@ -259,57 +229,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
-          'Cover reflections',
-          'A subtle echo beneath every world.',
-          OrbitToggle(
-            label: 'Cover reflections',
-            value: _pref('reflection', true),
-            onChanged: (v) => _set('reflection', v),
-          ),
-        ),
-        _row(
-          'Cover flow feel',
-          'Choose the depth and snap used on desktop and phone covers.',
-          OrbitSelect<String>(
-            value: _pref('coverFlowStyle', 'classic'),
-            options: const ['classic', 'gentle', 'flat'],
-            labels: const {
-              'classic': 'Classic',
-              'gentle': 'Gentle',
-              'flat': 'Flat',
-            },
-            onChanged: (v) => _set('coverFlowStyle', v ?? 'classic'),
-          ),
-        ),
-        _row(
-          'Default library view',
-          'Desktop and phone browsing. Tablets keep their focused hub.',
-          OrbitSelect<String>(
-            value: _pref('layout', 'flow'),
-            options: const ['flow', 'grid'],
-            onChanged: (v) => _set('layout', v ?? 'flow'),
-          ),
-        ),
-        _row(
-          'Compact system list',
-          'A little less space between generations.',
-          OrbitToggle(
-            label: 'Compact system list',
-            value: _pref('dense', false),
-            onChanged: (v) => _set('dense', v),
-          ),
-        ),
-        _row(
           'Reset',
-          'Back to the approved defaults.',
+          'Back to the defaults.',
           OrbitSecondary(
             label: 'Reset appearance',
             onPressed: () async {
               await _set('motion', true);
-              await _set('reflection', true);
-              await _set('coverFlowStyle', 'classic');
-              await _set('layout', 'flow');
-              await _set('dense', false);
               if (mounted) {
                 orbitToast(context, 'Appearance reset');
               }
@@ -345,6 +270,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
+          'Crash protection',
+          'Runs each game\'s core in a separate process, so a crashing core '
+              'ends only that game. Experimental; desktop only.',
+          OrbitToggle(
+            label: 'Crash protection',
+            value: _pref('crashContainment', false),
+            onChanged: (v) => _set('crashContainment', v),
+          ),
+        ),
+        _row(
           'Fast-forward speed',
           'Frames stepped per tick while fast-forward is on.',
           OrbitSelect<String>(
@@ -375,24 +310,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  late final _padMap = PadMapping(widget.state);
+
+  /// Waits for the next controller press and gives it [input].
+  Future<void> _remap(String input, String label) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (context) => _PressAButtonDialog(label: label),
+    );
+    if (picked == null) return;
+    await _padMap.assign(picked, input);
+    if (mounted) {
+      setState(() {});
+      orbitToast(context, '$label is now on ${padButtonLabel(picked)}');
+    }
+  }
+
   Widget _controllers() {
+    const inputs = [
+      ('a', 'A'), ('b', 'B'), ('x', 'X'), ('y', 'Y'),
+      ('l', 'L / L1'), ('r', 'R / R1'), ('l2', 'L2 / Z'), ('r2', 'R2'),
+      ('l3', 'L3'), ('r3', 'R3'), ('select', 'Select'), ('start', 'Start'),
+      ('up', 'Up'), ('down', 'Down'), ('left', 'Left'), ('right', 'Right'),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Play your way.',
+          'Controllers',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Keyboard and touch work in the player today. This is the exact live mapping — no claimed devices.',
-          style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
         _row(
           'Controller',
           _padName == null
-              ? 'No controller detected. Pair one to play without touch.'
+              ? 'No controller detected. Connect one to play without touch.'
               : 'Connected: $_padName.',
           Text(
             _padName == null ? 'NONE' : 'READY',
@@ -404,25 +356,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
-          'Move (D-pad)',
-          'Arrow keys drive the RetroPad directions.',
-          Text('↑  ↓  ←  →', style: Tokens.body(size: 12, color: Tokens.muted)),
+          'Pause menu',
+          'Hold Select and Start together during a game.',
+          Text('SELECT + START',
+              style: Tokens.body(size: 12, color: Tokens.muted)),
         ),
         _row(
-          'B / A buttons',
-          'Z is B, X is A.',
-          Text('Z  X', style: Tokens.body(size: 12, color: Tokens.muted)),
+          'Menus',
+          'The d-pad moves, A chooses, B goes back.',
+          Text('D-PAD  A  B', style: Tokens.body(size: 12, color: Tokens.muted)),
+        ),
+        const SizedBox(height: 12),
+        Text('Buttons', style: Tokens.display(size: 18, weight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text(
+          'Choose which controller button presses each game button.',
+          style: Tokens.body(size: 12, color: Tokens.muted),
+        ),
+        for (final (input, label) in inputs)
+          _row(
+            label,
+            'Controller: ${padButtonLabel(_padMap.buttonFor(input))}',
+            OrbitSecondary(
+              label: 'Change',
+              onPressed: () => _remap(input, label),
+            ),
+          ),
+        _row(
+          'Reset buttons',
+          _padMap.isDefault
+              ? 'Using the default layout.'
+              : 'Back to the default layout.',
+          OrbitSecondary(
+            label: 'Reset to default',
+            onPressed: _padMap.isDefault
+                ? null
+                : () async {
+                    await _padMap.reset();
+                    if (mounted) setState(() {});
+                  },
+          ),
         ),
         _row(
-          'Select / Start',
-          'Right Shift is Select, Enter is Start.',
-          Text('RSHIFT  ↵', style: Tokens.body(size: 12, color: Tokens.muted)),
+          'Keyboard',
+          'Arrows move. Z = B, X = A, A = Y, S = X, Q = L, W = R, '
+              'Right Shift = Select, Enter = Start, Esc = pause menu.',
+          const SizedBox.shrink(),
         ),
         _row(
-          'Touch overlay',
-          'On-screen pad inside the player.',
+          'On-screen controls',
+          'Show touch controls in games. Customise them from the pause menu.',
           OrbitToggle(
-            label: 'Touch overlay',
+            label: 'On-screen controls',
             value: _pref('touchOverlay', true),
             onChanged: (v) => _set('touchOverlay', v),
           ),
@@ -744,4 +729,51 @@ class _NavBtn extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "Press the button you want" — listens to the controller and returns the
+/// first button pressed, or null on Cancel.
+class _PressAButtonDialog extends StatefulWidget {
+  const _PressAButtonDialog({required this.label});
+  final String label;
+
+  @override
+  State<_PressAButtonDialog> createState() => _PressAButtonDialogState();
+}
+
+class _PressAButtonDialogState extends State<_PressAButtonDialog> {
+  void Function()? _cancel;
+
+  @override
+  void initState() {
+    super.initState();
+    _cancel = GamepadService.shared.onButton((e) {
+      if (!e.pressed || !padButtons.contains(e.code)) return;
+      _cancel?.call();
+      _cancel = null;
+      if (mounted) Navigator.of(context).pop(e.code);
+    });
+  }
+
+  @override
+  void dispose() {
+    _cancel?.call();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: Tokens.panel,
+    title: Text('Set ${widget.label}', style: Tokens.display(size: 18)),
+    content: Text(
+      'Press the controller button you want to use.',
+      style: Tokens.body(size: 13, color: Tokens.muted),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Cancel'),
+      ),
+    ],
+  );
 }

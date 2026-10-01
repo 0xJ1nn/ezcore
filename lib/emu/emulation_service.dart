@@ -31,10 +31,22 @@ class EmulationService {
   int get frameHeight => geometry.h;
   int get audioPending => runtime.audioPending(_active);
 
+  /// Keys from the last [start]'s `coreOptions` that the core did not
+  /// declare — typically a setting saved for an older version of the core.
+  /// Reported rather than thrown: a stale preference must never stop a game.
+  List<String> rejectedCoreOptions = const [];
+
+  /// Loads the core, applies [coreOptions], then loads the content.
+  ///
+  /// The options are set between init and load_game on purpose: many cores
+  /// read their options only inside `retro_load_game` (the renderer choice
+  /// is the usual case), so a value applied after the game loads would not
+  /// take effect until the core happened to re-read it.
   Future<void> start({
     required String corePath,
     required String romPath,
     required Uint8List rom,
+    Map<String, String> coreOptions = const {},
   }) async {
     if (isRunning) {
       throw StateError('Close the current session before starting');
@@ -45,6 +57,13 @@ class EmulationService {
       if (!runtime.init(candidate)) {
         throw const EmulationException('Core initialization failed');
       }
+      final rejected = <String>[];
+      for (final option in coreOptions.entries) {
+        if (!runtime.setCoreOption(candidate, option.key, option.value)) {
+          rejected.add(option.key);
+        }
+      }
+      rejectedCoreOptions = List.unmodifiable(rejected);
       if (!runtime.loadGame(candidate, romPath, rom)) {
         throw const EmulationException('Core rejected the content');
       }

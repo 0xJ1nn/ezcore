@@ -47,8 +47,8 @@ blocked cores reach RENDERS. P1 is partly done and partly not:
 | `docs/API.md` + `ARCHITECTURE.md` exist | done | 20,072 B / 8,423 B |
 | Core options implemented | **done** | `runtime.c:250` `SET_CORE_OPTIONS_V2`, `:291` `_INTL` |
 | A test fails if a header symbol is undocumented | **MISSING** | no `api_doc`/`abi_doc` test in `test/` |
-| `GET_MEMORY_MAPS` | **MISSING** | 0 hits in `runtime.c` |
-| `GET_CONTROLLER_INFO` | **MISSING** | 0 hits in `runtime.c` |
+| `GET_MEMORY_MAPS` | **done** — `runtime.c:857,861` exports both halves. *This row was wrong when first written; the plan measured `GET_MEMORY_MAPS` as 0 hits when the real gap was that `SET_MEMORY_MAPS` was captured but the per-port `SET_CONTROLLER_INFO` content had no reader.* |
+| `GET_CONTROLLER_INFO` | **now done** — `runtime.c:857,862` add `ezcore_get_controller_port_type{,_count}` (memory-map readers at `:874,878`) plus Dart wrappers, with a C test proving order, per-port counts and bounds refusal |
 | 6 blocked cores → RENDERS | **blocked** | all 6 need `hw_render` |
 
 **This is the single highest-value item on the board.** The missing doc gate is
@@ -84,7 +84,7 @@ shapes ADR-018: context ownership has to be answered per-backend, not once.
 
 ## 2. P8 — the GPU path (unblocks 6 cores)
 
-`env_cb` answers **13 of 93** environment commands. The four that matter for
+`env_cb` answers **19 of 93** environment commands. The four that matter for
 these cores are `SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
 `SET_PROC_ADDRESS_CALLBACK`, `GET_HW_RENDER_INTERFACE` — none implemented.
 
@@ -97,12 +97,27 @@ starts. This is the biggest single engineering item on the board.
 Not a P-item; it's tooling, and it is what makes the app unavailable rather than
 merely less complete.
 
-- **`scripts/ios_frameworks.sh` — MISSING.** `scripts/release.sh:18` references
-  it; the iOS delivery design is built around it. iOS cannot be cut as a
-  release until it exists.
-- **`scripts/android-stubs/` — MISSING.** Required by
-  `scripts/build_core.sh:299` for cardcon's `-lrt` linker stub. This is why
-  Android tops out at 7 bundled cores.
+- ~~**`scripts/ios_frameworks.sh` — MISSING.**~~ **NOW WRITTEN.** The dangling
+  reference at `scripts/release.sh:18` is resolved. It wraps each staged
+  `native/cores-ios-arm64/<id>/*.dylib` into an `<id>.framework` bundle with an
+  `Info.plist` and an `@rpath`-correct install name, skips the legal-hold cores
+  so a blocked core can never reach an archive, and has a `--check` mode that
+  fails on a missing/malformed bundle or an install name that disagrees with
+  its path — the corruption that would otherwise only surface as a `dlopen`
+  failure on a user's device. It deliberately does NOT re-patch minos:
+  `ios_fix_min_version` (core_platform.sh:74) already does that at stage time
+  and refuses the build if it fails; re-patching here would rewrite the bytes
+  the committed pins were computed from. **iOS still has no verified
+  artifact** — this makes iOS *buildable*; issue #65 still has to produce and
+  verify one on a macOS host.
+- ~~**`scripts/android-stubs/` — MISSING.**~~ **NOW SHIPPED.** Required by
+  `scripts/build_core.sh:299` for cardcon's `-lrt` linker stub. `librt.so` is a
+  text GNU ld script (`INPUT(-lc)`) that satisfies `-lrt` on bionic, which has
+  no librt, and contributes no definitions of its own so it can never shadow a
+  real libc symbol. Covered by `test/android_stub_test.dart`, which links a
+  renamed copy and runs it, with a negative control proving the stub is
+  load-bearing. Android still tops out at 7 bundled cores until the next
+  release re-pins, so treat that count as not-yet-advanced.
 - **0 on-demand cores on either mobile platform.** Desktop has 3 each; mobile
   has none. Either the on-demand path is unported to mobile, or it is
   intentionally off — either way it is undocumented.
@@ -146,10 +161,16 @@ an unfinished kernel contract is exactly this case.
 
 ## Recommended order
 
-1. **P1 doc gate** (`api_doc` test) — small, and stops doc rot recurring
-2. **P1 `GET_MEMORY_MAPS` + `GET_CONTROLLER_INFO`** — additive, unblocks cheats/maps
+1. ~~**P1 doc gate**~~ — **DONE**, and extended: `check_api_docs.py` for
+   the ezCORE ABI plus a new `check_env_coverage_docs.py` for the libretro
+   capability figure, both wired into ctest (14 -> 15).
+2. ~~**`GET_MEMORY_MAPS` + `GET_CONTROLLER_INFO`**~~ — **DONE.** Memory maps
+   were already complete. Controller-info *reads* were added (see the P1 table).
+   The doc gate is also in.
 3. **Decide ADR-018** — your call, gates all of P8
 4. **P8 Vulkan (desktop)** then **Metal (Apple)** — unblocks 4 + 2 cores
-5. **`ios_frameworks.sh` + `android-stubs/`** — unblocks iOS/Android release
+5. ~~**`ios_frameworks.sh`**~~ — **done.** Both halves of this item are now
+   written; what remains is *verifying* them, which needs a macOS host and is
+   issue #65's work.
 6. **P6 real supervision** — once P1 is closed
 7. **P5/P7 trust + EZC-015 decision** — before public release
