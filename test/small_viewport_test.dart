@@ -67,6 +67,6 @@ void main() {
   testWidgets('settings render on a phone viewport', (tester) async {
     final state = AppState();
     await pumpPhone(tester, SettingsScreen(state: state));
-    expect(find.text('Fine-tune your experience'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
   });
 }

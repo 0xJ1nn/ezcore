@@ -6,6 +6,7 @@ import '../services/pad_mapping.dart';
 import '../state/app_state.dart';
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
+import '../version.dart';
 import '../widgets/orbit_widgets.dart';
 
 /// Orbit Settings — 6 local-preference tabs (final-01).
@@ -83,50 +84,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Padding(
               padding: EdgeInsets.fromLTRB(osPad, short ? 10 : 26, osPad, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!compact) ...[
-                          Text(
-                            'SIMPLE. POWERFUL. EVERYWHERE.',
-                            style: Tokens.eyebrow,
-                          ),
-                          const SizedBox(height: 7),
-                        ],
-                        Text(
-                          'Fine-tune your experience',
-                          style: Tokens.display(
-                            size: short ? 22 : (portrait ? 25 : 30),
-                            weight: FontWeight.w500,
-                            ls: -0.7,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!compact)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Tokens.line),
-                      ),
-                      child: Text(
-                        portrait ? 'LOCAL' : 'LOCAL PREFERENCES',
-                        style: Tokens.body(
-                          size: 12,
-                          ls: 0.8,
-                          color: Tokens.muted,
-                        ),
-                      ),
-                    ),
-                ],
+              child: Text(
+                'Settings',
+                style: Tokens.display(
+                  size: short ? 22 : (portrait ? 24 : 28),
+                  weight: FontWeight.w600,
+                ),
               ),
             ),
             Expanded(
@@ -241,7 +204,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
         ),
-        _notice(),
       ],
     );
   }
@@ -251,18 +213,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Faithful, by default.',
+          'Emulation',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
         ),
         const SizedBox(height: 8),
         Text(
-          'Global preferences. Per-game core choice in the game hub takes priority.',
+          'Applies to every game.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
         _row(
           'Automatic snapshots',
-          'Saves an auto snapshot when you leave or background the game.',
+          'Saves your place when you leave a game or switch apps, so Resume '
+              'picks up where you stopped.',
           OrbitToggle(
             label: 'Automatic snapshots',
             value: _pref('autosave', true),
@@ -281,7 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'Fast-forward speed',
-          'Frames stepped per tick while fast-forward is on.',
+          'How fast games run while fast-forward is on.',
           OrbitSelect<String>(
             value: _pref('ffFrames', '4'),
             options: const ['2', '4', '8'],
@@ -291,7 +254,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'Core verification',
-          'Every core artifact is sha256-checked against its manifest pin before launch.',
+          'Every core file is checked against its published fingerprint '
+              'before it runs.',
           Text(
             'ALWAYS ON',
             style: Tokens.body(size: 9, ls: 1.0, color: Tokens.muted),
@@ -299,13 +263,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'State format',
-          'Snapshots are opaque core bytes, moved as-is and kept on this device.',
+          'Save states stay on this device.',
           Text(
-            'LOCAL VAULT',
+            'ON THIS DEVICE',
             style: Tokens.body(size: 9, ls: 1.0, color: Tokens.muted),
           ),
         ),
-        _notice(),
       ],
     );
   }
@@ -421,7 +384,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (v) => _set('haptics', v),
           ),
         ),
-        _notice(),
       ],
     );
   }
@@ -433,12 +395,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'In the pocket.',
+          'Audio',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
         ),
         const SizedBox(height: 8),
         Text(
-          'Both take effect when a game starts.',
+          'Changes apply the next time a game starts.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
@@ -480,7 +442,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'Mute all audio',
-          'Drops emulated PCM before it reaches the speaker.',
+          'Silences every game.',
           OrbitToggle(
             label: 'Mute all audio',
             value: _pref('muted', false),
@@ -489,13 +451,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'Output',
-          'Native device sink. If a platform has no sink yet, the player says so instead of staying silent.',
+          'The sound output ezCORE uses on this device. If there is none, the '
+              'game tells you instead of going quiet.',
           Text(
             createPlatformPcm().sinkName.toUpperCase(),
             style: Tokens.body(size: 9, ls: 1.0, color: Tokens.muted),
           ),
         ),
-        _notice(),
       ],
     );
   }
@@ -508,12 +470,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your files stay yours.',
+          'Library & storage',
           style: Tokens.display(size: 26, weight: FontWeight.w500, ls: -0.7),
         ),
         const SizedBox(height: 8),
         Text(
-          'Bring your own dumps. Files never leave this device.',
+          'Your games and saves never leave this device.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
@@ -551,22 +513,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         _row(
-          'Time capsule',
-          'Local snapshots live on this device.',
+          'Saves',
+          'Every save state, for every game.',
           OrbitSecondary(
-            label: 'Open capsule',
+            label: 'Open saves',
             onPressed: () => widget.onGoVault?.call(),
           ),
         ),
         _row(
           'Content policy',
-          'No games, BIOS, keys, or cheat DBs ship with this app.',
+          'ezCORE ships no games, BIOS files or keys. You add the ones you '
+              'own.',
           Text(
-            'BYO DUMPS',
+            'YOUR FILES',
             style: Tokens.body(size: 9, ls: 1.0, color: Tokens.muted),
           ),
         ),
-        _notice(),
       ],
     );
   }
@@ -581,7 +543,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'One beautiful, unified emulator. Game → Play — no core thinking required.',
+          'One app for every system. Pick a game and play; ezCORE picks the '
+              'core.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),
@@ -600,17 +563,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         _row(
           'DMCA',
-          'Agent + 48h takedown.',
+          'How rights holders reach the project.',
           Text('See DMCA.md', style: Tokens.body(size: 11)),
         ),
         _row(
           'Version',
-          'Working title build.',
-          Text('0.1.0+1', style: Tokens.body(size: 11)),
+          'This build.',
+          Text(appVersion, style: Tokens.body(size: 11)),
         ),
         _notice(
           text:
-              'Open-source frontend. Modular, replaceable cores behind a small stable C ABI.',
+              'Open source. Emulators run as replaceable cores you can add and '
+              'remove.',
         ),
       ],
     );
@@ -652,7 +616,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _notice({String? text}) {
+  Widget _notice({required String text}) {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(14),
@@ -667,8 +631,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              text ??
-                  'Local preferences only. UI choices persist on this device; emulation, cloud sync, and hardware connection are not claimed here.',
+              text,
               style: Tokens.body(size: 11, color: Tokens.muted, height: 1.7),
             ),
           ),
