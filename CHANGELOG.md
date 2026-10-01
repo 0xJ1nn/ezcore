@@ -18,6 +18,16 @@ All notable changes to ezCORE are documented here. The format follows
 - **Make the controls yours.** Pause menu → Edit controls: drag any button,
   resize it, hide the ones you never use (Menu always stays), set opacity, save
   — per system and orientation — or reset to default.
+- **Controllers, properly.** Remap any button in Settings > Controllers
+  (press the button you want; reset to default any time). Hold **Select +
+  Start** in a game for the pause menu. A controller now drives every menu:
+  d-pad moves, A chooses, B goes back.
+
+### Fixed
+
+- After leaving a game, Settings stopped hearing controller events on Android
+  and iOS: each screen made its own controller service, and closing the
+  player's cleared the channel for everyone. There is now one shared service.
 - **A real pause menu.** Resume, save and load state, cheats, show/hide
   controls, fast-forward, screenshot, reset and quit — from the Menu button,
   Esc, or the system Back gesture (which no longer drops you out of a game).
