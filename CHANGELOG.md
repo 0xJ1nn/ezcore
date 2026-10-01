@@ -6,6 +6,19 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Real on-screen controls.** Each system family gets a proper layout in
+  portrait and landscape — d-pad, face buttons in the system's own style
+  (Nintendo letters, PlayStation symbols, Genesis A/B/C), shoulders and
+  Start/Select — and handhelds get a device shell; the Nintendo DS shows its
+  two screens as a clamshell with a hinge, side by side in landscape.
+  Multi-touch, slide between buttons, diagonals on the d-pad. On by default on
+  phones and tablets, off on desktop; toggle from the pause menu.
+- **A real pause menu.** Resume, save and load state, cheats, show/hide
+  controls, fast-forward, screenshot, reset and quit — from the Menu button,
+  Esc, or the system Back gesture (which no longer drops you out of a game).
+
 ### Fixed
 
 - **Held input can no longer latch.** Pressing reset no longer leaves a button
