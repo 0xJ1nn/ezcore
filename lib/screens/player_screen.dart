@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../emu/player_controller.dart';
+import '../emu/process_session_backend.dart';
 import '../services/bios_check.dart';
 import '../services/core_discovery.dart';
 import '../services/cover_art.dart';
@@ -140,6 +141,21 @@ class _PlayerScreenState extends State<PlayerScreen>
         ).create(recursive: true);
         if (!mounted || leaving) return;
         final runtimeRef = await resolveRuntimeRef();
+        // Crash protection (P6, ADR-015): off by default. When on, the core
+        // runs in a separate helper process, so a crash ends only the game.
+        // Loud, not silent, when the helper is missing: the user asked for
+        // protection, so never quietly run without it.
+        if (widget.state.settings['crashContainment'] == true) {
+          final host = resolveCoreHostPath(runtimeRef);
+          if (host == null) {
+            throw StateError(
+              'Crash protection is on, but its helper (ezcore_core_host) '
+              'is not installed beside the runtime. Turn it off in '
+              'Settings > Emulation, or reinstall ezCORE.',
+            );
+          }
+          player.useBackend(ProcessSessionBackend(hostPath: host));
+        }
         await player.open(
           runtimeRef: runtimeRef,
           corePath: corePath,
