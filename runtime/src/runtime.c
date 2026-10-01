@@ -1012,7 +1012,11 @@ void ezcore_unload(ezcore_session *s) {
   g_active = s;
   if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
   s->game_loaded = false;
-  if (s->gpu && s->hw_render_cb && s->hw_render_cb->context_destroy) {
+  /* context_destroy pairs with context_reset: a core whose load failed
+   * before it was ever given its context must not be told to tear one down
+   * (Dolphin then shut down a GL backend it never set up, calling NULL). */
+  if (s->gpu && s->gpu_negotiated && s->hw_render_cb &&
+      s->hw_render_cb->context_destroy) {
     s->hw_render_cb->context_destroy();
   }
   if (s->inited) {
