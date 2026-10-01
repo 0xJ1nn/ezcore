@@ -116,7 +116,7 @@ void main() {
     expect(find.text('Continue playing'), findsNothing);
   });
 
-  testWidgets('3D: arrow keys browse; a game never played offers Play', (
+  testWidgets('3D: arrow keys browse; a game never played offers to play it', (
     t,
   ) async {
     await pump(t, view: CollectionView.flow);
@@ -133,7 +133,7 @@ void main() {
     await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await t.pumpAndSettle();
     expect(barTitle(t), 'Gamma Zone');
-    expect(find.widgetWithText(OrbitPrimary, 'Play'), findsOneWidget);
+    expect(find.widgetWithText(OrbitPrimary, "Let's play"), findsOneWidget);
     await t.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await t.pumpAndSettle();
     expect(barTitle(t), 'Alpha Quest');
@@ -164,7 +164,10 @@ void main() {
 
   testWidgets('a filter brings the shelf back to the front', (t) async {
     await pump(t, view: CollectionView.flow);
-    await t.tap(find.widgetWithText(OrbitChip, 'Super Nintendo'));
+    // Test text is wide (Ahem): scroll the tab out from under the sort.
+    await t.ensureVisible(find.text('Super Nintendo'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Super Nintendo'));
     await t.pumpAndSettle();
     expect(barTitle(t), 'Gamma Zone');
   });
@@ -192,5 +195,16 @@ void main() {
       CollectionView.flow,
     );
     expect(CollectionView.fromSetting('3d'), CollectionView.flow);
+  });
+
+  testWidgets('3D: the page dots follow the shelf', (t) async {
+    final semantics = t.ensureSemantics();
+    await pump(t, view: CollectionView.flow);
+    await focusShelf(t);
+    await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await t.pumpAndSettle();
+    expect(barTitle(t), 'Alpha Quest');
+    expect(find.bySemanticsLabel(RegExp('Game 2 of 3')), findsOneWidget);
+    semantics.dispose();
   });
 }

@@ -8,6 +8,16 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **ezCORE looks like the OS it is.** One top bar on every space carries the
+  ezCORE lockup, "Emulation shouldn't be hard." and a status corner that only
+  shows what is true: the time, and P1 while a controller is connected. The
+  rail holds four spaces — Library, Systems, Capsule (every save, now one tap
+  away instead of inside Settings) and Settings — switched with keys 1–4; Esc
+  goes back. The library opens on "The collection": system tabs, a sort menu,
+  and a 3D shelf with flatter angles, floor reflections and a glowing front
+  cover over the game's art. Its dock shows the system, file type and size,
+  with a favourite heart, Let's play (or Resume) and a menu (game page, play
+  from start). On desktop, key hints show how to browse.
 - **The ezCORE brand, everywhere.** The twin-hexagon mark, the "ez CORE"
   wordmark, the app icon and its dark, light and blue variations are now exact
   vector files generated from one source (`scripts/build_brand.py`), with

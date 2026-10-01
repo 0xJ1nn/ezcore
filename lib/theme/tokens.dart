@@ -95,7 +95,7 @@ abstract final class Tokens {
     return v;
   }
 
-  static const double rail = 84;
+  static const double rail = 112;
   static const double railShort = 72;
 
   // ---- Responsive breakpoints (shared by every screen) ----
