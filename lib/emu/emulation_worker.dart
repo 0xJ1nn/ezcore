@@ -59,6 +59,7 @@ class EmulationWorker {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     if (_opening || _isolate != null) throw StateError('Worker already open');
     _opening = true;
@@ -73,6 +74,7 @@ class EmulationWorker {
               'content': contentPath,
               'system': systemDir,
               'save': saveDir,
+              'options': coreOptions,
             })
             as Map,
       );
@@ -188,6 +190,9 @@ Future<void> _workerMain(SendPort ready) async {
           corePath: args['core'] as String,
           romPath: args['content'] as String,
           rom: File(args['content'] as String).readAsBytesSync(),
+          coreOptions: Map<String, String>.from(
+            (args['options'] as Map?) ?? const {},
+          ),
         );
         final geo = service.geometry;
         result = {
@@ -196,6 +201,7 @@ Future<void> _workerMain(SendPort ready) async {
           'height': geo.h,
           'fps': geo.fps,
           'sampleRate': service.sampleRate,
+          'rejectedOptions': service.rejectedCoreOptions,
         };
       } else {
         final active = service;
