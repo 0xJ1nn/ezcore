@@ -1,9 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/game_entry.dart';
 import '../services/cover_art.dart';
-import '../services/human_time.dart';
-import '../services/system_labels.dart';
 import '../theme/tokens.dart';
 import 'space_backdrop.dart';
 
@@ -90,110 +87,6 @@ class _Wordmark extends StatelessWidget {
   }
 }
 
-/// Top command bar.
-///
-/// Desktop/tablet: optional leading control, brand, status cluster.
-/// Phone portrait: leading control, centred brand, trailing control —
-/// the studio plate's arrangement.
-class OrbitTopbar extends StatelessWidget {
-  const OrbitTopbar({
-    super.key,
-    this.compact = false,
-    this.leading,
-    this.trailing,
-    this.centered = false,
-  });
-
-  final bool compact;
-  final Widget? leading;
-  final Widget? trailing;
-
-  /// Phone-portrait arrangement: leading, centred brand, trailing.
-  final bool centered;
-
-  @override
-  Widget build(BuildContext context) {
-    final brand = OrbitBrand(height: compact ? 20.0 : (centered ? 22.0 : 26.0));
-    final height = compact ? 44.0 : (centered ? 52.0 : 60.0);
-
-    if (centered) {
-      return SizedBox(
-        height: height,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (leading != null)
-              Align(alignment: Alignment.centerLeft, child: leading),
-            brand,
-            if (trailing != null)
-              Align(alignment: Alignment.centerRight, child: trailing),
-          ],
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: height,
-      child: Row(
-        children: [
-          if (leading != null) ...[leading!, const SizedBox(width: 12)],
-          brand,
-          const Spacer(),
-          if (trailing != null) trailing! else const OrbitStatusCluster(),
-        ],
-      ),
-    );
-  }
-}
-
-/// Right-hand status: local player badge + clock. Nothing leaves the
-/// device, so this is purely a glanceable local readout.
-class OrbitStatusCluster extends StatelessWidget {
-  const OrbitStatusCluster({super.key, this.compact = false});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final clock = StreamBuilder<DateTime>(
-      stream: Stream.periodic(
-        const Duration(seconds: 30),
-        (_) => DateTime.now(),
-      ),
-      initialData: DateTime.now(),
-      builder: (context, snap) {
-        final d = snap.data ?? DateTime.now();
-        final hh = d.hour.toString().padLeft(2, '0');
-        final mm = d.minute.toString().padLeft(2, '0');
-        return Text('$hh:$mm', style: Tokens.display(size: 12, ls: 0));
-      },
-    );
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!compact) ...[
-          const Icon(Icons.wifi, size: 15, color: Tokens.muted),
-          const SizedBox(width: 10),
-        ],
-        clock,
-        const SizedBox(width: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0x10DDE6F4),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0x30007BFF)),
-          ),
-          child: Text(
-            'P1',
-            style: Tokens.display(size: 11, weight: FontWeight.w600, ls: 0),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class OrbitNavItem {
   const OrbitNavItem(this.id, this.label, this.icon, this.filled);
   final String id;
@@ -202,41 +95,11 @@ class OrbitNavItem {
   final IconData filled;
 }
 
+/// The three destinations (layout option A). Settings is last; the rail
+/// pins it to the bottom edge.
 const orbitNavItems = [
   OrbitNavItem('library', 'Library', Icons.grid_view_outlined, Icons.grid_view),
-  OrbitNavItem(
-    'systems',
-    'Systems',
-    Icons.sports_esports_outlined,
-    Icons.sports_esports,
-  ),
-  OrbitNavItem('vault', 'Capsule', Icons.history_outlined, Icons.history),
-  OrbitNavItem('settings', 'Settings', Icons.settings_outlined, Icons.settings),
-];
-
-/// Desktop/landscape rail adds two common library shortcuts. Phone portrait
-/// keeps the quieter four-item bottom bar in [orbitNavItems].
-const orbitRailItems = [
-  OrbitNavItem('library', 'Library', Icons.grid_view_outlined, Icons.grid_view),
-  OrbitNavItem(
-    'systems',
-    'Systems',
-    Icons.sports_esports_outlined,
-    Icons.sports_esports,
-  ),
-  OrbitNavItem(
-    'continue',
-    'Continue',
-    Icons.play_circle_outline,
-    Icons.play_circle,
-  ),
-  OrbitNavItem(
-    'favorites',
-    'Favorites',
-    Icons.favorite_outline,
-    Icons.favorite,
-  ),
-  OrbitNavItem('vault', 'Capsule', Icons.history_outlined, Icons.history),
+  OrbitNavItem('cores', 'Cores', Icons.memory_outlined, Icons.memory),
   OrbitNavItem('settings', 'Settings', Icons.settings_outlined, Icons.settings),
 ];
 
@@ -263,35 +126,35 @@ class OrbitRail extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          const count = 6;
-          const verticalPadding = 28.0;
-          final gap = short ? 2.0 : 12.0;
-          final available = constraints.maxHeight - verticalPadding;
-          final fittedHeight = short
-              ? ((available - gap * (count - 1)) / count).clamp(48.0, 50.0)
-              : 64.0;
-          final fits = available >= fittedHeight * count + gap * (count - 1);
-          final column = Column(
-            mainAxisAlignment: fits
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
+          final height = short ? 50.0 : 64.0;
+          Widget button(OrbitNavItem it) => _RailButton(
+            item: it,
+            active: page == it.id,
+            short: short,
+            height: height,
+            onTap: () => onGo(it.id),
+          );
+          final main = orbitNavItems.take(orbitNavItems.length - 1);
+          return Column(
             children: [
-              for (var i = 0; i < orbitRailItems.length; i++)
-                Padding(
-                  padding: EdgeInsets.only(
-                    bottom: i == orbitRailItems.length - 1 ? 0 : gap,
-                  ),
-                  child: _RailButton(
-                    item: orbitRailItems[i],
-                    active: page == orbitRailItems[i].id,
-                    short: short,
-                    height: fittedHeight,
-                    onTap: () => onGo(orbitRailItems[i].id),
+              if (!short) ...[
+                Semantics(
+                  label: 'ezCORE',
+                  child: Image.asset(
+                    'assets/branding/icon-blue.png',
+                    width: 34,
+                    height: 34,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, _, _) => const SizedBox(height: 34),
                   ),
                 ),
+                const SizedBox(height: 20),
+              ],
+              for (final it in main) ...[button(it), SizedBox(height: short ? 4 : 10)],
+              const Spacer(),
+              button(orbitNavItems.last),
             ],
           );
-          return fits ? column : SingleChildScrollView(child: column);
         },
       ),
     );
@@ -314,7 +177,7 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = item.id == 'vault' ? 'Capsule' : item.label;
+    final label = item.label;
     final foreground = active ? Colors.white : Tokens.muted;
     final compact = short && height < 44;
     final labelStyle = short
@@ -632,79 +495,6 @@ class OrbitSearch extends StatelessWidget {
   }
 }
 
-class OrbitSwitcher extends StatelessWidget {
-  const OrbitSwitcher({super.key, required this.view, required this.onView});
-  final String view; // 'flow' | 'grid'
-  final ValueChanged<String> onView;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Tokens.searchIdle,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Tokens.line),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SwBtn(
-            icon: Icons.view_carousel_outlined,
-            active: view == 'flow',
-            tooltip: 'Cover Flow view',
-            onTap: () => onView('flow'),
-          ),
-          _SwBtn(
-            icon: Icons.grid_view_outlined,
-            active: view == 'grid',
-            tooltip: 'Grid view',
-            onTap: () => onView('grid'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SwBtn extends StatelessWidget {
-  const _SwBtn({
-    required this.icon,
-    required this.active,
-    required this.onTap,
-    required this.tooltip,
-  });
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: active ? Tokens.chipActiveBg : Colors.transparent,
-        borderRadius: BorderRadius.circular(5),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(5),
-          onTap: onTap,
-          child: Container(
-            height: 38,
-            width: 44,
-            alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 17,
-              color: active ? Colors.white : Tokens.muted,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class OrbitToggle extends StatelessWidget {
   const OrbitToggle({
     super.key,
@@ -982,105 +772,6 @@ class _TabButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Section title with an optional "See all" action.
-class OrbitSectionHeader extends StatelessWidget {
-  const OrbitSectionHeader({
-    super.key,
-    required this.title,
-    this.onSeeAll,
-    this.seeAllLabel = 'See all',
-  });
-  final String title;
-  final VoidCallback? onSeeAll;
-  final String seeAllLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: Tokens.sectionTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (onSeeAll != null)
-          TextButton(
-            onPressed: onSeeAll,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(0, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(seeAllLabel, style: Tokens.sectionLink),
-          ),
-      ],
-    );
-  }
-}
-
-/// Footer: keyboard hints plus the two brand taglines from the studio plate.
-class OrbitFooter extends StatelessWidget {
-  const OrbitFooter({super.key, this.hints = true});
-  final bool hints;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: Row(
-        children: [
-          if (hints) ...[
-            _Hint(keys: const ['←', '→'], label: 'Browse'),
-            const SizedBox(width: 18),
-            _Hint(keys: const ['↵'], label: 'Game details'),
-            const Spacer(),
-          ] else
-            const Spacer(),
-          Text(
-            Tokens.taglineLeft,
-            style: Tokens.body(size: 8, ls: 1.6, color: Tokens.muted),
-          ),
-          const SizedBox(width: 18),
-          Text(
-            Tokens.taglineRight,
-            style: Tokens.body(size: 8, ls: 1.6, color: Tokens.muted),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Hint extends StatelessWidget {
-  const _Hint({required this.keys, required this.label});
-  final List<String> keys;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final k in keys)
-          Container(
-            margin: const EdgeInsets.only(right: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Tokens.line),
-            ),
-            child: Text(k, style: Tokens.body(size: 9, color: Tokens.muted)),
-          ),
-        const SizedBox(width: 4),
-        Text(label, style: Tokens.footerStyle),
-      ],
     );
   }
 }
@@ -1504,250 +1195,6 @@ Future<T?> showOrbitDialog<T>(BuildContext context, Widget dialog) {
 // the library entry — nothing is estimated or filled in.
 // ---------------------------------------------------------------------------
 
-/// One row of the stat panel: small muted label, real value.
-class OrbitStatRow extends StatelessWidget {
-  const OrbitStatRow({
-    super.key,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-  final String label;
-  final String value;
-  final Color? valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Text(label, style: Tokens.statLabel)),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: Tokens.statValue.copyWith(
-                color: valueColor ?? Tokens.text,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A tick per saved snapshot.
-///
-/// The studio plate shows a "completion" bar here. ezCORE has no
-/// completion data, and inventing one would be a lie — so the same slot
-/// carries the one progress signal the app truly owns: how many moments
-/// you have saved for this game.
-class SnapshotTicks extends StatelessWidget {
-  const SnapshotTicks({super.key, required this.count, this.max = 10});
-  final int count;
-  final int max;
-
-  @override
-  Widget build(BuildContext context) {
-    if (count <= 0) {
-      return Text('No snapshots yet', style: Tokens.statLabel);
-    }
-    final shown = count.clamp(0, max);
-    return Row(
-      children: [
-        for (var i = 0; i < shown; i++)
-          Container(
-            width: 12,
-            height: 4,
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: Tokens.accent,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        if (count > max) Text('+$count-$max', style: Tokens.statLabel),
-      ],
-    );
-  }
-}
-
-/// Stats for the selected game, using only tracked fields.
-class GameStatPanel extends StatelessWidget {
-  const GameStatPanel({super.key, required this.game, this.dense = false});
-  final GameEntry game;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(14, dense ? 10 : 14, 14, dense ? 10 : 14),
-      decoration: Tokens.statPanelDecor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          OrbitStatRow(
-            label: 'Last played',
-            value: lastPlayedLabel(game.lastPlayedMs),
-          ),
-          OrbitStatRow(
-            label: 'Save states',
-            value: countLabel(game.stateCount, 'state'),
-          ),
-          OrbitStatRow(
-            label: 'Cheats on',
-            value: countLabel(game.cheatsOn, 'code'),
-            valueColor: game.cheatsOn > 0 ? Tokens.accent : null,
-          ),
-          OrbitStatRow(label: 'File size', value: fileSizeLabel(game.fileSize)),
-          const SizedBox(height: 6),
-          SnapshotTicks(count: game.stateCount),
-        ],
-      ),
-    );
-  }
-}
-
-/// Action row under the selected game: Manage / Cheats / States / More.
-class GameActionRow extends StatelessWidget {
-  const GameActionRow({
-    super.key,
-    required this.game,
-    required this.onManage,
-    required this.onCheats,
-    required this.onStates,
-    required this.onMore,
-  });
-  final GameEntry game;
-  final VoidCallback onManage;
-  final VoidCallback onCheats;
-  final VoidCallback onStates;
-  final VoidCallback onMore;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _DockAction(icon: Icons.tune, label: 'Manage', onTap: onManage),
-        _DockAction(
-          icon: Icons.bolt_outlined,
-          label: 'Cheats (${game.cheatsOn})',
-          onTap: onCheats,
-        ),
-        _DockAction(
-          icon: Icons.save_outlined,
-          label: 'States (${game.stateCount})',
-          onTap: onStates,
-        ),
-        _DockAction(icon: Icons.more_horiz, label: 'More', onTap: onMore),
-      ],
-    );
-  }
-}
-
-class _DockAction extends StatelessWidget {
-  const _DockAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 15),
-      label: Text(label, style: Tokens.body(size: 11, color: Tokens.text)),
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 38),
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        backgroundColor: const Color(0x0ADDE6F4),
-        side: const BorderSide(color: Color(0x26DDE6F4)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Tokens.radiusSm),
-        ),
-        foregroundColor: Tokens.text,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-    );
-  }
-}
-
-/// Cover tile used by the section rows ("Continue playing", "Recently added").
-class GameTile extends StatelessWidget {
-  const GameTile({
-    super.key,
-    required this.game,
-    required this.onTap,
-    required this.footnote,
-    this.width = 104,
-  });
-  final GameEntry game;
-  final VoidCallback onTap;
-
-  /// The honest one-line fact under the title (e.g. "2 days ago").
-  final String footnote;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          // The cover absorbs whatever height the row gives us, so the
-          // text block can never overflow a short viewport.
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Expanded(
-              child: GameCover(
-                gameId: game.id,
-                title: game.title,
-                system: shortSystemLabel(game.system),
-                width: width,
-                radius: Tokens.radiusCover,
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 18,
-              child: Text(
-                game.title,
-                style: Tokens.body(size: 11, weight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 2),
-            SizedBox(
-              height: 16,
-              child: Text(
-                footnote,
-                style: Tokens.body(size: 9, color: Tokens.muted),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 5),
-            SnapshotTicks(count: game.stateCount, max: 6),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Compact square icon control for top bars.
 class OrbitIconButton extends StatelessWidget {
   const OrbitIconButton({
@@ -1841,7 +1288,7 @@ class _BottomNavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = item.id == 'vault' ? 'Capsule' : item.label;
+    final label = item.label;
     return Semantics(
       button: true,
       selected: active,
@@ -1870,183 +1317,3 @@ class _BottomNavButton extends StatelessWidget {
   }
 }
 
-/// A row in the "Select system" sheet.
-class SystemPickerRow extends StatelessWidget {
-  const SystemPickerRow({
-    super.key,
-    required this.label,
-    required this.count,
-    required this.selected,
-    required this.onTap,
-  });
-  final String label;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: Material(
-        color: selected ? const Color(0x26007BFF) : Colors.transparent,
-        borderRadius: BorderRadius.circular(Tokens.radiusSm),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(Tokens.radiusSm),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 46),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.videogame_asset_outlined,
-                  size: 18,
-                  color: selected ? Tokens.accent : Tokens.muted,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Tokens.body(
-                      size: 12,
-                      color: selected ? Colors.white : Tokens.text,
-                    ),
-                  ),
-                ),
-                Text(
-                  '$count',
-                  style: Tokens.body(size: 10, color: Tokens.muted),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.chevron_right,
-                  size: 16,
-                  color: selected ? Tokens.accent : Tokens.muted,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shows the grouped "Select system" sheet.
-///
-/// [counts] maps a system id to how many games the library holds for it;
-/// [onPick] receives the chosen filter (`null` = all systems).
-Future<void> showSystemPicker(
-  BuildContext context, {
-  required Map<String, int> counts,
-  required String selected,
-  required ValueChanged<String?> onPick,
-  int favoriteCount = 0,
-}) {
-  // Group by manufacturer, keeping the plate's section order.
-  final grouped = <String, List<MapEntry<String, int>>>{};
-  for (final e in counts.entries) {
-    (grouped[makerFor(e.key)] ??= []).add(e);
-  }
-  for (final list in grouped.values) {
-    list.sort(
-      (a, b) => shortSystemLabel(
-        a.key,
-      ).toLowerCase().compareTo(shortSystemLabel(b.key).toLowerCase()),
-    );
-  }
-
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) {
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.72,
-        minChildSize: 0.45,
-        maxChildSize: 0.94,
-        builder: (context, scroll) => Container(
-          decoration: Tokens.sheetDecor,
-          child: SafeArea(
-            top: false,
-            child: ListView(
-              controller: scroll,
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Tokens.separator,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Select system',
-                        style: Tokens.display(
-                          size: 19,
-                          weight: FontWeight.w600,
-                          ls: -0.4,
-                        ),
-                      ),
-                    ),
-                    OrbitRoundButton(
-                      icon: Icons.close,
-                      tooltip: 'Close system picker',
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SystemPickerRow(
-                  label: 'All systems',
-                  count: counts.values.fold<int>(0, (a, b) => a + b),
-                  selected: selected == 'All systems',
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onPick(null);
-                  },
-                ),
-                SystemPickerRow(
-                  label: 'Favorites',
-                  count: favoriteCount,
-                  selected: selected == 'Favorites',
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onPick('Favorites');
-                  },
-                ),
-                for (final maker in systemMakerOrder)
-                  if (grouped[maker] != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
-                      child: Text(maker.toUpperCase(), style: Tokens.eyebrow),
-                    ),
-                    for (final e in grouped[maker]!)
-                      SystemPickerRow(
-                        label: shortSystemLabel(e.key),
-                        count: e.value,
-                        selected: selected == e.key,
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          onPick(e.key);
-                        },
-                      ),
-                  ],
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
