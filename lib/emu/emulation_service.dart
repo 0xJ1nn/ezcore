@@ -79,6 +79,25 @@ class EmulationService {
   Uint8List? frameBytes() => runtime.frameBytes(_active);
   void setButton(int port, int button, bool pressed) =>
       runtime.setButton(_active, port, button, pressed);
+  void setAnalog(int port, int stick, int axis, int value) =>
+      runtime.setAnalog(_active, port, stick, axis, value);
+  void mouseMove(int dx, int dy) => runtime.mouseMove(_active, dx, dy);
+  void setMouseButton(int id, bool pressed) =>
+      runtime.setMouseButton(_active, id, pressed);
+  void setKey(
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  }) => runtime.setKey(
+    _active,
+    keycode,
+    pressed,
+    character: character,
+    modifiers: modifiers,
+  );
+  void setPointer(int x, int y, bool pressed) =>
+      runtime.setPointer(_active, x, y, pressed);
 
   /// Applies [cheats] to the live session (reset-first, mirroring
   /// RetroArch). Each entry is `(index, enabled, code)`. Returns the

@@ -190,6 +190,35 @@ class EzCoreRuntime {
           'ezcore_clear_buttons',
         )
         .asFunction<void Function(Pointer<Void>, int)>();
+    _setAnalog = _lib
+        .lookup<
+          NativeFunction<
+            Void Function(Pointer<Void>, Uint32, Uint32, Uint32, Int16)
+          >
+        >('ezcore_set_analog')
+        .asFunction<void Function(Pointer<Void>, int, int, int, int)>();
+    _mouseMove = _lib
+        .lookup<NativeFunction<Void Function(Pointer<Void>, Int32, Int32)>>(
+          'ezcore_mouse_move',
+        )
+        .asFunction<void Function(Pointer<Void>, int, int)>();
+    _setMouseButton = _lib
+        .lookup<NativeFunction<Void Function(Pointer<Void>, Uint32, Bool)>>(
+          'ezcore_set_mouse_button',
+        )
+        .asFunction<void Function(Pointer<Void>, int, bool)>();
+    _setKey = _lib
+        .lookup<
+          NativeFunction<
+            Void Function(Pointer<Void>, Uint32, Bool, Uint32, Uint16)
+          >
+        >('ezcore_set_key')
+        .asFunction<void Function(Pointer<Void>, int, bool, int, int)>();
+    _setPointer = _lib
+        .lookup<
+          NativeFunction<Void Function(Pointer<Void>, Int16, Int16, Bool)>
+        >('ezcore_set_pointer')
+        .asFunction<void Function(Pointer<Void>, int, int, bool)>();
     // --- core options & capability surface (ABI v1 additions) ---
     _coreOptionCount = _lib
         .lookup<NativeFunction<Uint32 Function(Pointer<Void>)>>(
@@ -353,6 +382,11 @@ class EzCoreRuntime {
   late final int Function(Pointer<Void>) _audioPending;
   late final void Function(Pointer<Void>, int, int, bool) _setButton;
   late final void Function(Pointer<Void>, int) _clearButtons;
+  late final void Function(Pointer<Void>, int, int, int, int) _setAnalog;
+  late final void Function(Pointer<Void>, int, int) _mouseMove;
+  late final void Function(Pointer<Void>, int, bool) _setMouseButton;
+  late final void Function(Pointer<Void>, int, bool, int, int) _setKey;
+  late final void Function(Pointer<Void>, int, int, bool) _setPointer;
   late final int Function(Pointer<Void>) _coreOptionCount;
   late final bool Function(
     Pointer<Void>,
@@ -524,6 +558,32 @@ class EzCoreRuntime {
   void setButton(Pointer<Void> session, int port, int buttonId, bool pressed) {
     _setButton(session, port, buttonId, pressed);
   }
+
+  /// Analog stick: [stick] 0 left / 1 right, [axis] 0 x / 1 y,
+  /// [value] -32768..32767.
+  void setAnalog(Pointer<Void> s, int port, int stick, int axis, int value) =>
+      _setAnalog(s, port, stick, axis, value.clamp(-32768, 32767));
+
+  /// Relative mouse motion, delivered to the core once per frame.
+  void mouseMove(Pointer<Void> s, int dx, int dy) => _mouseMove(s, dx, dy);
+
+  /// A mouse button, [id] a RETRO_DEVICE_ID_MOUSE_* value.
+  void setMouseButton(Pointer<Void> s, int id, bool pressed) =>
+      _setMouseButton(s, id, pressed);
+
+  /// A key, [keycode] a RETROK_* value; also reaches the core's keyboard
+  /// callback when it registered one.
+  void setKey(
+    Pointer<Void> s,
+    int keycode,
+    bool pressed, {
+    int character = 0,
+    int modifiers = 0,
+  }) => _setKey(s, keycode, pressed, character, modifiers);
+
+  /// The pointer (touchscreen) across the whole output, -32767..32767.
+  void setPointer(Pointer<Void> s, int x, int y, bool pressed) =>
+      _setPointer(s, x.clamp(-32767, 32767), y.clamp(-32767, 32767), pressed);
 
   /// Clears all buttons for a port.
   void clearButtons(Pointer<Void> session, int port) {

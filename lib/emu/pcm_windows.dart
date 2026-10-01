@@ -63,29 +63,44 @@ class WinmmPcmOutput implements PcmOutput {
   }
 
   late final int Function(
-          Pointer<IntPtr>, int, Pointer<_WaveFormat>, int, int, int) _openFn =
-      _libOf().lookupFunction<
-          Int32 Function(Pointer<IntPtr>, UintPtr, Pointer<_WaveFormat>,
-              IntPtr, IntPtr, Int32),
-          int Function(Pointer<IntPtr>, int, Pointer<_WaveFormat>, int, int,
-              int)>('waveOutOpen');
-  late final int Function(int, Pointer<_WaveHeader>, int) _prepare =
-      _libOf().lookupFunction<
-          Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-          int Function(int, Pointer<_WaveHeader>, int)>(
-          'waveOutPrepareHeader');
-  late final int Function(int, Pointer<_WaveHeader>, int) _write =
-      _libOf().lookupFunction<
-          Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-          int Function(int, Pointer<_WaveHeader>, int)>('waveOutWrite');
-  late final int Function(int, Pointer<_WaveHeader>, int) _unprepare =
-      _libOf().lookupFunction<
-          Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-          int Function(int, Pointer<_WaveHeader>, int)>(
-          'waveOutUnprepareHeader');
-  late final int Function(int) _close = _libOf().lookupFunction<
-      Int32 Function(IntPtr),
-      int Function(int)>('waveOutClose');
+    Pointer<IntPtr>,
+    int,
+    Pointer<_WaveFormat>,
+    int,
+    int,
+    int,
+  )
+  _openFn = _libOf()
+      .lookupFunction<
+        Int32 Function(
+          Pointer<IntPtr>,
+          UintPtr,
+          Pointer<_WaveFormat>,
+          IntPtr,
+          IntPtr,
+          Int32,
+        ),
+        int Function(Pointer<IntPtr>, int, Pointer<_WaveFormat>, int, int, int)
+      >('waveOutOpen');
+  late final int Function(int, Pointer<_WaveHeader>, int) _prepare = _libOf()
+      .lookupFunction<
+        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
+        int Function(int, Pointer<_WaveHeader>, int)
+      >('waveOutPrepareHeader');
+  late final int Function(int, Pointer<_WaveHeader>, int) _write = _libOf()
+      .lookupFunction<
+        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
+        int Function(int, Pointer<_WaveHeader>, int)
+      >('waveOutWrite');
+  late final int Function(int, Pointer<_WaveHeader>, int) _unprepare = _libOf()
+      .lookupFunction<
+        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
+        int Function(int, Pointer<_WaveHeader>, int)
+      >('waveOutUnprepareHeader');
+  late final int Function(int) _close = _libOf()
+      .lookupFunction<Int32 Function(IntPtr), int Function(int)>(
+        'waveOutClose',
+      );
 
   DynamicLibrary _load() {
     try {
@@ -158,8 +173,7 @@ class WinmmPcmOutput implements PcmOutput {
       }
       if ((hdr.ref.flags & _whdrDone) == 0) return;
       _unprepare(_device, hdr, sizeOf<_WaveHeader>());
-      final chunk =
-          remaining > _bufferBytes ? _bufferBytes : remaining;
+      final chunk = remaining > _bufferBytes ? _bufferBytes : remaining;
       _buffers[_cursor]
           .asTypedList(_bufferBytes)
           .setRange(0, chunk, stereoS16, offset);

@@ -29,32 +29,45 @@ class AlsaPcmOutput implements PcmOutput {
   }
 
   late final int Function(Pointer<Pointer<Void>>, Pointer<Uint8>, int, int)
-      _openFn = _libOf().lookupFunction<
-          Int32 Function(
-              Pointer<Pointer<Void>>, Pointer<Uint8>, Int32, Int32),
-          int Function(Pointer<Pointer<Void>>, Pointer<Uint8>, int, int)>(
-          'snd_pcm_open');
-  late final int Function(
-      Pointer<Void>, int, int, int, int, int, int) _setParams =
-      _libOf().lookupFunction<
-          Int32 Function(Pointer<Void>, Int32, Int32, Uint32, Uint32, Int32,
-              Uint32),
-          int Function(
-              Pointer<Void>, int, int, int, int, int, int)>(
-          'snd_pcm_set_params');
-  late final int Function(Pointer<Void>, Pointer<Void>, int) _writei =
-      _libOf().lookupFunction<
-          IntPtr Function(Pointer<Void>, Pointer<Void>, UintPtr),
-          int Function(Pointer<Void>, Pointer<Void>, int)>('snd_pcm_writei');
-  late final int Function(Pointer<Void>) _prepare =
-      _libOf().lookupFunction<Int32 Function(Pointer<Void>),
-          int Function(Pointer<Void>)>('snd_pcm_prepare');
-  late final int Function(Pointer<Void>) _close =
-      _libOf().lookupFunction<Int32 Function(Pointer<Void>),
-          int Function(Pointer<Void>)>('snd_pcm_close');
-  late final Pointer<Uint8> Function(int) _strerror =
-      _libOf().lookupFunction<Pointer<Uint8> Function(Int32),
-          Pointer<Uint8> Function(int)>('snd_strerror');
+  _openFn = _libOf()
+      .lookupFunction<
+        Int32 Function(Pointer<Pointer<Void>>, Pointer<Uint8>, Int32, Int32),
+        int Function(Pointer<Pointer<Void>>, Pointer<Uint8>, int, int)
+      >('snd_pcm_open');
+  late final int Function(Pointer<Void>, int, int, int, int, int, int)
+  _setParams = _libOf()
+      .lookupFunction<
+        Int32 Function(
+          Pointer<Void>,
+          Int32,
+          Int32,
+          Uint32,
+          Uint32,
+          Int32,
+          Uint32,
+        ),
+        int Function(Pointer<Void>, int, int, int, int, int, int)
+      >('snd_pcm_set_params');
+  late final int Function(Pointer<Void>, Pointer<Void>, int) _writei = _libOf()
+      .lookupFunction<
+        IntPtr Function(Pointer<Void>, Pointer<Void>, UintPtr),
+        int Function(Pointer<Void>, Pointer<Void>, int)
+      >('snd_pcm_writei');
+  late final int Function(Pointer<Void>) _prepare = _libOf()
+      .lookupFunction<
+        Int32 Function(Pointer<Void>),
+        int Function(Pointer<Void>)
+      >('snd_pcm_prepare');
+  late final int Function(Pointer<Void>) _close = _libOf()
+      .lookupFunction<
+        Int32 Function(Pointer<Void>),
+        int Function(Pointer<Void>)
+      >('snd_pcm_close');
+  late final Pointer<Uint8> Function(int) _strerror = _libOf()
+      .lookupFunction<
+        Pointer<Uint8> Function(Int32),
+        Pointer<Uint8> Function(int)
+      >('snd_strerror');
 
   DynamicLibrary _load() {
     for (final name in ['libasound.so.2', 'libasound.so']) {
@@ -63,7 +76,8 @@ class AlsaPcmOutput implements PcmOutput {
       } catch (_) {}
     }
     throw StateError(
-        'ALSA unavailable: libasound.so.2 not found (install libasound2)');
+      'ALSA unavailable: libasound.so.2 not found (install libasound2)',
+    );
   }
 
   @override
@@ -89,7 +103,14 @@ class AlsaPcmOutput implements PcmOutput {
       freeBytes(handlePtr);
     }
     final params = _setParams(
-        _handle, _formatS16Le, _accessRwInterleaved, 2, rate, 1, 64000);
+      _handle,
+      _formatS16Le,
+      _accessRwInterleaved,
+      2,
+      rate,
+      1,
+      64000,
+    );
     if (params != 0) {
       final handle = _handle;
       _handle = nullptr;
@@ -113,7 +134,9 @@ class AlsaPcmOutput implements PcmOutput {
       final chunk = frames > 2048 ? 2048 : frames;
       final ptr = mallocBytes(chunk * 4);
       try {
-        ptr.asTypedList(chunk * 4).setRange(0, chunk * 4, stereoS16, offset * 4);
+        ptr
+            .asTypedList(chunk * 4)
+            .setRange(0, chunk * 4, stereoS16, offset * 4);
         final rc = _writei(_handle, ptr.cast(), chunk);
         if (rc == _epipe) {
           // Underrun: re-prepare once or twice, then drop rather than

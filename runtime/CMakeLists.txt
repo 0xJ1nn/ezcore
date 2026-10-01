@@ -109,6 +109,17 @@ if(APPLE)
   set_target_properties(synth_options_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# --- Synthetic core that reads every input device (P3) ---
+add_library(synth_input_libretro SHARED
+  test/synth_core/synth_input_core.c
+)
+target_include_directories(synth_input_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_input_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Synthetic core that READS its options (GET_VARIABLE / _UPDATE) ---
 add_library(synth_variables_libretro SHARED
   test/synth_core/synth_variables_core.c
@@ -264,6 +275,15 @@ add_dependencies(test_core_options synth_options_libretro)
 add_test(NAME core_options
   COMMAND test_core_options
   ${CMAKE_BINARY_DIR}/libsynth_options_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# P3: analog, mouse, keyboard (state + callback) and pointer reach a core.
+add_executable(test_input_devices test/test_input_devices.c)
+target_link_libraries(test_input_devices PRIVATE ezcore_runtime)
+target_include_directories(test_input_devices PRIVATE include
+  external/libretro-common/include)
+add_dependencies(test_input_devices synth_input_libretro)
+add_test(NAME input_devices
+  COMMAND test_input_devices $<TARGET_FILE:synth_input_libretro>)
 
 # Regression: an option value the host sets must reach the core through
 # GET_VARIABLE, with GET_VARIABLE_UPDATE raised exactly once per change.

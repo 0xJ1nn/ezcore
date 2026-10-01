@@ -68,10 +68,7 @@ class ExitClassification {
 /// Order matters: the watchdog verdict is checked BEFORE the exit code,
 /// because a reaped hang usually also carries a signal-derived code and must
 /// not be reported as a crash.
-ExitClassification classifyExit({
-  int? exitCode,
-  Duration? watchdogAfter,
-}) {
+ExitClassification classifyExit({int? exitCode, Duration? watchdogAfter}) {
   if (watchdogAfter != null) {
     return ExitClassification(
       SessionOutcome.hung,

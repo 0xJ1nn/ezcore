@@ -46,6 +46,28 @@ void ezcore_set_button(ezcore_session *s, unsigned port, unsigned button_id,
                     bool pressed);
 void ezcore_clear_buttons(ezcore_session *s, unsigned port);
 
+/* Analog stick: stick 0 = left, 1 = right (RETRO_DEVICE_INDEX_ANALOG_*);
+ * axis 0 = x, 1 = y; value -32768..32767. Analog-button reads (pressure
+ * triggers) follow the digital button state: pressed reads 0x7fff. */
+void ezcore_set_analog(ezcore_session *s, unsigned port, unsigned stick,
+                       unsigned axis, int16_t value);
+
+/* Mouse (port 0). Motion accumulates until the next ezcore_run_frame, which
+ * hands the core one delta for the whole frame. id is RETRO_DEVICE_ID_MOUSE_*
+ * (LEFT, RIGHT, MIDDLE, WHEELUP, ...). */
+void ezcore_mouse_move(ezcore_session *s, int dx, int dy);
+void ezcore_set_mouse_button(ezcore_session *s, unsigned id, bool pressed);
+
+/* Keyboard (port 0). keycode is a RETROK_* value; character is the UTF-32
+ * character typed, or 0; modifiers are RETROKMOD_* bits. Updates the polled
+ * key state and, when the core registered one, calls its keyboard callback. */
+void ezcore_set_key(ezcore_session *s, unsigned keycode, bool pressed,
+                    uint32_t character, uint16_t modifiers);
+
+/* Pointer / touchscreen (port 0). x and y span the core's whole output,
+ * -32767 (left/top) .. 32767 (right/bottom). */
+void ezcore_set_pointer(ezcore_session *s, int16_t x, int16_t y, bool pressed);
+
 /* Cheats — optional core entry points. If unsupported, reset is a no-op and
  * set returns false. A true set result means dispatch was attempted; the
  * libretro hook is void and cannot report code validation. */

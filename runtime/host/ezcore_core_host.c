@@ -365,7 +365,8 @@ static int dispatch(const uint8_t *body, size_t n) {
     return 0;
   }
   if (!g_session) {
-    if (op >= EZH_OP_FRAME && op <= EZH_OP_SET_OPTION)
+    if ((op >= EZH_OP_FRAME && op <= EZH_OP_SET_OPTION) ||
+        (op >= EZH_OP_ANALOG && op <= EZH_OP_POINTER))
       return send_error("no session is open");
     return send_error("unknown op");
   }
@@ -409,6 +410,45 @@ static int dispatch(const uint8_t *body, size_t n) {
       }
       free(k); free(v);
       return ok;
+    }
+    case EZH_OP_ANALOG: {
+      uint32_t port = rd_u32(&r), stick = rd_u32(&r), axis = rd_u32(&r);
+      int32_t value = (int32_t)rd_u32(&r);
+      if (r.bad) return send_error("malformed ANALOG request");
+      ezcore_set_analog(g_session, port, stick, axis,
+                        (int16_t)(value > 32767 ? 32767 : value < -32768 ? -32768 : value));
+      return send_ok_empty();
+    }
+    case EZH_OP_MOUSE_MOVE: {
+      int32_t dx = (int32_t)rd_u32(&r), dy = (int32_t)rd_u32(&r);
+      if (r.bad) return send_error("malformed MOUSE_MOVE request");
+      ezcore_mouse_move(g_session, dx, dy);
+      return send_ok_empty();
+    }
+    case EZH_OP_MOUSE_BTN: {
+      uint32_t id = rd_u32(&r);
+      uint8_t pressed = rd_u8(&r);
+      if (r.bad) return send_error("malformed MOUSE_BTN request");
+      ezcore_set_mouse_button(g_session, id, pressed != 0);
+      return send_ok_empty();
+    }
+    case EZH_OP_KEY: {
+      uint32_t code = rd_u32(&r);
+      uint8_t pressed = rd_u8(&r);
+      uint32_t ch = rd_u32(&r), mods = rd_u32(&r);
+      if (r.bad) return send_error("malformed KEY request");
+      ezcore_set_key(g_session, code, pressed != 0, ch, (uint16_t)mods);
+      return send_ok_empty();
+    }
+    case EZH_OP_POINTER: {
+      int32_t x = (int32_t)rd_u32(&r), y = (int32_t)rd_u32(&r);
+      uint8_t pressed = rd_u8(&r);
+      if (r.bad) return send_error("malformed POINTER request");
+      ezcore_set_pointer(g_session,
+                         (int16_t)(x > 32767 ? 32767 : x < -32767 ? -32767 : x),
+                         (int16_t)(y > 32767 ? 32767 : y < -32767 ? -32767 : y),
+                         pressed != 0);
+      return send_ok_empty();
     }
     default: return send_error("unknown op");
   }
