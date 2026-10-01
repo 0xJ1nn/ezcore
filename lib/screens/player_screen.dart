@@ -3,6 +3,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../controls/builtin_layouts.dart';
+import '../controls/control_layout.dart';
+import '../controls/control_overlay.dart';
 import '../emu/player_controller.dart';
 import '../emu/process_session_backend.dart';
 import '../services/bios_check.dart';
@@ -20,7 +23,6 @@ import '../state/app_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/orbit_widgets.dart';
 import 'cheats_screen.dart';
-import 'settings_screen.dart';
 
 /// Orbit Player — video stage + dock control bar + "Take a breather"
 /// session overlay (final-01). All emulation wiring preserved:
@@ -61,7 +63,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
   bool get paused => player.paused;
   bool get fastForward => player.fastForward;
+  /// On-screen controls. On by default where touch is the main input,
+  /// off on desktop (keyboard and pads); the player can flip it any time.
   bool padVisible = true;
+  final _overlayKey = GlobalKey<ControlOverlayState>();
+  bool _menuOpen = false;
   String? launchError;
   bool leaving = false;
   late final Future<void> opening;
@@ -75,8 +81,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       final id = event.retroPadId;
       if (id != null) _action(() => player.button(id, event.pressed));
     });
-    padVisible =
-        widget.state.settings['touchOverlay'] as bool? ?? true;
+    padVisible = widget.state.settings['touchOverlay'] as bool? ??
+        (Platform.isAndroid || Platform.isIOS);
     opening = _launch();
   }
 
@@ -326,507 +332,333 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
-  Widget _touch(String label, int id) => Listener(
-        onPointerDown: (_) {
-          _buzz();
-          _action(() => player.button(id, true));
-        },
-        onPointerUp: (_) => _action(() => player.button(id, false)),
-        onPointerCancel: (_) => _action(() => player.button(id, false)),
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0x0ADDE6F4),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0x26DDE6F4)),
-          ),
-          child: Text(label, style: Tokens.body(size: 12)),
-        ),
-      );
+  Future<void> _hostInput(String input) async {
+    switch (input) {
+      case 'menu':
+        await _openMenu();
+      case 'fast_forward':
+        setState(() => player.fastForward = !fastForward);
+    }
+  }
+
+  KeyEventResult _onKey(FocusNode _, KeyEvent event) {
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      if (event is KeyDownEvent) unawaited(_openMenu());
+      return KeyEventResult.handled;
+    }
+    final keys = {
+      LogicalKeyboardKey.arrowUp: 4,
+      LogicalKeyboardKey.arrowDown: 5,
+      LogicalKeyboardKey.arrowLeft: 6,
+      LogicalKeyboardKey.arrowRight: 7,
+      LogicalKeyboardKey.keyZ: 0,
+      LogicalKeyboardKey.keyX: 8,
+      LogicalKeyboardKey.keyA: 1,
+      LogicalKeyboardKey.keyS: 9,
+      LogicalKeyboardKey.keyQ: 10,
+      LogicalKeyboardKey.keyW: 11,
+      LogicalKeyboardKey.enter: 3,
+      LogicalKeyboardKey.shiftRight: 2,
+    };
+    final id = keys[event.logicalKey];
+    if (id == null) return KeyEventResult.ignored;
+    if (event is KeyRepeatEvent) return KeyEventResult.handled;
+    _action(() => player.button(id, event is KeyDownEvent));
+    return KeyEventResult.handled;
+  }
 
   @override
   Widget build(BuildContext context) {
     final game = widget.state.games.firstWhere((g) => g.id == widget.gameId);
-    final sysLabel = systemLabels[game.system] ?? game.system;
-    return Scaffold(
-      backgroundColor: Tokens.bg,
-      appBar: AppBar(
-        backgroundColor: Tokens.bg,
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back, size: 20),
-          onPressed: _exit,
-        ),
-        title: Text('$sysLabel · ${game.coreId}',
-            style: Tokens.body(size: 12, color: Tokens.muted)),
-      ),
-      body: Focus(
-        autofocus: true,
-        onKeyEvent: (_, event) {
-          final keys = {
-            LogicalKeyboardKey.arrowUp: 4,
-            LogicalKeyboardKey.arrowDown: 5,
-            LogicalKeyboardKey.arrowLeft: 6,
-            LogicalKeyboardKey.arrowRight: 7,
-            LogicalKeyboardKey.keyZ: 0,
-            LogicalKeyboardKey.keyX: 8,
-            LogicalKeyboardKey.enter: 3,
-            LogicalKeyboardKey.shiftRight: 2,
-          };
-          final id = keys[event.logicalKey];
-          if (id == null) return KeyEventResult.ignored;
-          _action(() => player.button(id, event is! KeyUpEvent));
-          return KeyEventResult.handled;
-        },
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(16),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(Tokens.radiusLg),
-                  border: Border.all(color: const Color(0x22DDE6F4)),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: Color(0x66000000),
-                        offset: Offset(0, 14),
-                        blurRadius: 34),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(Tokens.radiusLg - 1),
-                  child: launchError != null || player.error != null
-                      ? Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                              launchError ?? player.error!,
-                              style: Tokens.body(
-                                  size: 12, color: Tokens.danger)),
-                        )
-                      : player.frame != null
-                          ? RawImage(
-                              image: player.frame,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.none,
-                            )
-                          : launching
-                              ? const CircularProgressIndicator(
-                                  color: Tokens.accent)
-                              : Text('Waiting for video…',
-                                  style: Tokens.body(
-                                      size: 12, color: Tokens.muted)),
-                ),
-              ),
+    return PopScope(
+      canPop: false,
+      // Back (gesture or button) opens the pause menu; leaving the game is
+      // a deliberate choice there, so a stray swipe never loses progress.
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_openMenu());
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Focus(
+          autofocus: true,
+          onKeyEvent: _onKey,
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, c) => _stage(game.system, c.biggest),
             ),
-            if (player.audioError != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(player.audioError!,
-                    maxLines: 2,
-                    style: Tokens.body(size: 11, color: Tokens.danger)),
-              ),
-            if (paused)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text('Paused — take a breather',
-                    style: Tokens.body(size: 11, color: Tokens.muted)),
-              ),
-            if (padVisible && player.running)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    _touch('↑', 4),
-                    _touch('↓', 5),
-                    _touch('←', 6),
-                    _touch('→', 7),
-                    _touch('B', 0),
-                    _touch('A', 8),
-                    _touch('Select', 2),
-                    _touch('Start', 3),
-                  ],
-                ),
-              ),
-            _dock(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _dock() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 12),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: Tokens.dockDecor,
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _DockBtn(
-              icon: paused ? Icons.play_arrow : Icons.pause,
-              label: paused ? 'Resume' : 'Pause',
-              enabled: player.running,
-              onTap: player.running
-                  ? () async {
-                      if (paused) {
-                        await _action(() => player.setPaused(false));
-                      } else {
-                        // Pausing releases every button host-side, so the
-                        // poller's emitted-set goes stale; forget it here
-                        // or a control still held on resume produces no
-                        // transition and is never re-sent.
-                        _gamepads.forgetHeld();
-                        await _action(() => player.setPaused(true));
-                        if (mounted) _session();
-                      }
-                    }
-                  : null,
-            ),
-            _DockBtn(
-              icon: Icons.save_outlined,
-              label: 'Save',
-              enabled: player.running,
-              onTap: player.running
-                  ? () => _action(
-                      _saveMoment,
-                      'Moment saved to your time capsule',
-                    )
-                  : null,
-            ),
-            _DockBtn(
-              icon: Icons.fast_forward_outlined,
-              label: 'FF',
-              active: fastForward,
-              onTap: () {
-                setState(() => player.fastForward = !fastForward);
-                orbitToast(
-                    context,
-                    fastForward
-                        ? 'Fast-forward on'
-                        : 'Fast-forward off');
-              },
-            ),
-            _DockBtn(
-              icon: Icons.photo_camera_outlined,
-              label: 'Shot',
-              enabled: player.frame != null,
-              onTap: player.frame != null
-                  ? () => _action(_screenshot)
-                  : null,
-            ),
-            _DockBtn(
-              icon: Icons.gamepad_outlined,
-              label: 'Pad',
-              active: padVisible,
-              onTap: () =>
-                  setState(() => padVisible = !padVisible),
-            ),
-            _DockBtn(
-              icon: Icons.bolt_outlined,
-              label: 'Cheats',
-              onTap: () async {
-                await Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CheatsScreen(
-                      gameId: widget.gameId,
-                      state: widget.state,
-                      onCheatsChanged: _applyCheats,
-                    ),
-                  ),
-                );
-                await _refreshStateCount();
-              },
-            ),
-            _DockBtn(
-              icon: Icons.more_horiz,
-              label: 'More',
-              onTap: _more,
-            ),
-          ],
-        ),
-        ),
-      ),
-    );
-  }
-
-  /// "Take a breather" session overlay — final-01 §F.
-  void _session() {
-    final game =
-        widget.state.games.firstWhere((g) => g.id == widget.gameId);
-    final sysLabel = systemLabels[game.system] ?? game.system;
-    showOrbitDialog(
-      context,
-      Padding(
-        padding: const EdgeInsets.all(36),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  GameCover(
-                      gameId: game.id,
-                      title: game.title,
-                      system: sysLabel,
-                      width: 56,
-                      height: 78),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('$sysLabel · ${game.coreId}',
-                            style: Tokens.eyebrow),
-                        const SizedBox(height: 4),
-                        Text(game.title,
-                            style: Tokens.display(
-                                size: 16,
-                                weight: FontWeight.w500,
-                                ls: -0.4),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis),
-                      ],
-                    ),
-                  ),
-                  OrbitRoundButton(
-                    icon: Icons.close,
-                    tooltip: 'Close session preview',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text('IN-GAME OVERLAY', style: Tokens.eyebrow),
-              const SizedBox(height: 8),
-              Text('Take a breather.',
-                  style: Tokens.display(
-                      size: 32, weight: FontWeight.w500, ls: -0.7)),
-              const SizedBox(height: 8),
-              Text(
-                'Your game stays within reach. Saves pin to your time capsule on this device.',
-                style:
-                    Tokens.body(size: 12, color: Tokens.muted, height: 1.7),
-              ),
-              const SizedBox(height: 16),
-              OrbitPrimary(
-                label: 'Return to game',
-                expanded: true,
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await _action(() => player.setPaused(false));
-                },
-              ),
-              const SizedBox(height: 12),
-              _SessionRow(
-                icon: Icons.save_outlined,
-                label: 'Save a moment',
-                tag: 'TIME CAPSULE',
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _action(_saveMoment,
-                      'Moment saved to your time capsule');
-                  await _action(() => player.setPaused(false));
-                },
-              ),
-              _SessionRow(
-                icon: Icons.history_outlined,
-                label: 'Open time capsule',
-                tag: 'SNAPSHOTS',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  orbitToast(context,
-                      'Snapshots live in the Capsule tab — exit to browse');
-                },
-              ),
-              _SessionRow(
-                icon: Icons.sports_esports_outlined,
-                label: 'Controller settings',
-                tag: 'CONFIGURE',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SettingsScreen(
-                        state: widget.state,
-                        initialTab: 'Controllers',
-                      ),
-                    ),
-                  );
-                },
-              ),
-              _SessionRow(
-                icon: Icons.exit_to_app,
-                label: 'Close game',
-                tag: '',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _exit();
-                },
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 
-  void _more() {
-    showModalBottomSheet<void>(
+  Widget _stage(String system, Size size) {
+    final portrait = size.height > size.width;
+    final layout = builtinLayout(system, portrait: portrait);
+    final showControls = padVisible && player.running;
+    final screen = showControls
+        ? layout.screen
+        : const ScreenSpec(rect: NormRect(0, 0, 1, 1));
+    final box = screen.rect.resolve(size.width, size.height);
+    final failed = launchError ?? player.error;
+    final frame = player.frame;
+    return Stack(
+      children: [
+        if (showControls)
+          Positioned.fill(child: CustomPaint(painter: ShellPainter(layout.shell))),
+        if (frame != null && failed == null)
+          Positioned.fill(
+            child: CustomPaint(painter: GamePicturePainter(frame, screen)),
+          ),
+        if (failed != null || frame == null)
+          Positioned.fromRect(
+            rect: box,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: failed != null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            failed,
+                            textAlign: TextAlign.center,
+                            style: Tokens.body(size: 13, color: Tokens.danger),
+                          ),
+                          const SizedBox(height: 16),
+                          OrbitSecondary(
+                            label: 'Back to library',
+                            onPressed: _exit,
+                          ),
+                        ],
+                      )
+                    : launching
+                        ? const CircularProgressIndicator(color: Tokens.accent)
+                        : Text('Waiting for video…',
+                            style: Tokens.body(size: 12, color: Tokens.muted)),
+              ),
+            ),
+          ),
+        if (showControls)
+          Positioned.fill(
+            child: ControlOverlay(
+              key: _overlayKey,
+              layout: layout,
+              onInput: (input, pressed) {
+                final id = retroPadId(input);
+                if (id != null) _action(() => player.button(id, pressed));
+              },
+              onHostInput: _hostInput,
+              onTouch: _buzz,
+            ),
+          )
+        else
+          Positioned(
+            top: 8,
+            left: 8,
+            child: OrbitIconButton(
+              icon: Icons.menu,
+              tooltip: 'Menu (Esc)',
+              onPressed: _openMenu,
+            ),
+          ),
+        if (fastForward || player.audioError != null)
+          Positioned(
+            top: 10,
+            right: 12,
+            child: Text(
+              player.audioError ?? 'Fast-forward',
+              style: Tokens.body(
+                size: 12,
+                color: player.audioError != null ? Tokens.danger : Tokens.muted,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The pause menu. Pauses the game while open, resumes it on close unless
+  /// the player chose to leave.
+  Future<void> _openMenu() async {
+    if (_menuOpen || leaving) return;
+    _menuOpen = true;
+    _overlayKey.currentState?.releaseAll();
+    // Pausing releases every button host-side, so the poller's emitted set
+    // goes stale; forget it or a control still held on resume is never
+    // re-sent.
+    _gamepads.forgetHeld();
+    final wasPaused = paused;
+    if (player.running && !wasPaused) {
+      await _action(() => player.setPaused(true));
+    }
+    if (!mounted) return;
+    final game = widget.state.games.firstWhere((g) => g.id == widget.gameId);
+    final choice = await showModalBottomSheet<String>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Tokens.panel,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(Tokens.radiusDialog),
         side: const BorderSide(color: Tokens.line),
       ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading:
-                  const Icon(Icons.save, color: Tokens.text),
-              title: Text('Save state — slot 0',
-                  style: Tokens.body()),
-              onTap: () {
-                Navigator.of(context).pop();
-                _action(
-                  () => player.save(
-                      widget.state.saves, widget.gameId, 'slot0'),
-                  'Saved to slot 0',
-                );
-              },
-            ),
-            ListTile(
-              leading:
-                  const Icon(Icons.upload, color: Tokens.text),
-              title: Text('Load state — slot 0',
-                  style: Tokens.body()),
-              onTap: () {
-                Navigator.of(context).pop();
-                _action(
-                  () => player.restore(
-                    widget.state.saves,
-                    widget.gameId,
-                    'slot0',
-                  ),
-                  'State loaded',
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.restart_alt,
-                  color: Tokens.text),
-              title:
-                  Text('Reset', style: Tokens.body()),
-              onTap: () {
-                Navigator.of(context).pop();
-                _action(player.worker.reset);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.close,
-                  color: Tokens.text),
-              title: Text('Close game',
-                  style: Tokens.body()),
-              onTap: () {
-                Navigator.of(context).pop();
-                _exit();
-              },
-            ),
-          ],
-        ),
+      builder: (context) => _PauseMenu(
+        title: game.title,
+        subtitle: systemLabels[game.system] ?? game.system,
+        running: player.running,
+        controlsShown: padVisible,
+        fastForward: fastForward,
+        hasFrame: player.frame != null,
       ),
     );
+    _menuOpen = false;
+    if (!mounted) return;
+    switch (choice) {
+      case 'save':
+        await _action(_saveMoment, 'State saved');
+      case 'load':
+        await _action(
+          () => player.restore(widget.state.saves, widget.gameId, 'slot0'),
+          'State loaded',
+        );
+      case 'cheats':
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CheatsScreen(
+              gameId: widget.gameId,
+              state: widget.state,
+              onCheatsChanged: _applyCheats,
+            ),
+          ),
+        );
+      case 'controls':
+        setState(() => padVisible = !padVisible);
+        await widget.state.setSetting('touchOverlay', padVisible);
+      case 'ff':
+        setState(() => player.fastForward = !fastForward);
+      case 'shot':
+        await _action(_screenshot);
+      case 'reset':
+        await _action(player.worker.reset, 'Game reset');
+      case 'quit':
+        await _exit();
+        return;
+    }
+    if (mounted && player.running && !wasPaused) {
+      await _action(() => player.setPaused(false));
+    }
   }
 }
 
-class _DockBtn extends StatelessWidget {
-  const _DockBtn({
-    required this.icon,
-    required this.label,
-    this.enabled = true,
-    this.active = false,
-    this.onTap,
+/// Resume first and largest; everything else one tap away; Quit apart.
+class _PauseMenu extends StatelessWidget {
+  const _PauseMenu({
+    required this.title,
+    required this.subtitle,
+    required this.running,
+    required this.controlsShown,
+    required this.fastForward,
+    required this.hasFrame,
   });
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final bool active;
-  final VoidCallback? onTap;
+
+  final String title;
+  final String subtitle;
+  final bool running;
+  final bool controlsShown;
+  final bool fastForward;
+  final bool hasFrame;
 
   @override
   Widget build(BuildContext context) {
-    final color = !enabled
-        ? Tokens.muted.withValues(alpha: 0.4)
-        : active
-            ? Tokens.accent
-            : Tokens.text;
-    return Opacity(
-      opacity: enabled ? 1 : 0.5,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: enabled ? onTap : null,
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 20, color: color),
-              const SizedBox(height: 2),
-              Text(label,
-                  style: Tokens.body(size: 8, color: color)),
-            ],
+    Widget item(String id, IconData icon, String label, {bool enabled = true}) =>
+        OutlinedButton.icon(
+          onPressed: enabled ? () => Navigator.of(context).pop(id) : null,
+          icon: Icon(icon, size: 18),
+          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            foregroundColor: Tokens.text,
+            side: const BorderSide(color: Tokens.lineStrong),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        );
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Paused',
+                        style: Tokens.display(size: 20, weight: FontWeight.w600),
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        '$title · $subtitle',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Tokens.body(size: 12, color: Tokens.muted),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                OrbitPrimary(
+                  label: 'Resume',
+                  expanded: true,
+                  onPressed: () => Navigator.of(context).pop('resume'),
+                ),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 3.6,
+                  children: [
+                    item('save', Icons.save_outlined, 'Save state', enabled: running),
+                    item('load', Icons.history, 'Load state', enabled: running),
+                    item('cheats', Icons.bolt_outlined, 'Cheats'),
+                    item(
+                      'controls',
+                      Icons.gamepad_outlined,
+                      controlsShown ? 'Hide controls' : 'Show controls',
+                    ),
+                    item(
+                      'ff',
+                      Icons.fast_forward_outlined,
+                      fastForward ? 'Normal speed' : 'Fast-forward',
+                      enabled: running,
+                    ),
+                    item('shot', Icons.photo_camera_outlined, 'Screenshot',
+                        enabled: hasFrame),
+                    item('reset', Icons.restart_alt, 'Reset game', enabled: running),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop('quit'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    foregroundColor: Tokens.danger,
+                  ),
+                  child: const Text('Quit to library'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SessionRow extends StatelessWidget {
-  const _SessionRow(
-      {required this.icon,
-      required this.label,
-      required this.tag,
-      required this.onTap});
-  final IconData icon;
-  final String label;
-  final String tag;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Tokens.line),
-        color: Colors.transparent,
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: Tokens.text),
-        title: Text(label, style: Tokens.body(size: 13)),
-        trailing: tag.isEmpty
-            ? null
-            : Text(tag,
-                style: Tokens.body(
-                    size: 9, ls: 1.0, color: Tokens.muted)),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(9)),
       ),
     );
   }
