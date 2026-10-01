@@ -363,7 +363,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _row(
           'Keyboard',
           'Arrows move. Z = B, X = A, A = Y, S = X, Q = L, W = R, '
-              'Right Shift = Select, Enter = Start, Esc = pause menu.',
+              'Right Shift = Select, Enter = Start, Esc = pause menu. In DOS '
+              'and other keyboard games every key goes to the game and F12 '
+              'opens the menu.',
           const SizedBox.shrink(),
         ),
         _row(

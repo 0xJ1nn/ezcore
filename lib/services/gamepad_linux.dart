@@ -304,13 +304,28 @@ class LinuxEvdevPads {
   void start(void Function(String code, bool pressed) onButton,
       void Function(bool connected, String name) onConnection, [
       void Function(String axis, int delta)? onPointer,
+      void Function(String stickAxis, double value)? onAxis,
     ]) {
     if (_running) return;
     _running = true;
+    _onAxis = onAxis;
     _scan(onButton, onConnection, onPointer);
     _rescan = Timer.periodic(const Duration(seconds: 2),
         (_) => _running ? _scan(onButton, onConnection, onPointer) : null);
   }
+
+  /// Analog stick values, -1..1 with down/right positive (libretro's
+  /// convention), named lx / ly / rx / ry.
+  void Function(String stickAxis, double value)? _onAxis;
+
+  /// Pure helper: [value] across [min]..[max] as -1..1. A degenerate range
+  /// reads as centred.
+  static double normalizeAxis(int value, int min, int max) {
+    if (max <= min) return 0;
+    return (((value - min) / (max - min)) * 2 - 1).clamp(-1.0, 1.0);
+  }
+
+  static const stickAxisNames = {0: 'lx', 1: 'ly', 3: 'rx', 4: 'ry'};
 
   void _scan(void Function(String, bool) onButton,
       void Function(bool, String) onConnection,
@@ -360,7 +375,7 @@ class LinuxEvdevPads {
           final parsed = parseEvent(bytes, off);
           if (parsed == null) continue;
           dev.handle(parsed.$1, parsed.$2, parsed.$3, onButton, announce,
-              onPointer);
+              onPointer, _onAxis);
         }
       }
     } catch (_) {
@@ -434,6 +449,7 @@ class _EvdevDevice {
       void Function(String code, bool pressed) onButton,
       void Function() announce, [
       void Function(String axis, int delta)? onPointer,
+      void Function(String stickAxis, double value)? onAxis,
     ]) {
     if (type == LinuxEvdevPads.evKey) {
       final mapped = LinuxEvdevPads.keyCodes[code];
@@ -469,6 +485,19 @@ class _EvdevDevice {
       if (value > absMax[code]!) absMax[code] = value;
       final device = deviceRanges[code];
       final horizontal = code == 0 || code == 3;
+      // The analog value, for cores that read sticks. evdev reports down
+      // and right as positive, which is libretro's convention too.
+      final name = LinuxEvdevPads.stickAxisNames[code];
+      if (name != null && onAxis != null) {
+        onAxis(
+          name,
+          LinuxEvdevPads.normalizeAxis(
+            value,
+            device?.$1 ?? absMin[code]!,
+            device?.$2 ?? absMax[code]!,
+          ),
+        );
+      }
       final mapped = LinuxEvdevPads.absStickCode(
         value: value,
         deviceMin: device?.$1,
