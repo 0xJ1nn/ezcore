@@ -105,8 +105,8 @@ int main(int argc, char **argv) {
   check(proc_mask == 7,
         "the core resolved glClear, glGenFramebuffers and glBindFramebuffer "
         "through the resolver it was given",
-        "SET_PROC_ADDRESS_CALLBACK handed back a resolver that returned NULL "
-        "for functions that exist, so the core cannot render");
+        "the get_proc_address the host set in the hardware-render callback "
+        "returned NULL for functions that exist, so the core cannot render");
   if (proc_mask != 7)
     printf("       (resolver mask was %d, expected 7)\n", proc_mask);
 

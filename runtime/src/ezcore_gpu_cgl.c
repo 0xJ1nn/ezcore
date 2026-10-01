@@ -74,3 +74,8 @@ bool ezcore_gpu_platform_supported(enum ezcore_gpu_api api) {
   (void)api;
   return false;
 }
+
+bool ezcore_gpu_platform_resize(struct ezcore_gpu_context *ctx, int w, int h) {
+  (void)ctx; (void)w; (void)h;
+  return false; /* no GL context on this backend yet */
+}

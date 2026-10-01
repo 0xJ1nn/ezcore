@@ -267,6 +267,15 @@ add_dependencies(test_hw_readback synth_hw_draw)
 add_test(NAME hw_readback COMMAND test_hw_readback
          $<TARGET_FILE:synth_hw_draw>)
 
+# libretro teardown order: unload_game, context_destroy, deinit, then the
+# context goes away.
+add_executable(test_unload_order test/test_unload_order.c)
+target_include_directories(test_unload_order PRIVATE include)
+target_link_libraries(test_unload_order PRIVATE ezcore_runtime)
+add_dependencies(test_unload_order synth_hw_core)
+add_test(NAME unload_order COMMAND test_unload_order
+         $<TARGET_FILE:synth_hw_core> ${CMAKE_BINARY_DIR}/unload_order.txt)
+
 # GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed
 # reason where it does not -- a GPU test that fails without a GPU would only
