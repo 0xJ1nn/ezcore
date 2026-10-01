@@ -34,6 +34,7 @@ unsigned ezcore_gpu_platform_current_framebuffer(struct ezcore_gpu_context *ctx)
 void *ezcore_gpu_platform_get_proc_address(struct ezcore_gpu_context *ctx,
                                            const char *name);
 void ezcore_gpu_platform_notify_reset(struct ezcore_gpu_context *ctx);
+bool ezcore_gpu_platform_resize(struct ezcore_gpu_context *ctx, int w, int h);
 bool ezcore_gpu_platform_supported(enum ezcore_gpu_api api);
 
 /* Vulkan is a separate backend from the windowing context: it needs no EGL
@@ -130,6 +131,12 @@ void *ezcore_gpu_get_proc_address(struct ezcore_gpu_context *ctx,
     return ezcore_gpu_vulkan_get_proc_address(ctx, name);
   }
   return ezcore_gpu_platform_get_proc_address(ctx, name);
+}
+
+bool ezcore_gpu_resize(struct ezcore_gpu_context *ctx, int w, int h) {
+  if (!ctx || w <= 0 || h <= 0) return false;
+  if (ctx->backend == EZCORE_BACKEND_VULKAN) return false; /* not yet */
+  return ezcore_gpu_platform_resize(ctx, w, h);
 }
 
 void ezcore_gpu_notify_reset(struct ezcore_gpu_context *ctx) {

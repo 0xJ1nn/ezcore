@@ -101,6 +101,9 @@ struct ezcore_session {
   bool (*retro_load_game)(const struct retro_game_info *);
   void (*retro_run)(void);
   void (*retro_reset)(void);
+  /* Optional in practice (NULL-checked): where cores flush battery saves and
+   * caches as a game closes. */
+  void (*retro_unload_game)(void);
   /* Optional cheat entry points: NULL-checked at every call. */
   void (*retro_cheat_reset)(void);
   void (*retro_cheat_set)(unsigned, bool, const char *);
@@ -149,6 +152,9 @@ struct ezcore_session {
    * GET_HW_RENDER_INTERFACE and SET_PROC_ADDRESS_CALLBACK can be answered from
    * the same source of truth. Owned by the core, not by us. */
   struct retro_hw_render_callback *hw_render_cb;
+  /* The core's own extension lookup, announced through
+   * SET_PROC_ADDRESS_CALLBACK (core -> frontend). Kept, never written. */
+  struct retro_get_proc_address_interface core_proc_iface;
   /* The resolver the CORE shipped, captured before we install ours. Without
    * this, falling back to "the core's resolver" would call ourselves. */
   retro_hw_get_proc_address_t gpu_core_proc_address;
@@ -714,17 +720,16 @@ static bool env_cb(unsigned cmd, void *data) {
       return true;
     }
     case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK: {
-      if (!g_active || !data || !g_active->gpu) return false;
-      /* The core's own resolver. Kept because on some platforms (notably
-       * Windows) a driver extension entry point is only reachable through it;
-       * we hand it back through the interface rather than second-guessing it. */
-      /* The core is asking what resolver it should use. The honest answer is
-       * the one that will work: ours, which tries our context first and then
-       * the core's original. Handing back its own original would work on most
-       * platforms and silently return NULL for driver extensions that only a
-       * current context exposes. */
-      retro_hw_get_proc_address_t answer = hw_get_proc_address;
-      *(retro_hw_get_proc_address_t *)data = answer;
+      /* libretro.h: the CORE hands the frontend a lookup for the core's own
+       * extensions (`const struct retro_get_proc_address_interface *`), and
+       * "the frontend must maintain its own copy". An earlier version read
+       * this backwards and wrote our GL resolver into the core's const
+       * struct -- corrupting core memory in every core that announces one.
+       * A core gets GL functions from retro_hw_render_callback's
+       * get_proc_address, which hw_install_callbacks sets. */
+      const struct retro_get_proc_address_interface *iface = data;
+      if (!g_active || !iface) return false;
+      g_active->core_proc_iface = *iface;
       return true;
     }
     default:
@@ -920,6 +925,7 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   LOAD_SYM(s, retro_load_game, "retro_load_game");
   LOAD_SYM(s, retro_run, "retro_run");
   LOAD_SYM(s, retro_reset, "retro_reset");
+  s->retro_unload_game = ez_dyn_sym(s->handle, "retro_unload_game");
   /* Cheat entry points are core-optional; cores without cheat support still
    * need to load for video, audio, input, and save-state functionality. */
   s->retro_cheat_reset = ez_dyn_sym(s->handle, "retro_cheat_reset");
@@ -991,26 +997,36 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
 
 void ezcore_unload(ezcore_session *s) {
   if (!s) return;
-  /* The GPU context is destroyed BEFORE retro_deinit, deliberately: a core
-   * frees its GL resources in deinit, and libretro.h:4153 says those resources
-   * are only valid while a context is current. Tearing the context down first
-   * would leave a core freeing handles into a dead context. */
+  /* libretro's teardown order, with this session active so any callback the
+   * core makes during it (video, log, environment) reaches the right place:
+   *   1. retro_unload_game -- cores flush battery saves and caches here. It
+   *      used to be skipped entirely.
+   *   2. the core's hw context_destroy, while the context still exists. It
+   *      used to be nulled out instead of called.
+   *   3. retro_deinit, still with a live context: a core frees GL handles
+   *      here, and they are only valid while a context is current.
+   *   4. only now the GPU context itself. It used to go first, so a core's
+   *      last GL calls hit a dead context (Mupen64Plus-Next crashed writing
+   *      its shader cache). */
+  ezcore_session *prev = g_active;
+  g_active = s;
+  if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
+  s->game_loaded = false;
+  if (s->gpu && s->hw_render_cb && s->hw_render_cb->context_destroy) {
+    s->hw_render_cb->context_destroy();
+  }
+  if (s->inited) {
+    s->retro_deinit();
+    s->inited = false;
+  }
   if (s->gpu) {
-    if (s->hw_render_cb) {
-      /* Tell the core first, so it can release its own resources cleanly. */
-      s->hw_render_cb->context_destroy = NULL;
-    }
     ezcore_gpu_destroy(s->gpu);
     s->gpu = NULL;
   }
   s->hw_render_cb = NULL;
   s->gpu_negotiated = false;
+  g_active = prev == s ? NULL : prev;
 
-  if (g_active == s) g_active = NULL;
-  if (s->inited) {
-    s->retro_deinit();
-    s->inited = false;
-  }
   ezcore_free_core_options(s);
   ezcore_free_input_descs(s);
   ezcore_free_controller_ports(s);
@@ -1051,6 +1067,28 @@ bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
   struct retro_game_info info = {rom_path, data, size, NULL};
   bool ok = s->retro_load_game(&info);
   if (ok) clear_input(s);
+  /* A GPU core renders into our framebuffer; size it to the largest frame
+   * the core can produce, now that it can say (SET_HW_RENDER came during
+   * load, before the geometry was known). */
+  if (ok && s->gpu) {
+    struct retro_system_av_info av;
+    memset(&av, 0, sizeof(av));
+    s->retro_get_system_av_info(&av);
+    unsigned mw = av.geometry.max_width ? av.geometry.max_width : av.geometry.base_width;
+    unsigned mh = av.geometry.max_height ? av.geometry.max_height : av.geometry.base_height;
+    if (mw && mh) ezcore_gpu_resize(s->gpu, (int)mw, (int)mh);
+    /* libretro: the FRONTEND calls context_reset once the context is usable
+     * -- that is where a core creates its GL resources and resolves its GL
+     * functions. Never calling it left every real GL core running with no
+     * resources and NULL function pointers (Mupen64Plus-Next crashed in
+     * glsm_ctl). Our shim runs first, then the core's own. */
+    if (s->hw_render_cb && s->hw_render_cb->context_reset) {
+      ezcore_session *prev = g_active;
+      g_active = s;
+      s->hw_render_cb->context_reset();
+      g_active = prev;
+    }
+  }
   s->game_loaded = ok;
   return ok;
 }

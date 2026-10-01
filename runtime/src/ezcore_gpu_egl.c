@@ -240,7 +240,12 @@ enum ezcore_gpu_init_result ezcore_gpu_platform_init(
     return EZCORE_GPU_INIT_UNSUPPORTED;
   }
 
-  g_egl.BindAPI(api == EZCORE_GPU_OPENGL ? EGL_OPENGL_API : EGL_OPENGL_ES_API);
+  /* Desktop GL for both OpenGL kinds. A core-profile request used to bind
+   * the GLES API, so a core asking for GL 3.3 core got a GLES context and
+   * desktop-only functions resolved to NULL (Mupen64Plus-Next crashed in
+   * glsm_ctl calling one). */
+  const bool desktop = api == EZCORE_GPU_OPENGL || api == EZCORE_GPU_OPENGL_CORE;
+  g_egl.BindAPI(desktop ? EGL_OPENGL_API : EGL_OPENGL_ES_API);
 
   EGLint renderable = EGL_OPENGL_ES3_BIT;
   if (api == EZCORE_GPU_OPENGLES2) renderable = EGL_OPENGL_ES2_BIT;
@@ -283,8 +288,21 @@ enum ezcore_gpu_init_result ezcore_gpu_platform_init(
   }
   b->surface = (void *)surf;
 
-  EGLint ctx_attr[] = {EGL_CONTEXT_MAJOR_VERSION, (EGLint)b->head.version_major,
-                       EGL_NONE};
+  /* Version, and for a core-profile request the core profile itself; a plain
+   * OpenGL request takes whatever compatible context the driver offers. */
+  EGLint ctx_attr[9];
+  int na = 0;
+  if (api != EZCORE_GPU_OPENGL || version_major > 0) {
+    ctx_attr[na++] = EGL_CONTEXT_MAJOR_VERSION;
+    ctx_attr[na++] = (EGLint)b->head.version_major;
+    ctx_attr[na++] = EGL_CONTEXT_MINOR_VERSION;
+    ctx_attr[na++] = (EGLint)b->head.version_minor;
+  }
+  if (api == EZCORE_GPU_OPENGL_CORE) {
+    ctx_attr[na++] = EGL_CONTEXT_OPENGL_PROFILE_MASK;
+    ctx_attr[na++] = EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT;
+  }
+  ctx_attr[na] = EGL_NONE;
   EGLContext ctx = g_egl.CreateContext(dpy, cfg, EGL_NO_CONTEXT, ctx_attr);
   if (ctx == EGL_NO_CONTEXT) {
     set_err(err, err_len, "eglCreateContext failed");
@@ -406,6 +424,33 @@ bool ezcore_gpu_platform_supported(enum ezcore_gpu_api api) {
   return true;
 #else
   (void)api;
+  return false;
+#endif
+}
+
+bool ezcore_gpu_platform_resize(struct ezcore_gpu_context *ctx, int w, int h) {
+#if EZCORE_HAVE_EGL
+  struct ezcore_gpu_gl_body *b = (struct ezcore_gpu_gl_body *)ctx;
+  if (!b || !b->framebuffer) return false;
+  if (b->width == w && b->height == h) return true;
+  struct ezcore_gl_table *g = &b->gl;
+  /* Same texture, renderbuffer and FBO names, new storage. */
+  g->glBindTexture(GL_TEXTURE_2D, b->texture);
+  g->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA,
+                  GL_UNSIGNED_BYTE, NULL);
+  if (b->depth_rb) {
+    g->glBindRenderbuffer(GL_RENDERBUFFER, b->depth_rb);
+    g->glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+  }
+  g->glBindFramebuffer(GL_FRAMEBUFFER, b->framebuffer);
+  if (g->glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    return false;
+  b->width = w;
+  b->height = h;
+  g->glViewport(0, 0, w, h);
+  return true;
+#else
+  (void)ctx; (void)w; (void)h;
   return false;
 #endif
 }

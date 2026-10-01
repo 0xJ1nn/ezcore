@@ -84,6 +84,15 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **Cores now get to finish closing a game.** The runtime never called a core's
+  `retro_unload_game`, where many cores write battery saves and caches; it is
+  now called, and shutdown follows libretro's order (unload the game, release
+  GPU resources while the context still exists, then shut the core down).
+- **N64 runs on its GPU renderer.** A request for a desktop OpenGL "core
+  profile" context got a mobile (GLES) one, the core was never told its context
+  was ready, its framebuffer was a fixed 64×64, and a libretro call was handled
+  backwards (writing into the core's memory). With those fixed, Mupen64Plus-Next
+  renders with GLideN64 on Linux. PSP, Dreamcast and GameCube still need work.
 - **A core that draws with OpenGL no longer crashes the app on its first
   frame.** The runtime read the "frame is in the GPU" signal as a pixel address;
   it now reads the frame back from the GPU (right way up) so it shows like any
