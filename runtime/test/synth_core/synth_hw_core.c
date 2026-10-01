@@ -216,6 +216,9 @@ bool retro_load_game(const struct retro_game_info *game) {
    * never created a context and this core must not pretend otherwise. */
   if (hw->context_reset == on_context_reset) return false;
   g_cb = hw;
+  /* Test hook: a core that asked for a context and then fails its load
+   * (Dolphin does this when it cannot boot the content). */
+  if (getenv("EZCORE_SYNTH_FAIL_LOAD")) return false;
   /* That is all a real core does at load. The FRONTEND calls context_reset
    * once the context is usable (after load), and the core does the rest
    * there. An earlier version of this fixture called context_reset on

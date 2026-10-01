@@ -45,6 +45,31 @@ int main(int argc, char **argv) {
     fprintf(stderr, "FAIL: expected unload_game, context_destroy, deinit\n");
     return 1;
   }
-  printf("ok: unload_game, then context_destroy, then deinit\nPASS\n");
+  printf("ok: unload_game, then context_destroy, then deinit\n");
+
+  /* A core that asked for a context but failed its load was never given
+   * that context (context_reset), so it must not be told to destroy it. */
+  remove(argv[2]);
+  setenv("EZCORE_SYNTH_FAIL_LOAD", "1", 1);
+  s = ezcore_load(argv[1], err, sizeof(err));
+  if (!s || !ezcore_init(s)) { fprintf(stderr, "FAIL: reload/init\n"); return 1; }
+  if (ezcore_load_game(s, "x.probe", "x", 1)) {
+    fprintf(stderr, "FAIL: the failing-load hook did not fail\n");
+    return 1;
+  }
+  ezcore_unload(s);
+  memset(got, 0, sizeof(got));
+  f = fopen(argv[2], "r");
+  if (f) {
+    size_t n = fread(got, 1, sizeof(got) - 1, f);
+    got[n] = 0;
+    fclose(f);
+  }
+  printf("after a failed load the core saw:\n%s", got);
+  if (strcmp(got, "deinit\n") != 0) {
+    fprintf(stderr, "FAIL: a core whose load failed got more than deinit\n");
+    return 1;
+  }
+  printf("ok: a failed load is not told to destroy a context it never had\nPASS\n");
   return 0;
 }
