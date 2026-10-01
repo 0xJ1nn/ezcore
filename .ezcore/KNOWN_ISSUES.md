@@ -148,10 +148,10 @@ fixed. It is not run by any CTest in clean mode, which is why `ctest` is green.
 - **Affected core/system:** None.
 - **Verification:** `Layout.ofSize(const Size(834, 1194), Orientation.portrait)`
   returns `OrbitLayout.tabletPortrait`; the shell test verifies the rail and
-  Continue/Recently Added hub. An 834×700 Linux capture is stored at
-  `docs/images/library-tablet.png`.
-- **Status:** Resolved for the current five-family contract. Desktop and
-  phone layouts use cover flow; both tablet orientations retain the hub.
+  Continue/Recently Added hub. (The 834×700 capture that recorded it was
+  removed on 2026-10-01 with the cover-flow design.)
+- **Status:** Superseded 2026-10-01 by layout option A (one reflowing home
+  for every size); see PR #97.
 - **Follow-up:** Revisit breakpoints only through a dedicated responsive design
   task with new evidence.
 
