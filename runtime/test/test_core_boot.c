@@ -1,6 +1,8 @@
 /* test_core_boot.c — boot a core, run frames, save/restore state, verify.
  *
  * Usage: ./test_core_boot <core_path> <rom_path>
+ *        EZCORE_BOOT_OPTIONS="key=value;..." optionally sets core options
+ *        before the game loads (see apply_boot_options).
  * Exit codes:
  *   0 = pass
  *   1 = load/init failed
@@ -89,6 +91,37 @@
  * bit-exact, never globally and never silently. */
 #define RESTORE_PIXEL_SUM_TOLERANCE_REL 0.02
 
+/* Optional core options for this boot, from the environment:
+ *   EZCORE_BOOT_OPTIONS="key=value;key=value"
+ * Applied after init and before load_game, the same point the app applies
+ * them, because many cores read their options only inside retro_load_game
+ * (a software-renderer choice, typically). Unset means no options: every
+ * existing invocation behaves exactly as before. A key the core does not
+ * declare fails the boot (exit 1) rather than being ignored, so evidence
+ * recorded "with option X" really had option X. */
+static bool apply_boot_options(ezcore_session* s) {
+  const char* spec = getenv("EZCORE_BOOT_OPTIONS");
+  if (!spec || !*spec) return true;
+  char buf[2048];
+  snprintf(buf, sizeof(buf), "%s", spec);
+  char* save = NULL;
+  for (char* pair = strtok_r(buf, ";", &save); pair;
+       pair = strtok_r(NULL, ";", &save)) {
+    char* eq = strchr(pair, '=');
+    if (!eq || eq == pair) {
+      fprintf(stderr, "  malformed option '%s' (want key=value)\n", pair);
+      return false;
+    }
+    *eq = '\0';
+    if (!ezcore_set_core_option(s, pair, eq + 1)) {
+      fprintf(stderr, "  core does not declare option '%s'\n", pair);
+      return false;
+    }
+    printf("  option: %s=%s\n", pair, eq + 1);
+  }
+  return true;
+}
+
 static int run_boot_test(const char* core_path, const char* rom_path) {
   char err[1024] = {0};
   ezcore_session* s = ezcore_load(core_path, err, sizeof(err));
@@ -106,6 +139,11 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
   const char* name = ezcore_core_name(s);
   const char* ver = ezcore_core_version(s);
   printf("  core: %s v%s\n", name, ver);
+
+  if (!apply_boot_options(s)) {
+    ezcore_unload(s);
+    return 1;
+  }
 
   ezcore_set_dirs("./test-system", "./test-save");
 
