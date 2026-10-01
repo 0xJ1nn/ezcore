@@ -1,113 +1,222 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
-import '../services/system_labels.dart';
-import '../models/core_manifest.dart';
+import '../models/game_entry.dart';
+import '../services/human_time.dart';
 import '../state/app_state.dart';
 import '../state/save_sync.dart';
+import '../services/system_labels.dart';
 import '../theme/tokens.dart';
 import '../widgets/orbit_widgets.dart';
 import 'cheats_screen.dart';
-import 'player_screen.dart';
+import 'core_manager_screen.dart' show coreTitle;
+import 'launch.dart';
 
-/// Shows the Orbit game-hub dialog (final-01) for [gameId].
-/// Preserves all legacy detail functionality: core pick, Game→Play,
-/// cheats, states, favorite, file info.
-Future<void> showGameDetail(
-  BuildContext context, {
-  required String gameId,
-  required AppState state,
-}) {
-  return showOrbitDialog(
-    context,
-    _DetailBody(gameId: gameId, state: state),
-  );
-}
-
-/// Legacy route wrapper (kept for deep-link / test compat).
-class GameDetailScreen extends StatelessWidget {
-  const GameDetailScreen({super.key, required this.gameId, required this.state});
+/// One game's page: play it, resume it, load any of its saves, choose its
+/// core, manage cheats, see its file — and favourite or remove it. Saves
+/// live here, with their game (layout option A).
+class GameDetailScreen extends StatefulWidget {
+  const GameDetailScreen({
+    super.key,
+    required this.gameId,
+    required this.state,
+  });
   final String gameId;
   final AppState state;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Tokens.bg,
-      appBar: AppBar(backgroundColor: Tokens.bg),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 890),
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: Tokens.dialogDecor,
-            child: _DetailBody(gameId: gameId, state: state),
-          ),
-        ),
-      ),
-    );
-  }
+  State<GameDetailScreen> createState() => _GameDetailScreenState();
 }
 
-class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.gameId, required this.state});
-  final String gameId;
-  final AppState state;
+class _GameDetailScreenState extends State<GameDetailScreen> {
+  late Future<List<SaveSlot>> _saves = _load();
+
+  AppState get state => widget.state;
+
+  Future<List<SaveSlot>> _load() async {
+    try {
+      final slots = await state.saves.list(widget.gameId);
+      return slots..sort((a, b) => b.modified.compareTo(a.modified));
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  void _reload() => setState(() {
+    _saves = _load();
+  });
+
+  Future<void> _play(GameEntry g, {bool resume = false, String? slot}) async {
+    await launchGame(context, state, g, resume: resume, slot: slot);
+    if (mounted) _reload();
+  }
+
+  Future<void> _deleteSave(SaveSlot s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Tokens.panel,
+        title: Text('Delete this save?', style: Tokens.display(size: 20)),
+        content: Text(
+          '${saveName(s.id)} from ${lastPlayedLabel(s.modified.millisecondsSinceEpoch)}. '
+          'This cannot be undone.',
+          style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Tokens.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await state.saves.remove(widget.gameId, s.id);
+    final left = await _load();
+    state.setStateCount(widget.gameId, left.length);
+    if (mounted) {
+      setState(() {
+        _saves = Future.value(left);
+      });
+    }
+  }
+
+  Future<void> _remove(GameEntry g) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Tokens.panel,
+        title: Text('Remove ${g.title}?', style: Tokens.display(size: 20)),
+        content: Text(
+          'It leaves your library. The game file on your device is not '
+          'deleted, and you can add it again any time.',
+          style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Tokens.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    Navigator.of(context).pop();
+    state.removeGame(g.id);
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) {
-        final game = state.games.firstWhere((g) => g.id == gameId);
-        final compatible = state.registry.compatibleCores(game.extension);
-        final current = compatible.where((m) => m.id == game.coreId);
-        final selected = current.isNotEmpty ? current.first : null;
-        final isNarrow = MediaQuery.of(context).size.width < 640;
-        final content = isNarrow
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: GameCover(
-                      gameId: game.id,
-                      title: game.title,
-                      system: systemLabels[game.system] ?? game.system,
-                      width: 160,
-                      height: 222,
+        final game = state.games
+            .where((g) => g.id == widget.gameId)
+            .firstOrNull;
+        if (game == null) return const Scaffold(backgroundColor: Tokens.bg);
+        return Scaffold(
+          backgroundColor: Tokens.bg,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              IconButton(
+                tooltip: game.favorite
+                    ? 'Remove from favourites'
+                    : 'Add to favourites',
+                icon: Icon(
+                  game.favorite ? Icons.favorite : Icons.favorite_border,
+                  color: game.favorite ? const Color(0xFFFF6B8B) : Tokens.text,
+                ),
+                onPressed: () => state.toggleFavorite(game.id),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'More',
+                color: Tokens.panel,
+                onSelected: (v) {
+                  if (v == 'remove') _remove(game);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'remove',
+                    child: Text('Remove from library'),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: LayoutBuilder(builder: (context, c) => _body(game, c.maxWidth)),
+        );
+      },
+    );
+  }
+
+  Widget _body(GameEntry g, double width) {
+    final compact = width < 640;
+    final pad = compact ? 16.0 : 32.0;
+    return FutureBuilder<List<SaveSlot>>(
+      future: _saves,
+      builder: (context, snap) {
+        final saves = snap.data ?? const <SaveSlot>[];
+        final hasAuto = saves.any((s) => s.id == autoSlot);
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(child: _hero(g, compact, hasAuto)),
+            SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(pad, 8, pad, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _section(
+                          'Saves',
+                          saves.isEmpty
+                              ? Text(
+                                  'No saves yet. Save from the pause menu while '
+                                  'you play; leaving a game saves automatically.',
+                                  style: Tokens.body(
+                                    size: 13,
+                                    color: Tokens.muted,
+                                  ),
+                                )
+                              : SizedBox(
+                                  height: 132,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: saves.length,
+                                    separatorBuilder: (_, _) =>
+                                        const SizedBox(width: 12),
+                                    itemBuilder: (context, i) => _SaveCard(
+                                      slot: saves[i],
+                                      onLoad: () => _play(g, slot: saves[i].id),
+                                      onDelete: () => _deleteSave(saves[i]),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                        _section('Core', _corePicker(g)),
+                        _section('Cheats', _cheats(g)),
+                        _section('File', _file(g)),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _copy(context, game, compatible, selected),
-                ],
-              )
-            : Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GameCover(
-                    gameId: game.id,
-                    title: game.title,
-                    system: systemLabels[game.system] ?? game.system,
-                    width: 220,
-                    height: 306,
-                  ),
-                  const SizedBox(width: 32),
-                  Expanded(child: _copy(context, game, compatible, selected)),
-                ],
-              );
-        return Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(34),
-              child: content,
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: OrbitRoundButton(
-                icon: Icons.close,
-                tooltip: 'Close game details',
-                onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
             ),
           ],
@@ -116,374 +225,319 @@ class _DetailBody extends StatelessWidget {
     );
   }
 
-  Widget _copy(BuildContext context, game, List<CoreManifest> compatible,
-      CoreManifest? selected) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// The game's own art, large and blurred, behind its cover and actions.
+  Widget _hero(GameEntry g, bool compact, bool hasAuto) {
+    final system = systemLabel(g.system);
+    final cover = GameCover(
+      gameId: g.id,
+      title: g.title,
+      system: shortSystemLabel(g.system),
+      width: compact ? 120 : 190,
+      height: compact ? 166 : 264,
+    );
+    final info = Column(
+      crossAxisAlignment: compact
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '${systemLabels[game.system] ?? game.system} / .${game.extension}'
-              .toUpperCase(),
-          style: Tokens.eyebrow,
-        ),
-        const SizedBox(height: 10),
-        Text(game.title,
-            style: Tokens.display(size: 30, weight: FontWeight.w500, ls: -0.7)),
-        const SizedBox(height: 10),
-        Text(
-          'Your dump, ready to play. Pick a core profile, then jump in.',
-          style: Tokens.body(size: 12, color: Tokens.muted, height: 1.7),
-        ),
-        const SizedBox(height: 18),
-        // Core profile picker (preserved functionality).
-        Row(
-          children: [
-            Text('Core profile', style: Tokens.body(size: 12, weight: FontWeight.w600)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OrbitSelect<String?>(
-                value: selected?.id,
-                options: [null, for (final m in compatible) m.id],
-                labels: {
-                  null: compatible.isEmpty ? 'No core available' : 'Pick a core',
-                  for (final m in compatible) m.id: '${m.name} ${m.version}',
-                },
-                onChanged: compatible.isEmpty
-                    ? (_) {}
-                    : (v) {
-                        if (v != null) state.setCore(game.id, v);
-                      },
-              ),
-            ),
-          ],
-        ),
-        if (compatible.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'No installed core opens this file yet — install one from Systems.',
-              style: Tokens.body(size: 11, color: Tokens.accent),
-            ),
-          ),
-        const SizedBox(height: 16),
-        // Specs grid (Studio / Genre slots mapped to honest local facts).
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: Tokens.line)),
-          ),
-          padding: const EdgeInsets.only(top: 18),
-          child: GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 3.2,
-            crossAxisSpacing: 20,
-            children: [
-              _Spec(
-                  k: 'System',
-                  v: systemLabels[game.system] ?? game.system),
-              _Spec(k: 'Core profile', v: game.coreId.isEmpty ? '—' : game.coreId),
-              _Spec(k: 'Library', v: 'Your collection'),
-              _Spec(
-                  k: 'Cheats',
-                  v: '${game.cheatsOn} on'),
-            ],
+          system.toUpperCase(),
+          style: Tokens.body(
+            size: 12,
+            weight: FontWeight.w700,
+            ls: 1.4,
+            color: Tokens.systemLabelFg,
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OrbitPrimary(
-                label: 'Let\u2019s play',
-                minHeight: 52,
-                onPressed: compatible.isEmpty
-                    ? null
-                    : () {
-                        final cur = compatible
-                            .where((m) => m.id == game.coreId);
-                        final effective = cur.isNotEmpty
-                            ? cur.first
-                            : compatible.first;
-                        if (effective.id != game.coreId) {
-                          state.setCore(game.id, effective.id);
-                        }
-                        state.recordPlay(game.id);
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PlayerScreen(
-                                gameId: game.id, state: state),
-                          ),
-                        );
-                      },
-              ),
-            ),
-            const SizedBox(width: 10),
-            OrbitRoundButton(
-              icon: game.favorite ? Icons.star : Icons.star_outline,
-              active: game.favorite,
-              tooltip: 'Toggle favorite',
-              onPressed: () {
-                state.toggleFavorite(game.id);
-                orbitToast(
-                    context,
-                    game.favorite
-                        ? 'Removed from favorites'
-                        : 'Added to your favorites');
-              },
-            ),
-          ],
+        Text(
+          g.title,
+          textAlign: compact ? TextAlign.center : TextAlign.start,
+          style: Tokens.display(
+            size: compact ? 26 : 40,
+            weight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OrbitSecondary(
-                label: 'Cheats (${game.cheatsOn})',
-                icon: Icons.bolt_outlined,
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        CheatsScreen(gameId: game.id, state: state),
+        const SizedBox(height: 8),
+        Text(
+          [
+            lastPlayedLabel(g.lastPlayedMs),
+            if (g.stateCount > 0) countLabel(g.stateCount, 'save'),
+          ].join(' · '),
+          style: Tokens.body(size: 13, color: Tokens.muted),
+        ),
+        const SizedBox(height: 20),
+        if (compact)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OrbitPrimary(
+                label: hasAuto ? 'Resume' : 'Play',
+                expanded: true,
+                onPressed: () => _play(g, resume: hasAuto),
+              ),
+              if (hasAuto) ...[
+                const SizedBox(height: 10),
+                OrbitSecondary(
+                  label: 'Play from start',
+                  icon: Icons.replay,
+                  onPressed: () => _play(g),
+                ),
+              ],
+            ],
+          )
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IntrinsicWidth(
+                child: OrbitPrimary(
+                  label: hasAuto ? 'Resume' : 'Play',
+                  onPressed: () => _play(g, resume: hasAuto),
+                ),
+              ),
+              if (hasAuto) ...[
+                const SizedBox(width: 12),
+                OrbitSecondary(
+                  label: 'Play from start',
+                  icon: Icons.replay,
+                  onPressed: () => _play(g),
+                ),
+              ],
+            ],
+          ),
+      ],
+    );
+    final pad = compact ? 16.0 : 32.0;
+    // Sized by its content (cover, title, actions); the backdrop fills it.
+    return Stack(
+      children: [
+        // Backdrop: the cover, enlarged and blurred, fading into the page.
+        Positioned.fill(
+          child: ClipRect(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Opacity(
+                opacity: 0.55,
+                child: Transform.scale(
+                  scale: 1.3,
+                  child: GameCover(
+                    gameId: g.id,
+                    title: '',
+                    system: '',
+                    radius: 0,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OrbitSecondary(
-                label: 'States (${game.stateCount})',
-                icon: Icons.save_outlined,
-                onPressed: () => showGameSlots(context,
-                    gameId: game.id, state: state),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text('File info',
-            style: Tokens.body(size: 12, weight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(
-          '${game.filePath}\n${game.fileSize} bytes · .${game.extension}',
-          style: Tokens.body(size: 12, color: Tokens.muted),
-        ),
-      ],
-    );
-  }
-}
-
-class _Spec extends StatelessWidget {
-  const _Spec({required this.k, required this.v});
-  final String k;
-  final String v;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(k.toUpperCase(),
-            style: Tokens.body(size: 10, color: Tokens.muted)),
-        const SizedBox(height: 2),
-        Text(v,
-            style: Tokens.display(size: 12, weight: FontWeight.w500, ls: 0),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
-      ],
-    );
-  }
-}
-
-/// Snapshot slots for one game: load (resume & load into the player),
-/// delete, and honest counts. Backed by the game's [SaveSyncProvider].
-Future<void> showGameSlots(
-  BuildContext context, {
-  required String gameId,
-  required AppState state,
-}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: Tokens.panel,
-    isScrollControlled: true,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(Tokens.radiusDialog),
-      side: const BorderSide(color: Tokens.line),
-    ),
-    builder: (_) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      minChildSize: 0.4,
-      maxChildSize: 0.9,
-      builder: (_, scroll) => _SlotsBody(
-        gameId: gameId,
-        state: state,
-        scroll: scroll,
-      ),
-    ),
-  );
-}
-
-class _SlotsBody extends StatefulWidget {
-  const _SlotsBody(
-      {required this.gameId, required this.state, required this.scroll});
-  final String gameId;
-  final AppState state;
-  final ScrollController scroll;
-
-  @override
-  State<_SlotsBody> createState() => _SlotsBodyState();
-}
-
-class _SlotsBodyState extends State<_SlotsBody> {
-  late Future<List<SaveSlot>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = widget.state.saves.list(widget.gameId);
-  }
-
-  void _reload() {
-    setState(() {
-      _future = widget.state.saves.list(widget.gameId);
-    });
-    _future.then((slots) =>
-        widget.state.setStateCount(widget.gameId, slots.length));
-  }
-
-  String _fmt(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} '
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-
-  @override
-  Widget build(BuildContext context) {
-    final matches =
-        widget.state.games.where((g) => g.id == widget.gameId);
-    if (matches.isEmpty) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Text(
-              'This game was removed from the library.',
-              style:
-                  Tokens.body(size: 12, color: Tokens.muted, height: 1.6),
             ),
           ),
         ),
-      );
-    }
-    final game = matches.first;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-        child: FutureBuilder<List<SaveSlot>>(
-          future: _future,
-          builder: (context, snap) {
-            if (snap.connectionState != ConnectionState.done) {
-              return const Center(
-                  child:
-                      CircularProgressIndicator(color: Tokens.accent));
-            }
-            final slots = snap.data ?? const <SaveSlot>[];
-            return ListView(
-              controller: widget.scroll,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(2),
-                      color: Tokens.line,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Snapshots — ${slots.length}',
-                    style: Tokens.display(
-                        size: 22, weight: FontWeight.w500, ls: -0.5)),
-                const SizedBox(height: 4),
-                Text(
-                  '${game.title} · snapshots live on this device',
-                  style: Tokens.body(
-                      size: 11, color: Tokens.muted, height: 1.6),
-                ),
-                const SizedBox(height: 16),
-                if (slots.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(
-                        'No snapshots yet — pause the game and choose Save a moment.',
-                        textAlign: TextAlign.center,
-                        style: Tokens.body(
-                            size: 12, color: Tokens.muted, height: 1.6),
-                      ),
-                    ),
-                  ),
-                for (final s in slots)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(color: Tokens.line),
-                    ),
-                    child: ListTile(
-                      title: Text(s.id,
-                          style: Tokens.body(
-                              size: 13, weight: FontWeight.w600)),
-                      subtitle: Text(
-                        '${_fmt(s.modified)} · ${(s.size / 1024).toStringAsFixed(1)} KB',
-                        style: Tokens.body(
-                            size: 11, color: Tokens.muted),
-                      ),
-                      trailing: Row(
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x66060B14), Color(0xFF060B14)],
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(pad, compact ? 56 : 88, pad, 16),
+                child: compact
+                    ? Column(
                         mainAxisSize: MainAxisSize.min,
+                        children: [cover, const SizedBox(height: 18), info],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          IconButton(
-                            tooltip: 'Resume and load',
-                            icon: const Icon(Icons.play_arrow,
-                                color: Tokens.accent),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => PlayerScreen(
-                                    gameId: widget.gameId,
-                                    state: widget.state,
-                                    initialSlot: s.id,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                          IconButton(
-                            tooltip: 'Delete snapshot',
-                            icon: const Icon(Icons.delete_outline,
-                                size: 20, color: Tokens.muted),
-                            onPressed: () async {
-                              await widget.state.saves
-                                  .remove(widget.gameId, s.id);
-                              if (context.mounted) {
-                                orbitToast(
-                                    context, 'Snapshot deleted');
-                                _reload();
-                              }
-                            },
-                          ),
+                          cover,
+                          const SizedBox(width: 32),
+                          Expanded(child: info),
                         ],
                       ),
-                    ),
-                  ),
-              ],
-            );
-          },
+              ),
+            ),
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _section(String title, Widget child) => Padding(
+    padding: const EdgeInsets.only(top: 28),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Tokens.display(size: 19, weight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        child,
+      ],
+    ),
+  );
+
+  Widget _corePicker(GameEntry g) {
+    final compatible = state.registry.compatibleCores(g.extension);
+    if (compatible.isEmpty) {
+      return Text(
+        'No installed core opens ${g.extension.toUpperCase()} files yet. '
+        'Find one in Cores.',
+        style: Tokens.body(size: 13, color: Tokens.muted),
+      );
+    }
+    final current = compatible.any((m) => m.id == g.coreId)
+        ? g.coreId
+        : compatible.first.id;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            compatible.length == 1
+                ? 'Plays with ${compatible.first.name}.'
+                : 'Choose which core plays this game. ezCORE remembers it.',
+            style: Tokens.body(size: 13, color: Tokens.muted),
+          ),
+        ),
+        const SizedBox(width: 12),
+        if (compatible.length > 1)
+          OrbitSelect<String>(
+            value: current,
+            options: [for (final m in compatible) m.id],
+            labels: {
+              for (final m in compatible) m.id: '${m.name} · ${coreTitle(m)}',
+            },
+            onChanged: (v) {
+              if (v != null) state.setCore(g.id, v);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _cheats(GameEntry g) {
+    final n = state.cheatsFor(g.id).length;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            n == 0
+                ? 'No cheats added.'
+                : '${countLabel(n, 'cheat')} for this game.',
+            style: Tokens.body(size: 13, color: Tokens.muted),
+          ),
+        ),
+        OrbitSecondary(
+          label: 'Manage cheats',
+          icon: Icons.bolt_outlined,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CheatsScreen(gameId: g.id, state: state),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _file(GameEntry g) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SelectableText(g.filePath, style: Tokens.body(size: 13)),
+      const SizedBox(height: 4),
+      Text(
+        '${g.extension.toUpperCase()} · ${fileSizeLabel(g.fileSize)}',
+        style: Tokens.body(size: 12, color: Tokens.muted),
+      ),
+    ],
+  );
+}
+
+/// How a save slot is named to people.
+String saveName(String slot) {
+  if (slot == autoSlot) return 'Automatic';
+  if (slot == 'slot0') return 'Quick save';
+  final m = RegExp(r'^slot-(\d{2})(\d{2})(\d{2})$').firstMatch(slot);
+  if (m != null) return 'Saved ${m[1]}:${m[2]}:${m[3]}';
+  return slot;
+}
+
+class _SaveCard extends StatelessWidget {
+  const _SaveCard({
+    required this.slot,
+    required this.onLoad,
+    required this.onDelete,
+  });
+
+  final SaveSlot slot;
+  final VoidCallback onLoad;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Tokens.panel,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Tokens.lineStrong),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                slot.id == autoSlot ? Icons.history : Icons.save_outlined,
+                size: 18,
+                color: Tokens.systemLabelFg,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  saveName(slot.id),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(size: 14, weight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            lastPlayedLabel(slot.modified.millisecondsSinceEpoch),
+            style: Tokens.body(size: 12, color: Tokens.muted),
+          ),
+          const Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: onLoad,
+                  child: const Text('Load'),
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: 'Delete save',
+                onPressed: onDelete,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Tokens.muted,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
