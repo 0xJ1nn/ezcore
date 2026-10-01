@@ -55,7 +55,7 @@ void main() {
   ) async {
     final state = AppState();
     await pumpPhone(tester, CoreManagerScreen(state: state));
-    expect(find.text('The core collection'), findsOneWidget);
+    expect(find.text('Cores'), findsOneWidget);
   });
 
   testWidgets('vault empty state renders on a phone viewport', (tester) async {

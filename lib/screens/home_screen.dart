@@ -18,9 +18,18 @@ import 'launch.dart';
 /// game. One layout that reflows from a phone to a desktop rather than a
 /// separate design per size.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.state, this.onOpenCores});
+  const HomeScreen({
+    super.key,
+    required this.state,
+    this.onOpenCores,
+    this.filterRequests,
+  });
 
   final AppState state;
+
+  /// Other screens ask for a filter here (Cores → Show games sends a
+  /// system id); the library applies it when it changes.
+  final ValueNotifier<String?>? filterRequests;
 
   /// Opens the Cores destination (from the empty state).
   final VoidCallback? onOpenCores;
@@ -40,7 +49,24 @@ class _HomeScreenState extends State<HomeScreen> {
   AppState get state => widget.state;
 
   @override
+  void initState() {
+    super.initState();
+    widget.filterRequests?.addListener(_applyRequest);
+  }
+
+  void _applyRequest() {
+    final f = widget.filterRequests?.value;
+    if (f != null && mounted) {
+      setState(() {
+        _filter = f;
+        _search.clear();
+      });
+    }
+  }
+
+  @override
   void dispose() {
+    widget.filterRequests?.removeListener(_applyRequest);
     _search.dispose();
     _searchFocus.dispose();
     super.dispose();

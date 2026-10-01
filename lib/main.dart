@@ -111,8 +111,31 @@ class Shell extends StatefulWidget {
 /// the full save vault is reachable from Settings.
 class _ShellState extends State<Shell> {
   String page = 'library';
+  final _libraryFilter = ValueNotifier<String?>(null);
 
   void _go(String p) => setState(() => page = p);
+
+  /// Cores → Show games: the library filtered to that core's system (the
+  /// first of its systems that has games, else its first system).
+  void _browseCore(String coreId) {
+    final core = widget.state.registry.catalog
+        .where((m) => m.id == coreId)
+        .firstOrNull;
+    if (core == null) return _go('library');
+    final withGames = core.systems.where(
+      (s) => widget.state.games.any((g) => g.system == s),
+    );
+    _libraryFilter.value = null; // a repeat request must still notify
+    _libraryFilter.value =
+        withGames.isNotEmpty ? withGames.first : core.systems.first;
+    _go('library');
+  }
+
+  @override
+  void dispose() {
+    _libraryFilter.dispose();
+    super.dispose();
+  }
 
   void _openVault() => Navigator.of(context).push(
     MaterialPageRoute(
@@ -182,11 +205,12 @@ class _ShellState extends State<Shell> {
     return IndexedStack(
       index: index,
       children: [
-        HomeScreen(state: widget.state, onOpenCores: () => _go('cores')),
-        CoreManagerScreen(
+        HomeScreen(
           state: widget.state,
-          onBrowseCore: (_) => _go('library'),
+          onOpenCores: () => _go('cores'),
+          filterRequests: _libraryFilter,
         ),
+        CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
         SettingsScreen(state: widget.state, onGoVault: _openVault),
       ],
     );
