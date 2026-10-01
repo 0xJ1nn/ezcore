@@ -80,15 +80,18 @@ it.
 **The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
 `runtime/external/libretro-common/include/libretro.h`, reproducible with one
-grep):** `env_cb` implements **13 of the 93** `RETRO_ENVIRONMENT_*` commands;
+grep):** `env_cb` implements **19 of the 93** `RETRO_ENVIRONMENT_*` commands;
 everything else hits `default: return false` (`runtime/src/runtime.c:197`).
-Still unimplemented and relevant here: `SET_HW_RENDER`,
-`GET_HW_RENDER_INTERFACE`, `GET_RUMBLE_INTERFACE`, `SET_GEOMETRY`,
-`SET_PERFORMANCE_LEVEL`, `GET_LANGUAGE`, and the `GET_VARIABLE*` /
-`SET_PERFORMANCE_LEVEL` family. Landed since the previous revision of this
-file, and no longer "unimplemented": `SET_CORE_OPTIONS_V2*` (both v2 and intl
-variants), `SET_INPUT_DESCRIPTORS`, `SET_CONTROLLER_INFO`, and
-`SET_MEMORY_MAPS` (PRs #45/#48/#50). This single fact is why `MATRIX.md`
+Still unimplemented and relevant here: `GET_RUMBLE_INTERFACE`,
+`SET_GEOMETRY`, `SET_SYSTEM_AV_INFO`, `SET_PERFORMANCE_LEVEL`,
+`GET_LANGUAGE`, `SET_VARIABLES` (legacy options) and disk control. Landed
+since the previous revision of this file, and no longer "unimplemented":
+`SET_CORE_OPTIONS_V2*` (both v2 and intl variants), `SET_INPUT_DESCRIPTORS`,
+`SET_CONTROLLER_INFO`, and `SET_MEMORY_MAPS` (PRs #45/#48/#50); the GPU
+negotiation set `SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
+`GET_HW_RENDER_INTERFACE`, `SET_PROC_ADDRESS_CALLBACK` (#88); and
+`GET_VARIABLE` / `GET_VARIABLE_UPDATE`, without which no option value ever
+reached a core (#89). This single fact is why `MATRIX.md`
 records PS2, N64, GameCube, Wii, Dreamcast and PC-architecture cores as
 frame-unverified.
 

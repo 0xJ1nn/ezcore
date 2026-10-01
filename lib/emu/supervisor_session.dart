@@ -13,10 +13,10 @@ enum ContainmentMode {
   /// a Dart isolate. Fast, no IPC, and a native crash still kills the app.
   inProcess,
 
-  /// Planned behaviour (P6): the core is driven inside a supervised child
-  /// process, so a segfault becomes a child exit code the host can observe.
-  /// The seam exists in this spike; the transport does not — see
-  /// .ezcore/P6_SPIKE_NOTES.md.
+  /// The core is driven inside a supervised child process, so a segfault
+  /// becomes a child exit code the host can observe. The working transport
+  /// is `ProcessSessionBackend` (lib/emu/process_session_backend.dart), which
+  /// the player uses directly; this class still only models the seam.
   supervisedProcess,
 }
 
@@ -85,6 +85,11 @@ ExitClassification classifyExit({
     return ExitClassification(SessionOutcome.crashed, null);
   }
   if (exitCode == kCrashExitCode) {
+    return ExitClassification(SessionOutcome.crashed, exitCode);
+  }
+  if (exitCode < 0) {
+    // dart:io reports a POSIX signal death as the negated signal number
+    // (-11 for SIGSEGV, -6 for SIGABRT): the core faulted.
     return ExitClassification(SessionOutcome.crashed, exitCode);
   }
   return ExitClassification(SessionOutcome.clean, exitCode);
@@ -158,6 +163,7 @@ class SupervisorSession {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     if (_open) throw StateError('Session already open');
     _check('open');
@@ -168,6 +174,7 @@ class SupervisorSession {
         contentPath: contentPath,
         systemDir: systemDir,
         saveDir: saveDir,
+        coreOptions: coreOptions,
       ),
     );
     _open = true;

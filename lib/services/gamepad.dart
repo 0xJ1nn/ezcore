@@ -26,6 +26,13 @@ class GamepadService {
   GamepadService({MethodChannel? channel})
       : _channel = channel ?? const MethodChannel('ezcore/gamepad');
 
+  /// The one app-wide instance screens subscribe to. There must be only
+  /// one: each instance claims the platform channel's handler (the last one
+  /// wins, and disposing one cleared it for everybody) and, on Linux, opens
+  /// the input devices again. Subscribe with [onButton]/[onConnection] and
+  /// cancel the subscription; never dispose the shared instance.
+  static final GamepadService shared = GamepadService();
+
   final MethodChannel _channel;
   bool _listening = false;
   String? connectedPad;
@@ -75,14 +82,39 @@ class GamepadService {
   void Function() onButton(void Function(GamepadEvent event) handler) {
     _ensureListening();
     final sub = _events().listen(handler);
-    return sub.cancel;
+    return _counted(sub.cancel);
   }
 
   /// Subscribes to connection changes. Returns a cancel function.
   void Function() onConnection(void Function(bool connected, String name) handler) {
     _ensureListening();
     final sub = _connections().listen((e) => handler(e.$1, e.$2));
-    return sub.cancel;
+    return _counted(sub.cancel);
+  }
+
+  /// Device polling runs only while someone is subscribed: the last cancel
+  /// stops it, the next subscription starts it again.
+  int _subscribers = 0;
+
+  void Function() _counted(Future<void> Function() cancel) {
+    _subscribers++;
+    var done = false;
+    return () {
+      if (done) return;
+      done = true;
+      cancel();
+      if (--_subscribers == 0) _stopListening();
+    };
+  }
+
+  void _stopListening() {
+    if (!_listening) return;
+    _listening = false;
+    _winPoller?.stop();
+    _winPoller = null;
+    _linuxPads?.stop();
+    _linuxPads = null;
+    _channel.setMethodCallHandler(null);
   }
 
   final _connectionCtrl =

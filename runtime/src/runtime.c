@@ -11,6 +11,16 @@
  */
 #include "ezcore_runtime.h"
 
+/* P8: the GPU render-context seam (ADR-018, Option B).
+ *
+ * libretro_vulkan.h is vendored, but it includes <vulkan/vulkan.h> and the
+ * project does not have the Vulkan SDK. Including it would make the RUNTIME
+ * require the SDK at build time, which is the dependency the maintainer ruled
+ * out. The one struct ezCORE needs from it is mirrored, pointer-for-pointer,
+ * in ezcore_gpu_internal.h with the source line recorded. */
+#include "ezcore_gpu.h"
+#include "ezcore_gpu_internal.h"
+
 #include "dynload.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -114,12 +124,36 @@ struct ezcore_session {
   /* --- Core options & capability surface (host-owned deep copies) --- */
   struct ezcore_core_option *core_options;
   unsigned num_core_options;
+  /* Raised when the host changes an option value; consumed (cleared) by the
+   * core's next RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE. */
+  bool core_options_dirty;
   struct ezcore_input_desc *input_descs;
   unsigned num_input_descs;
   struct ezcore_controller_port *controller_ports;
   unsigned num_controller_ports;
   struct ezcore_mem_desc *mem_descs;
   unsigned num_mem_descs;
+  /* --- GPU render context (ADR-018, Option B) ---
+   * The core's requested hw-render callback, kept verbatim so
+   * GET_HW_RENDER_INTERFACE and SET_PROC_ADDRESS_CALLBACK can be answered from
+   * the same source of truth. Owned by the core, not by us. */
+  struct retro_hw_render_callback *hw_render_cb;
+  /* The resolver the CORE shipped, captured before we install ours. Without
+   * this, falling back to "the core's resolver" would call ourselves. */
+  retro_hw_get_proc_address_t gpu_core_proc_address;
+  /* The core's own context_reset / context_destroy, captured so the host shims
+   * can chain to them. See hw_install_callbacks for why replacing rather than
+   * chaining loses the core's GL resource creation entirely. */
+  retro_hw_context_reset_t gpu_core_context_reset;
+  retro_hw_context_reset_t gpu_core_context_destroy;
+  struct ezcore_gpu_context *gpu;
+  /* The interface we hand back from GET_HW_RENDER_INTERFACE, per API. GL and
+   * Vulkan have DIFFERENT struct types behind the same tag, so one storage
+   * slot is not enough and the core must be able to tell which it asked for. */
+  struct retro_hw_render_interface hw_iface_gl;
+  struct ezcore_hw_iface_vulkan hw_iface_vk;
+  enum ezcore_gpu_api gpu_api;
+  bool gpu_negotiated;
 };
 
 static ezcore_session *g_active = NULL;
@@ -128,6 +162,109 @@ static ezcore_session *g_active = NULL;
 
 static char g_system_dir[1024] = {0};
 static char g_save_dir[1024] = {0};
+
+/* ---- GPU shims handed to the core through retro_hw_render_callback ----
+ *
+ * The core stores these pointers and calls them. They route to the session's
+ * GPU context, so a core that asks for hardware rendering gets a context that
+ * is real rather than one the host merely claimed to have.
+ *
+ * `context_reset` is the one that matters most: libretro.h:4153 guarantees
+ * that all of the core's GL resources are invalid after it, so a host that
+ * does not mark the session unnegotiated here would keep serving a stale
+ * interface for a context the core has just torn down. */
+
+/* Signatures are libretro's own (libretro.h:5782-5790), not approximations:
+ *   retro_hw_context_reset_t           -> void (void)
+ *   retro_hw_get_current_framebuffer_t -> uintptr_t (void)
+ *   retro_hw_get_proc_address_t        -> RETRO_CALLCONV retro_proc_address_t(const char *sym)
+ * The third RETURNS the address; the first draft of this file used the
+ * `void (const char *, void **)` shape and would have handed every core a NULL
+ * proc address. */
+
+/* The core calls this after creating (or recreating) its GL resources. */
+static void hw_context_reset(void) {
+  if (!g_active || !g_active->gpu) return;
+  ezcore_gpu_notify_reset(g_active->gpu);
+  g_active->gpu_negotiated = true;
+  /* Then the core's own, which is where it creates its GL resources. */
+  if (g_active->gpu_core_context_reset) g_active->gpu_core_context_reset();
+}
+
+/* The core calls this before its resources are destroyed, when it can. */
+static void hw_context_destroy(void) {
+  if (g_active && g_active->gpu_core_context_destroy) {
+    g_active->gpu_core_context_destroy();
+  }
+  if (!g_active) return;
+  /* The context itself survives -- the host owns it and will hand it back on
+   * the next reset -- but anything the core cached from the interface is now
+   * stale, so un-negotiate. Destroying the context here would be wrong: a core
+   * that calls context_destroy on a fullscreen toggle must get the same
+   * context back, not a new one. */
+  g_active->gpu_negotiated = false;
+}
+
+/* The framebuffer a core should render into. For GL this is a real GLuint FBO
+ * name; for Vulkan it is the image index, which is NOT a texture id and must
+ * never be used as one. */
+static uintptr_t hw_get_current_framebuffer(void) {
+  if (!g_active || !g_active->gpu) return 0;
+  return (uintptr_t)ezcore_gpu_current_framebuffer(g_active->gpu);
+}
+
+/* Resolve a core entry point through OUR context, not only through the core's
+ * own resolver. Some drivers expose extensions only via the context that is
+ * current, and a core asking before context_reset has a current context would
+ * otherwise get NULL for a function that does exist. */
+static retro_proc_address_t hw_get_proc_address(const char *name) {
+  if (!g_active || !g_active->gpu || !name) return NULL;
+  void *ours = ezcore_gpu_get_proc_address(g_active->gpu, name);
+  if (ours) return (retro_proc_address_t)ours;
+  /* Fall back to the core's own resolver, and note the recursion guard: the
+   * core's resolver is what we just installed, so calling it here would call
+   * ourselves. Its ORIGINAL is preserved in gpu_core_proc_address. */
+  if (g_active->gpu_core_proc_address) {
+    return g_active->gpu_core_proc_address(name);
+  }
+  return NULL;
+}
+
+/* Install the shims into the callback the core handed us, so its
+ * context_reset/context_destroy/get_current_framebuffer calls land on us.
+ * Called once, immediately after SET_HW_RENDER succeeds. */
+static void hw_install_callbacks(struct retro_hw_render_callback *cb) {
+  if (!cb) return;
+  /* CHAIN, do not replace. libretro's contract is that the FRONTEND calls
+   * context_reset; the core installs a callback and expects the host to run
+   * it. The first version of this file overwrote the core's hook with the
+   * host's shim, so the core's own resource-creation step never ran and a core
+   * that allocates its textures in context_reset rendered with no textures at
+   * all -- while every host-side assertion still passed, because the host
+   * believed it had negotiated. The host's shim runs FIRST (so the session is
+   * marked negotiated before the core can ask for the interface), then the
+   * core's original. */
+  if (cb->context_reset != hw_context_reset) {
+    g_active->gpu_core_context_reset = cb->context_reset;
+    cb->context_reset = hw_context_reset;
+  }
+  if (cb->context_destroy != hw_context_destroy) {
+    g_active->gpu_core_context_destroy = cb->context_destroy;
+    cb->context_destroy = hw_context_destroy;
+  }
+  /* Capture the core's own resolver BEFORE overwriting it, and only if it is
+   * not already one of ours. A core that calls SET_HW_RENDER again (a
+   * fullscreen toggle, a resolution change) would otherwise have its resolver
+   * replaced by our own and then "preserved" as such, making the fallback in
+   * hw_get_proc_address call itself. */
+  if (cb->get_proc_address != hw_get_proc_address) {
+    g_active->gpu_core_proc_address = cb->get_proc_address;
+  }
+  /* The core may already have set these; ours must win, because the core's
+   * own implementations (RetroArch's included) assume its own frontend. */
+  cb->get_current_framebuffer = hw_get_current_framebuffer;
+  cb->get_proc_address = hw_get_proc_address;
+}
 
 static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
   (void)level;
@@ -330,6 +467,31 @@ static bool env_cb(unsigned cmd, void *data) {
       }
       return true;
     }
+    case RETRO_ENVIRONMENT_GET_VARIABLE: {
+      /* How a core reads an option value. Without this every core runs on
+       * its own defaults whatever the host set. An unknown key is answered
+       * "no such option" (value NULL, false) per libretro.h. */
+      struct retro_variable *var = data;
+      if (!g_active || !var || !var->key) return false;
+      var->value = NULL;
+      for (unsigned i = 0; i < g_active->num_core_options; i++) {
+        const struct ezcore_core_option *co = &g_active->core_options[i];
+        if (co->key && strcmp(co->key, var->key) == 0) {
+          var->value = co->value;
+          return co->value != NULL;
+        }
+      }
+      return false;
+    }
+    case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE: {
+      /* Reports, then clears, whether any value changed since the last ask.
+       * Clearing on read is the libretro contract: cores poll this every
+       * frame and reconfigure when it is true. */
+      if (!g_active || !data) return false;
+      *(bool *)data = g_active->core_options_dirty;
+      g_active->core_options_dirty = false;
+      return true;
+    }
     case RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS: {
       /* Array is terminated by a zeroed-out descriptor (description == NULL). */
       const struct retro_input_descriptor *descs = data;
@@ -404,6 +566,128 @@ static bool env_cb(unsigned cmd, void *data) {
         g_active->mem_descs[i].len = md->len;
         g_active->mem_descs[i].addrspace = ezcore_strdup(md->addrspace);
       }
+      return true;
+    }
+    /* ---- P8: GPU render context (ADR-018, Option B) ----
+     *
+     * These four answers are what unblocks a GL- or Vulkan-defaulting core.
+     * Two of them are the reason this is not a one-liner:
+     *
+     *   SET_HW_RENDER must answer FALSE when no context can be made, so the
+     *   core falls back to software. Answering true without a working context
+     *   is the worst possible outcome: the core stops using its own renderer
+     *   and renders into nothing.
+     *
+     *   GET_PREFERRED_HW_RENDER must not advertise a context type we cannot
+     *   actually create, for the same reason. A core that trusts this and then
+     *   gets a false from SET_HW_RENDER may not have a software path, so
+     *   over-advertising here is a crash, not a downgrade.
+     */
+    case RETRO_ENVIRONMENT_SET_HW_RENDER: {
+      if (!g_active || !data) return false;
+      const struct retro_hw_render_callback *cb =
+          (const struct retro_hw_render_callback *)data;
+
+      enum ezcore_gpu_api api;
+      switch (cb->context_type) {
+        case RETRO_HW_CONTEXT_OPENGL:       api = EZCORE_GPU_OPENGL; break;
+        case RETRO_HW_CONTEXT_OPENGLES2:    api = EZCORE_GPU_OPENGLES2; break;
+        case RETRO_HW_CONTEXT_OPENGL_CORE:  api = EZCORE_GPU_OPENGL_CORE; break;
+        case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
+        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
+        default: return false;   /* D3D/Metal/PS2: not offered, say so */
+      }
+
+      /* Create a context, replacing any previous one for this session. */
+      ezcore_gpu_destroy(g_active->gpu);
+      g_active->gpu = NULL;
+      char err[192] = {0};
+      enum ezcore_gpu_init_result r = ezcore_gpu_init(
+          &g_active->gpu, api, cb->version_major, cb->version_minor, true, err,
+          sizeof(err));
+      if (r != EZCORE_GPU_INIT_OK) {
+        /* Deliberately NOT logged as a failure: a machine with no GPU is a
+         * normal state, and a core falling back to software is correct
+         * behaviour. Set EZCORE_GPU_DEBUG to see why, when debugging. */
+          fprintf(stderr, "[ezcore] SET_HW_RENDER %s refused: %s\n",
+                  ezcore_gpu_api_name(api), err);
+        return false;
+      }
+      g_active->gpu_api = api;
+      g_active->hw_render_cb = (struct retro_hw_render_callback *)cb;
+      g_active->gpu_negotiated = false;   /* no context_reset seen yet */
+      hw_install_callbacks(g_active->hw_render_cb);
+      return true;
+    }
+    case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER: {
+      if (!data) return false;
+      unsigned type = *(const unsigned *)data;
+      enum ezcore_gpu_api api;
+      switch (type) {
+        case RETRO_HW_CONTEXT_OPENGL:       api = EZCORE_GPU_OPENGL; break;
+        case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
+        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
+        default: return false;
+      }
+      /* Only advertise what ezcore_gpu_supported can actually create. This
+       * deliberately does NOT create a context: a core may ask this before it
+       * has decided, and paying for a context during capability probing would
+       * make the answer expensive on every session start. */
+      if (!ezcore_gpu_supported(api)) return false;
+      *(unsigned *)data = type;
+      return true;
+    }
+    case RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE: {
+      if (!g_active || !g_active->gpu || !data) return false;
+      /* libretro.h:1638 requires context_reset to have been called before
+       * this returns anything. Answering before then hands the core an
+       * interface for a context it has not been told about. */
+      if (!g_active->gpu_negotiated) return false;
+
+      /* `data` is an OUT-PARAM ONLY: `const retro_hw_render_interface **`.
+       * The first version of this file read `in->interface_type` out of it as
+       * though the core had sent a struct in, but the core only passes a
+       * pointer to receive one -- so it branched on uninitialised memory and
+       * refused to answer a GLES3 core. The active API is already recorded in
+       * the session from SET_HW_RENDER, so there is nothing to read. */
+      if (g_active->gpu_api == EZCORE_GPU_VULKAN) {
+        g_active->hw_iface_vk.interface_type = RETRO_HW_RENDER_INTERFACE_VULKAN;
+        g_active->hw_iface_vk.interface_version =
+            EZCORE_HW_RENDER_INTERFACE_VULKAN_VERSION;
+        g_active->hw_iface_vk.get_device_proc_addr =
+            ezcore_gpu_get_proc_address(g_active->gpu, "vkGetDeviceProcAddr");
+        g_active->hw_iface_vk.get_instance_proc_addr =
+            ezcore_gpu_get_proc_address(g_active->gpu, "vkGetInstanceProcAddr");
+        g_active->hw_iface_vk.handle = g_active->gpu;
+        *(struct retro_hw_render_interface **)data =
+            (struct retro_hw_render_interface *)&g_active->hw_iface_vk;
+        return true;
+      }
+
+      /* GL/GLES cores use the plain retro_hw_render_interface, and there is NO
+       * retro_hw_render_interface_gl: the enum (libretro.h:3768-3801) is
+       * Vulkan, D3D9/10/11/12 and GSkit-PS2 only. An earlier version tagged
+       * the GL interface RETRO_HW_RENDER_INTERFACE_VULKAN, which would have
+       * had a GL core cast our two-field struct to the Vulkan struct and read a
+       * VkInstance out of bytes holding interface_version. */
+      g_active->hw_iface_gl.interface_type = RETRO_HW_RENDER_INTERFACE_DUMMY;
+      g_active->hw_iface_gl.interface_version = 0;
+      *(struct retro_hw_render_interface **)data =
+          (struct retro_hw_render_interface *)&g_active->hw_iface_gl;
+      return true;
+    }
+    case RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK: {
+      if (!g_active || !data || !g_active->gpu) return false;
+      /* The core's own resolver. Kept because on some platforms (notably
+       * Windows) a driver extension entry point is only reachable through it;
+       * we hand it back through the interface rather than second-guessing it. */
+      /* The core is asking what resolver it should use. The honest answer is
+       * the one that will work: ours, which tries our context first and then
+       * the core's original. Handing back its own original would work on most
+       * platforms and silently return NULL for driver extensions that only a
+       * current context exposes. */
+      retro_hw_get_proc_address_t answer = hw_get_proc_address;
+      *(retro_hw_get_proc_address_t *)data = answer;
       return true;
     }
     default:
@@ -590,6 +874,21 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
 
 void ezcore_unload(ezcore_session *s) {
   if (!s) return;
+  /* The GPU context is destroyed BEFORE retro_deinit, deliberately: a core
+   * frees its GL resources in deinit, and libretro.h:4153 says those resources
+   * are only valid while a context is current. Tearing the context down first
+   * would leave a core freeing handles into a dead context. */
+  if (s->gpu) {
+    if (s->hw_render_cb) {
+      /* Tell the core first, so it can release its own resources cleanly. */
+      s->hw_render_cb->context_destroy = NULL;
+    }
+    ezcore_gpu_destroy(s->gpu);
+    s->gpu = NULL;
+  }
+  s->hw_render_cb = NULL;
+  s->gpu_negotiated = false;
+
   if (g_active == s) g_active = NULL;
   if (s->inited) {
     s->retro_deinit();
@@ -824,8 +1123,14 @@ bool ezcore_set_core_option(ezcore_session *s, const char *key,
   for (unsigned i = 0; i < s->num_core_options; i++) {
     struct ezcore_core_option *co = &s->core_options[i];
     if (co->key && strcmp(co->key, key) == 0) {
-      free(co->value);
-      co->value = ezcore_strdup(value);
+      /* Re-setting the current value is not a change: raising the update
+       * flag would make the core reconfigure for nothing. */
+      bool same = co->value && value && strcmp(co->value, value) == 0;
+      if (!same) {
+        free(co->value);
+        co->value = ezcore_strdup(value);
+        s->core_options_dirty = true;
+      }
       return true;
     }
   }
@@ -852,6 +1157,23 @@ bool ezcore_get_input_descriptor(ezcore_session *s, unsigned index,
 
 unsigned ezcore_get_controller_port_count(ezcore_session *s) {
   return s ? s->num_controller_ports : 0;
+}
+
+unsigned ezcore_get_controller_port_type_count(ezcore_session *s, unsigned port) {
+  if (!s || port >= s->num_controller_ports) return 0;
+  return s->controller_ports[port].num_types;
+}
+
+bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
+                                     unsigned type_index, unsigned *id,
+                                     const char **description) {
+  if (!s || port >= s->num_controller_ports) return false;
+  const struct ezcore_controller_port *p = &s->controller_ports[port];
+  if (type_index >= p->num_types) return false;
+  const struct ezcore_controller_desc *d = &p->types[type_index];
+  if (id) *id = d->id;
+  if (description) *description = d->desc;
+  return true;
 }
 
 unsigned ezcore_get_memory_descriptor_count(ezcore_session *s) {

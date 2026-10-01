@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import '../models/cheat.dart';
 import '../state/save_sync.dart';
+import 'core_session_backend.dart';
 import 'emulation_worker.dart';
 import 'pcm_output.dart';
 
@@ -12,7 +13,15 @@ class PlayerController extends ChangeNotifier {
   PlayerController({PcmOutput? audio})
       : audio = audio ?? createPlatformPcm();
   final PcmOutput audio;
-  final EmulationWorker worker = EmulationWorker();
+  /// Runs the core session. In-process by default; [useBackend] swaps in a
+  /// separate-process backend (P6) before [open].
+  CoreSessionBackend worker = EmulationWorker();
+
+  /// Selects what runs the session. Only valid before [open].
+  void useBackend(CoreSessionBackend backend) {
+    if (running) throw StateError('Cannot change backend of a live session');
+    worker = backend;
+  }
   ui.Image? frame;
   String? error;
   String? audioError;
@@ -40,6 +49,7 @@ class PlayerController extends ChangeNotifier {
     required String contentPath,
     required String systemDir,
     required String saveDir,
+    Map<String, String> coreOptions = const {},
   }) async {
     final info = await worker.open(
       runtimeRef: runtimeRef,
@@ -47,6 +57,7 @@ class PlayerController extends ChangeNotifier {
       contentPath: contentPath,
       systemDir: systemDir,
       saveDir: saveDir,
+      coreOptions: coreOptions,
     );
     if (_closed) {
       await worker.close();

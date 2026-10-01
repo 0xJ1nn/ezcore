@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:ezcore/screens/library_screen.dart';
+import 'package:ezcore/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/screens/import_screen.dart';
@@ -25,8 +25,8 @@ void main() {
       await File('${folder.path}/fixture.gba').writeAsBytes(bytes);
       await state.load();
     });
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: LibraryScreen(state: state))));
-    await tester.tap(find.byTooltip('Import'));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: HomeScreen(state: state))));
+    await tester.tap(find.text('Add games').first);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, folder.path);
     await tester.runAsync(() async {

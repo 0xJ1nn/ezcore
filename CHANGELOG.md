@@ -6,8 +6,65 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Saved core settings are applied when a game starts.** Per-core and per-game
+  option overrides are stored, resolved (a per-game value wins over a per-core
+  value), and handed to the core after it loads but before the game does,
+  because many cores read their options only while loading a game. A setting
+  the core no longer declares is reported, not fatal. There is no settings
+  screen for core options yet; this is the plumbing it will use.
+- **Cores can ship recommended settings.** A core manifest may declare
+  `default_options`: starting values for the core's own settings, validated as
+  plain strings and always overridden by your own choices. The N64 core uses it
+  to start on its software renderer, which is the only way it can draw until
+  GPU support lands.
+- **Crash protection (experimental, off by default).** Settings > Emulation >
+  Crash protection runs each game's core in a separate helper process
+  (`ezcore_core_host`). If the core crashes or stops responding, only that game
+  ends, with a plain message; the app, your library and your saves are
+  untouched. Linux verified; Windows packaged but not yet run; macOS and Android
+  not wired yet; iOS cannot support it (Apple forbids helper processes).
+### Changed
+
+- **A simpler home.** Three destinations — Library, Cores, Settings — on every
+  screen size. Library opens on **Resume**: one tap back into the game you
+  played last, from where you left off, whatever system it is. Below it,
+  Continue playing, filters named by system (never by core), and every game.
+  Removed: the decorative clock/Wi-Fi/"P1" bar, slogans, the duplicate system
+  menu, and the cover-flow carousel and its settings. Saves live with each game
+  and in Settings.
+- **Real on-screen controls.** Each system family gets a proper layout in
+  portrait and landscape — d-pad, face buttons in the system's own style
+  (Nintendo letters, PlayStation symbols, Genesis A/B/C), shoulders and
+  Start/Select — and handhelds get a device shell; the Nintendo DS shows its
+  two screens as a clamshell with a hinge, side by side in landscape.
+  Multi-touch, slide between buttons, diagonals on the d-pad. On by default on
+  phones and tablets, off on desktop; toggle from the pause menu.
+- **Make the controls yours.** Pause menu → Edit controls: drag any button,
+  resize it, hide the ones you never use (Menu always stays), set opacity, save
+  — per system and orientation — or reset to default.
+- **Controllers, properly.** Remap any button in Settings > Controllers
+  (press the button you want; reset to default any time). Hold **Select +
+  Start** in a game for the pause menu. A controller now drives every menu:
+  d-pad moves, A chooses, B goes back.
+
 ### Fixed
 
+- After leaving a game, Settings stopped hearing controller events on Android
+  and iOS: each screen made its own controller service, and closing the
+  player's cleared the channel for everyone. There is now one shared service.
+- **A real pause menu.** Resume, save and load state, cheats, show/hide
+  controls, fast-forward, screenshot, reset and quit — from the Menu button,
+  Esc, or the system Back gesture (which no longer drops you out of a game).
+
+### Fixed
+
+- **Core settings now reach the core.** The runtime stored the options a core
+  declared and let the host change them, but never answered the two requests a
+  core uses to read them (`GET_VARIABLE`, `GET_VARIABLE_UPDATE`), so every core
+  silently ran on its built-in defaults. Covered by a new `core_variables`
+  native test that checks the value from the core's side, not the runtime's.
 - **Held input can no longer latch.** Pressing reset no longer leaves a button
   held down, loading a game no longer carries held buttons across the boundary,
   and unplugging a controller mid-press no longer leaves that direction stuck for

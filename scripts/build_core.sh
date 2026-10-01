@@ -314,11 +314,29 @@ build_twinsh() {
 
 build_rcp64() {
   clone https://github.com/libretro/mupen64plus-libretro-nx.git "$SRC_DIR/mupen64plus-nx"
+  # The software-renderer flags below change which objects exist, and make
+  # does not rebuild on a flag change -- so a tree last built with other
+  # flags is reset instead of relinked into a core missing Angrylion.
+  local flags_mark="$SRC_DIR/mupen64plus-nx/.ezcore-rcp64-flags" flags_want="sw-v1"
+  if [ ! -f "$flags_mark" ] || [ "$(cat "$flags_mark")" != "$flags_want" ]; then
+    rm -f "$SRC_DIR/mupen64plus-nx/.ezcore-build-ok"
+  fi
   core_reset "$SRC_DIR/mupen64plus-nx"
   # SYSTEM_LIBPNG/ZLIB: vendored libpng hits the TARGET_OS_MAC/fp.h SDK rot
   # and vendored zlib-1.2.11 hits the _stdio.h rot (same as beetle-pce).
   require_interpreter_ios rcp64
-  core_make "$SRC_DIR/mupen64plus-nx" SYSTEM_LIBPNG=1 SYSTEM_ZLIB=1
+  # Software rendering: the core offers the Angrylion RDP as an option, but
+  # upstream's Makefile only compiles it (and the LLE RSP it requires) for
+  # osx/ios/rpi5 and a few others -- not for unix or windows. Asking a build
+  # without it for angrylion dereferences a NULL plugin pointer
+  # (plugin_start_gfx) and crashes. With these flags N64 renders on the CPU,
+  # with no GL context, which is the only path ezCORE has until P8.
+  local sw=()
+  case "$PLATFORM" in
+    linux|windows) sw=(HAVE_THR_AL=1 HAVE_PARALLEL_RSP=1 LLE=1) ;;
+  esac
+  core_make "$SRC_DIR/mupen64plus-nx" SYSTEM_LIBPNG=1 SYSTEM_ZLIB=1 ${sw[@]+"${sw[@]}"}
+  echo "$flags_want" > "$flags_mark"
   stage rcp64 "$SRC_DIR/mupen64plus-nx/mupen64plus_next_libretro.$LIB_SUFFIX"
 }
 
