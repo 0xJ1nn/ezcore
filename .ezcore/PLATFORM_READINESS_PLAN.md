@@ -84,7 +84,7 @@ shapes ADR-018: context ownership has to be answered per-backend, not once.
 
 ## 2. P8 — the GPU path (unblocks 6 cores)
 
-`env_cb` answers **17 of 93** environment commands. The four that matter for
+`env_cb` answers **19 of 93** environment commands. The four that matter for
 these cores are `SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`,
 `SET_PROC_ADDRESS_CALLBACK`, `GET_HW_RENDER_INTERFACE` — none implemented.
 
