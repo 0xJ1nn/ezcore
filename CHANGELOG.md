@@ -8,6 +8,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Cores can ship their own controls.** A core package may include on-screen
+  layouts (and device shells) for its systems; they are checked as strictly as
+  everything else in a package and used for that core's games. Your own edited
+  layout still wins, and Reset returns to the core's design.
 - **Settings in plain words.** One "Settings" heading instead of slogans and a
   "local preferences" badge; every section titled for what it is; jargon
   ("frames stepped per tick", "emulated PCM", "native sink") replaced with

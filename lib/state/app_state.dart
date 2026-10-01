@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../controls/package_layouts.dart';
 import '../cores/core_registry.dart';
 import '../models/cheat.dart';
 import '../models/core_manifest.dart';
@@ -103,6 +104,10 @@ class AppState extends ChangeNotifier {
   /// fallback) that discovery scanned. Reused by [rediscoverCores] so
   /// packages installed after boot join the same scan.
   String? coreRootPath;
+
+  /// Layouts shipped by installed core packages (ADR-020), read from the
+  /// same core root discovery scans.
+  late final packageLayouts = PackageLayouts(() => coreRootPath);
 
   List<GameEntry> games = [];
   final Map<String, List<CheatEntry>> cheatsByGame = {};
@@ -213,6 +218,8 @@ class AppState extends ChangeNotifier {
   /// user-installed packages staged after boot. Never throws — per-id
   /// failures surface through [coreDiscoveryErrors].
   Future<void> rediscoverCores() async {
+    // A package just installed may have brought its own layouts.
+    packageLayouts.invalidate();
     final root = coreRootPath;
     if (root == null) return;
     final discovery = CoreDiscovery(Directory(root));
