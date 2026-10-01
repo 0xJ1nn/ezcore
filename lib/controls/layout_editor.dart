@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
 import '../widgets/orbit_widgets.dart';
-import 'builtin_layouts.dart';
 import 'control_layout.dart';
 import 'control_overlay.dart';
 import 'layout_store.dart';
@@ -22,12 +21,16 @@ class LayoutEditorScreen extends StatefulWidget {
     required this.store,
     required this.system,
     required this.portrait,
+    this.coreId,
     this.frame,
   });
 
   final LayoutStore store;
   final String system;
   final bool portrait;
+
+  /// The game's core, whose package may ship its own default layout.
+  final String? coreId;
 
   /// The current game picture, shown behind the controls when available.
   final ui.Image? frame;
@@ -49,8 +52,18 @@ class _LayoutEditorScreenState extends State<LayoutEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _builtin = builtinLayout(widget.system, portrait: widget.portrait);
-    _layout = widget.store.resolve(widget.system, portrait: widget.portrait);
+    // "Default" is whatever Reset returns to: the core's own layout if its
+    // package ships one, else the built-in.
+    _builtin = widget.store.defaultFor(
+      widget.system,
+      portrait: widget.portrait,
+      coreId: widget.coreId,
+    );
+    _layout = widget.store.resolve(
+      widget.system,
+      portrait: widget.portrait,
+      coreId: widget.coreId,
+    );
     // Controls the user hid earlier are the built-in ones not in their copy.
     final present = {for (final c in _layout.controls) c.id};
     _hidden.addAll(_builtin.controls.where((c) => !present.contains(c.id)));

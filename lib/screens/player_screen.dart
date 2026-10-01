@@ -422,7 +422,14 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _stage(String system, Size size) {
     final portrait = size.height > size.width;
-    final layout = _layouts.resolve(system, portrait: portrait);
+    final layout = _layouts.resolve(
+      system,
+      portrait: portrait,
+      coreId: widget.state.games
+          .where((g) => g.id == widget.gameId)
+          .firstOrNull
+          ?.coreId,
+    );
     final showControls = padVisible && player.running;
     final screen = showControls
         ? layout.screen
@@ -571,6 +578,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               store: _layouts,
               system: game.system,
               portrait: size.height > size.width,
+              coreId: game.coreId,
               frame: player.frame,
             ),
           ),
