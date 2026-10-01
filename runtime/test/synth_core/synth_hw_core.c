@@ -11,6 +11,7 @@
  * WHICH negotiation step broke rather than just "the core did not run".
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <libretro.h>
@@ -41,24 +42,89 @@ static int g_fired = 0;
 /* context_reset: the core creates its GL resources here. It is the FIRST thing
  * a real core does, and libretro.h:4151 says the context is only valid after
  * it, so the test asserts our shim ran. */
+#ifdef EZCORE_SYNTH_HW_DRAW
+/* Drawing variant (synth_hw_draw target): it renders a known picture and
+ * submits it the way real GPU cores do, so readback can be checked. */
+static retro_video_refresh_t g_video = NULL;
+typedef void (*gl_bindfb_t)(unsigned, unsigned);
+typedef void (*gl_clearcolor_t)(float, float, float, float);
+typedef void (*gl_clear_t)(unsigned);
+typedef void (*gl_scissor_t)(int, int, int, int);
+typedef void (*gl_cap_t)(unsigned);
+typedef void (*gl_viewport_t)(int, int, int, int);
+static gl_bindfb_t p_bind;
+static gl_clearcolor_t p_clearcolor;
+static gl_clear_t p_clear;
+static gl_scissor_t p_scissor;
+static gl_cap_t p_enable, p_disable;
+static gl_viewport_t p_viewport;
+#endif
+
+/* Teardown order probe. When EZCORE_SYNTH_ORDER_FILE is set, each teardown
+ * step appends a word to that file, so a test can read the order the CORE
+ * saw after the core itself has been unloaded. Off unless asked for. */
+static void order(const char *step) {
+  const char *path = getenv("EZCORE_SYNTH_ORDER_FILE");
+  if (!path) return;
+  FILE *f = fopen(path, "a");
+  if (!f) return;
+  fprintf(f, "%s\n", step);
+  fclose(f);
+}
+
+static retro_environment_t env_cb;
 static void on_context_reset(void) {
   g_have_context = 1;
   g_fb = g_cb ? g_cb->get_current_framebuffer() : 0;
   g_framebuffer = g_fb;
+  if (!g_cb || !env_cb) return;
+
+  /* The interface, which libretro.h requires AFTER context_reset. `data` is
+   * `const struct retro_hw_render_interface **`: the host stores a pointer
+   * to its own interface struct there. */
+  const struct retro_hw_render_interface *iface = NULL;
+  if (env_cb(RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE, &iface) && iface) {
+    g_negotiated = 1;
+    g_iface_version = iface->interface_version;
+  } else {
+    g_negotiated = 0;
+  }
+
+  /* GL functions come from the get_proc_address the FRONTEND set in the
+   * hardware-render callback -- the libretro path every GL core uses. */
+  retro_hw_get_proc_address_t resolver = g_cb->get_proc_address;
+  if (!resolver) return;
+  g_proc_address_ok = 0;
+  if (resolver("glClear")) g_proc_address_ok |= 1;
+  if (resolver("glGenFramebuffers")) g_proc_address_ok |= 2;
+  if (resolver("glBindFramebuffer")) g_proc_address_ok |= 4;
+#ifdef EZCORE_SYNTH_HW_DRAW
+  p_bind = (gl_bindfb_t)resolver("glBindFramebuffer");
+  p_clearcolor = (gl_clearcolor_t)resolver("glClearColor");
+  p_clear = (gl_clear_t)resolver("glClear");
+  p_scissor = (gl_scissor_t)resolver("glScissor");
+  p_enable = (gl_cap_t)resolver("glEnable");
+  p_disable = (gl_cap_t)resolver("glDisable");
+  p_viewport = (gl_viewport_t)resolver("glViewport");
+#endif
 }
 
-static void on_context_destroy(void) { g_have_context = 0; }
+static void on_context_destroy(void) {
+  g_have_context = 0;
+  order("context_destroy");
+}
 
-/* The core asks OUR resolver (SET_PROC_ADDRESS_CALLBACK hands this back) and
- * expects a real, callable symbol. On a working GLES3 context glClear must
- * resolve; if it does not, the core cannot render and must not claim to. */
+/* The core resolves GL through the get_proc_address the FRONTEND sets in the
+ * hardware-render callback, and expects real, callable symbols. On a working
+ * GLES3 context glClear must resolve; if it does not, the core cannot render
+ * and must not claim to. */
 /* The real typedef: libretro.h:5790 is a function POINTER returning a
  * retro_proc_address_t. The first draft used `void *(const char *)`, which
  * happens to be layout-compatible here and would have been a silently
  * wrong type on any ABI where it is not. */
-/* This is the core's INITIAL resolver. The host captures it, then installs its
- * own, and hands that one back through SET_PROC_ADDRESS_CALLBACK. A real core
- * then uses the resolver it was GIVEN -- not the one it shipped with.
+/* This is the core's INITIAL value for get_proc_address. libretro says the
+ * frontend sets that field; the host overwrites it with its own resolver
+ * and the core uses the resolver it was GIVEN -- not the one it shipped with.
  *
  * The first version of this fixture called g_cb->get_proc_address from here,
  * which after the host installed its shim is the host's resolver, which
@@ -77,7 +143,7 @@ void retro_init(void) {
   g_frames_drawn = 0; g_set_hw_render_result = -1;
 }
 
-void retro_deinit(void) {}
+void retro_deinit(void) { order("deinit"); }
 
 unsigned retro_api_version(void) { return RETRO_API_VERSION; }
 
@@ -102,24 +168,8 @@ void retro_get_system_av_info(struct retro_system_av_info *av) {
 /* The environment callback the host installs. A real core stores exactly
  * this and calls it for SET_HW_RENDER; getting this wrong is why cores that
  * "require" hardware often fall back to software -- they never actually ask. */
-static retro_environment_t env_cb = NULL;
 void retro_set_environment(retro_environment_t cb) { env_cb = cb; }
 #ifdef EZCORE_SYNTH_HW_DRAW
-/* Drawing variant (synth_hw_draw target): it renders a known picture and
- * submits it the way real GPU cores do, so readback can be checked. */
-static retro_video_refresh_t g_video = NULL;
-typedef void (*gl_bindfb_t)(unsigned, unsigned);
-typedef void (*gl_clearcolor_t)(float, float, float, float);
-typedef void (*gl_clear_t)(unsigned);
-typedef void (*gl_scissor_t)(int, int, int, int);
-typedef void (*gl_cap_t)(unsigned);
-typedef void (*gl_viewport_t)(int, int, int, int);
-static gl_bindfb_t p_bind;
-static gl_clearcolor_t p_clearcolor;
-static gl_clear_t p_clear;
-static gl_scissor_t p_scissor;
-static gl_cap_t p_enable, p_disable;
-static gl_viewport_t p_viewport;
 void retro_set_video_refresh(retro_video_refresh_t cb) { g_video = cb; }
 #else
 void retro_set_video_refresh(retro_video_refresh_t cb) { (void)cb; }
@@ -166,57 +216,24 @@ bool retro_load_game(const struct retro_game_info *game) {
    * never created a context and this core must not pretend otherwise. */
   if (hw->context_reset == on_context_reset) return false;
   g_cb = hw;
-
-  /* Now the interface, which libretro.h:1638 requires AFTER context_reset.
-   * `data` is `const struct retro_hw_render_interface **` -- the host stores a
-   * pointer to ITS OWN interface struct there. The first version of this
-   * fixture passed an `int *`, so the host wrote a pointer into a 4-byte int
-   * and the core read back a truncated, nonsense pointer. */
-  g_cb->context_reset();   /* the host marks itself negotiated inside this */
-
-  const struct retro_hw_render_interface *iface = NULL;
-  if (env_cb(RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE, &iface) && iface) {
-    g_negotiated = 1;
-    g_iface_version = iface->interface_version;
-  } else {
-    g_negotiated = 0;
-  }
-
-  /* Only now ask which resolver to use. The host hands back the one that
-   * will work; the core uses it for the rest of the session. */
-  retro_hw_get_proc_address_t resolver = NULL;
-  /* A core without a working resolver cannot render, so it refuses here rather
-   * than drawing nothing: a NULL glClear is a black screen, not a fallback. */
-  if (!env_cb(RETRO_ENVIRONMENT_SET_PROC_ADDRESS_CALLBACK, &resolver) ||
-      !resolver)
-    return false;
-  /* A core resolves what it needs and REFUSES to run if it cannot: rendering
-   * with a NULL glClear is a black screen, not a fallback. */
-  {
-    void *p = (void *)resolver("glClear");
-    if (p) g_proc_address_ok |= 1;
-    p = (void *)resolver("glGenFramebuffers");
-    if (p) g_proc_address_ok |= 2;
-    p = (void *)resolver("glBindFramebuffer");
-    if (p) g_proc_address_ok |= 4;
-  }
-#ifdef EZCORE_SYNTH_HW_DRAW
-  p_bind = (gl_bindfb_t)resolver("glBindFramebuffer");
-  p_clearcolor = (gl_clearcolor_t)resolver("glClearColor");
-  p_clear = (gl_clear_t)resolver("glClear");
-  p_scissor = (gl_scissor_t)resolver("glScissor");
-  p_enable = (gl_cap_t)resolver("glEnable");
-  p_disable = (gl_cap_t)resolver("glDisable");
-  p_viewport = (gl_viewport_t)resolver("glViewport");
-  if (!p_bind || !p_clearcolor || !p_clear || !p_scissor || !p_enable ||
-      !p_disable || !p_viewport)
-    return false;
-#endif
-
+  /* Test hook: a core that asked for a context and then fails its load
+   * (Dolphin does this when it cannot boot the content). */
+  if (getenv("EZCORE_SYNTH_FAIL_LOAD")) return false;
+  /* That is all a real core does at load. The FRONTEND calls context_reset
+   * once the context is usable (after load), and the core does the rest
+   * there. An earlier version of this fixture called context_reset on
+   * itself and fetched its GL resolver through SET_PROC_ADDRESS_CALLBACK --
+   * neither is what real cores do, and together they hid that the runtime
+   * never called context_reset and wrote into the core's memory. */
   return true;
 }
 
-void retro_unload_game(void) { if (g_cb) { g_cb->context_destroy(); g_cb = NULL; } }
+void retro_unload_game(void) {
+  /* A real core does not destroy its own context here; the frontend calls
+   * context_destroy. (An earlier version did, which hid that the runtime
+   * never called retro_unload_game at all.) */
+  order("unload_game");
+}
 void retro_reset(void) { if (g_cb) g_cb->context_reset(); }
 
 /* Draw only when we were actually given a context and a framebuffer, which is
@@ -226,6 +243,9 @@ void retro_run(void) {
   if (g_framebuffer == 0xFFFFFFFFu) return;
   g_frames_drawn++;
 #ifdef EZCORE_SYNTH_HW_DRAW
+  if (!p_bind || !p_clearcolor || !p_clear || !p_scissor || !p_enable ||
+      !p_disable || !p_viewport)
+    return;
   /* Red everywhere, green in the top half in GL terms (bottom-left origin,
    * so y = H/2 .. H is the top of the picture), then submit. */
   p_bind(0x8D40 /* GL_FRAMEBUFFER */, (unsigned)g_cb->get_current_framebuffer());

@@ -114,6 +114,11 @@ void *ezcore_gpu_get_proc_address(struct ezcore_gpu_context *ctx,
  * without the object surviving. */
 void ezcore_gpu_notify_reset(struct ezcore_gpu_context *ctx);
 
+/* Resizes the framebuffer a core renders into, keeping its name, so a core
+ * that cached get_current_framebuffer() keeps working. Called once the
+ * core's maximum geometry is known (after load). False if unsupported. */
+bool ezcore_gpu_resize(struct ezcore_gpu_context *ctx, int w, int h);
+
 /* True when this build can create a context for [api] at all, without
  * creating one. Lets the host answer GET_PREFERRED_HW_RENDER honestly and
  * lets a caller avoid a pointless init attempt on a machine with no GPU. */
