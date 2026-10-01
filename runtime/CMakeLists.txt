@@ -317,9 +317,35 @@ target_link_libraries(test_crash_signal PRIVATE ezcore_runtime)
 target_include_directories(test_crash_signal PRIVATE include)
 add_dependencies(test_crash_signal crash_libretro)
 
+# P6 (ADR-015): the helper process that hosts one core session, so a core
+# crash ends that process instead of the app. Links the unchanged runtime.
+add_executable(ezcore_core_host host/ezcore_core_host.c)
+target_link_libraries(ezcore_core_host PRIVATE ezcore_runtime)
+target_include_directories(ezcore_core_host PRIVATE include)
+# Finds libezcore_runtime beside itself, in the build tree and in a release
+# bundle alike (release.sh ships the two side by side).
+if(APPLE)
+  set_target_properties(ezcore_core_host PROPERTIES
+    BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
+elseif(UNIX)
+  set_target_properties(ezcore_core_host PROPERTIES
+    BUILD_RPATH "$ORIGIN" INSTALL_RPATH "$ORIGIN")
+endif()
+
+# Drives the host over its pipe protocol: a good core end to end, a core that
+# segfaults mid-frame (only the host dies), and the host exiting when its
+# input closes. POSIX-only (fork/exec/waitpid).
+add_executable(test_core_host test/test_core_host.c)
+add_dependencies(test_core_host ezcore_core_host synth_libretro crash_libretro)
+
 if(NOT WIN32)
   add_test(NAME crash_signal_exit_code
     COMMAND test_crash_signal
+    $<TARGET_FILE:crash_libretro>)
+  add_test(NAME core_host_contains_crash
+    COMMAND test_core_host
+    $<TARGET_FILE:ezcore_core_host>
+    $<TARGET_FILE:synth_libretro>
     $<TARGET_FILE:crash_libretro>)
 endif()
 
