@@ -1,3 +1,4 @@
+import 'package:ezcore/widgets/collection_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/game_entry.dart';
@@ -27,6 +28,7 @@ void main() {
   ];
 
   Future<void> pump(WidgetTester tester, AppState state) async {
+    await state.setSetting(libraryViewKey, CollectionView.grid.value);
     await tester.pumpWidget(
       MaterialApp(
         theme: Tokens.theme(),
@@ -38,7 +40,7 @@ void main() {
 
   testWidgets('library renders persisted games and searches', (tester) async {
     // Set games directly to avoid rootBundle catalog load in test env
-    final state = AppState()..games = games;
+    final state = AppState.ephemeral()..games = games;
     await pump(tester, state);
     expect(find.text('My GBA Dump'), findsWidgets);
     expect(find.text('My SNES Dump'), findsWidgets);
@@ -51,7 +53,7 @@ void main() {
   });
 
   testWidgets('a system filter shows that system only', (tester) async {
-    final state = AppState()..games = games;
+    final state = AppState.ephemeral()..games = games;
     await pump(tester, state);
     await tester.tap(find.widgetWithText(OrbitChip, 'Game Boy Advance'));
     await tester.pumpAndSettle();

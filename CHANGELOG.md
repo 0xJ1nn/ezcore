@@ -8,6 +8,14 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **3D, Grid or List — your choice, in Library and Cores.** The 3D shelf is
+  back: the game in front faces you, its art fills the background, and one bar
+  carries its action — Resume if you have played it, otherwise Play. It opens
+  on the game you played last. Browse by swiping, the mouse wheel, the arrow
+  keys or a controller's d-pad; open the front game for its page. Grid and List
+  keep Resume and Continue playing on top. Cores get the same three views, and
+  on wide screens the details follow the core in front. Each choice is
+  remembered.
 - **Sticks, keyboard, mouse and touch reach your games.** Controller sticks
   are real analog input (Linux and Windows today). Every key reaches games that
   read a keyboard; in DOS and adventure games the keyboard is all theirs and
@@ -83,6 +91,11 @@ All notable changes to ezCORE are documented here. The format follows
   d-pad moves, A chooses, B goes back.
 
 ### Fixed
+
+- **Covers no longer reload on every frame.** Each cover dropped its image
+  from memory whenever it was redrawn, so a scrolling shelf re-read every
+  cover from disk 60 times a second. A cover is now reloaded only when its
+  file is replaced.
 
 - **Cores now get to finish closing a game.** The runtime never called a core's
   `retro_unload_game`, where many cores write battery saves and caches; it is
