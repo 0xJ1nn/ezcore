@@ -8,6 +8,11 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Sticks, keyboard, mouse and touch reach your games.** Controller sticks
+  are real analog input (Linux and Windows today). Every key reaches games that
+  read a keyboard; in DOS and adventure games the keyboard is all theirs and
+  **F12** opens the menu. The mouse moves and clicks in games that use one, and
+  touching the game picture is a touchscreen — the DS lower screen works.
 - **The engine understands more than buttons.** Cores can now read analog
   sticks (and pressure triggers), a mouse, a keyboard (including the key events
   DOS and computer cores rely on) and a touchscreen pointer (the DS bottom

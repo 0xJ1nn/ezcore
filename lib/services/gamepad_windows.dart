@@ -207,9 +207,11 @@ class WindowsXInputPoller {
   }
 
   void start(void Function(String code, bool pressed) onButton,
-      void Function(bool connected, String name) onConnection) {
+      void Function(bool connected, String name) onConnection,
+      [void Function(String stickAxis, double value)? onAxis]) {
     if (_running) return;
     _running = true;
+    _onAxis = onAxis;
     _timer = Timer.periodic(const Duration(milliseconds: 16), (_) {
       for (var pad = 0; pad < 4; pad++) {
         _poll(pad, onButton, onConnection);
@@ -248,6 +250,14 @@ class WindowsXInputPoller {
       final ly = data.getInt16(10, Endian.little);
       final rx = data.getInt16(12, Endian.little);
       final ry = data.getInt16(14, Endian.little);
+      // Analog values for cores that read sticks: XInput reports up as
+      // positive, libretro down, so Y is inverted. Sent on change only.
+      final axes = stickAxes(lx: lx, ly: ly, rx: rx, ry: ry);
+      final last = _lastAxes[pad] ?? const <String, double>{};
+      for (final e in axes.entries) {
+        if (last[e.key] != e.value) _onAxis?.call(e.key, e.value);
+      }
+      _lastAxes[pad] = axes;
       final now = codesFor(
         buttons: buttons,
         leftTrigger: lt,
@@ -271,6 +281,21 @@ class WindowsXInputPoller {
     } finally {
       freeBytes(state);
     }
+  }
+
+  void Function(String stickAxis, double value)? _onAxis;
+  final _lastAxes = <int, Map<String, double>>{};
+
+  /// Pure helper: XInput thumbstick values as -1..1 with down/right
+  /// positive (libretro's convention).
+  static Map<String, double> stickAxes({
+    required int lx,
+    required int ly,
+    required int rx,
+    required int ry,
+  }) {
+    double n(int v) => (v / 32767).clamp(-1.0, 1.0);
+    return {'lx': n(lx), 'ly': -n(ly), 'rx': n(rx), 'ry': -n(ry)};
   }
 
   void stop() {

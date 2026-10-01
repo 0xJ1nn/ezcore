@@ -40,6 +40,33 @@ List<Rect> pictureRects(ScreenSpec screen, Size size, double frameAspect) {
   ];
 }
 
+/// Where [p] falls in the core's frame, as fractions 0..1 of its width and
+/// height, or null when it is not on the picture. For a split (DS) screen a
+/// point on the second panel maps into the frame's lower half, whichever
+/// way the panels are arranged.
+Offset? frameCoordinate(
+  ScreenSpec screen,
+  Size size,
+  double frameAspect,
+  Offset p,
+) {
+  final rects = pictureRects(screen, size, frameAspect);
+  for (var k = 0; k < rects.length; k++) {
+    final r = rects[k];
+    if (!r.contains(p)) continue;
+    final u = ((p.dx - r.left) / r.width).clamp(0.0, 1.0);
+    final v = ((p.dy - r.top) / r.height).clamp(0.0, 1.0);
+    return rects.length == 1 ? Offset(u, v) : Offset(u, (k + v) / 2);
+  }
+  return null;
+}
+
+/// A frame fraction (0..1) as libretro pointer coordinates (-32767..32767).
+(int, int) toPointer(Offset frame) => (
+  ((frame.dx * 2 - 1) * 32767).round(),
+  ((frame.dy * 2 - 1) * 32767).round(),
+);
+
 /// Draws the core's frame into the layout's screen area, pixel-crisp.
 class GamePicturePainter extends CustomPainter {
   GamePicturePainter(this.image, this.screen);
@@ -110,6 +137,8 @@ class ControlOverlay extends StatefulWidget {
     required this.onInput,
     this.onHostInput,
     this.onTouch,
+    this.toFrame,
+    this.onPicture,
   });
 
   final ControlLayout layout;
@@ -118,6 +147,12 @@ class ControlOverlay extends StatefulWidget {
 
   /// Called on every new press, for haptics.
   final VoidCallback? onTouch;
+
+  /// Maps a point to the core's frame (0..1), or null off the picture. With
+  /// [onPicture], a finger that lands on the picture rather than a control
+  /// becomes the core's pointer — the DS touchscreen, for example.
+  final Offset? Function(Offset local, Size size)? toFrame;
+  final void Function(Offset frame, bool pressed)? onPicture;
 
   @override
   State<ControlOverlay> createState() => ControlOverlayState();
@@ -175,8 +210,22 @@ class ControlOverlayState extends State<ControlOverlay> {
     setState(() {});
   }
 
+  /// The pointer currently touching the picture, and where it last was.
+  int? _picture;
+  Offset _lastFrame = Offset.zero;
+
+  void _release(int pointer) {
+    if (pointer == _picture) {
+      _picture = null;
+      widget.onPicture?.call(_lastFrame, false);
+      return;
+    }
+    _set(pointer, const {});
+  }
+
   /// Releases everything (the session paused, the layout changed).
   void releaseAll() {
+    if (_picture != null) _release(_picture!);
     for (final p in _byPointer.keys.toList()) {
       _set(p, const {});
     }
@@ -196,10 +245,32 @@ class ControlOverlayState extends State<ControlOverlay> {
         final pressed = held;
         return Listener(
           behavior: HitTestBehavior.translucent,
-          onPointerDown: (e) => _set(e.pointer, inputsAt(e.localPosition)),
-          onPointerMove: (e) => _set(e.pointer, inputsAt(e.localPosition)),
-          onPointerUp: (e) => _set(e.pointer, const {}),
-          onPointerCancel: (e) => _set(e.pointer, const {}),
+          onPointerDown: (e) {
+            final hits = inputsAt(e.localPosition);
+            final frame = hits.isEmpty
+                ? widget.toFrame?.call(e.localPosition, _size)
+                : null;
+            if (frame != null && widget.onPicture != null && _picture == null) {
+              _picture = e.pointer;
+              _lastFrame = frame;
+              widget.onPicture!(frame, true);
+              return;
+            }
+            _set(e.pointer, hits);
+          },
+          onPointerMove: (e) {
+            if (e.pointer == _picture) {
+              final frame = widget.toFrame?.call(e.localPosition, _size);
+              if (frame != null) {
+                _lastFrame = frame;
+                widget.onPicture!(frame, true);
+              }
+              return;
+            }
+            _set(e.pointer, inputsAt(e.localPosition));
+          },
+          onPointerUp: (e) => _release(e.pointer),
+          onPointerCancel: (e) => _release(e.pointer),
           child: Opacity(
             opacity: widget.layout.opacity,
             child: Stack(

@@ -134,10 +134,37 @@ class GamepadService {
     // feed the same streams (mobile + macOS arrive over the channel).
     if (Platform.isWindows) {
       _winPoller = WindowsXInputPoller()
-        ..start(_emitButton, _emitConnection);
+        ..start(_emitButton, _emitConnection, _emitAxis);
     } else if (Platform.isLinux) {
       _linuxPads = LinuxEvdevPads()
-        ..start(_emitButton, _emitConnection);
+        ..start(_emitButton, _emitConnection, null, _emitAxis);
+    }
+  }
+
+  /// Analog stick motion: [GamepadAxisEvent.axis] is lx / ly / rx / ry and
+  /// the value -1..1 with down/right positive, after a small dead zone so a
+  /// resting stick reads exactly centred.
+  void Function() onAxis(void Function(GamepadAxisEvent event) handler) {
+    _ensureListening();
+    final sub = _axisCtrl.stream.listen(handler);
+    return _counted(sub.cancel);
+  }
+
+  final _axisCtrl = StreamController<GamepadAxisEvent>.broadcast(sync: true);
+
+  /// Dead zone as a fraction of full travel; values past it are rescaled so
+  /// the stick still reaches full scale.
+  static const axisDeadZone = 0.12;
+
+  static double applyDeadZone(double v) {
+    final a = v.abs();
+    if (a <= axisDeadZone) return 0;
+    return v.sign * ((a - axisDeadZone) / (1 - axisDeadZone)).clamp(0.0, 1.0);
+  }
+
+  void _emitAxis(String axis, double value) {
+    if (!_axisCtrl.isClosed) {
+      _axisCtrl.add(GamepadAxisEvent(axis, applyDeadZone(value)));
     }
   }
 
@@ -159,6 +186,11 @@ class GamepadService {
         if (code != null && pressed != null) {
           _buttonCtrl.add(GamepadEvent(code, pressed));
         }
+      case 'axis':
+        // Native backends (Android, Apple) report sticks the same way.
+        final axis = args['axis'] as String?;
+        final value = (args['value'] as num?)?.toDouble();
+        if (axis != null && value != null) _emitAxis(axis, value);
       case 'connection':
         final connected = args['connected'] as bool? ?? false;
         final name = args['name'] as String? ?? 'Controller';
@@ -177,6 +209,22 @@ class GamepadService {
 }
 
 /// A normalized physical-button transition.
+class GamepadAxisEvent {
+  const GamepadAxisEvent(this.axis, this.value);
+  final String axis; // lx | ly | rx | ry
+  final double value; // -1..1, down/right positive
+
+  /// (stick, axis) as libretro indexes them: stick 0 left / 1 right,
+  /// axis 0 x / 1 y.
+  (int, int)? get retro => switch (axis) {
+    'lx' => (0, 0),
+    'ly' => (0, 1),
+    'rx' => (1, 0),
+    'ry' => (1, 1),
+    _ => null,
+  };
+}
+
 class GamepadEvent {
   const GamepadEvent(this.code, this.pressed);
   final String code;
