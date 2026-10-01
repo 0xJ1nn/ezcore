@@ -25,6 +25,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
+import '../controls/package_layouts.dart';
 import '../models/core_manifest.dart';
 import 'core_package_validator.dart';
 import 'hash_verifier.dart';
@@ -339,6 +340,22 @@ class PackageInstaller {
       final infoDir = Directory('${vaultRoot.path}/cores/$id/info');
       await infoDir.create(recursive: true);
       await infoFile.copy('${infoDir.path}/$id.info');
+    }
+    // On-screen layouts the package ships (ADR-020). Only files that pass
+    // the validator's rules are staged; the folder is replaced, not merged,
+    // so a reinstall never keeps a layout the new version dropped.
+    final layouts = readLayoutDir(
+      Directory('${package.path}/layouts'),
+      allowedSystems: manifest.systems,
+    ).layouts;
+    final layoutDir = Directory('${vaultRoot.path}/cores/$id/layouts');
+    if (await layoutDir.exists()) await layoutDir.delete(recursive: true);
+    if (layouts.isNotEmpty) {
+      await layoutDir.create(recursive: true);
+      for (final (file, _) in layouts) {
+        await File('${package.path}/layouts/$file')
+            .copy('${layoutDir.path}/$file');
+      }
     }
 
     // (7) Success. The "Unverified" label remains a warning on the report so
