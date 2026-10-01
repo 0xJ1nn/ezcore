@@ -23,11 +23,23 @@ class LayoutStore {
   // frame, and a "new" layout would make the touch layer release controls.
   final Map<String, (String, ControlLayout?)> _cache = {};
 
-  /// The layout to use for [system] in this orientation: the user's version
-  /// when one is saved and valid, otherwise the built-in.
-  ControlLayout resolve(String system, {required bool portrait}) {
-    final builtin = builtinLayout(system, portrait: portrait);
-    return custom(builtin.id) ?? builtin;
+  /// The default for [system] in this orientation: the layout the game's
+  /// core package ships, if it ships one, otherwise the built-in.
+  ControlLayout defaultFor(
+    String system, {
+    required bool portrait,
+    String? coreId,
+  }) =>
+      (coreId == null
+          ? null
+          : state.packageLayouts.layoutFor(coreId, system, portrait: portrait)) ??
+      builtinLayout(system, portrait: portrait);
+
+  /// The layout to use: the user's own version when one is saved and valid,
+  /// otherwise [defaultFor] — the core's layout, then the built-in.
+  ControlLayout resolve(String system, {required bool portrait, String? coreId}) {
+    final base = defaultFor(system, portrait: portrait, coreId: coreId);
+    return custom(base.id) ?? base;
   }
 
   /// The user's saved version of layout [id], or null.

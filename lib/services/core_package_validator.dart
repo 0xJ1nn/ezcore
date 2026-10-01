@@ -17,6 +17,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../controls/package_layouts.dart';
 import '../models/core_manifest.dart';
 
 /// Top-level fields permitted in a core package `manifest.json`.
@@ -153,6 +154,15 @@ class PackageValidationReport {
     }
 
     _validateManifest(json as Map<String, dynamic>, report, package);
+    // layouts/ (ADR-020): every file a valid layout for a system this core
+    // declares. Same rules the loader applies at play time.
+    final systems = json['systems'];
+    report.errors.addAll(
+      readLayoutDir(
+        Directory('${package.path}/layouts'),
+        allowedSystems: [if (systems is List) for (final s in systems) '$s'],
+      ).errors,
+    );
     await _scanPackage(package, report, cap);
     return report;
   }

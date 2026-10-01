@@ -15,7 +15,7 @@ The directory name MUST equal the core's `id` field (see §2). The on-disk shape
   info/
     <core-id>.info             # libretro metadata — parsed, never executed
   options/                     # RESERVED for future use — not parsed by v1
-  layouts/                     # RESERVED for future use — not parsed by v1
+  layouts/                     # on-screen layouts, ezcore.controls/1 (§9)
   cheats/                      # RESERVED for future use — not parsed by v1
 ```
 
@@ -23,7 +23,7 @@ The `<core-id>.info` file is a libretro core-info file: plain-text, line-oriente
 
 **Design invariant.** Everything in a package that is not the core library itself is data: schema-validated, size-capped, path-confined, containing no symlinks and no fetched URLs (`EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md` §2.3).
 
-The `options/`, `layouts/`, and `cheats/` directories are reserved for future use and are not parsed or enforced by v1. They are data-only by design.
+The `options/` and `cheats/` directories are reserved for future use and are not parsed or enforced by v1. `layouts/` is parsed and enforced (§9). All three are data-only by design.
 
 ## 2. The manifest schema
 
@@ -277,3 +277,27 @@ The following files were read and checked against this specification:
 - **`lib/services/retro_info_parser.dart`** — `.info` grammar: `key = "value"` (L9), `#` comments (L148), `\` line continuation (L101–106, `_isContinuation` L134–142), `\"`/`\\` escapes (L186–198), lenient parse (L93–129), typed getters (`corename`, `systemname`, `supported_extensions`, `firmware_count`, L49–86).
 - **`lib/models/core_manifest.dart`** — Model fields (L7–42); `delivery` iOS rule in `toJson` note (L87–88) and `validate()` (L106–108); execution `interpreter\|dynarec` (L40–42, L112–119); blocked-core-no-artifacts (L109–111); required-field checks in `validate()` (L100–105).
 - **`docs/CORE_AUTHORING.md`** — §2.1 field reference table (L136–156); §2.2 validator rules (L168–190); §2.3 delivery vocabulary (L240–255); §3.3 hold/gated/recipe-only (L267–287); §4 catalog merge (L289–316); §2 field types and platform-arch keys (L132–166)
+
+## 9. On-screen layouts (`layouts/`)
+
+A package may ship touch layouts for its systems in `layouts/`, in the
+`ezcore.controls/1` format defined by ADR-020 (`docs/DECISIONS.md`) and
+implemented by `lib/controls/control_layout.dart`. The same rules apply at
+install (validator) and at play time (loader,
+`lib/controls/package_layouts.dart`):
+
+1. `layouts/` MUST be flat: only `.json` files; no folders, no links.
+2. At most 32 files, each at most 64 KiB.
+3. Every file MUST parse as a valid `ezcore.controls/1` layout (unknown
+   fields rejected, geometry confined to the player area, inputs limited to
+   RetroPad names and the host actions `menu` and `fast_forward`).
+4. A layout's `systems` MUST be a subset of the manifest's `systems`: a core
+   cannot supply controls for a system it does not run.
+5. Layout ids MUST be unique within the package.
+
+Any violation fails validation; nothing is staged. On install the folder is
+staged to `<cores>/<id>/layouts/`, replacing any earlier copy. In the player,
+a user's saved copy of a layout wins, then the core's layout for that system
+and orientation (an exact orientation beats `any`), then ezCORE's built-in
+layout. Resetting a layout in the editor returns to the core's layout.
+
