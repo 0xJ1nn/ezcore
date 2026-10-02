@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <stdlib.h>
 #ifndef _WIN32
 #include <unistd.h>
@@ -122,6 +123,25 @@ static bool apply_boot_options(ezcore_session* s) {
   return true;
 }
 
+/* Frame count (EZCORE_BOOT_FRAMES, default [fallback]) and optional 60 fps
+ * pacing (EZCORE_BOOT_PACE=1), see run_boot_test. */
+static int boot_frames(int fallback) {
+  const char *v = getenv("EZCORE_BOOT_FRAMES");
+  int n = v ? atoi(v) : 0;
+  return n > 0 ? n : fallback;
+}
+
+static void run_frames(ezcore_session *s, int n) {
+  const char *pace = getenv("EZCORE_BOOT_PACE");
+  for (int i = 0; i < n; i++) {
+    ezcore_run_frame(s);
+    if (pace && *pace == '1') {
+      struct timespec ts = {0, 16666667};
+      nanosleep(&ts, NULL);
+    }
+  }
+}
+
 static int run_boot_test(const char* core_path, const char* rom_path) {
   char err[1024] = {0};
   ezcore_session* s = ezcore_load(core_path, err, sizeof(err));
@@ -172,8 +192,10 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
   ezcore_system_geometry(s, &w, &h, &fps);
   printf("  geometry: %ux%u @ %.1f fps\n", w, h, fps);
 
-  /* Run 30 frames */
-  for (int i = 0; i < 30; i++) ezcore_run_frame(s);
+  /* Run 30 frames. EZCORE_BOOT_FRAMES and EZCORE_BOOT_PACE=1 (60 fps) are
+   * for cores that boot on their own thread in real time (PPSSPP): 30
+   * unpaced frames end before such a core has drawn anything. */
+  run_frames(s, boot_frames(30));
 
   unsigned rw, rh;
   const uint32_t* px = ezcore_frame_pixels(s, &rw, &rh);
@@ -217,7 +239,7 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
   printf("  save state: %zu bytes\n", snap_size);
 
   /* Run more frames to diverge */
-  for (int i = 0; i < 10; i++) ezcore_run_frame(s);
+  run_frames(s, 10);
 
   /* Restore */
   if (!ezcore_unserialize(s, snap, snap_size)) {
