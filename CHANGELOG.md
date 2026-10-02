@@ -278,7 +278,7 @@ All notable changes to ezCORE are documented here. The format follows
 - **Not verified on this host:** macOS/Windows/iOS builds — not built
   here, not claimed.
 
-[0.2.0]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.2.0
+[0.2.0]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.2.0
 
 ## [0.1.1] — 2026-09-19
 

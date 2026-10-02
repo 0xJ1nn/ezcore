@@ -4,11 +4,11 @@
 > **Last audited:** 2026-09-25.
 > **Current release:** `v0.2.0` (public, experimental).
 > **Current repository state:** the responsive replacement stack is merged into
-> `main`: PR [#29](https://github.com/JinUltimate1995/ezcore/pull/29) carried the
+> `main`: PR [#29](https://github.com/0xJ1nn/ezcore/pull/29) carried the
 > artwork/compact-shell evidence repair, PR
-> [#30](https://github.com/JinUltimate1995/ezcore/pull/30) carried the signed
+> [#30](https://github.com/0xJ1nn/ezcore/pull/30) carried the signed
 > cover-flow hardening, and PR
-> [#31](https://github.com/JinUltimate1995/ezcore/pull/31) integrated the
+> [#31](https://github.com/0xJ1nn/ezcore/pull/31) integrated the
 > reviewed child delta after the stacked topology was resolved. Flutter, Linux
 > native, provenance, Linux debug, and Android debug gates are green; device
 > and platform verification remain bounded by [`docs/MATRIX.md`](docs/MATRIX.md).
