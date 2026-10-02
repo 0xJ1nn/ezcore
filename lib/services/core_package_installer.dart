@@ -28,6 +28,7 @@ import 'dart:io';
 import '../controls/package_layouts.dart';
 import '../models/core_manifest.dart';
 import 'core_package_validator.dart';
+import 'core_system_data.dart';
 import 'hash_verifier.dart';
 import 'local_data_dir.dart';
 import 'retro_info_parser.dart';
@@ -357,6 +358,19 @@ class PackageInstaller {
             .copy('${layoutDir.path}/$file');
       }
     }
+
+    // The core's own system data (ADR-021), validated above; refreshed per
+    // version (copySystemData's marker), copied into the system dir at play.
+    final systemCopy = await copySystemData(
+      from: Directory('${package.path}/system'),
+      to: Directory('${vaultRoot.path}/cores/$id/system'),
+      coreId: id,
+      version: manifest.version,
+      declared: manifest.systemData,
+      biosFiles: manifest.biosFiles,
+    );
+    warnings.addAll(systemCopy.errors);
+    warnings.addAll(systemCopy.warnings);
 
     // (7) Success. The "Unverified" label remains a warning on the report so
     // the caller (UI) can render the trust state plainly.

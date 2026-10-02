@@ -8,6 +8,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Cores bring their own data files.** A core package can now ship the data
+  its emulator needs in the system folder — Dolphin's `Sys` folder for
+  GameCube, PPSSPP's assets for PSP — and ezCORE puts it in place before the
+  game starts, refreshing it when the core updates. It is checked to be data
+  only and never includes BIOS, firmware or keys; a folder you made yourself
+  is never touched. (ADR-021, proposed.)
 - **Sticks, keyboard, mouse and touch reach your games.** Controller sticks
   are real analog input (Linux and Windows today). Every key reaches games that
   read a keyboard; in DOS and adventure games the keyboard is all theirs and

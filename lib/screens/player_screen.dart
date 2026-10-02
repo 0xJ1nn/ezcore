@@ -23,6 +23,7 @@ import '../services/runtime_loader.dart';
 import '../services/scoped_files.dart';
 import '../services/local_data_dir.dart';
 
+import '../services/core_system_data.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
@@ -163,6 +164,25 @@ class _PlayerScreenState extends State<PlayerScreen>
         final system = await Directory(
           '${data.path}/system',
         ).create(recursive: true);
+        // The core's own data (ADR-021: Dolphin's Sys, PPSSPP's assets),
+        // copied from beside the installed core once per core version.
+        final systemData = await copySystemData(
+          from: Directory('${File(corePath).parent.path}/system'),
+          to: system,
+          coreId: manifest.id,
+          version: manifest.version,
+          declared: manifest.systemData,
+          biosFiles: manifest.biosFiles,
+        );
+        if (systemData.errors.isNotEmpty) {
+          throw StateError(
+            "This core's own data files are missing or invalid "
+            '(${systemData.errors.first}). Reinstall the core.',
+          );
+        }
+        for (final w in systemData.warnings) {
+          debugPrint('ezcore: $w');
+        }
         // Per-game SRAM dir: cores name battery files freely (some use
         // fixed names), so a shared dir would corrupt saves across games.
         final saves = await Directory(

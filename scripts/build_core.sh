@@ -66,6 +66,18 @@ stage() { # id file [destname]
   (cd "$OUT_DIR/$id" && { shasum -a 256 "$dest" 2>/dev/null || sha256sum "$dest"; } | tee SHA256SUMS)
 }
 
+stage_system_data() { # id srcdir name — core-owned data for <system>/<name> (ADR-021)
+  local id="$1" src="$2" name="$3"
+  local dest="$OUT_DIR/$id/system/$name"
+  [ -d "$src" ] || { echo "stage_system_data: $src missing" >&2; return 1; }
+  rm -rf "$dest"
+  mkdir -p "$(dirname "$dest")"
+  cp -R "$src" "$dest"
+  # Data only: the app refuses executable bits and links in system data.
+  find "$dest" -type l -delete
+  find "$dest" -type f -exec chmod a-x {} +
+}
+
 # Portable make wrapper: libretro `platform=` value + parallelism.
 # Toolchains (android NDK / iOS SDK env) are installed by dispatch.
 # One-shot override per call (auto-cleared, never leaks across recipes):
@@ -252,6 +264,7 @@ build_portcomp() {
   # shellcheck disable=SC2086
   core_make "$SRC_DIR/ppsspp/libretro" $extra
   stage portcomp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.$LIB_SUFFIX"
+  stage_system_data portcomp "$SRC_DIR/ppsspp/assets" PPSSPP
 }
 
 build_nesbyte() {
@@ -433,6 +446,7 @@ build_powercube() {
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
   cmake --build "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH" -j"$JOBS"
   stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
+  stage_system_data powercube "$SRC_DIR/dolphin-libretro/Data/Sys" dolphin-emu/Sys
 }
 
 # ---------------- Hold cores: always refuse ----------------
