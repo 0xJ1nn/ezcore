@@ -41,7 +41,7 @@ Rules for contributors and the app itself:
 
 ### For Store Distribution
 
-Only the official maintainer (JinUltimate1995) may publish ezCORE to:
+Only the official maintainer (0xJ1nn) may publish ezCORE to:
 - Google Play Store
 - Apple App Store / TestFlight
 - Microsoft Store
@@ -63,7 +63,7 @@ platform for trademark infringement. The GPL-3.0 license on the code does
 not grant trademark rights.
 
 **Official builds are only these:** GitHub Releases
-(`JinUltimate1995/ezcore`) and, once live, the Play Store listings for
+(`0xJ1nn/ezcore`) and, once live, the Play Store listings for
 ezCORE (free) and ezCORE Platinum. Anything else is a fork or a copycat.
 
 If you find a copycat, help by capturing evidence (store URL, screenshots,

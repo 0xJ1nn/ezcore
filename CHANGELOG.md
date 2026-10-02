@@ -308,7 +308,7 @@ All notable changes to ezCORE are documented here. The format follows
   to Library empty-state. SHA256SUMS verified by re-download.
 - Android arm64: 8 cores bundled, arm64-v8a only. SHA256SUMS verified.
 
-[0.1.1]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.1
+[0.1.1]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.1.1
 
 ## [0.1.0] — 2026-09-19 (original public release)
 
@@ -392,4 +392,4 @@ at the top of [`README.md`](README.md).
 - macOS sandbox: typed-path import of arbitrary folders stays limited to
   what the system picker / security-scoped bookmarks allow.
 
-[0.1.0]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.0
+[0.1.0]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.1.0
