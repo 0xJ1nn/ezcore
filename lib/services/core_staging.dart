@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../models/core_manifest.dart';
 import 'core_path_resolver.dart';
+import 'core_system_data.dart';
 import 'hash_verifier.dart';
 import 'local_data_dir.dart';
 import 'native_dirs.dart';
@@ -144,7 +145,10 @@ class CoreStagingService {
       // Steady state: verified bytes, unchanged source — no hashing.
       // (Size+mtime equality, never wall-clock recency, so coarse
       // filesystem granularity can't cause false hits.)
-      if (destOk && !sourceChanged) return true;
+      if (destOk && !sourceChanged) {
+        if (candidate != null) await _stageSystemData(manifest, candidate, dest);
+        return true;
+      }
       await _removeDest(dest);
     } else if (dest.existsSync()) {
       await _removeDest(dest);
@@ -157,7 +161,30 @@ class CoreStagingService {
       throw StateError('Staged artifact failed pin check for ${manifest.id}');
     }
     _writeSidecar(dest.path, pin.toLowerCase(), candidate);
+    await _stageSystemData(manifest, candidate, dest);
     return true;
+  }
+
+  /// The core's own system data (ADR-021) from beside the bundled library
+  /// (`<source>/<id>/system/`) into the vault, next to the staged core.
+  /// Validated first; a bad folder is reported and skipped, never copied.
+  Future<void> _stageSystemData(
+    CoreManifest manifest,
+    File candidate,
+    File dest,
+  ) async {
+    if (manifest.systemData.isEmpty) return;
+    final result = await copySystemData(
+      from: Directory('${candidate.parent.path}/system'),
+      to: Directory('${dest.parent.path}/system'),
+      coreId: manifest.id,
+      version: manifest.version,
+      declared: manifest.systemData,
+      biosFiles: manifest.biosFiles,
+    );
+    for (final m in [...result.errors, ...result.warnings]) {
+      stderr.writeln('ezcore: system data for ${manifest.id}: $m');
+    }
   }
 
   /// Removes a staged artifact with its sidecar (never orphan one: a

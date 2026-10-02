@@ -22,6 +22,8 @@ class CoreManifest {
     this.execution = const {},
     this.defaultOptions = const {},
     this.defaultOptionsErrors = const [],
+    this.systemData = const [],
+    this.systemDataErrors = const [],
   });
 
   final String id;
@@ -50,6 +52,13 @@ class CoreManifest {
 
   /// Problems found while parsing `default_options`; surfaced by [validate].
   final List<String> defaultOptionsErrors;
+
+  /// The core's own data folders for the system dir (`system_data`, ADR-021),
+  /// e.g. `["dolphin-emu"]`. Shipped under `system/<name>/` in the package.
+  final List<String> systemData;
+
+  /// Problems found while parsing `system_data`; surfaced by [validate].
+  final List<String> systemDataErrors;
 
   /// Caps on `default_options`, shared with the package validator.
   static const int maxDefaultOptions = 128;
@@ -97,8 +106,44 @@ class CoreManifest {
     return (options: options, errors: errors);
   }
 
+  /// Cap on `system_data` entries (ADR-021).
+  static const maxSystemDataEntries = 4;
+  static final _systemDataName = RegExp(r'^[A-Za-z0-9._-]+$');
+
+  /// Parses a raw `system_data` value strictly: a short list of plain folder
+  /// names. Returns the names (empty when absent) and any errors.
+  static ({List<String> names, List<String> errors}) parseSystemData(
+    Object? raw,
+  ) {
+    if (raw == null) return (names: const [], errors: const []);
+    if (raw is! List) {
+      return (
+        names: const [],
+        errors: const ['"system_data" must be a list of folder names'],
+      );
+    }
+    final errors = <String>[];
+    final names = <String>[];
+    if (raw.length > maxSystemDataEntries) {
+      errors.add(
+        '"system_data" has ${raw.length} entries (max $maxSystemDataEntries)',
+      );
+    }
+    for (final v in raw) {
+      if (v is! String || !_systemDataName.hasMatch(v) || v == '.' || v == '..') {
+        errors.add('"system_data" entry "$v" is not a plain folder name');
+      } else if (names.contains(v)) {
+        errors.add('"system_data" repeats "$v"');
+      } else {
+        names.add(v);
+      }
+    }
+    return (names: names, errors: errors);
+  }
+
   factory CoreManifest.fromJson(Map<String, dynamic> json) {
     final defaults = parseDefaultOptions(json['default_options']);
+    final systemData = parseSystemData(json['system_data']);
     return CoreManifest(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
@@ -117,6 +162,8 @@ class CoreManifest {
       execution: _strMap(json['execution']),
       defaultOptions: defaults.options,
       defaultOptionsErrors: defaults.errors,
+      systemData: systemData.names,
+      systemDataErrors: systemData.errors,
     );
   }
 
@@ -150,6 +197,7 @@ class CoreManifest {
         if (blockedReason.isNotEmpty) 'blocked_reason': blockedReason,
         if (execution.isNotEmpty) 'execution': execution,
         if (defaultOptions.isNotEmpty) 'default_options': defaultOptions,
+        if (systemData.isNotEmpty) 'system_data': systemData,
       };
 
   /// Returns human-readable policy errors. Empty = valid.
@@ -168,6 +216,7 @@ class CoreManifest {
       errors.add('blocked core must not ship artifacts');
     }
     errors.addAll(defaultOptionsErrors);
+    errors.addAll(systemDataErrors);
     for (final entry in execution.entries) {
       if (entry.value != 'interpreter' && entry.value != 'dynarec') {
         errors.add('bad execution strategy for ${entry.key}');
