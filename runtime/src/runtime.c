@@ -937,6 +937,24 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   ezcore_session *s = calloc(1, sizeof(*s));
   if (!s) return NULL;
   snprintf(s->core_path, sizeof(s->core_path), "%s", core_path);
+
+  /* Initialize the render platform before mapping any core. Mapping a large
+   * core library can perturb the host GL stack: with Mesa 26.2.4, dlopen()ing
+   * Play! or LRPS2 before EGL is initialized makes the later eglInitialize
+   * segfault inside the DRI screen path, while initializing EGL first leaves
+   * the same core working. The probe is soft (failure is ignored: cores that
+   * need no GPU and machines with no GL are unaffected) and runs once per
+   * process; the display stays initialized for the session's SET_HW_RENDER. */
+  static bool s_render_prewarmed = false;
+  if (!s_render_prewarmed) {
+    struct ezcore_gpu_context *warm = NULL;
+    char werr[128];
+    (void)ezcore_gpu_init(&warm, EZCORE_GPU_OPENGLES3, 3, 2, true, werr,
+                          sizeof werr);
+    if (warm) ezcore_gpu_destroy(warm);
+    s_render_prewarmed = true;
+  }
+
   s->handle = ez_dyn_open(core_path, err, err_len);
   if (!s->handle) {
     free(s);
