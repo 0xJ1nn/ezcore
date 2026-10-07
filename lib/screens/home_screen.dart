@@ -8,6 +8,8 @@ import '../services/human_time.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/collection_view.dart';
+import '../widgets/cover_flow.dart';
 import '../widgets/focus_glow.dart';
 import '../widgets/orbit_widgets.dart';
 import 'game_detail_screen.dart';
@@ -16,10 +18,14 @@ import 'launch.dart';
 
 /// Library, the home screen (layout option A, chosen 2026-10-01).
 ///
-/// Top to bottom: search and Add games; Resume — one tap back into the game
-/// played last, on whatever core it runs; Continue playing; filters; every
-/// game. One layout that reflows from a phone to a desktop rather than a
-/// separate design per size.
+/// Three ways to see the same games, switched top right and remembered:
+///  - 3D: the Orbit shelf. The focused game's art fills the background and
+///    one bar carries its action — Resume if it has been played, else Play.
+///    The shelf opens on the game played last, so Resume needs no card of
+///    its own here.
+///  - Grid and List: Resume (one tap back into the game played last, on
+///    whatever core it runs), Continue playing, then every game.
+/// Search, Add games, filters and sort sit in the same place in every view.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -48,8 +54,16 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchFocus = FocusNode(debugLabel: 'library search');
   String _filter = 'all'; // 'all' | 'favorites' | a system id
   _Sort _sort = _Sort.recent;
+  int _flowIndex = 0;
 
   AppState get state => widget.state;
+
+  CollectionView get _view => CollectionView.fromSetting(
+    state.settings[libraryViewKey],
+    fallback: CollectionView.flow,
+  );
+
+  void _setView(CollectionView v) => state.setSetting(libraryViewKey, v.value);
 
   @override
   void initState() {
@@ -62,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (f != null && mounted) {
       setState(() {
         _filter = f;
+        _flowIndex = 0;
         _search.clear();
       });
     }
@@ -134,107 +149,213 @@ class _HomeScreenState extends State<HomeScreen> {
     final short = height < 480;
     final pad = compact ? 16.0 : (width >= 1180 ? 40.0 : 24.0);
     final games = state.games;
+    if (games.isEmpty) {
+      return CustomScrollView(slivers: [SliverToBoxAdapter(child: _empty())]);
+    }
+    final visible = _visible();
+    if (_view == CollectionView.flow) {
+      return _flowBody(visible, compact, short, pad);
+    }
     final last = lastPlayed(games);
     final recent = [
       for (final g in games)
         if (g.lastPlayedMs > 0 && g.id != last?.id) g,
     ]..sort((a, b) => b.lastPlayedMs.compareTo(a.lastPlayedMs));
-    final visible = _visible();
 
     return CustomScrollView(
       slivers: [
-        // Nothing to search yet: the empty state carries the one action.
-        if (games.isNotEmpty)
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(pad, compact || short ? 16 : 28, pad, 0),
+          sliver: SliverToBoxAdapter(child: _header(compact)),
+        ),
+        if (last != null)
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(
-              pad,
-              compact || short ? 16 : 28,
-              pad,
-              0,
-            ),
-            sliver: SliverToBoxAdapter(child: _header(compact)),
-          ),
-        if (games.isEmpty)
-          SliverToBoxAdapter(child: _empty())
-        else ...[
-          if (last != null)
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(pad, 24, pad, 0),
-              sliver: SliverToBoxAdapter(
-                child: _ResumeCard(
-                  game: last,
-                  state: state,
-                  compact: compact,
-                  short: short,
-                  onDetails: () => _openDetail(last),
-                ),
+            padding: EdgeInsets.fromLTRB(pad, 24, pad, 0),
+            sliver: SliverToBoxAdapter(
+              child: _ResumeCard(
+                game: last,
+                state: state,
+                compact: compact,
+                short: short,
+                onDetails: () => _openDetail(last),
               ),
             ),
-          if (recent.isNotEmpty) ...[
-            _sectionTitle('Continue playing', pad),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: compact ? 200 : 236,
-                child: ListView.separated(
-                  padding: EdgeInsets.symmetric(horizontal: pad),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: recent.length.clamp(0, 12),
-                  separatorBuilder: (_, _) => const SizedBox(width: 14),
-                  itemBuilder: (context, i) => SizedBox(
-                    width: compact ? 116 : 140,
-                    child: _Tile(
-                      game: recent[i],
-                      footnote: lastPlayedLabel(recent[i].lastPlayedMs),
-                      onTap: () =>
-                          launchGame(context, state, recent[i], resume: true),
-                      semanticsHint: 'Resume',
-                    ),
+          ),
+        if (recent.isNotEmpty) ...[
+          _sectionTitle('Continue playing', pad),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: compact ? 200 : 236,
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: pad),
+                scrollDirection: Axis.horizontal,
+                itemCount: recent.length.clamp(0, 12),
+                separatorBuilder: (_, _) => const SizedBox(width: 14),
+                itemBuilder: (context, i) => SizedBox(
+                  width: compact ? 116 : 140,
+                  child: _Tile(
+                    game: recent[i],
+                    footnote: lastPlayedLabel(recent[i].lastPlayedMs),
+                    onTap: () =>
+                        launchGame(context, state, recent[i], resume: true),
+                    semanticsHint: 'Resume',
                   ),
                 ),
               ),
             ),
-          ],
-          _sectionTitle('All games', pad, trailing: _sortButton()),
-          SliverToBoxAdapter(child: _filters(pad)),
-          if (visible.isEmpty)
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(pad, 32, pad, 48),
-              sliver: SliverToBoxAdapter(
-                child: Text(
-                  'No games match. Try another filter or search.',
-                  style: Tokens.body(size: 13, color: Tokens.muted),
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(pad, 16, pad, 40),
-              sliver: SliverGrid.builder(
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: compact ? 130 : 176,
-                  mainAxisSpacing: 18,
-                  crossAxisSpacing: compact ? 12 : 18,
-                  childAspectRatio: 0.58,
-                ),
-                itemCount: visible.length,
-                itemBuilder: (context, i) => _Tile(
-                  game: visible[i],
-                  footnote: shortSystemLabel(visible[i].system),
-                  onTap: () => _openDetail(visible[i]),
-                  semanticsHint: 'Open details',
-                ),
+          ),
+        ],
+        _sectionTitle('All games', pad),
+        SliverToBoxAdapter(child: _filters(pad)),
+        if (visible.isEmpty)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(pad, 32, pad, 48),
+            sliver: SliverToBoxAdapter(child: _noMatch()),
+          )
+        else if (_view == CollectionView.list)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(pad, 16, pad, 40),
+            sliver: SliverList.separated(
+              itemCount: visible.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, i) => _ListRow(
+                game: visible[i],
+                onTap: () => _openDetail(visible[i]),
               ),
             ),
-        ],
+          )
+        else
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(pad, 16, pad, 40),
+            sliver: SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: compact ? 130 : 176,
+                mainAxisSpacing: 18,
+                crossAxisSpacing: compact ? 12 : 18,
+                childAspectRatio: 0.58,
+              ),
+              itemCount: visible.length,
+              itemBuilder: (context, i) => _Tile(
+                game: visible[i],
+                footnote: shortSystemLabel(visible[i].system),
+                onTap: () => _openDetail(visible[i]),
+                semanticsHint: 'Open details',
+              ),
+            ),
+          ),
       ],
     );
   }
 
+  /// The 3D view: header and filters, then the shelf over the focused game's
+  /// art, then its action bar.
+  Widget _flowBody(
+    List<GameEntry> visible,
+    bool compact,
+    bool short,
+    double pad,
+  ) {
+    final index = visible.isEmpty ? 0 : _flowIndex.clamp(0, visible.length - 1);
+    final focused = visible.isEmpty ? null : visible[index];
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (focused != null) _Backdrop(game: focused),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                pad,
+                compact || short ? 16 : 28,
+                pad,
+                0,
+              ),
+              child: _header(compact),
+            ),
+            const SizedBox(height: 14),
+            _filters(pad),
+            if (focused == null)
+              Padding(
+                padding: EdgeInsets.fromLTRB(pad, 32, pad, 0),
+                child: _noMatch(),
+              )
+            else ...[
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    final h = (c.maxHeight * (short ? 0.92 : 0.84)).clamp(
+                      96.0,
+                      440.0,
+                    );
+                    final w = (h * 0.7).clamp(
+                      64.0,
+                      c.maxWidth * (compact ? 0.56 : 0.34),
+                    );
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 0 : pad,
+                      ),
+                      child: CoverFlow(
+                        count: visible.length,
+                        index: index,
+                        itemSize: Size(w, w / 0.7),
+                        showArrows: !compact,
+                        semanticLabel: 'Games',
+                        onIndexChanged: (i) => setState(() => _flowIndex = i),
+                        onActivate: (i) => _openDetail(visible[i]),
+                        itemBuilder: (context, i, front) => GameCover(
+                          gameId: visible[i].id,
+                          title: visible[i].title,
+                          system: shortSystemLabel(visible[i].system),
+                          selected: front,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (!short)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 10),
+                  child: Text(
+                    '${(index + 1).toString().padLeft(2, '0')}  /  '
+                    '${visible.length.toString().padLeft(2, '0')}',
+                    textAlign: TextAlign.center,
+                    style: Tokens.body(
+                      size: 11,
+                      weight: FontWeight.w700,
+                      ls: 1.4,
+                      color: Tokens.muted,
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(pad, 0, pad, compact ? 12 : 24),
+                child: _FlowBar(
+                  game: focused,
+                  state: state,
+                  compact: compact,
+                  short: short,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _noMatch() => Text(
+    'No games match. Try another filter or search.',
+    style: Tokens.body(size: 13, color: Tokens.muted),
+  );
+
   Widget _header(bool compact) {
     final search = OrbitSearch(
       controller: _search,
-      onChanged: (_) => setState(() {}),
-      hint: 'Search your games',
+      onChanged: (_) => setState(() => _flowIndex = 0),
+      hint: compact ? 'Search' : 'Search your games',
       shortcutLabel: compact ? null : 'Ctrl K',
     );
     return Row(
@@ -242,6 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: Focus(focusNode: _searchFocus, child: search),
         ),
+        const SizedBox(width: 12),
+        CollectionViewSwitch(value: _view, onChanged: _setView),
         const SizedBox(width: 12),
         compact
             ? OrbitIconButton(
@@ -278,9 +401,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
   Widget _sortButton() => TextButton.icon(
-    onPressed: () => setState(
-      () => _sort = _sort == _Sort.recent ? _Sort.title : _Sort.recent,
-    ),
+    onPressed: () => setState(() {
+      _sort = _sort == _Sort.recent ? _Sort.title : _Sort.recent;
+      _flowIndex = 0;
+    }),
     icon: const Icon(Icons.swap_vert, size: 16, color: Tokens.muted),
     label: Text(
       _sort == _Sort.recent ? 'Recently played' : 'A–Z',
@@ -301,18 +425,32 @@ class _HomeScreenState extends State<HomeScreen> {
       child: OrbitChip(
         label: label,
         active: _filter == id,
-        onTap: () => setState(() => _filter = id),
+        onTap: () => setState(() {
+          _filter = id;
+          _flowIndex = 0;
+        }),
       ),
     );
+    // Filters scroll; sort stays put at the end, in every view.
     return SizedBox(
       height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: pad),
+      child: Row(
         children: [
-          chip('all', 'All · ${state.games.length}'),
-          if (favorites > 0) chip('favorites', 'Favorites · $favorites'),
-          for (final s in systems) chip(s, systemLabel(s)),
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.only(left: pad, right: 8),
+              children: [
+                chip('all', 'All · ${state.games.length}'),
+                if (favorites > 0) chip('favorites', 'Favorites · $favorites'),
+                for (final s in systems) chip(s, systemLabel(s)),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(right: pad - 8),
+            child: _sortButton(),
+          ),
         ],
       ),
     );
@@ -558,6 +696,231 @@ class _Tile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Tokens.body(size: 11, color: Tokens.muted),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The focused game's art, blurred and darkened behind the 3D shelf.
+class _Backdrop extends StatelessWidget {
+  const _Backdrop({required this.game});
+
+  final GameEntry game;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 450),
+            child: ImageFiltered(
+              key: ValueKey(game.id),
+              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+              child: Opacity(
+                opacity: 0.55,
+                child: Transform.scale(
+                  scale: 1.3,
+                  child: GameCover(
+                    gameId: game.id,
+                    title: '',
+                    system: '',
+                    radius: 0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xCC060B14),
+                  Color(0x66060B14),
+                  Color(0xF2060B14),
+                ],
+                stops: [0, 0.45, 1],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Under the 3D shelf: what the focused game is, and its one action.
+class _FlowBar extends StatelessWidget {
+  const _FlowBar({
+    required this.game,
+    required this.state,
+    required this.compact,
+    required this.short,
+  });
+
+  final GameEntry game;
+  final AppState state;
+  final bool compact;
+
+  /// Little vertical room: one row, so the shelf keeps its space.
+  final bool short;
+
+  @override
+  Widget build(BuildContext context) {
+    final played = game.lastPlayedMs > 0;
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!short) ...[
+          Row(
+            children: [
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Tokens.systemLabelBg,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: Tokens.systemLabelBd),
+                  ),
+                  child: Text(
+                    shortSystemLabel(game.system),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(
+                      size: 10,
+                      weight: FontWeight.w700,
+                      color: Tokens.systemLabelFg,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  played
+                      ? lastPlayedLabel(game.lastPlayedMs)
+                      : 'Not played yet',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(size: 12, color: Tokens.muted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+        ],
+        Text(
+          game.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Tokens.display(
+            size: short ? 16 : (compact ? 20 : 26),
+            weight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+    final primary = OrbitPrimary(
+      label: played ? 'Resume' : 'Play',
+      expanded: compact && !short,
+      minHeight: short ? 40 : (compact ? 48 : 52),
+      onPressed: () => launchGame(context, state, game, resume: played),
+    );
+    return Container(
+      padding: EdgeInsets.all(short ? 10 : (compact ? 14 : 18)),
+      decoration: BoxDecoration(
+        color: const Color(0xB30B1421),
+        borderRadius: BorderRadius.circular(Tokens.dockPanelRadius),
+        border: Border.all(color: Tokens.lineStrong),
+      ),
+      child: compact && !short
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [info, const SizedBox(height: 12), primary],
+            )
+          : Row(
+              children: [
+                Expanded(child: info),
+                const SizedBox(width: 16),
+                primary,
+              ],
+            ),
+    );
+  }
+}
+
+/// A game as one row: small cover, title, system and when it was played.
+class _ListRow extends StatelessWidget {
+  const _ListRow({required this.game, required this.onTap});
+
+  final GameEntry game;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusGlow(
+      onTap: onTap,
+      lift: 1.005,
+      semanticLabel: game.title,
+      semanticHint: 'Open details',
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: const Color(0x0CDDE6F4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Tokens.line),
+        ),
+        child: Row(
+          children: [
+            // Too small for the cover's own caption; the title is beside it.
+            GameCover(
+              gameId: game.id,
+              title: '',
+              system: '',
+              width: 42,
+              height: 58,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    game.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(size: 14, weight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${systemLabel(game.system)} · '
+                    '${game.lastPlayedMs > 0 ? lastPlayedLabel(game.lastPlayedMs) : 'Not played yet'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Tokens.body(size: 12, color: Tokens.muted),
+                  ),
+                ],
+              ),
+            ),
+            if (game.favorite)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6),
+                child: Icon(
+                  Icons.favorite,
+                  size: 16,
+                  color: Tokens.systemLabelFg,
+                ),
+              ),
+            const Icon(Icons.chevron_right, color: Tokens.muted),
           ],
         ),
       ),
