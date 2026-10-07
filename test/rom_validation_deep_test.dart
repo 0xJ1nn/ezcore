@@ -83,10 +83,7 @@ const magic = <String, List<(int, List<int>)>>{
   'zip': [(0, [0x50, 0x4B, 0x03, 0x04])],
   'cso': [(0, [0x43, 0x49, 0x53, 0x4F])],
   'ciso': [(0, [0x43, 0x49, 0x53, 0x4F])],
-  'wad': [
-    (0, [0x49, 0x57, 0x41, 0x44]), // IWAD
-    (0, [0x50, 0x57, 0x41, 0x44]), // PWAD (mods — playable content)
-  ],
+  'wad': [(0, [0x49, 0x73])], // WiiWare "Is" + version
   'wbfs': [(0, [0x57, 0x42, 0x46, 0x53])],
   'exe': [(0, [0x4D, 0x5A])],
   'fds': [(0, [0x46, 0x44, 0x53, 0x1A])],
@@ -291,16 +288,25 @@ void main() {
       expect(await validator.validate(f.path, 'nes'), isFalse);
     });
 
-    test('WAD accepts both IWAD and PWAD (base games and mods)', () async {
+    test('Wii WAD accepted; Doom IWAD/PWAD rejected (wrong system)', () async {
+      // Behavior change 2026-10-07: `.wad` is claimed only by the
+      // GameCube/Wii core (WiiWare containers, "Is" magic). Doom
+      // IWAD/PWAD files share the extension but no bundled core can run
+      // them, so importing them mislabels the shelf ("DOOM1.WAD" showed
+      // up under GameCube in a real run).
+      final wii = write(
+          'wiiware.wad', [0x49, 0x73, ...List<int>.filled(600, 0xAB)]);
+      expect(await validator.validate(wii.path, 'wad'), isTrue,
+          reason: 'WiiWare WAD ("Is") is the one playable .wad format');
+
       for (final head in [
         [0x49, 0x57, 0x41, 0x44], // IWAD
         [0x50, 0x57, 0x41, 0x44], // PWAD
       ]) {
-        final f = write('wad_case.wad',
+        final f = write('doom_case.wad',
             [...head, ...List<int>.filled(600, 0xAB)]);
-        expect(await validator.validate(f.path, 'wad'), isTrue,
-            reason: 'magic ${head.map((b) => b.toRadixString(16))} must '
-                'import');
+        expect(await validator.validate(f.path, 'wad'), isFalse,
+            reason: 'Doom WADs must not import — no core can run them');
       }
     });
 

@@ -27,16 +27,21 @@ class RescanReport {
   const RescanReport({
     this.added = 0,
     this.pruned = 0,
+    this.relabeled = 0,
     this.foldersScanned = 0,
     this.cancelled = false,
   });
 
   final int added;
   final int pruned;
+
+  /// Entries whose system/core label was corrected from a previous
+  /// import pass (content identification landed later).
+  final int relabeled;
   final int foldersScanned;
   final bool cancelled;
 
-  bool get changed => added > 0 || pruned > 0;
+  bool get changed => added > 0 || pruned > 0 || relabeled > 0;
 }
 
 /// Application state: games, favorites, core choices, cheats, settings.
@@ -546,12 +551,80 @@ class AppState extends ChangeNotifier {
       }
       return true; // keep (unplugged drive)
     }).toList();
-    pruned = before - games.length;
-    if (added > 0 || pruned > 0) {
+    pruned += before - games.length;
+
+    // Backfill file sizes recorded before the importer stored them, so
+    // the game page shows real sizes instead of "unknown size".
+    var sized = 0;
+    games = games.map((g) {
+      if (g.fileSize > 0) return g;
+      final f = File(g.filePath);
+      if (!f.existsSync()) return g;
+      final length = f.lengthSync();
+      if (length <= 0) return g;
+      sized++;
+      return g.copyWith(fileSize: length);
+    }).toList();
+
+    // Reconcile entries imported under older rules: re-identify content
+    // and (a) drop files no core can actually play (a Doom WAD listed as
+    // GameCube, a raw disc track listed as Dreamcast), (b) relabel a
+    // wrong system/core, (c) dedupe the same content imported from two
+    // paths (same id). Files whose image is gone stay untouched — an
+    // unplugged drive must not wipe the library.
+    var removed = 0;
+    var relabeled = 0;
+    final kept = <GameEntry>[];
+    final seenIds = <String>{};
+    for (final game in games) {
+      final file = File(game.filePath);
+      if (!file.existsSync()) {
+        kept.add(game);
+        continue;
+      }
+      if (seenIds.contains(game.id)) {
+        removed++;
+        continue; // exact duplicate (same sha -> same id)
+      }
+      seenIds.add(game.id);
+      final identity = await importer.identifyFile(game.filePath, game.extension);
+      if (identity.rejected) {
+        removed++;
+        continue; // no core can play this file
+      }
+      var entry = game;
+      final detected = identity.system;
+      if (detected != null && detected != game.system) {
+        // Relabel the system. Keep the remembered core when it can play
+        // the detected system (the user may have chosen it); re-select
+        // only when it cannot.
+        final current = catalog[game.coreId];
+        final currentCanPlay =
+            current != null && current.systems.contains(detected);
+        final core = currentCanPlay
+            ? current
+            : ContentImporter.selectCore(catalog, game.extension, detected);
+        entry = game.copyWith(
+          system: detected,
+          coreId: core?.id ?? game.coreId,
+        );
+        relabeled++;
+      }
+      kept.add(entry);
+    }
+    games = kept;
+    pruned += removed;
+
+    if (added > 0 || pruned > 0 || sized > 0 || relabeled > 0) {
       notifyListeners();
       await _persist();
     }
-    return RescanReport(added: added, pruned: pruned, foldersScanned: scanned);
+    return RescanReport(
+      added: added,
+      pruned: pruned,
+      relabeled: relabeled,
+      foldersScanned: scanned,
+    );
   }
 
   // --- settings ---
