@@ -49,7 +49,6 @@ class CoreStagingService {
     errors.clear();
     final staged = <String>[];
     final sources = await _sources();
-    if (sources.isEmpty) return staged;
     final key = CorePathResolver.currentPlatformKey();
     final osKey = key.split('-').first;
     final ext = Platform.isWindows
@@ -64,6 +63,12 @@ class CoreStagingService {
       // sitting next to the app makes staging log noise for cores that
       // cannot ship here anyway.
       if (manifest.delivery[osKey] == 'absent') continue;
+      // A download core needs no source tree: its verified vault copy is
+      // the distribution (ADR-013). Only bundled/dev cores need a local
+      // source, so an empty source list must not drop download cores —
+      // doing so left clean checkouts with an empty staging set even when
+      // a verified vault copy existed.
+      if (sources.isEmpty && manifest.delivery[osKey] != 'download') continue;
       final pin = manifest.artifacts[key];
       if (pin == null) continue;
       try {
