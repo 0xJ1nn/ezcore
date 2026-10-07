@@ -36,14 +36,16 @@ class GameEntry {
     int? lastPlayedMs,
     int? cheatsOn,
     int? stateCount,
+    int? fileSize,
+    String? system,
   }) {
     return GameEntry(
       id: id,
       title: title,
-      system: system,
+      system: system ?? this.system,
       filePath: filePath,
       extension: extension,
-      fileSize: fileSize,
+      fileSize: fileSize ?? this.fileSize,
       sha1: sha1,
       favorite: favorite ?? this.favorite,
       coreId: coreId ?? this.coreId,

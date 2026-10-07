@@ -12,14 +12,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/JinUltimate1995/ezcore/releases">
-    <img alt="Latest release" src="https://img.shields.io/github/v/release/JinUltimate1995/ezcore?include_prereleases&label=release&color=007BFF&style=for-the-badge">
+  <a href="https://github.com/0xJ1nn/ezcore/releases">
+    <img alt="Latest release" src="https://img.shields.io/github/v/release/0xJ1nn/ezcore?include_prereleases&label=release&color=007BFF&style=for-the-badge">
   </a>
   <a href="LICENSE">
     <img alt="GPL-3.0-only" src="https://img.shields.io/badge/license-GPL--3.0--only-007BFF?style=for-the-badge">
   </a>
   <img alt="Status: early, public" src="https://img.shields.io/badge/status-early%20%26%20public-007BFF?style=for-the-badge">
-  <a href="https://github.com/sponsors/JinUltimate1995">
+  <a href="https://github.com/sponsors/0xJ1nn">
     <img alt="Sponsor ezCORE" src="https://img.shields.io/badge/sponsor-ezCORE-ff69b4?style=for-the-badge">
   </a>
 </p>
@@ -127,8 +127,8 @@ System names identify compatibility targets only; marks belong to their owners
 | Platform | How | Verified |
 |---|---|---|
 | **Linux x64** | [Build from source](docs/BUILDING.md); release archive with the next release | Runs and is tested here |
-| **Android arm64** | [Latest release](https://github.com/JinUltimate1995/ezcore/releases/latest) `.apk` | Builds; on-device testing continues |
-| **macOS arm64** | [Latest release](https://github.com/JinUltimate1995/ezcore/releases/latest) `.zip` | Ran at v0.1.1; current build not yet re-verified |
+| **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | Builds; on-device testing continues |
+| **macOS arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.zip` | Ran at v0.1.1; current build not yet re-verified |
 | **Windows x64** | [Build from source](docs/BUILDING.md) | Not yet verified |
 | **iOS** | [Build guide](docs/BUILDING.md) | Not yet verified (Apple only allows cores built into the app) |
 
@@ -206,7 +206,7 @@ is [`ROADMAP.md`](ROADMAP.md); what changed lately is in
 ## Build from source
 
 ```bash
-git clone https://github.com/JinUltimate1995/ezcore.git
+git clone https://github.com/0xJ1nn/ezcore.git
 cd ezcore
 
 scripts/build_core.sh --fetch-headers
@@ -244,7 +244,7 @@ firmware, keys, circumvention tools or held-system cores.
 
 ezCORE is free, open source and works fully offline, with no account. If it
 earns a place in your setup, you can
-**[sponsor it on GitHub](https://github.com/sponsors/JinUltimate1995)** — but
+**[sponsor it on GitHub](https://github.com/sponsors/0xJ1nn)** — but
 code, testing, bug reports, art and docs count just as much. Security:
 [`SECURITY.md`](SECURITY.md). Help: [`SUPPORT.md`](SUPPORT.md).
 

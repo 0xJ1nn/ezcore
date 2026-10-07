@@ -23,7 +23,7 @@
 Other settled decisions: **no Mac App Store** (GPL-3.0 is incompatible with
 the App Store ToS, and sandbox review adds calendar time — ezCORE is a
 download from GitHub Releases); **cloud sync deferred to v1.1**; repo lives
-at `github.com/JinUltimate1995/ezcore`.
+at `github.com/0xJ1nn/ezcore`.
 
 This release ships with a plain-language heads-up: it is an early build,
 several cores are verified only on macOS, and Windows/Linux binaries do not
@@ -135,7 +135,7 @@ from the old roadmap draft.
   GitHub Actions secrets; **APK is attached to the GitHub Release** (no
   Play Store submission for now).
 - **Cloud sync:** deferred to v1.1 (local Time Capsule vault covers v1).
-- **Repo:** `JinUltimate1995/ezcore` (public, GPL-3.0-only).
+- **Repo:** `0xJ1nn/ezcore` (public, GPL-3.0-only).
 
 ## Risks
 

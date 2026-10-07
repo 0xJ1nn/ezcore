@@ -62,7 +62,7 @@ CoreManifest _giant(String pin, {Map<String, String>? delivery}) {
 }
 
 const _releaseJson = <String, dynamic>{
-  'repo': 'JinUltimate1995/ezcore',
+  'repo': '0xJ1nn/ezcore',
   'tag': 'v9.9.9',
   'assets': {
     'linux-x64': {'giant': 'giant_libretro-linux-x64.so'},
@@ -94,7 +94,7 @@ void main() {
       final r = CoreRelease.fromJson(_releaseJson);
       expect(
         r.downloadUri('linux-x64', 'giant').toString(),
-        'https://github.com/JinUltimate1995/ezcore/releases/download/'
+        'https://github.com/0xJ1nn/ezcore/releases/download/'
         'v9.9.9/giant_libretro-linux-x64.so',
       );
     });
@@ -144,7 +144,7 @@ void main() {
       expect(got, pin);
       expect(fetcher.seen.single.host, 'github.com');
       expect(fetcher.seen.single.path,
-          '/JinUltimate1995/ezcore/releases/download/v9.9.9/'
+          '/0xJ1nn/ezcore/releases/download/v9.9.9/'
           'giant_libretro-linux-x64.so');
 
       final dest = File('${tmpDir.path}/cores/giant/giant.so');
@@ -332,7 +332,7 @@ void main() {
           .split('+')
           .first;
       expect(release['tag'], 'v$v');
-      expect(release['repo'], 'JinUltimate1995/ezcore');
+      expect(release['repo'], '0xJ1nn/ezcore');
     });
 
     test('every published asset is download-delivery, pinned, conventionally named', () {
