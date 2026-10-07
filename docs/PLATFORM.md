@@ -80,7 +80,7 @@ it.
 **The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
 `runtime/external/libretro-common/include/libretro.h`, reproducible with one
-grep):** `env_cb` implements **21 of the 93** `RETRO_ENVIRONMENT_*` commands;
+grep):** `env_cb` implements **22 of the 93** `RETRO_ENVIRONMENT_*` commands;
 everything else hits `default: return false` (`runtime/src/runtime.c:197`).
 Still unimplemented and relevant here: `GET_RUMBLE_INTERFACE`,
 `SET_GEOMETRY`, `SET_SYSTEM_AV_INFO`, `SET_PERFORMANCE_LEVEL`,

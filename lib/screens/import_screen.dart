@@ -209,6 +209,7 @@ class _ImportScreenState extends State<ImportScreen> {
         setState(() {
           rescanSummary = report.changed
               ? '${report.added} added · ${report.pruned} pruned · '
+                  '${report.relabeled} fixed · '
                   '${report.foldersScanned} folders scanned'
               : 'Library up to date · ${report.foldersScanned} folders scanned';
         });

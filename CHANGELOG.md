@@ -108,6 +108,11 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **PSP games draw, and quitting them no longer crashes.** Cores that declare
+  their settings the way most libretro cores do (`SET_CORE_OPTIONS_V2_INTL`)
+  had every setting silently dropped; PPSSPP then never presented a frame. It
+  now renders. ezCORE also now tells a core its graphics are going away before
+  it unloads the game, as RetroArch does — PPSSPP crashed on quit otherwise.
 - **Dreamcast games draw on the GPU.** Flycast crashed as soon as a game
   started, because ezCORE answered the core's "which graphics API do you
   prefer?" question wrongly and then accepted Vulkan, which it cannot display
@@ -312,7 +317,7 @@ All notable changes to ezCORE are documented here. The format follows
 - **Not verified on this host:** macOS/Windows/iOS builds — not built
   here, not claimed.
 
-[0.2.0]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.2.0
+[0.2.0]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.2.0
 
 ## [0.1.1] — 2026-09-19
 
@@ -342,7 +347,7 @@ All notable changes to ezCORE are documented here. The format follows
   to Library empty-state. SHA256SUMS verified by re-download.
 - Android arm64: 8 cores bundled, arm64-v8a only. SHA256SUMS verified.
 
-[0.1.1]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.1
+[0.1.1]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.1.1
 
 ## [0.1.0] — 2026-09-19 (original public release)
 
@@ -426,4 +431,4 @@ at the top of [`README.md`](README.md).
 - macOS sandbox: typed-path import of arbitrary folders stays limited to
   what the system picker / security-scoped bookmarks allow.
 
-[0.1.0]: https://github.com/JinUltimate1995/ezcore/releases/tag/v0.1.0
+[0.1.0]: https://github.com/0xJ1nn/ezcore/releases/tag/v0.1.0
