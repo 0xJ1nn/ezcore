@@ -79,7 +79,7 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers **21 of the 93** environment commands
+cores. The kernel currently answers **22 of the 93** environment commands
 (`env_cb` at `runtime/src/runtime.c:197`), which is the binding constraint on
 the whole product.
 
