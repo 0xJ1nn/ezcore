@@ -456,7 +456,7 @@ build_lrps2() {
 hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
 build_switch_hold() { hold "Switch core is on hold (see cores/switch_hold/manifest.json)"; }
-build_ps2_hold()    { hold "No shippable PS2 core (see cores/ps2_hold/manifest.json)"; }
+build_ps2_hold()    { hold "PS2 slot held: user-BIOS delivery decision pending (LRPS2 verified; see cores/ps2_hold/manifest.json)"; }
 
 TIER1="pocketbit advancebit superfx blastproc realmode"
 
