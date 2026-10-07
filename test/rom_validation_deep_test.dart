@@ -46,6 +46,9 @@ const textBySpec = {'cue', 'ccd', 'gdi', 'm3u', 'lst', 'scummvm', 'bat'};
 const headerless = {
   'a26', 'bin', 'fig', 'com', 'img', 'pce', 'sgx', 'sg', 'sfc', 'smc',
   'dol', 'gcm', 'cdi', 'rvz', 'pbp', 'prx',
+  // LRPS2-only formats the validator accepts with size/text gates (no
+  // signature check exists for them yet):
+  'dump', 'gz', 'mdf', 'nrg', 'zso',
 };
 
 /// Spec-level magic per extension: (offset, bytes) checks as the real

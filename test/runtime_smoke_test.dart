@@ -25,6 +25,7 @@ const _cores = <String, String>{
   'powercube': 'dolphin-emu',
   'coinbox': 'FinalBurn Neo',
   'pointclick': 'ScummVM',
+  'lrps2': 'LRPS2',
 };
 
 String _dylib(String id) => paths.stagedCoreLib(id) ?? '';

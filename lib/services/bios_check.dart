@@ -24,26 +24,43 @@ class BiosReport {
   /// Copy-pasteable user guidance; empty when satisfied or not required.
   String get guidance {
     if (!required || satisfied) return '';
-    final files = missing.join(', ');
-    return 'Missing BIOS for $coreId: $files. '
+    // A manifest entry may be a subdirectory (e.g. `pcsx2/bios`): name the
+    // full expected location so the user knows exactly where the dump goes.
+    final paths = missing
+        .map((name) => name.contains('/') ? '$systemDir/$name' : name)
+        .join(', ');
+    return 'Missing BIOS for $coreId: $paths. '
         'Place your dumps at $systemDir (files stay on this device).';
   }
 }
 
 bool _defaultFileExists(String path) => File(path).existsSync();
 
+/// A directory entry counts only when it contains at least one file, so an
+/// empty `pcsx2/bios` folder does not satisfy a BIOS requirement.
+bool _defaultDirHasFiles(String path) {
+  final dir = Directory(path);
+  if (!dir.existsSync()) return false;
+  return dir.listSync().any((entity) => entity is File);
+}
+
 /// Checks BIOS files against the core manifest.
 ///
-/// Pure logic over an injected [fileExists] plus a thin dir-resolved
-/// wrapper, so unit tests never touch disk. The player gates boot on
-/// [check]; the Systems dock displays the counts.
+/// Pure logic over injected [fileExists]/[dirHasFiles] plus a thin
+/// dir-resolved wrapper, so unit tests never touch disk. The player gates
+/// boot on [check]; the Systems dock displays the counts.
 class BiosCheck {
-  BiosCheck({LocalDataDirProvider? dirs, bool Function(String path)? fileExists})
-      : _dirs = dirs ?? PlatformLocalDataDirProvider(),
-        _fileExists = fileExists ?? _defaultFileExists;
+  BiosCheck({
+    LocalDataDirProvider? dirs,
+    bool Function(String path)? fileExists,
+    bool Function(String path)? dirHasFiles,
+  })  : _dirs = dirs ?? PlatformLocalDataDirProvider(),
+        _fileExists = fileExists ?? _defaultFileExists,
+        _dirHasFiles = dirHasFiles ?? _defaultDirHasFiles;
 
   final LocalDataDirProvider _dirs;
   final bool Function(String path) _fileExists;
+  final bool Function(String path) _dirHasFiles;
 
   static String systemDirOf(LocalDataDirProvider dirs) =>
       '${dirs.localDataDirPath()}/system';
@@ -62,7 +79,7 @@ class BiosCheck {
     final present = <String>[];
     final missing = <String>[];
     for (final file in manifest.biosFiles) {
-      if (_fileExists('$dir/$file')) {
+      if (_fileExists('$dir/$file') || _dirHasFiles('$dir/$file')) {
         present.add(file);
       } else {
         missing.add(file);

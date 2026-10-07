@@ -51,6 +51,7 @@ EXECUTION = {
     # interpreter. No JIT anywhere we ship.
     "coinbox": INTERP_ALL,
     "pointclick": INTERP_ALL,
+    "lrps2": JIT_NO_IOS,  # only linux-x64 reaches RENDERS today; iOS absent
 }
 
 # Verified against libretro docs/.info (cheats = "true"); families must exist
@@ -94,10 +95,27 @@ _TIER_IOS = [
 # violation license_audit rejects.
 _DOWNLOAD_DESKTOP = {"pointclick", "dreamarc", "powercube"}
 
+# Per-core delivery overrides for cores whose verified surface is narrower
+# than a whole tier. LRPS2 reaches RENDERS on linux-x64 only (docs/MATRIX.md,
+# 2026-10-07); macOS/Windows have no kernel GL context backend yet and
+# Android/iOS need separate packaging. Bundled like the other verifiable
+# desktop cores (the download set is reserved for the staged giants).
+_PLATFORM_LIMITED = {
+    "lrps2": {
+        "macos": "absent",
+        "windows": "absent",
+        "linux": "bundled",
+        "android": "absent",
+        "ios": "absent",
+    },
+}
+
 
 def _delivery(cid: str) -> "dict[str, str] | None":
     if cid.endswith("_hold"):
         return None
+    if cid in _PLATFORM_LIMITED:
+        return dict(_PLATFORM_LIMITED[cid])
     if cid in ("coinbox", "superfx", "blastproc"):
         # Non-commercial upstream licenses: never distributed in any binary,
         # free or paid — kept as build recipes only. See gated_reason in each
