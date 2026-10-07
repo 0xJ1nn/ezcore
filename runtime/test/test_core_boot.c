@@ -144,6 +144,12 @@ static void run_frames(ezcore_session *s, int n) {
 
 static int run_boot_test(const char* core_path, const char* rom_path) {
   char err[1024] = {0};
+  /* Set the content directories before the core is loaded and initialized,
+   * matching the app (the worker calls setDirs before service.start).
+   * Cores may read the system directory during retro_init: LRPS2 scans its
+   * BIOS folder there to build its core-option list. Setting it later meant
+   * the scan ran against the spawn CWD instead. */
+  ezcore_set_dirs("./test-system", "./test-save");
   ezcore_session* s = ezcore_load(core_path, err, sizeof(err));
   if (!s) {
     fprintf(stderr, "  ezcore_load failed: %s\n", err);
@@ -164,8 +170,6 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
     ezcore_unload(s);
     return 1;
   }
-
-  ezcore_set_dirs("./test-system", "./test-save");
 
   FILE* f = fopen(rom_path, "rb");
   if (!f) {
