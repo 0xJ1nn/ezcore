@@ -45,6 +45,17 @@ void main() {
     ),
   ];
 
+  // A second Game Boy Advance game, never played: sorting by system puts it
+  // right after Alpha Quest, which no other order does.
+  const zeta = GameEntry(
+    id: 'z',
+    title: 'Zeta Strike',
+    system: 'gba',
+    filePath: '/z.gba',
+    extension: 'gba',
+    coreId: 'advancebit',
+  );
+
   final navKey = GlobalKey<NavigatorState>();
   void Function(GamepadEvent)? pad;
 
@@ -52,11 +63,12 @@ void main() {
     WidgetTester t, {
     CollectionView? view,
     Size size = const Size(1280, 800),
+    List<GameEntry> library = games,
   }) async {
     t.view.physicalSize = size;
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
-    final s = AppState.ephemeral()..games = List.of(games);
+    final s = AppState.ephemeral()..games = List.of(library);
     if (view != null) await s.setSetting(libraryViewKey, view.value);
     await t.pumpWidget(
       MaterialApp(
@@ -99,7 +111,7 @@ void main() {
     return texts
         .map((x) => x.data)
         .whereType<String>()
-        .firstWhere((d) => games.any((g) => g.title == d));
+        .firstWhere((d) => [...games, zeta].any((g) => g.title == d));
   }
 
   testWidgets('3D is the default view', (t) async {
@@ -164,8 +176,17 @@ void main() {
 
   testWidgets('a filter brings the shelf back to the front', (t) async {
     await pump(t, view: CollectionView.flow);
-    // Test text is wide (Ahem): scroll the tab out from under the sort.
-    await t.ensureVisible(find.text('Super Nintendo'));
+    // Test text is wide (Ahem): scroll the tab row to it.
+    await t.dragUntilVisible(
+      find.text('Super Nintendo'),
+      find
+          .ancestor(
+            of: find.text('Time capsule'),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+      const Offset(-120, 0),
+    );
     await t.pumpAndSettle();
     await t.tap(find.text('Super Nintendo'));
     await t.pumpAndSettle();
@@ -206,5 +227,110 @@ void main() {
     expect(barTitle(t), 'Alpha Quest');
     expect(find.bySemanticsLabel(RegExp('Game 2 of 3')), findsOneWidget);
     semantics.dispose();
+  });
+
+  group('the library bar, on every device', () {
+    const sizes = <String, Size>{
+      'desktop': Size(1600, 1000),
+      'tablet': Size(1024, 768),
+      'tablet portrait': Size(834, 1112),
+      'phone landscape': Size(844, 390),
+      'very short window': Size(640, 320),
+      'phone portrait': Size(390, 844),
+      'small phone': Size(360, 640),
+    };
+    for (final view in CollectionView.values) {
+      for (final e in sizes.entries) {
+        testWidgets('${view.label}, ${e.key}: search, views, add and tabs', (
+          t,
+        ) async {
+          await pump(t, view: view, size: e.value);
+          expect(t.takeException(), isNull);
+          expect(find.byType(OrbitSearch), findsOneWidget);
+          expect(find.byType(CollectionViewSwitch), findsOneWidget);
+          expect(find.byTooltip('Add games'), findsOneWidget);
+          expect(find.byTooltip('Sort'), findsOneWidget);
+          // The test font is wide, so on phones the later tabs are reached
+          // by scrolling the tab row, as a thumb would.
+          final tabs = find
+              .ancestor(
+                of: find.text('Time capsule'),
+                matching: find.byType(Scrollable),
+              )
+              .first;
+          for (final tab in ['Time capsule', 'Favorites', 'All systems']) {
+            await t.dragUntilVisible(
+              find.text(tab),
+              tabs,
+              const Offset(-80, 0),
+            );
+            expect(find.text(tab), findsOneWidget, reason: tab);
+          }
+        });
+      }
+    }
+  });
+
+  testWidgets('Time capsule: the games you played, latest first', (t) async {
+    await pump(t, view: CollectionView.flow);
+    // Sorting A–Z must not reorder the capsule: it is a history.
+    await t.tap(find.byTooltip('Sort'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('A–Z').last);
+    await t.pumpAndSettle();
+    await t.tap(find.text('Time capsule'));
+    await t.pumpAndSettle();
+    expect(barTitle(t), 'Beta Run');
+    expect(find.bySemanticsLabel(RegExp('Game 1 of 2')), findsOneWidget);
+  });
+
+  testWidgets('Time capsule before anything is played says so', (t) async {
+    await pump(
+      t,
+      view: CollectionView.grid,
+      library: [for (final g in games) g.copyWith(lastPlayedMs: 0)],
+    );
+    await t.tap(find.text('Time capsule'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Games you play land here'), findsOneWidget);
+  });
+
+  testWidgets('Favorites is there before you have any, and says how', (
+    t,
+  ) async {
+    await pump(t, view: CollectionView.grid);
+    await t.tap(find.text('Favorites'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Tap ♡ on a game'), findsOneWidget);
+  });
+
+  testWidgets('sort by system: games grouped by system', (t) async {
+    await pump(t, view: CollectionView.flow, library: [...games, zeta]);
+    await t.tap(find.byTooltip('Sort'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('By system').last);
+    await t.pumpAndSettle();
+    expect(barTitle(t), 'Alpha Quest');
+    await focusShelf(t);
+    await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await t.pumpAndSettle();
+    // Zeta Strike is the other Game Boy Advance game, so it comes next.
+    expect(barTitle(t), 'Zeta Strike');
+  });
+
+  testWidgets('sort by system: Grid and List get a heading per system', (
+    t,
+  ) async {
+    for (final view in [CollectionView.grid, CollectionView.list]) {
+      await pump(t, view: view, library: [...games, zeta]);
+      await t.tap(find.byTooltip('Sort'));
+      await t.pumpAndSettle();
+      await t.tap(find.text('By system').last);
+      await t.pumpAndSettle();
+      final headings = find.bySemanticsLabel(
+        RegExp(r'^Game Boy Advance, 2 games$'),
+      );
+      expect(headings, findsOneWidget, reason: view.label);
+    }
   });
 }
