@@ -49,6 +49,7 @@ remain in-tree as build recipes. Licenses and upstream sources:
 | `superfx` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
 | `joystick` | Stella | GPL-2.0-or-later | libretro/stella2023 |
 | `geometry1` | SwanStation | GPL-3.0 | libretro/swanstation |
+| `lrps2` | LRPS2 (libretro port of PCSX2) | GPL-3.0-or-later | libretro/ps2 |
 
 Notes:
 

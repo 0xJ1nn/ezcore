@@ -502,6 +502,64 @@
     "upstream": "libretro/stella2023",
     "version": "7.0-pre"
   },
+  "lrps2": {
+    "artifacts": {
+      "linux-x64": "245fae1147317a9f24792b0f36c36550966dbc759f208518ad2e05f37c20e7c7"
+    },
+    "bios_files": [
+      "pcsx2/bios"
+    ],
+    "bios_notes": "User-supplied PS2 BIOS dump; presence-gated at boot.",
+    "bios_required": true,
+    "cheat_families": [],
+    "cheats_supported": false,
+    "delivery": {
+      "android": "absent",
+      "ios": "absent",
+      "linux": "bundled",
+      "macos": "absent",
+      "windows": "absent"
+    },
+    "execution": {
+      "android": "dynarec",
+      "linux": "dynarec",
+      "macos": "dynarec",
+      "windows": "dynarec"
+    },
+    "extensions": [
+      "elf",
+      "iso",
+      "ciso",
+      "cue",
+      "bin",
+      "gz",
+      "chd",
+      "cso",
+      "zso",
+      "mdf",
+      "nrg",
+      "dump",
+      "img",
+      "m3u"
+    ],
+    "homepage": "https://github.com/libretro/ps2",
+    "id": "lrps2",
+    "license": "GPL-3.0-or-later",
+    "license_url": "https://github.com/libretro/ps2/blob/master/COPYING.GPLv3",
+    "name": "PlayStation 2 (LRPS2)",
+    "notes": "Hardware-rendered (OpenGL). Linux x64 verified (RENDERS, 2026-10-07); macOS/Windows GPU path and Android packaging are separate workstreams.",
+    "provenance": {
+      "built_from": "https://github.com/libretro/ps2",
+      "license_note": "COPYING.GPLv3 plus source headers read 'either version 3 ... or (at your option) any later version' at commit cac1c32.",
+      "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+      "upstream_license": "GPL-3.0-or-later"
+    },
+    "systems": [
+      "ps2"
+    ],
+    "upstream": "libretro/ps2 (LRPS2, based on PCSX2)",
+    "version": "2.0.0+git.cac1c32"
+  },
   "nesbyte": {
     "artifacts": {
       "android-arm64": "7063eb166524c184f175d81d840eae167e90ae78fdf56ac79281cb035d3e44f2",
@@ -759,30 +817,6 @@
     ],
     "upstream": "libretro/dolphin",
     "version": "rolling+git.fad480a"
-  },
-  "ps2_hold": {
-    "artifacts": {},
-    "bios_files": [],
-    "bios_required": true,
-    "blocked_reason": "Catalog/delivery decision pending, not engineering: LRPS2 (libretro/ps2) is maintained, GPL-3.0-or-later, and reaches RENDERS on linux-x64 (docs/MATRIX.md, 2026-10-07). PS2 requires a user-supplied BIOS dump that the project can never ship or fetch, so the slot stays held until the user-BIOS delivery policy lands. This supersedes the earlier 'no shippable core' reason.",
-    "cheat_families": [],
-    "cheats_supported": false,
-    "delivery": {
-      "android": "absent",
-      "ios": "absent",
-      "macos": "absent",
-      "windows": "absent"
-    },
-    "extensions": [],
-    "homepage": "https://github.com/libretro/ps2",
-    "id": "ps2_hold",
-    "license": "GPL-3.0-or-later (LRPS2)",
-    "name": "PlayStation 2 \u2014 held: LRPS2 verified, delivery undecided",
-    "systems": [
-      "ps2"
-    ],
-    "upstream": "libretro/ps2",
-    "version": "0.0.0-blocked"
   },
   "rcp64": {
     "artifacts": {

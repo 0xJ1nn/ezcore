@@ -11,7 +11,7 @@
 # Env: EZCORE_PLATFORM (macos|linux|windows|android|ios),
 #      EZCORE_ARCH (default per platform), EZCORE_OUT_DIR (staging root),
 #      ANDROID_NDK_HOME (android builds).
-# Hold cores (citra_hold, switch_hold, ps2_hold) refuse to build. This is
+# Hold cores (citra_hold, switch_hold) refuse to build. This is
 # deliberate — see cores/<id>/manifest.json blocked_reason.
 set -euo pipefail
 
@@ -449,10 +449,9 @@ build_powercube() {
   stage_system_data powercube "$SRC_DIR/dolphin-libretro/Data/Sys" dolphin-emu/Sys
 }
 
-# LRPS2 — the maintained libretro port of PCSX2. Deliberately NOT in the
-# tier lists yet: PS2 requires a user-supplied BIOS and its catalog/delivery
-# decision is still open even though the core reaches RENDERS on linux-x64
-# (docs/MATRIX.md, 2026-10-07).
+# LRPS2 — the maintained libretro port of PCSX2. Not in the tier lists: only
+# linux-x64 is verified (manifest delivery: download); macOS/Windows have no
+# kernel GL context backend yet and Android/iOS need separate packaging.
 build_lrps2() {
   clone https://github.com/libretro/ps2.git "$SRC_DIR/lrps2"
   core_reset "$SRC_DIR/lrps2"
@@ -470,7 +469,6 @@ build_lrps2() {
 hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
 build_switch_hold() { hold "Switch core is on hold (see cores/switch_hold/manifest.json)"; }
-build_ps2_hold()    { hold "PS2 slot held: user-BIOS delivery decision pending (LRPS2 verified; see cores/ps2_hold/manifest.json)"; }
 
 TIER1="pocketbit advancebit superfx blastproc realmode"
 
