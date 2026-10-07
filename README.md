@@ -63,13 +63,24 @@ with one front door:
 ### Resume. Just press play.
 
 ezCORE opens on the game you played last — *any* system — and puts you back
-where you stopped. The decision fatigue is gone.
+where you stopped. The decision fatigue is gone. Browse the shelf with the
+arrow keys, the mouse wheel, a swipe, or a controller's d-pad.
+
+<p align="center">
+  <img alt="Browsing the 3D shelf with the arrow keys" src="docs/images/shelf.gif" width="800">
+</p>
 
 ### One library, every system.
 
 Add a file or drop in a folder. ezCORE recognizes what each game is and which
 core plays it, then gives you search, per-system filters, favourites, and a
-*Continue playing* rail. No more remembering which emulator did what.
+*Continue playing* rail. No more remembering which emulator did what. Prefer a
+wall of covers? Switch from the 3D shelf to **Grid** or **List**; ezCORE
+remembers your choice.
+
+<p align="center">
+  <img alt="The library as a grid, with Resume and Continue playing" src="docs/images/library-grid.png" width="900">
+</p>
 
 **A real page for every game** — its own art, a Resume button, every save as a
 loadable card, and the honest details: which core plays it, where the file
