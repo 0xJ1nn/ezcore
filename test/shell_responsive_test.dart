@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:ezcore/main.dart';
 import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
+import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
+import 'package:ezcore/widgets/collection_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,8 +78,13 @@ void main() {
     WidgetTester tester,
     Size size, {
     List<GameEntry> library = games,
+    CollectionView view = CollectionView.grid,
   }) async {
-    final state = AppState()..games = List.of(library);
+    // Ephemeral: nothing here may write the developer's real settings.
+    final state = AppState.ephemeral()..games = List.of(library);
+    // These tests describe the Grid layout (Resume card, Continue playing);
+    // the 3D view has its own tests.
+    await state.setSetting(libraryViewKey, view.value);
     state.registry.loadCatalog({core.id: jsonEncode(core.toJson())});
     state.registry.install(core, expectedSha256: 'test-pin');
     state.loaded = true;
@@ -126,6 +133,16 @@ void main() {
           reason: 'layout overflow at ${entry.value}');
     });
 
+    for (final view in [CollectionView.flow, CollectionView.list]) {
+      testWidgets('${view.label} library has no overflow: ${entry.key}', (
+        tester,
+      ) async {
+        await pumpShell(tester, entry.value, view: view);
+        expect(tester.takeException(), isNull,
+            reason: '${view.label} layout overflow at ${entry.value}');
+      });
+    }
+
     testWidgets('empty library has no overflow: ${entry.key}', (
       tester,
     ) async {
@@ -136,13 +153,17 @@ void main() {
     });
   }
 
-  testWidgets('three destinations, every size', (tester) async {
+  testWidgets('four spaces, every size', (tester) async {
     for (final size in viewports.values) {
       await pumpShell(tester, size);
-      for (final label in ['Library', 'Cores', 'Settings']) {
-        expect(find.text(label), findsOneWidget, reason: '$label at $size');
+      final nav = find.byType(
+        find.byType(OrbitRail).evaluate().isNotEmpty ? OrbitRail : OrbitBottomNav,
+      );
+      for (final label in ['Library', 'Systems', 'Capsule', 'Settings']) {
+        expect(find.descendant(of: nav, matching: find.text(label)),
+            findsOneWidget, reason: '$label at $size');
       }
-      for (final gone in ['Systems', 'Continue', 'Favorites', 'Capsule']) {
+      for (final gone in ['Cores', 'Continue', 'Favorites']) {
         expect(
           find.descendant(
             of: find.byType(
@@ -171,6 +192,7 @@ void main() {
     expect(find.byType(OrbitRail), findsNothing);
   });
 
+  // The status corner shows only what is true: no controller, no P1.
   testWidgets('no fake status bar or slogans', (tester) async {
     await pumpShell(tester, const Size(1280, 720));
     expect(find.text('P1'), findsNothing);
@@ -182,7 +204,7 @@ void main() {
   testWidgets('short rail keeps accessible touch targets', (tester) async {
     await pumpShell(tester, const Size(640, 320));
     final rail = find.byType(OrbitRail);
-    for (final label in ['Library', 'Cores', 'Settings']) {
+    for (final label in ['Library', 'Systems', 'Capsule', 'Settings']) {
       final target = find.descendant(
         of: rail,
         matching: find.bySemanticsLabel(label),
@@ -202,6 +224,22 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.digit1);
     await tester.pump();
     expect(find.byType(HomeScreen).hitTestable(), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Your time capsule').hitTestable(), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Appearance').hitTestable(), findsWidgets);
+  });
+
+  testWidgets('the top bar carries the brand on every space', (tester) async {
+    await pumpShell(tester, const Size(1280, 720));
+    for (final space in ['Systems', 'Capsule', 'Settings', 'Library']) {
+      await tester.tap(find.descendant(
+          of: find.byType(OrbitRail), matching: find.text(space)));
+      await tester.pump();
+      expect(find.byType(BrandLockup), findsWidgets, reason: space);
+    }
   });
 
   testWidgets('Resume shows the game played last, on any core', (tester) async {
@@ -236,17 +274,19 @@ void main() {
     ]);
     expect(find.text('RESUME'), findsNothing);
     expect(find.text('Continue playing'), findsNothing);
-    expect(find.text('All games'), findsOneWidget);
+    // Nothing above the games, so no "All games" heading: the tabs lead.
+    expect(find.text('All games'), findsNothing);
+    expect(find.text('Time capsule'), findsOneWidget);
   });
 
   testWidgets('filters use system names, never core names', (tester) async {
     await pumpShell(tester, const Size(1600, 1000));
-    expect(find.text('All · 4'), findsOneWidget);
-    expect(find.text('Favorites · 1'), findsOneWidget);
+    expect(find.text('All systems'), findsOneWidget);
+    expect(find.text('Favorites'), findsOneWidget);
     for (final core in ['powercube', 'superfx', 'blastproc']) {
       expect(find.textContaining(core), findsNothing, reason: core);
     }
-    await tester.tap(find.text('Favorites · 1'));
+    await tester.tap(find.text('Favorites'));
     await tester.pump();
     final grid = find.byType(SliverGrid);
     expect(grid, findsOneWidget);

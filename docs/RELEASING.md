@@ -130,7 +130,7 @@ required-but-never-reported checks would block every PR. Re-enable them
 once CI runs again:
 
 ```bash
-gh api -X PUT repos/JinUltimate1995/ezcore/branches/main/protection/required_status_checks \
+gh api -X PUT repos/0xJ1nn/ezcore/branches/main/protection/required_status_checks \
   -F strict=true \
   -f 'contexts[]=ci/dart-gates' -f 'contexts[]=ci/native-linux' \
   -f 'contexts[]=ci/macos' -f 'contexts[]=ci/windows' \
@@ -143,6 +143,6 @@ cannot run — Actions tab → *Enable workflow*, or):
 
 ```bash
 for wf in ci.yml matrix.yml release.yml labeler.yml; do
-  gh workflow enable "$wf" --repo JinUltimate1995/ezcore
+  gh workflow enable "$wf" --repo 0xJ1nn/ezcore
 done
 ```

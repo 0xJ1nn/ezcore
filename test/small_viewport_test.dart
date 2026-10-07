@@ -46,7 +46,9 @@ void main() {
     // Phone portrait: Resume for the last game, the add button, filters.
     expect(find.text('Resume'), findsOneWidget);
     expect(find.byTooltip('Add games'), findsOneWidget);
-    expect(find.text('All · 1'), findsOneWidget);
+    // The tabs lead with Time capsule and Favorites (the test font is wide,
+    // so later tabs are scrolled to; library_views_test covers them).
+    expect(find.text('Time capsule'), findsOneWidget);
     expect(find.text('My GBA Dump'), findsWidgets);
   });
 
@@ -55,7 +57,7 @@ void main() {
   ) async {
     final state = AppState();
     await pumpPhone(tester, CoreManagerScreen(state: state));
-    expect(find.text('Cores'), findsOneWidget);
+    expect(find.text('Systems'), findsOneWidget);
   });
 
   testWidgets('vault empty state renders on a phone viewport', (tester) async {

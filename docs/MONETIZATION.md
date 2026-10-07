@@ -19,7 +19,7 @@
 
 ### 1. Donations & sponsorships — live now
 
-- **GitHub Sponsors** — [`github.com/sponsors/JinUltimate1995`](https://github.com/sponsors/JinUltimate1995);
+- **GitHub Sponsors** — [`github.com/sponsors/0xJ1nn`](https://github.com/sponsors/0xJ1nn);
   the `.github/FUNDING.yml` wires the Sponsor button.
 - **Sponsors get early access** to features and builds.
 

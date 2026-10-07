@@ -58,7 +58,7 @@ spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement by contacting
-the maintainer through GitHub (**@JinUltimate1995**) — for confidential
+the maintainer through GitHub (**@0xJ1nn**) — for confidential
 matters, use GitHub's private reporting on the repository's Security tab.
 All complaints will be reviewed and investigated promptly and fairly.
 

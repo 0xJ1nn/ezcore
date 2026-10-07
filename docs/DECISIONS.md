@@ -805,7 +805,7 @@ Verified in this worktree, not recalled:
 
 - A core is a libretro plugin. The kernel is `runtime/src/runtime.c`
   (C11, `EZCORE_ABI_VERSION 1`, `runtime/include/ezcore_runtime.h:12`).
-- `env_cb` (`runtime/src/runtime.c:197`) answers **21 of the 93**
+- `env_cb` (`runtime/src/runtime.c:197`) answers **22 of the 93**
   `RETRO_ENVIRONMENT_*` commands; everything else hits
   `default: return false` (`:402-403`).
   **`SET_HW_RENDER`, `GET_PREFERRED_HW_RENDER`, `GET_HW_RENDER_INTERFACE` and

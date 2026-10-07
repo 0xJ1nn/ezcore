@@ -87,7 +87,7 @@ By submitting a pull request you agree that:
    submit it under these terms.
 2. It is licensed to the project under **GPL-3.0-only** (inbound =
    outbound), and you keep all rights to your own work.
-3. You grant JinUltimate1995 a perpetual, worldwide, non-exclusive,
+3. You grant 0xJ1nn a perpetual, worldwide, non-exclusive,
    royalty-free right to **relicense** your contribution under any
    OSI-approved license, and to use it in official builds distributed
    through any channel (including app stores).
