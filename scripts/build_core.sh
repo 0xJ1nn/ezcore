@@ -435,6 +435,23 @@ build_powercube() {
   stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
 }
 
+# LRPS2 — the maintained libretro port of PCSX2. Deliberately NOT in the
+# tier lists yet: PS2 requires a user-supplied BIOS and its catalog/delivery
+# decision is still open even though the core reaches RENDERS on linux-x64
+# (docs/MATRIX.md, 2026-10-07).
+build_lrps2() {
+  clone https://github.com/libretro/ps2.git "$SRC_DIR/lrps2"
+  core_reset "$SRC_DIR/lrps2"
+  (cd "$SRC_DIR/lrps2" && git submodule update --init --depth 1 --recursive)
+  # IS_X86=1: the Makefile infers x86 from `uname -p`, which prints
+  # "unknown" on distros that omit processor info (Arch). Without the
+  # override the SSE4.1 baseline flags are never applied and GCC rejects
+  # PCSX2's intrinsics ("target specific option mismatch" on _mm_min_epu32).
+  # The arm64 backend is selected from `uname -m` and is unaffected.
+  core_make "$SRC_DIR/lrps2" IS_X86=1
+  stage lrps2 "$SRC_DIR/lrps2/pcsx2_libretro.so"
+}
+
 # ---------------- Hold cores: always refuse ----------------
 hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
