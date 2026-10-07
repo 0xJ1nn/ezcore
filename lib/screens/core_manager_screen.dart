@@ -10,6 +10,8 @@ import '../services/core_package_installer.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/tokens.dart';
+import '../widgets/collection_view.dart';
+import '../widgets/cover_flow.dart';
 import '../widgets/focus_glow.dart';
 import '../widgets/hardware_art.dart';
 import '../widgets/orbit_widgets.dart';
@@ -34,12 +36,20 @@ class CoreManagerScreen extends StatefulWidget {
 class _CoreManagerScreenState extends State<CoreManagerScreen> {
   bool _installedView = true;
   String? _selectedId;
+  int _flowIndex = 0;
 
   /// Core currently being installed or downloaded (single-flight).
   String? _busyId;
 
   AppState get state => widget.state;
   CoreRegistry get registry => state.registry;
+
+  CollectionView get _view => CollectionView.fromSetting(
+    state.settings[coresViewKey],
+    fallback: CollectionView.flow,
+  );
+
+  void _setView(CollectionView v) => state.setSetting(coresViewKey, v.value);
 
   List<CoreManifest> get _visible => [
     for (final m in registry.catalog)
@@ -58,9 +68,13 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           final compact = c.maxWidth < 600;
           final pad = compact ? 16.0 : (c.maxWidth >= 1180 ? 40.0 : 24.0);
           final list = _visible;
-          final selected =
-              list.where((m) => m.id == _selectedId).firstOrNull ??
-              (wide && list.isNotEmpty ? list.first : null);
+          final flowIndex = list.isEmpty
+              ? 0
+              : _flowIndex.clamp(0, list.length - 1);
+          final selected = _view == CollectionView.flow
+              ? (wide && list.isNotEmpty ? list[flowIndex] : null)
+              : list.where((m) => m.id == _selectedId).firstOrNull ??
+                    (wide && list.isNotEmpty ? list.first : null);
           final body = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -68,7 +82,19 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
                 padding: EdgeInsets.fromLTRB(pad, compact ? 16 : 28, pad, 16),
                 child: _header(compact),
               ),
-              Expanded(child: _list(list, selected, pad, wide)),
+              Expanded(
+                child: switch (_view) {
+                  CollectionView.list => _list(list, selected, pad, wide),
+                  CollectionView.grid => _grid(list, selected, pad, wide),
+                  CollectionView.flow => _flow(
+                    list,
+                    flowIndex,
+                    pad,
+                    wide,
+                    compact,
+                  ),
+                },
+              ),
             ],
           );
           if (!wide || selected == null) return body;
@@ -108,6 +134,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           onTap: () => setState(() {
             _installedView = true;
             _selectedId = null;
+            _flowIndex = 0;
           }),
         ),
         const SizedBox(width: 8),
@@ -117,6 +144,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           onTap: () => setState(() {
             _installedView = false;
             _selectedId = null;
+            _flowIndex = 0;
           }),
         ),
       ],
@@ -138,19 +166,156 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         Row(
           children: [
             Expanded(
-              child: Text(
-                'Cores',
-                style: Tokens.display(
-                  size: compact ? 24 : 28,
-                  weight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'THE CORES THAT PLAY THEM',
+                    style: Tokens.body(
+                      size: 11,
+                      weight: FontWeight.w600,
+                      ls: 4,
+                      color: Tokens.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Systems',
+                    style: Tokens.display(
+                      size: compact ? 28 : 40,
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
+            CollectionViewSwitch(value: _view, onChanged: _setView),
+            const SizedBox(width: 12),
             install,
           ],
         ),
         const SizedBox(height: 14),
         SingleChildScrollView(scrollDirection: Axis.horizontal, child: tabs),
+      ],
+    );
+  }
+
+  Widget _emptyMessage(double pad) => Padding(
+    padding: EdgeInsets.symmetric(horizontal: pad),
+    child: Text(
+      _installedView
+          ? 'No cores installed yet. Pick one from Available, or install '
+                'one from a file.'
+          : 'Every core in the catalog is installed.',
+      style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+    ),
+  );
+
+  Widget _grid(
+    List<CoreManifest> list,
+    CoreManifest? selected,
+    double pad,
+    bool wide,
+  ) {
+    if (list.isEmpty) return _emptyMessage(pad);
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(pad, 0, pad, 32),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 220,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.82,
+      ),
+      itemCount: list.length,
+      itemBuilder: (context, i) {
+        final m = list[i];
+        return _CoreCard(
+          manifest: m,
+          title: _title(m),
+          status: coreStatus(m),
+          trust: trustLabel(m),
+          selected: wide && selected?.id == m.id,
+          busy: _busyId == m.id,
+          onTap: () => _open(m, wide),
+        );
+      },
+    );
+  }
+
+  /// The 3D shelf of cores. Wide screens show the front core's details
+  /// beside it; phones get a caption and a Details button underneath.
+  Widget _flow(
+    List<CoreManifest> list,
+    int index,
+    double pad,
+    bool wide,
+    bool compact,
+  ) {
+    if (list.isEmpty) return _emptyMessage(pad);
+    final front = list[index];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final h = (c.maxHeight * 0.8).clamp(96.0, 360.0);
+              final w = (h * 0.82).clamp(
+                64.0,
+                c.maxWidth * (compact ? 0.6 : 0.36),
+              );
+              return CoverFlow(
+                count: list.length,
+                index: index,
+                itemSize: Size(w, w / 0.82),
+                showArrows: !compact,
+                semanticLabel: 'Cores',
+                onIndexChanged: (i) => setState(() => _flowIndex = i),
+                onActivate: (i) => _open(list[i], wide),
+                itemBuilder: (context, i, isFront) => _CoreCard(
+                  manifest: list[i],
+                  title: _title(list[i]),
+                  status: coreStatus(list[i]),
+                  trust: trustLabel(list[i]),
+                  selected: isFront,
+                  busy: _busyId == list[i].id,
+                  onTap: null,
+                ),
+              );
+            },
+          ),
+        ),
+        // The card shows the name and status, and wide screens show the
+        // details beside the shelf: underneath, only where you are, plus the
+        // way to the details on phones.
+        Padding(
+          padding: EdgeInsets.fromLTRB(pad, 8, pad, compact ? 12 : 24),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${(index + 1).toString().padLeft(2, '0')}  /  '
+                  '${list.length.toString().padLeft(2, '0')}',
+                  textAlign: wide ? TextAlign.center : TextAlign.start,
+                  style: Tokens.body(
+                    size: 11,
+                    weight: FontWeight.w700,
+                    ls: 1.4,
+                    color: Tokens.muted,
+                  ),
+                ),
+              ),
+              if (!wide)
+                OrbitPrimary(
+                  label: 'Details',
+                  icon: Icons.chevron_right,
+                  minHeight: 46,
+                  onPressed: () => _open(front, wide),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -161,18 +326,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     double pad,
     bool wide,
   ) {
-    if (list.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: pad),
-        child: Text(
-          _installedView
-              ? 'No cores installed yet. Pick one from Available, or install '
-                    'one from a file.'
-              : 'Every core in the catalog is installed.',
-          style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
-        ),
-      );
-    }
+    if (list.isEmpty) return _emptyMessage(pad);
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(pad, 0, pad, 32),
       itemCount: list.length,
@@ -186,37 +340,40 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
           trust: trustLabel(m),
           selected: wide && selected?.id == m.id,
           busy: _busyId == m.id,
-          onTap: () {
-            if (wide) {
-              setState(() => _selectedId = m.id);
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => Scaffold(
-                    backgroundColor: Tokens.bg,
-                    appBar: AppBar(backgroundColor: Tokens.bg),
-                    body: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: ListenableBuilder(
-                          listenable: state,
-                          builder: (context, _) => _CoreDetail(
-                            manifest: m,
-                            state: state,
-                            busy: _busyId == m.id,
-                            actions: this,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-          },
+          onTap: () => _open(m, wide),
         );
       },
     );
+  }
+
+  /// Opens [m]: beside the list on wide screens, as its own page on phones.
+  void _open(CoreManifest m, bool wide) {
+    if (wide) {
+      setState(() => _selectedId = m.id);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => Scaffold(
+            backgroundColor: Tokens.bg,
+            appBar: AppBar(backgroundColor: Tokens.bg),
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ListenableBuilder(
+                  listenable: state,
+                  builder: (context, _) => _CoreDetail(
+                    manifest: m,
+                    state: state,
+                    busy: _busyId == m.id,
+                    actions: this,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   // ---- status and trust, in plain words ----
@@ -457,6 +614,114 @@ class _CoreRow extends StatelessWidget {
             const SizedBox(width: 8),
             _TrustBadge(label: trust),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A core as a card: its hardware art large, then name, status and trust.
+class _CoreCard extends StatelessWidget {
+  const _CoreCard({
+    required this.manifest,
+    required this.title,
+    required this.status,
+    required this.trust,
+    required this.selected,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final CoreManifest manifest;
+  final String title;
+  final ({String text, Color color}) status;
+  final String trust;
+  final bool selected;
+  final bool busy;
+
+  /// Null inside the 3D shelf, which handles taps itself.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = manifest;
+    final card = Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Tokens.dockTop, Tokens.dockBottom],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? const Color(0x99007BFF) : Tokens.line,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  hardwareArtworkAsset(m.id, systems: m.systems),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      const Icon(Icons.memory, size: 40, color: Tokens.muted),
+                ),
+                Align(
+                  alignment: Alignment.topRight,
+                  child: _TrustIcon(label: trust),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Tokens.body(size: 14, weight: FontWeight.w600),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            busy ? 'Working…' : status.text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Tokens.body(size: 12, color: status.color),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return card;
+    return FocusGlow(
+      onTap: onTap!,
+      lift: 1.02,
+      semanticLabel: title,
+      child: card,
+    );
+  }
+}
+
+/// Trust as a small icon, for cards too narrow for the worded badge.
+class _TrustIcon extends StatelessWidget {
+  const _TrustIcon({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final verified = label == 'Verified';
+    return Tooltip(
+      message: label,
+      child: Semantics(
+        label: label,
+        child: Icon(
+          verified ? Icons.verified_outlined : Icons.gpp_maybe_outlined,
+          size: 18,
+          color: verified ? Tokens.ok : const Color(0xFFFFC46B),
         ),
       ),
     );

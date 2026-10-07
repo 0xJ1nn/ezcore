@@ -365,4 +365,299 @@ void main() {
       expect(result.importedCount, 0);
     });
   });
+
+  group('system-aware identification', () {
+    late Map<String, CoreManifest> catalog;
+
+    setUp(() {
+      catalog = _multiCatalog();
+    });
+
+    Future<File> writeBytes(String name, List<int> bytes) async {
+      final f = File('${tmpDir.path}/$name');
+      await f.writeAsBytes(bytes);
+      hashVerifier._hashes[f.path] = 'hash-${f.path.hashCode}';
+      return f;
+    }
+    List<int> gbRom() {
+      final b = List<int>.filled(4096, 0xFF);
+      const logo = [0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B];
+      for (var i = 0; i < logo.length; i++) {
+        b[0x104 + i] = logo[i];
+      }
+      b[0x143] = 0x00; // not CGB-only
+      return b;
+    }
+
+    List<int> mzExe({required bool pe}) {
+      final b = List<int>.filled(4096, 0x90);
+      b[0] = 0x4D;
+      b[1] = 0x5A;
+      // e_lfanew at 0x3C (little-endian u32). 0 for DOS, 0x40 -> PE.
+      b[0x3C] = pe ? 0x40 : 0x00;
+      b[0x3D] = 0x00;
+      b[0x3E] = 0x00;
+      b[0x3F] = 0x00;
+      if (pe) {
+        b[0x40] = 0x50;
+        b[0x41] = 0x45;
+        b[0x42] = 0x00;
+        b[0x43] = 0x00;
+      }
+      return b;
+    }
+
+    List<int> rawCdTrack({int sectors = 4}) {
+      final b = List<int>.filled(2352 * sectors, 0x7F);
+      // Raw CD sector sync pattern at sector start.
+      const sync = [0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00];
+      for (var i = 0; i < sync.length; i++) {
+        b[i] = sync[i];
+      }
+      return b;
+    }
+
+    List<int> wiiWad() {
+      return [0x49, 0x73, 0x00, 0x00, ...List<int>.filled(2048, 0xAB)];
+    }
+
+    List<int> doomWad(String magic) {
+      return [...magic.codeUnits, ...List<int>.filled(2048, 0xAB)];
+    }
+
+    Future<ImportResult> importFile(String name, List<int> bytes) async {
+      final f = await writeBytes(name, bytes);
+      return importer.importFile(f.path, knownShas: {}, catalog: catalog);
+    }
+
+    test('GB game picks a GB-first core, not the first alphabetical core',
+        () async {
+      final result = await importFile('game.gb', gbRom());
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'gambatte',
+          reason: 'a .gb ROM must not be handed to a GBA-first core');
+      expect(result.game!.system, 'gb');
+    });
+
+    test('GB games keep file-size metadata', () async {
+      final result = await importFile('sized.gb', gbRom());
+      expect(result.game!.fileSize, 4096);
+    });
+
+    test('Wii WAD imports to the GameCube/Wii core', () async {
+      final result = await importFile('shop.wad', wiiWad());
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'powercube');
+      expect(result.game!.system, 'wii');
+    });
+
+    test('Doom IWAD/PWAD is rejected — no core can run it', () async {
+      for (final magic in ['IWAD', 'PWAD']) {
+        final result = await importFile('$magic.wad', doomWad(magic));
+        expect(result.isSkipped, isTrue,
+            reason: 'a Doom WAD must never import as a GameCube game');
+        expect(result.skippedReason, contains('Doom'));
+      }
+    });
+
+    test('raw CD track .bin is rejected with a .cue/.gdi hint', () async {
+      final result = await importFile('track01.bin', rawCdTrack());
+      expect(result.isSkipped, isTrue);
+      expect(result.skippedReason, contains('cue'));
+    });
+
+    test('Windows PE .exe is rejected; plain DOS .exe imports', () async {
+      final pe = await importFile('setup.exe', mzExe(pe: true));
+      expect(pe.isSkipped, isTrue,
+          reason: 'a Windows system executable is not DOS game content');
+      expect(pe.skippedReason, contains('Windows'));
+
+      final dos = await importFile('doom.exe', mzExe(pe: false));
+      expect(dos.isSuccess, isTrue,
+          reason: dos.skippedReason ?? dos.error);
+      expect(dos.game!.coreId, 'realmode');
+    });
+
+    test('small power-of-two .bin goes to the Atari 2600 core', () async {
+      final cart = List<int>.filled(4096, 0xFF);
+      final result = await importFile('cart.bin', cart);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'joystick');
+      expect(result.game!.system, 'atari2600');
+    });
+
+    test('Genesis .bin (SEGA header) goes to the Genesis core', () async {
+      final rom = List<int>.filled(262144, 0xFF);
+      const sega = [0x53, 0x45, 0x47, 0x41];
+      for (var i = 0; i < sega.length; i++) {
+        rom[0x100 + i] = sega[i];
+      }
+      final result = await importFile('sonic.bin', rom);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'blastproc');
+      expect(result.game!.system, 'genesis');
+    });
+
+    test('GBA homebrew without the Nintendo logo imports (ARM header)',
+        () async {
+      final rom = List<int>.filled(32768, 0x00);
+      rom[3] = 0xEA; // ARM branch at the entry point
+      rom[0xB0] = 0x96; // fixed byte, toolchain variant placement
+      final result = await importFile('homebrew.gba', rom);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'advancebit');
+      expect(result.game!.system, 'gba');
+    });
+
+    test('NDS homebrew without the logo imports (ARM header)', () async {
+      final rom = List<int>.filled(131072, 0x00);
+      rom[3] = 0xEA;
+      rom[0xB2] = 0x96;
+      rom[0x0C] = 0x23; // "####" placeholder game code
+      rom[0x0D] = 0x23;
+      rom[0x0E] = 0x23;
+      rom[0x0F] = 0x23;
+      final result = await importFile('homebrew.nds', rom);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'dualscreen');
+      expect(result.game!.system, 'nds');
+    });
+
+    test('zip holding a single .nes ROM goes to the NES core', () async {
+      final zip = _zipWith('game.nes', 0x00);
+      final result = await importFile('nes-pack.zip', zip);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'nesbyte');
+      expect(result.game!.system, 'nes');
+    });
+
+    test('zip with arcade-style entries goes to the arcade core', () async {
+      final zip = _zipWith('sf2.03', 0x00);
+      final result = await importFile('sf2.zip', zip);
+      expect(result.isSuccess, isTrue,
+          reason: result.skippedReason ?? result.error);
+      expect(result.game!.coreId, 'coinbox');
+      expect(result.game!.system, 'arcade');
+    });
+  });
+}
+
+/// A miniature but spec-shaped ZIP archive (store method) carrying one
+/// named entry, used to exercise archive content sniffing: local header,
+/// central directory header, end-of-central-directory. Big enough to
+/// clear the 512-byte minimum ROM size.
+List<int> _zipWith(String entryName, int padByte) {
+  final name = entryName.codeUnits;
+  final data = List<int>.filled(600, padByte);
+  final out = <int>[];
+
+  List<int> le16(int v) => [v & 0xFF, (v >> 8) & 0xFF];
+  List<int> le32(int v) =>
+      [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF];
+
+  // Local file header (30 bytes + name + data).
+  out.addAll([0x50, 0x4B, 0x03, 0x04]);
+  out.addAll(le16(20)); // version needed
+  out.addAll(le16(0)); // flags
+  out.addAll(le16(0)); // method: store
+  out.addAll(le16(0)); // mod time
+  out.addAll(le16(0)); // mod date
+  out.addAll(le32(0)); // crc32
+  out.addAll(le32(data.length)); // compressed size
+  out.addAll(le32(data.length)); // uncompressed size
+  out.addAll(le16(name.length));
+  out.addAll(le16(0)); // extra length
+  out.addAll(name);
+  out.addAll(data);
+
+  final cdOffset = out.length;
+  // Central directory header (46 bytes + name).
+  out.addAll([0x50, 0x4B, 0x01, 0x02]);
+  out.addAll(le16(20)); // version made by
+  out.addAll(le16(20)); // version needed
+  out.addAll(le16(0)); // flags
+  out.addAll(le16(0)); // method
+  out.addAll(le16(0)); // time
+  out.addAll(le16(0)); // date
+  out.addAll(le32(0)); // crc
+  out.addAll(le32(data.length)); // compressed size
+  out.addAll(le32(data.length)); // uncompressed size
+  out.addAll(le16(name.length));
+  out.addAll(le16(0)); // extra
+  out.addAll(le16(0)); // comment
+  out.addAll(le16(0)); // disk start
+  out.addAll(le16(0)); // internal attrs
+  out.addAll(le32(0)); // external attrs
+  out.addAll(le32(0)); // local header offset
+  out.addAll(name);
+  final cdSize = out.length - cdOffset;
+
+  // End of central directory.
+  out.addAll([0x50, 0x4B, 0x05, 0x06]);
+  out.addAll(le16(0)); // disk
+  out.addAll(le16(0)); // cd start disk
+  out.addAll(le16(1)); // entries on this disk
+  out.addAll(le16(1)); // total entries
+  out.addAll(le32(cdSize));
+  out.addAll(le32(cdOffset));
+  out.addAll(le16(0)); // comment length
+  return out;
+}
+
+/// Catalog mirroring the real one's extension overlaps: several cores
+/// claim .gb/.gbc, several claim .bin, and .wad belongs to powercube.
+Map<String, CoreManifest> _multiCatalog() {
+  CoreManifest core(
+    String id,
+    String name,
+    List<String> systems,
+    List<String> extensions,
+  ) =>
+      CoreManifest(
+        id: id,
+        name: name,
+        version: '1.0',
+        license: 'MIT',
+        systems: systems,
+        extensions: extensions,
+        cheatFamilies: const [],
+        cheatsSupported: false,
+        delivery: const {},
+        artifacts: const {},
+      );
+
+  return {
+    'advancebit': core('advancebit', 'AdvanceBit', ['gba', 'gb', 'gbc'],
+        ['gba', 'gb', 'gbc', 'zip']),
+    'blastproc': core('blastproc', 'BlastProc', ['genesis', 'sms', 'gg', 'scd'],
+        ['md', 'gen', 'sms', 'gg', 'sg', 'bin', 'iso', 'cue', 'chd', 'zip']),
+    'cardcon': core('cardcon', 'CardCon', ['pce', 'pcecd'],
+        ['pce', 'sgx', 'cue', 'ccd', 'chd', 'zip']),
+    'coinbox': core('coinbox', 'CoinBox', ['arcade', 'neogeo'], ['zip']),
+    'dreamarc': core('dreamarc', 'DreamArc', ['dc', 'naomi'],
+        ['cdi', 'gdi', 'chd', 'cue', 'zip', 'lst', 'bin']),
+    'dualscreen': core('dualscreen', 'DualScreen', ['nds'], ['nds', 'zip']),
+    'gambatte': core('gambatte', 'Gambatte', ['gb', 'gbc'], ['gb', 'gbc', 'zip']),
+    'geometry1': core('geometry1', 'Geometry1', ['psx'],
+        ['cue', 'ccd', 'chd', 'pbp', 'iso', 'm3u']),
+    'joystick': core('joystick', 'Joystick', ['atari2600'],
+        ['a26', 'bin', 'zip']),
+    'nesbyte': core('nesbyte', 'NesByte', ['nes', 'fds'],
+        ['nes', 'fds', 'unf', 'zip']),
+    'pointclick': core('pointclick', 'PointClick', ['scumm'],
+        ['scummvm', 'zip']),
+    'powercube': core('powercube', 'PowerCube', ['gc', 'wii'],
+        ['iso', 'gcm', 'ciso', 'wbfs', 'rvz', 'elf', 'dol', 'wad']),
+    'realmode': core('realmode', 'RealMode', ['dos'],
+        ['zip', 'exe', 'com', 'bat', 'iso', 'img']),
+    'superfx': core('superfx', 'SuperFX', ['snes'],
+        ['sfc', 'smc', 'fig', 'zip']),
+  };
 }

@@ -3,51 +3,51 @@
 # See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Global owners - all PRs require at least one approval from these
-* @JinUltimate1995
+* @0xJ1nn
 
 # Core emulator runtime (C/FFI) - deep knowledge required
-/runtime/ @JinUltimate1995
+/runtime/ @0xJ1nn
 
 # Core build scripts and manifests
-/scripts/build_core.sh @JinUltimate1995
-/scripts/build_runtime.sh @JinUltimate1995
-/scripts/core_platform.sh @JinUltimate1995
-/scripts/pin_artifacts.py @JinUltimate1995
-/scripts/fill_manifest_data.py @JinUltimate1995
-/scripts/build_catalog.py @JinUltimate1995
-/scripts/release.sh @JinUltimate1995
-/cores/ @JinUltimate1995
+/scripts/build_core.sh @0xJ1nn
+/scripts/build_runtime.sh @0xJ1nn
+/scripts/core_platform.sh @0xJ1nn
+/scripts/pin_artifacts.py @0xJ1nn
+/scripts/fill_manifest_data.py @0xJ1nn
+/scripts/build_catalog.py @0xJ1nn
+/scripts/release.sh @0xJ1nn
+/cores/ @0xJ1nn
 
 # Flutter UI layers
-/lib/emu/ @JinUltimate1995
-/lib/services/ @JinUltimate1995
-/lib/widgets/ @JinUltimate1995
-/lib/screens/ @JinUltimate1995
-/lib/state/ @JinUltimate1995
-/lib/theme/ @JinUltimate1995
-/lib/runtime/ @JinUltimate1995
+/lib/emu/ @0xJ1nn
+/lib/services/ @0xJ1nn
+/lib/widgets/ @0xJ1nn
+/lib/screens/ @0xJ1nn
+/lib/state/ @0xJ1nn
+/lib/theme/ @0xJ1nn
+/lib/runtime/ @0xJ1nn
 
 # Platform-specific
-/macos/ @JinUltimate1995
-/ios/ @JinUltimate1995
-/android/ @JinUltimate1995
-/linux/ @JinUltimate1995
-/windows/ @JinUltimate1995
+/macos/ @0xJ1nn
+/ios/ @0xJ1nn
+/android/ @0xJ1nn
+/linux/ @0xJ1nn
+/windows/ @0xJ1nn
 
 # CI/CD and release automation
-/.github/workflows/ @JinUltimate1995
+/.github/workflows/ @0xJ1nn
 
 # Documentation
-/docs/ @JinUltimate1995
-/README.md @JinUltimate1995
+/docs/ @0xJ1nn
+/README.md @0xJ1nn
 
 # Design system and brand
-/design/ezcore-orbit/ @JinUltimate1995
-/assets/branding/ @JinUltimate1995
-/assets/fonts/ @JinUltimate1995
+/design/ezcore-orbit/ @0xJ1nn
+/assets/branding/ @0xJ1nn
+/assets/fonts/ @0xJ1nn
 
 # Licensing/compliance - changes need explicit approval
-/CONTRIBUTING.md @JinUltimate1995
-/DMCA.md @JinUltimate1995
-/TRADEMARKS.md @JinUltimate1995
-/LICENSE @JinUltimate1995
+/CONTRIBUTING.md @0xJ1nn
+/DMCA.md @0xJ1nn
+/TRADEMARKS.md @0xJ1nn
+/LICENSE @0xJ1nn

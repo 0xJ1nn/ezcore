@@ -90,6 +90,7 @@
       "sms",
       "gg",
       "sg",
+      "bin",
       "iso",
       "cue",
       "chd",
@@ -763,7 +764,7 @@
     "artifacts": {},
     "bios_files": [],
     "bios_required": true,
-    "blocked_reason": "Engineering + licensing: AetherSX2 is proprietary (cannot ship or fork); Play! has no stable libretro port and poor compat; PCSX2 has no maintained libretro core. PS2 also mandates a BIOS dump and high JIT perf (no iOS path). Revisit if Play! matures or PCSX2-libretro revives. Slot reserved.",
+    "blocked_reason": "Catalog/delivery decision pending, not engineering: LRPS2 (libretro/ps2) is maintained, GPL-3.0-or-later, and reaches RENDERS on linux-x64 (docs/MATRIX.md, 2026-10-07). PS2 requires a user-supplied BIOS dump that the project can never ship or fetch, so the slot stays held until the user-BIOS delivery policy lands. This supersedes the earlier 'no shippable core' reason.",
     "cheat_families": [],
     "cheats_supported": false,
     "delivery": {
@@ -773,14 +774,14 @@
       "windows": "absent"
     },
     "extensions": [],
-    "homepage": "",
+    "homepage": "https://github.com/libretro/ps2",
     "id": "ps2_hold",
-    "license": "NONE \u2014 no viable open libretro core exists",
-    "name": "PlayStation 2 \u2014 no shippable core",
+    "license": "GPL-3.0-or-later (LRPS2)",
+    "name": "PlayStation 2 \u2014 held: LRPS2 verified, delivery undecided",
     "systems": [
       "ps2"
     ],
-    "upstream": "NONE \u2014 slot reserved only",
+    "upstream": "libretro/ps2",
     "version": "0.0.0-blocked"
   },
   "rcp64": {

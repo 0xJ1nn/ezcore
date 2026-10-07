@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200" width="560" height="200" role="img" aria-label="ezCORE palette">
+  <title>ezCORE palette</title>
+  <rect width="560" height="200" fill="#F4F6FA"/>
+  <circle cx="70" cy="80" r="44" fill="#0A0A0A" stroke="#D5DCE6" stroke-width="2"/><text x="70" y="160" text-anchor="middle" font-family="Manrope, sans-serif" font-size="17" letter-spacing="1.5" fill="#3A404B">#0A0A0A</text>
+  <circle cx="210" cy="80" r="44" fill="#007BFF" stroke="#D5DCE6" stroke-width="2"/><text x="210" y="160" text-anchor="middle" font-family="Manrope, sans-serif" font-size="17" letter-spacing="1.5" fill="#3A404B">#007BFF</text>
+  <circle cx="350" cy="80" r="44" fill="#DDE6F4" stroke="#D5DCE6" stroke-width="2"/><text x="350" y="160" text-anchor="middle" font-family="Manrope, sans-serif" font-size="17" letter-spacing="1.5" fill="#3A404B">#DDE6F4</text>
+  <circle cx="490" cy="80" r="44" fill="#FFFFFF" stroke="#D5DCE6" stroke-width="2"/><text x="490" y="160" text-anchor="middle" font-family="Manrope, sans-serif" font-size="17" letter-spacing="1.5" fill="#3A404B">#FFFFFF</text>
+</svg>

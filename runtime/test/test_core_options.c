@@ -215,6 +215,22 @@ int main(int argc, char **argv) {
   CHECK(ezcore_get_memory_descriptor_count(s) == 2, "fresh load has memory maps");
   ezcore_unload(s);
 
+  /* === SET_CORE_OPTIONS_V2_INTL ===
+   * How the standard libretro options template sends options (PPSSPP and
+   * many more): v2 definitions inside an INTL struct. The host used to have
+   * no case for it, so the core was left with only its earlier v1 INTL set
+   * (one option) and every v2 option was undefined. */
+  setenv("EZCORE_SYNTH_OPTIONS_V2_INTL", "1", 1);
+  s = ezcore_load(core_path, err, sizeof(err));
+  CHECK(s != NULL, "options core loads (V2_INTL)");
+  CHECK(ezcore_get_core_option_count(s) == 2,
+        "V2_INTL: both v2 options stored, not just the v1 set");
+  CHECK(ezcore_get_core_option(s, 1, &key, &def, &val) && key &&
+            strcmp(key, "test_frameskip") == 0,
+        "V2_INTL: the v2-only option is defined");
+  ezcore_unload(s);
+  unsetenv("EZCORE_SYNTH_OPTIONS_V2_INTL");
+
   printf("\n✅ ALL CORE OPTIONS TESTS PASSED\n");
   return 0;
 }

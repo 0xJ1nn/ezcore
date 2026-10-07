@@ -17,6 +17,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "libretro.h"
 
@@ -220,8 +221,18 @@ void retro_set_environment(retro_environment_t cb) {
        * send V2 -- which overwrites the INTL storage. */
       g_env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL,
                (void *)&g_core_options_intl);
-      g_env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2,
-               (void *)&g_core_options_v2);
+      if (getenv("EZCORE_SYNTH_OPTIONS_V2_INTL")) {
+         /* The way the standard libretro options template sends them
+          * (PPSSPP and many others): v2 definitions wrapped in an INTL
+          * struct, English in .us. */
+         static struct retro_core_options_v2_intl intl;
+         intl.us = &g_core_options_v2;
+         intl.local = NULL;
+         g_env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL, &intl);
+      } else {
+         g_env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2,
+                  (void *)&g_core_options_v2);
+      }
    } else if (queried && g_host_core_options_version >= 0x10000) {
       /* Host supports only v1 -- send INTL definitions */
       g_env_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL,

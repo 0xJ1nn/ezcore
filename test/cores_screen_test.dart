@@ -8,7 +8,10 @@ import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
+import 'package:ezcore/widgets/collection_view.dart';
+import 'package:ezcore/widgets/cover_flow.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CoreManifest core(String id, List<String> systems,
@@ -48,12 +51,15 @@ void main() {
     return s;
   }
 
+  // Most tests below describe the List view; the views have their own tests.
   Future<AppState> pump(WidgetTester t, Size size,
-      {ValueChanged<String>? onBrowse}) async {
+      {ValueChanged<String>? onBrowse,
+      CollectionView view = CollectionView.list}) async {
     t.view.physicalSize = size;
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     final s = mk();
+    await s.setSetting(coresViewKey, view.value);
     await t.pumpWidget(MaterialApp(
       theme: Tokens.theme(),
       home: Scaffold(body: CoreManagerScreen(state: s, onBrowseCore: onBrowse)),
@@ -62,15 +68,43 @@ void main() {
     return s;
   }
 
-  for (final size in const [Size(1280, 800), Size(390, 844), Size(844, 390)]) {
-    testWidgets('no overflow at $size', (t) async {
-      await pump(t, size);
-      expect(t.takeException(), isNull);
-      await t.tap(find.textContaining('Available'));
-      await t.pump();
-      expect(t.takeException(), isNull);
-    });
+  for (final view in CollectionView.values) {
+    for (final size in const [Size(1280, 800), Size(390, 844), Size(844, 390)]) {
+      testWidgets('${view.label} view: no overflow at $size', (t) async {
+        await pump(t, size, view: view);
+        expect(t.takeException(), isNull);
+        await t.tap(find.textContaining('Available'));
+        await t.pump();
+        expect(t.takeException(), isNull);
+      });
+    }
   }
+
+  testWidgets('the view switch changes the view and remembers it', (t) async {
+    final s = await pump(t, const Size(1280, 800));
+    expect(find.byType(CoverFlow), findsNothing);
+    await t.tap(find.byTooltip('3D'));
+    await t.pump();
+    expect(s.settings[coresViewKey], '3d');
+    expect(find.byType(CoverFlow), findsOneWidget);
+    await t.tap(find.byTooltip('Grid'));
+    await t.pump();
+    expect(s.settings[coresViewKey], 'grid');
+    expect(find.byType(GridView), findsOneWidget);
+  });
+
+  testWidgets('3D: the detail beside the shelf follows the front core',
+      (t) async {
+    await pump(t, const Size(1280, 800), view: CollectionView.flow);
+    // Installed, by name: Game Boy Advance… first, then PlayStation, whose
+    // detail lists its BIOS file.
+    expect(find.textContaining('scph1001.bin'), findsNothing);
+    await t.tap(find.byType(CoverFlow));
+    await t.pump();
+    await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await t.pumpAndSettle();
+    expect(find.textContaining('scph1001.bin'), findsOneWidget);
+  });
 
   testWidgets('cores are named by system, with status and trust', (t) async {
     await pump(t, const Size(1280, 800));

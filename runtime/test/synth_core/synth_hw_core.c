@@ -36,6 +36,8 @@ unsigned g_framebuffer = 0xFFFFFFFFu; /* what get_current_framebuffer gave */
 int g_proc_address_ok = 0;         /* our resolver returned a real symbol */
 unsigned g_iface_version = 0xFFFFFFFFu; /* interface_version the host reported */
 int g_frames_drawn = 0;
+int g_preferred_result = -1;       /* what GET_PREFERRED_HW_RENDER returned */
+unsigned g_preferred_type = 0;     /* the type it wrote */
 static unsigned g_fb = 0;
 static int g_fired = 0;
 
@@ -193,6 +195,8 @@ bool retro_load_game(const struct retro_game_info *game) {
    * apart from "host never answered". */
   if (!env_cb) return false;
   memset(&g_hw, 0, sizeof(g_hw));
+  g_preferred_result = -1;
+  g_preferred_type = 0;
   struct retro_hw_render_callback *hw = &g_hw;
   hw->context_type = RETRO_HW_CONTEXT_OPENGLES3;
   hw->version_major = 3;
@@ -207,7 +211,24 @@ bool retro_load_game(const struct retro_game_info *game) {
   hw->cache_context = false;
   hw->debug_context = false;
 
-  /* Ask for GLES3, the way a mobile-first core would. */
+  /* Test hooks for how real cores choose a context type.
+   * EZCORE_SYNTH_ASK_PREFERRED: ask the frontend first and use its answer, the
+   * way Flycast does -- with the variable deliberately uninitialised-looking,
+   * because Flycast's is (`u32 preferred;`).
+   * EZCORE_SYNTH_ASK_VULKAN: ask for Vulkan. */
+  if (getenv("EZCORE_SYNTH_ASK_PREFERRED")) {
+    unsigned preferred = 0xDEADBEEFu;
+    g_preferred_result =
+        env_cb(RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, &preferred) ? 1 : 0;
+    g_preferred_type = preferred;
+    if (!g_preferred_result) return false;
+    hw->context_type = (enum retro_hw_context_type)preferred;
+  } else if (getenv("EZCORE_SYNTH_ASK_VULKAN")) {
+    hw->context_type = RETRO_HW_CONTEXT_VULKAN;
+    hw->version_major = 1;
+  }
+
+  /* Otherwise GLES3, the way a mobile-first core would. */
   g_set_hw_render_result =
       env_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, hw) ? 1 : 0;
   if (!g_set_hw_render_result) return false;
@@ -281,3 +302,5 @@ unsigned probe_framebuffer(void) { return g_framebuffer; }
 int probe_proc_address_ok(void) { return g_proc_address_ok; }
 unsigned probe_iface_version(void) { return g_iface_version; }
 int probe_frames_drawn(void) { return g_frames_drawn; }
+int probe_preferred_result(void) { return g_preferred_result; }
+unsigned probe_preferred_type(void) { return g_preferred_type; }

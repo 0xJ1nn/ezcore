@@ -61,7 +61,20 @@ class _PadNavigatorState extends State<PadNavigator> {
         // A screen is focused but no control in it yet: take the first one.
         focus.nextFocus();
       } else {
-        focus.focusInDirection(dir);
+        // A widget that browses on its own (the 3D shelf) overrides the
+        // directional intent the arrow keys send; give it the d-pad too.
+        // Flutter's default action is skipped on purpose: it ignores text
+        // fields, which would trap the d-pad in the search box.
+        final ctx = focus.context;
+        final intent = DirectionalFocusIntent(dir);
+        final action = ctx == null
+            ? null
+            : Actions.maybeFind<DirectionalFocusIntent>(ctx, intent: intent);
+        if (action != null && action is! DirectionalFocusAction) {
+          Actions.invoke(ctx!, intent);
+        } else {
+          focus.focusInDirection(dir);
+        }
       }
       return;
     }

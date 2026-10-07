@@ -370,6 +370,49 @@ static void clear_input(ezcore_session *s) {
   s->pointer_pressed = false;
 }
 
+/* Deep-copy a v2 option set into the active session. Shared by
+ * SET_CORE_OPTIONS_V2 and SET_CORE_OPTIONS_V2_INTL. */
+static bool store_core_options_v2(const struct retro_core_options_v2 *opts) {
+  /* Deep-copy a v2 option set into the session.  The core retains
+   * ownership of all strings; we duplicate them so they survive
+   * beyond the env_cb call. */
+  if (!g_active) return false;
+  ezcore_free_core_options(g_active);
+  if (!opts || !opts->definitions) return true;
+  /* definitions is terminated by a zeroed-out struct (key == NULL) */
+  unsigned count = 0;
+  while (count < 1024 && opts->definitions[count].key) count++;
+  if (count == 0) return true;
+  g_active->core_options =
+      (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
+  if (!g_active->core_options) return false;
+  g_active->num_core_options = count;
+  for (unsigned i = 0; i < count; i++) {
+    const struct retro_core_option_v2_definition *d = &opts->definitions[i];
+    struct ezcore_core_option *co = &g_active->core_options[i];
+    co->key = ezcore_strdup(d->key);
+    co->desc = ezcore_strdup(d->desc);
+    co->default_value = ezcore_strdup(d->default_value);
+    co->value = ezcore_strdup(d->default_value); /* init current = default */
+    /* values[] is terminated by { NULL, NULL } */
+    unsigned nv = 0;
+    while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
+           d->values[nv].value) nv++;
+    co->num_values = nv;
+    if (nv > 0) {
+      co->values = (char **)calloc(nv + 1, sizeof(char *));
+      co->labels = (char **)calloc(nv + 1, sizeof(char *));
+      if (co->values && co->labels) {
+        for (unsigned j = 0; j < nv; j++) {
+          co->values[j] = ezcore_strdup(d->values[j].value);
+          co->labels[j] = ezcore_strdup(d->values[j].label);
+        }
+      }
+    }
+  }
+  return true;
+}
+
 static bool env_cb(unsigned cmd, void *data) {
   switch (cmd) {
     case RETRO_ENVIRONMENT_GET_CAN_DUPE:
@@ -416,46 +459,17 @@ static bool env_cb(unsigned cmd, void *data) {
        * We report v2, enabling SET_CORE_OPTIONS_V2 / V2_INTL. */
       if (data) *(unsigned *)data = EZCORE_CORE_OPTIONS_VERSION;
       return true;
-    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2: {
-      /* Deep-copy a v2 option set into the session.  The core retains
-       * ownership of all strings; we duplicate them so they survive
-       * beyond the env_cb call. */
-      const struct retro_core_options_v2 *opts = data;
-      if (!g_active) return false;
-      ezcore_free_core_options(g_active);
-      if (!opts || !opts->definitions) return true;
-      /* definitions is terminated by a zeroed-out struct (key == NULL) */
-      unsigned count = 0;
-      while (count < 1024 && opts->definitions[count].key) count++;
-      if (count == 0) return true;
-      g_active->core_options =
-          (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
-      if (!g_active->core_options) return false;
-      g_active->num_core_options = count;
-      for (unsigned i = 0; i < count; i++) {
-        const struct retro_core_option_v2_definition *d = &opts->definitions[i];
-        struct ezcore_core_option *co = &g_active->core_options[i];
-        co->key = ezcore_strdup(d->key);
-        co->desc = ezcore_strdup(d->desc);
-        co->default_value = ezcore_strdup(d->default_value);
-        co->value = ezcore_strdup(d->default_value); /* init current = default */
-        /* values[] is terminated by { NULL, NULL } */
-        unsigned nv = 0;
-        while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
-               d->values[nv].value) nv++;
-        co->num_values = nv;
-        if (nv > 0) {
-          co->values = (char **)calloc(nv + 1, sizeof(char *));
-          co->labels = (char **)calloc(nv + 1, sizeof(char *));
-          if (co->values && co->labels) {
-            for (unsigned j = 0; j < nv; j++) {
-              co->values[j] = ezcore_strdup(d->values[j].value);
-              co->labels[j] = ezcore_strdup(d->values[j].label);
-            }
-          }
-        }
-      }
-      return true;
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
+      return store_core_options_v2((const struct retro_core_options_v2 *)data);
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL: {
+      /* We report options version 2, which promises this call too. An
+       * earlier version had no case for it, so every core built from the
+       * standard libretro options template (PPSSPP among them) had all of
+       * its options silently dropped and GET_VARIABLE failed for every key.
+       * Like the v1 INTL case we keep the canonical US definitions; option
+       * keys and values are language-independent. */
+      const struct retro_core_options_v2_intl *intl = data;
+      return store_core_options_v2(intl ? intl->us : NULL);
     }
     case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL: {
       /* v1 INTL variant.  We store the US (English) definitions using
@@ -637,7 +651,15 @@ static bool env_cb(unsigned cmd, void *data) {
         case RETRO_HW_CONTEXT_OPENGLES2:    api = EZCORE_GPU_OPENGLES2; break;
         case RETRO_HW_CONTEXT_OPENGL_CORE:  api = EZCORE_GPU_OPENGL_CORE; break;
         case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
-        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
+        case RETRO_HW_CONTEXT_VULKAN:
+          /* Refused until frames can be handed over. ezcore_gpu_vulkan.c makes
+           * an instance and a device, but there is no set_image handoff and
+           * no readback, so saying yes would leave the core drawing into
+           * nothing -- Flycast then crashes on a renderer it never created.
+           * Refusing sends it to its OpenGL path, which works. */
+          fprintf(stderr, "[ezcore] SET_HW_RENDER vulkan refused: frame "
+                          "handoff not implemented yet\n");
+          return false;
         default: return false;   /* D3D/Metal/PS2: not offered, say so */
       }
 
@@ -663,22 +685,25 @@ static bool env_cb(unsigned cmd, void *data) {
       return true;
     }
     case RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER: {
+      /* `data` is an OUT-PARAM (`unsigned *`): the frontend writes the context
+       * type it prefers. An earlier version read it as an input and echoed it
+       * back, but cores pass it uninitialised (Flycast: `u32 preferred;`), so
+       * the answer depended on stack garbage. When it came back false Flycast
+       * fell through to Vulkan, which we could not actually serve.
+       *
+       * Desktop GL first (what RetroArch's GL driver answers, and the path the
+       * most cores are tested on), GLES3 where only that exists. Never Vulkan
+       * while SET_HW_RENDER refuses it. Probing does not create a context. */
       if (!data) return false;
-      unsigned type = *(const unsigned *)data;
-      enum ezcore_gpu_api api;
-      switch (type) {
-        case RETRO_HW_CONTEXT_OPENGL:       api = EZCORE_GPU_OPENGL; break;
-        case RETRO_HW_CONTEXT_OPENGLES3:    api = EZCORE_GPU_OPENGLES3; break;
-        case RETRO_HW_CONTEXT_VULKAN:       api = EZCORE_GPU_VULKAN; break;
-        default: return false;
+      if (ezcore_gpu_supported(EZCORE_GPU_OPENGL)) {
+        *(unsigned *)data = RETRO_HW_CONTEXT_OPENGL;
+        return true;
       }
-      /* Only advertise what ezcore_gpu_supported can actually create. This
-       * deliberately does NOT create a context: a core may ask this before it
-       * has decided, and paying for a context during capability probing would
-       * make the answer expensive on every session start. */
-      if (!ezcore_gpu_supported(api)) return false;
-      *(unsigned *)data = type;
-      return true;
+      if (ezcore_gpu_supported(EZCORE_GPU_OPENGLES3)) {
+        *(unsigned *)data = RETRO_HW_CONTEXT_OPENGLES3;
+        return true;
+      }
+      return false;
     }
     case RETRO_ENVIRONMENT_GET_HW_RENDER_INTERFACE: {
       if (!g_active || !g_active->gpu || !data) return false;
@@ -912,6 +937,24 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   ezcore_session *s = calloc(1, sizeof(*s));
   if (!s) return NULL;
   snprintf(s->core_path, sizeof(s->core_path), "%s", core_path);
+
+  /* Initialize the render platform before mapping any core. Mapping a large
+   * core library can perturb the host GL stack: with Mesa 26.2.4, dlopen()ing
+   * Play! or LRPS2 before EGL is initialized makes the later eglInitialize
+   * segfault inside the DRI screen path, while initializing EGL first leaves
+   * the same core working. The probe is soft (failure is ignored: cores that
+   * need no GPU and machines with no GL are unaffected) and runs once per
+   * process; the display stays initialized for the session's SET_HW_RENDER. */
+  static bool s_render_prewarmed = false;
+  if (!s_render_prewarmed) {
+    struct ezcore_gpu_context *warm = NULL;
+    char werr[128];
+    (void)ezcore_gpu_init(&warm, EZCORE_GPU_OPENGLES3, 3, 2, true, werr,
+                          sizeof werr);
+    if (warm) ezcore_gpu_destroy(warm);
+    s_render_prewarmed = true;
+  }
+
   s->handle = ez_dyn_open(core_path, err, err_len);
   if (!s->handle) {
     free(s);
@@ -997,12 +1040,15 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
 
 void ezcore_unload(ezcore_session *s) {
   if (!s) return;
-  /* libretro's teardown order, with this session active so any callback the
-   * core makes during it (video, log, environment) reaches the right place:
-   *   1. retro_unload_game -- cores flush battery saves and caches here. It
-   *      used to be skipped entirely.
-   *   2. the core's hw context_destroy, while the context still exists. It
-   *      used to be nulled out instead of called.
+  /* Teardown order, matching RetroArch's core_unload_game (the frontend
+   * cores are written against), with this session active so any callback
+   * the core makes during it reaches the right place:
+   *   1. the core's hw context_destroy, while the context still exists --
+   *      RetroArch runs it (video_driver_free_hw_context) before
+   *      retro_unload_game. PPSSPP depends on that: it deletes its graphics
+   *      context object in retro_unload_game, so a context_destroy after it
+   *      dereferenced freed memory. (An earlier version called it second.)
+   *   2. retro_unload_game -- cores flush battery saves and caches here.
    *   3. retro_deinit, still with a live context: a core frees GL handles
    *      here, and they are only valid while a context is current.
    *   4. only now the GPU context itself. It used to go first, so a core's
@@ -1010,8 +1056,6 @@ void ezcore_unload(ezcore_session *s) {
    *      its shader cache). */
   ezcore_session *prev = g_active;
   g_active = s;
-  if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
-  s->game_loaded = false;
   /* context_destroy pairs with context_reset: a core whose load failed
    * before it was ever given its context must not be told to tear one down
    * (Dolphin then shut down a GL backend it never set up, calling NULL). */
@@ -1019,6 +1063,8 @@ void ezcore_unload(ezcore_session *s) {
       s->hw_render_cb->context_destroy) {
     s->hw_render_cb->context_destroy();
   }
+  if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
+  s->game_loaded = false;
   if (s->inited) {
     s->retro_deinit();
     s->inited = false;

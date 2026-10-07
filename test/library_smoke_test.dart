@@ -1,10 +1,10 @@
+import 'package:ezcore/widgets/collection_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
-import 'package:ezcore/widgets/orbit_widgets.dart';
 
 void main() {
   const games = [
@@ -27,6 +27,7 @@ void main() {
   ];
 
   Future<void> pump(WidgetTester tester, AppState state) async {
+    await state.setSetting(libraryViewKey, CollectionView.grid.value);
     await tester.pumpWidget(
       MaterialApp(
         theme: Tokens.theme(),
@@ -38,11 +39,14 @@ void main() {
 
   testWidgets('library renders persisted games and searches', (tester) async {
     // Set games directly to avoid rootBundle catalog load in test env
-    final state = AppState()..games = games;
+    final state = AppState.ephemeral()..games = games;
     await pump(tester, state);
     expect(find.text('My GBA Dump'), findsWidgets);
     expect(find.text('My SNES Dump'), findsWidgets);
-    expect(find.text('All games'), findsOneWidget);
+    // Nothing played yet: no Resume or Continue, so no "All games" heading
+    // either; the tabs sit right above the games.
+    expect(find.text('All systems'), findsOneWidget);
+    expect(find.text('All games'), findsNothing);
 
     await tester.enterText(find.byType(TextField).first, 'snes');
     await tester.pumpAndSettle();
@@ -51,9 +55,13 @@ void main() {
   });
 
   testWidgets('a system filter shows that system only', (tester) async {
-    final state = AppState()..games = games;
+    final state = AppState.ephemeral()..games = games;
     await pump(tester, state);
-    await tester.tap(find.widgetWithText(OrbitChip, 'Game Boy Advance'));
+    // Test text is wide (Ahem): bring the tab into view first.
+    final tab = find.text('Game Boy Advance').first; // the header's tab
+    await tester.ensureVisible(tab);
+    await tester.pumpAndSettle();
+    await tester.tap(tab);
     await tester.pumpAndSettle();
     expect(find.text('My GBA Dump'), findsWidgets);
     expect(find.text('My SNES Dump'), findsNothing);
