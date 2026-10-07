@@ -29,6 +29,7 @@ void main() {
     'twinsh',
     'coinbox',
     'pointclick',
+    'lrps2',
   };
 
   test('active catalog cores have project artwork assets', () {

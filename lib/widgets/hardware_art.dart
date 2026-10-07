@@ -136,6 +136,7 @@ const _directArtwork = <String, String>{
   'twinsh': 'twinsh',
   'coinbox': 'coinbox',
   'pointclick': 'pointclick',
+  'lrps2': 'lrps2',
 };
 
 String _asset(String name) => 'assets/core_art/$name.webp';
