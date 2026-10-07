@@ -1455,3 +1455,78 @@ is left untouched.
 - **Bundle the data inside the app.** Couples the app to particular cores and
   breaks the "cores are apps" model; rejected.
 
+---
+
+## ADR-022: iOS — a sideload-only IPA may carry JIT cores
+
+**Status:** Accepted direction (2026-10-07). Records a maintainer decision;
+implementation is a separate program with its own gates and changes no
+App Store-bound behavior.
+
+### Context
+
+iOS today is a build-time target only: the OS forbids loading third-party
+native code at runtime, so cores are linked into the app, and the manifest
+policy admits interpreter-only cores on iOS because App Store apps cannot use
+JIT (no writable-executable memory). That policy was written for App Store
+distribution.
+
+The maintainer wants ezCORE to also offer an **unsigned IPA for sideloading**,
+so users who knowingly sideload (AltStore/SideStore/dev certificate) can run
+JIT-capable cores such as the PS2 core. Distributing such a build is legal —
+no Apple signing account is involved and the sources are GPL-compatible — and
+it mirrors existing practice: ARMSX2 already publishes an unsigned iOS IPA of
+its standalone app.
+
+Two platform facts do not change: the App Store path cannot have JIT, and iOS
+cannot load cores at runtime. A sideload IPA is therefore a second, explicit
+artifact whose core set is fixed at build time.
+
+### Decision
+
+1. ezCORE may build and publish an **unsigned, sideload-only iOS IPA** that
+   statically links selected JIT-capable cores (first candidate: LRPS2).
+2. The IPA is a distinct artifact, never an App Store submission. The app must
+   label it plainly ("Sideloaded build — not App Store; JIT required") and
+   refuse to boot a core when the running toolchain did not grant JIT, rather
+   than booting something that cannot run.
+3. No BIOS, ROM, key, or sourcing guidance ships or is linked in any iOS
+   artifact; the existing user-supplied BIOS gate is the only path.
+4. Cores are linked at build time; runtime core loading and self-serve core
+   installation remain non-features on iOS.
+5. `delivery.ios` manifest semantics do not change. The sideload IPA is a
+   release channel whose core list is defined by the build; if that needs a
+   data-model field later, it is a follow-up ADR.
+
+### Prerequisites (the IPA is not buildable without them)
+
+- **Kernel:** an iOS GL context backend (EAGL/GLES, headless readback
+  fallback) and a static core registry. The runtime's GL backends today are
+  EGL (Linux/Android) and CGL (macOS, a deliberate no-op); neither serves iOS.
+- **Packaging:** static linking of cores into the app plus a build script that
+  produces the IPA without an Apple signing identity.
+- **Verification:** a physical-device run (simulators cannot exercise JIT).
+  The project has no iOS device verification path yet (issue #65).
+- **JIT retrieval:** the user's sideloading tool must grant the JIT
+  entitlement; free-account certificates expire in seven days and need
+  refresh.
+
+### Consequences
+
+- PS2 (and other JIT cores) become reachable on jailbroken/dev-signed devices;
+  App Store iOS stays interpreter-only or unsupported.
+- The interpreter-only iOS rule remains the default for App Store-bound
+  builds; the sideload artifact is a documented channel, not a loophole.
+- Verification cost is real: device-only, and crash containment (P6) matters
+  more once a core has JIT.
+
+### Alternatives
+
+- **Keep interpreter-only iOS (status quo).** PS2 is unplayable; Play!, the
+  BIOS-free interpreter candidate, currently crashes in its EE emulator on
+  homebrew (#126). Rejected by maintainer direction.
+- **Supervise ARMSX2's standalone iOS app (ADR-017 Tier-2).** Viable and
+  avoids kernel iOS work, but gives up ezCORE library/save/controller
+  continuity and bundles a second app. Kept as fallback.
+- **App Store build with JIT.** Not possible; do not plan around it.
+
