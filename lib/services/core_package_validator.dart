@@ -19,6 +19,7 @@ import 'dart:io';
 
 import '../controls/package_layouts.dart';
 import '../models/core_manifest.dart';
+import 'core_system_data.dart';
 
 /// Top-level fields permitted in a core package `manifest.json`.
 ///
@@ -51,6 +52,8 @@ const Set<String> kKnownManifestFields = <String>{
   'notes',
   // Recommended starting values for the core's own options (data only).
   'default_options',
+  // The core's own data folders for the system dir (ADR-021, data only).
+  'system_data',
 };
 
 /// Result of validating a core package directory.
@@ -161,6 +164,19 @@ class PackageValidationReport {
       readLayoutDir(
         Directory('${package.path}/layouts'),
         allowedSystems: [if (systems is List) for (final s in systems) '$s'],
+      ).errors,
+    );
+    // system/ (ADR-021): exactly the declared folders, data only. Same rules
+    // staging and the player apply.
+    final systemData = CoreManifest.parseSystemData(json['system_data']);
+    report.errors.addAll(systemData.errors);
+    final bios = json['bios_files'];
+    report.errors.addAll(
+      checkSystemData(
+        Directory('${package.path}/system'),
+        declared: systemData.names,
+        biosFiles: [if (bios is List) for (final b in bios) '$b'],
+        requirePresent: false,
       ).errors,
     );
     await _scanPackage(package, report, cap);

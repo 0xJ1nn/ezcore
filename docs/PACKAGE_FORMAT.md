@@ -301,3 +301,45 @@ a user's saved copy of a layout wins, then the core's layout for that system
 and orientation (an exact orientation beats `any`), then ezCORE's built-in
 layout. Resetting a layout in the editor returns to the core's layout.
 
+
+## 10. System data (`system/`, ADR-021)
+
+Some cores need their own program data in the libretro system directory:
+Dolphin looks for `<system>/dolphin-emu/Sys` (fonts, the Gecko code handler,
+game settings), PPSSPP for `<system>/PPSSPP` (font atlases, shaders,
+`compat.ini`). Without it GameCube does not boot and PSP runs degraded.
+
+A package ships that data under `system/`, mirroring the system directory,
+and declares every top-level folder in the manifest:
+
+```json
+"system_data": ["dolphin-emu"]
+```
+
+```
+powercube/
+├── manifest.json
+├── powercube_libretro.so
+└── system/
+    └── dolphin-emu/
+        └── Sys/ …
+```
+
+Rules — the same at install, at staging and before every session
+(`lib/services/core_system_data.dart`):
+
+- `system_data` is at most 4 plain folder names (`[A-Za-z0-9._-]+`).
+- `system/` holds exactly the declared folders: nothing undeclared, nothing
+  missing, no loose files.
+- Data only: no links, no file with an execute bit, no file that starts like
+  an ELF / Mach-O / PE program or a `#!` script.
+- At most 128 MiB and 20 000 files.
+- No file may carry the name of one of the manifest's `bios_files`. System
+  data is the core's own data under the core's licence; **BIOS, firmware
+  and keys are never shipped** (§6).
+
+Copying: the app copies each declared folder into the system directory and
+writes `.ezcore-system-data` (`<core id> <version>`) inside it last. The copy
+is refreshed when the core's version changes and skipped otherwise. A folder
+of the same name that has no marker was made by someone else and is never
+touched (the session logs a warning instead).

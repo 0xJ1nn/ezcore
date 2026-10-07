@@ -52,5 +52,8 @@
     "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
     "license_note": "COPYING states GPLv2+ and 'in aggregate … compatible with the GPLv3 license'. 2 files grant v2-only; project's own aggregate statement governs.",
     "built_from": "https://github.com/libretro/dolphin"
-  }
+  },
+  "system_data": [
+    "dolphin-emu"
+  ]
 }

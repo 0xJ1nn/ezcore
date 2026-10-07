@@ -1405,3 +1405,53 @@ These need to be made before Phase 1:
 | 6 | Development pace | Full-time (36 weeks) / Part-time (52-72 weeks) |
 | 7 | Team | Just you + me / + core contributors / + UI designer |
 | 8 | Desktop-first or mobile-first | Desktop / Mobile / Simultaneous |
+
+## ADR-021: Core system data — a core's own data files
+
+**Status:** Proposed (2026-10-02). Implemented behind the manifest field it
+introduces; a package without `system_data` behaves exactly as before.
+Needs the maintainer's acceptance (it changes the package format).
+
+### Context
+
+GameCube (Dolphin) refused to boot — "codehandler.bin missing" — and PSP
+(PPSSPP) warned "Core system files missing, expect bugs". Both cores look for
+their own data in the libretro system directory: `dolphin-emu/Sys` and
+`PPSSPP`. These folders come from each core's source tree, under the core's
+own licence (GPL). They are not BIOS: no console firmware, keys or games.
+The package format had no way to ship them, so every user would have had to
+find and copy them by hand.
+
+### Decision
+
+A package may declare `"system_data": ["<folder>", ...]` and ship those
+folders under `system/`. The app copies them into the system directory —
+at install (into the vault next to the core), at staging for bundled cores,
+and before each session — refreshing them when the core version changes.
+The rules (PACKAGE_FORMAT.md §10) keep it data: exactly the declared
+folders, no links, no execute bits, no executable or script signatures, size
+and file caps, no BIOS file names. A same-named folder the app did not create
+is left untouched.
+
+### Consequences
+
+- GameCube boots and PSP gets its assets with no manual setup (powercube and
+  portcomp manifests declare their folders; `scripts/build_core.sh` stages
+  them with `stage_system_data`).
+- Data in `system/` is validated but not pinned the way the core library is.
+  It cannot run, but a tampered official bundle could still change, say, a
+  game-settings file. Pinning a hash of the data tree alongside the library
+  is a possible follow-up.
+- Downloaded (`delivery: download`) cores need the data in the download too;
+  not done yet. powercube and portcomp are bundled.
+
+### Alternatives
+
+- **Ask users to copy the folders.** Every GameCube user would hit a boot
+  failure first; rejected.
+- **Point the core at the core's own folder instead of the system dir.**
+  libretro has one system directory per frontend; the cores read their data
+  relative to it, so this would need per-core patches.
+- **Bundle the data inside the app.** Couples the app to particular cores and
+  breaks the "cores are apps" model; rejected.
+
