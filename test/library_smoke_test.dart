@@ -43,7 +43,10 @@ void main() {
     await pump(tester, state);
     expect(find.text('My GBA Dump'), findsWidgets);
     expect(find.text('My SNES Dump'), findsWidgets);
-    expect(find.text('All games'), findsOneWidget);
+    // Nothing played yet: no Resume or Continue, so no "All games" heading
+    // either; the tabs sit right above the games.
+    expect(find.text('All systems'), findsOneWidget);
+    expect(find.text('All games'), findsNothing);
 
     await tester.enterText(find.byType(TextField).first, 'snes');
     await tester.pumpAndSettle();

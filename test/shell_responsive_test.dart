@@ -274,7 +274,9 @@ void main() {
     ]);
     expect(find.text('RESUME'), findsNothing);
     expect(find.text('Continue playing'), findsNothing);
-    expect(find.text('All games'), findsOneWidget);
+    // Nothing above the games, so no "All games" heading: the tabs lead.
+    expect(find.text('All games'), findsNothing);
+    expect(find.text('Time capsule'), findsOneWidget);
   });
 
   testWidgets('filters use system names, never core names', (tester) async {
