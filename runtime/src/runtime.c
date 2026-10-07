@@ -370,6 +370,49 @@ static void clear_input(ezcore_session *s) {
   s->pointer_pressed = false;
 }
 
+/* Deep-copy a v2 option set into the active session. Shared by
+ * SET_CORE_OPTIONS_V2 and SET_CORE_OPTIONS_V2_INTL. */
+static bool store_core_options_v2(const struct retro_core_options_v2 *opts) {
+  /* Deep-copy a v2 option set into the session.  The core retains
+   * ownership of all strings; we duplicate them so they survive
+   * beyond the env_cb call. */
+  if (!g_active) return false;
+  ezcore_free_core_options(g_active);
+  if (!opts || !opts->definitions) return true;
+  /* definitions is terminated by a zeroed-out struct (key == NULL) */
+  unsigned count = 0;
+  while (count < 1024 && opts->definitions[count].key) count++;
+  if (count == 0) return true;
+  g_active->core_options =
+      (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
+  if (!g_active->core_options) return false;
+  g_active->num_core_options = count;
+  for (unsigned i = 0; i < count; i++) {
+    const struct retro_core_option_v2_definition *d = &opts->definitions[i];
+    struct ezcore_core_option *co = &g_active->core_options[i];
+    co->key = ezcore_strdup(d->key);
+    co->desc = ezcore_strdup(d->desc);
+    co->default_value = ezcore_strdup(d->default_value);
+    co->value = ezcore_strdup(d->default_value); /* init current = default */
+    /* values[] is terminated by { NULL, NULL } */
+    unsigned nv = 0;
+    while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
+           d->values[nv].value) nv++;
+    co->num_values = nv;
+    if (nv > 0) {
+      co->values = (char **)calloc(nv + 1, sizeof(char *));
+      co->labels = (char **)calloc(nv + 1, sizeof(char *));
+      if (co->values && co->labels) {
+        for (unsigned j = 0; j < nv; j++) {
+          co->values[j] = ezcore_strdup(d->values[j].value);
+          co->labels[j] = ezcore_strdup(d->values[j].label);
+        }
+      }
+    }
+  }
+  return true;
+}
+
 static bool env_cb(unsigned cmd, void *data) {
   switch (cmd) {
     case RETRO_ENVIRONMENT_GET_CAN_DUPE:
@@ -416,46 +459,17 @@ static bool env_cb(unsigned cmd, void *data) {
        * We report v2, enabling SET_CORE_OPTIONS_V2 / V2_INTL. */
       if (data) *(unsigned *)data = EZCORE_CORE_OPTIONS_VERSION;
       return true;
-    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2: {
-      /* Deep-copy a v2 option set into the session.  The core retains
-       * ownership of all strings; we duplicate them so they survive
-       * beyond the env_cb call. */
-      const struct retro_core_options_v2 *opts = data;
-      if (!g_active) return false;
-      ezcore_free_core_options(g_active);
-      if (!opts || !opts->definitions) return true;
-      /* definitions is terminated by a zeroed-out struct (key == NULL) */
-      unsigned count = 0;
-      while (count < 1024 && opts->definitions[count].key) count++;
-      if (count == 0) return true;
-      g_active->core_options =
-          (struct ezcore_core_option *)calloc(count, sizeof(*g_active->core_options));
-      if (!g_active->core_options) return false;
-      g_active->num_core_options = count;
-      for (unsigned i = 0; i < count; i++) {
-        const struct retro_core_option_v2_definition *d = &opts->definitions[i];
-        struct ezcore_core_option *co = &g_active->core_options[i];
-        co->key = ezcore_strdup(d->key);
-        co->desc = ezcore_strdup(d->desc);
-        co->default_value = ezcore_strdup(d->default_value);
-        co->value = ezcore_strdup(d->default_value); /* init current = default */
-        /* values[] is terminated by { NULL, NULL } */
-        unsigned nv = 0;
-        while (nv < RETRO_NUM_CORE_OPTION_VALUES_MAX &&
-               d->values[nv].value) nv++;
-        co->num_values = nv;
-        if (nv > 0) {
-          co->values = (char **)calloc(nv + 1, sizeof(char *));
-          co->labels = (char **)calloc(nv + 1, sizeof(char *));
-          if (co->values && co->labels) {
-            for (unsigned j = 0; j < nv; j++) {
-              co->values[j] = ezcore_strdup(d->values[j].value);
-              co->labels[j] = ezcore_strdup(d->values[j].label);
-            }
-          }
-        }
-      }
-      return true;
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
+      return store_core_options_v2((const struct retro_core_options_v2 *)data);
+    case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL: {
+      /* We report options version 2, which promises this call too. An
+       * earlier version had no case for it, so every core built from the
+       * standard libretro options template (PPSSPP among them) had all of
+       * its options silently dropped and GET_VARIABLE failed for every key.
+       * Like the v1 INTL case we keep the canonical US definitions; option
+       * keys and values are language-independent. */
+      const struct retro_core_options_v2_intl *intl = data;
+      return store_core_options_v2(intl ? intl->us : NULL);
     }
     case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_INTL: {
       /* v1 INTL variant.  We store the US (English) definitions using
@@ -1008,12 +1022,15 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
 
 void ezcore_unload(ezcore_session *s) {
   if (!s) return;
-  /* libretro's teardown order, with this session active so any callback the
-   * core makes during it (video, log, environment) reaches the right place:
-   *   1. retro_unload_game -- cores flush battery saves and caches here. It
-   *      used to be skipped entirely.
-   *   2. the core's hw context_destroy, while the context still exists. It
-   *      used to be nulled out instead of called.
+  /* Teardown order, matching RetroArch's core_unload_game (the frontend
+   * cores are written against), with this session active so any callback
+   * the core makes during it reaches the right place:
+   *   1. the core's hw context_destroy, while the context still exists --
+   *      RetroArch runs it (video_driver_free_hw_context) before
+   *      retro_unload_game. PPSSPP depends on that: it deletes its graphics
+   *      context object in retro_unload_game, so a context_destroy after it
+   *      dereferenced freed memory. (An earlier version called it second.)
+   *   2. retro_unload_game -- cores flush battery saves and caches here.
    *   3. retro_deinit, still with a live context: a core frees GL handles
    *      here, and they are only valid while a context is current.
    *   4. only now the GPU context itself. It used to go first, so a core's
@@ -1021,8 +1038,6 @@ void ezcore_unload(ezcore_session *s) {
    *      its shader cache). */
   ezcore_session *prev = g_active;
   g_active = s;
-  if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
-  s->game_loaded = false;
   /* context_destroy pairs with context_reset: a core whose load failed
    * before it was ever given its context must not be told to tear one down
    * (Dolphin then shut down a GL backend it never set up, calling NULL). */
@@ -1030,6 +1045,8 @@ void ezcore_unload(ezcore_session *s) {
       s->hw_render_cb->context_destroy) {
     s->hw_render_cb->context_destroy();
   }
+  if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
+  s->game_loaded = false;
   if (s->inited) {
     s->retro_deinit();
     s->inited = false;

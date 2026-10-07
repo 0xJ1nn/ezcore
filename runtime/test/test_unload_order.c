@@ -1,10 +1,12 @@
 /* test_unload_order.c — libretro teardown order (and that it happens).
  *
- * libretro's order is: retro_unload_game, then the frontend calls the core's
- * hw context_destroy while the context still exists, then retro_deinit, and
- * only then is the context destroyed. The runtime used to destroy the
- * context first, null out the core's context_destroy instead of calling it,
- * and never call retro_unload_game at all -- so cores could not flush battery
+ * The order, as RetroArch's core_unload_game does it (cores are written
+ * against it): the core's hw context_destroy while the context still exists,
+ * then retro_unload_game, then retro_deinit, and only then is the context
+ * destroyed. PPSSPP deletes its graphics context object in retro_unload_game,
+ * so calling context_destroy after it crashed. Before that the runtime
+ * destroyed the context first, nulled out context_destroy instead of calling
+ * it, and never called retro_unload_game -- so cores could not flush battery
  * saves or caches, and Mupen64Plus-Next crashed writing its shader cache
  * into a dead context.
  *
@@ -39,13 +41,13 @@ int main(int argc, char **argv) {
     got[n] = 0;
     fclose(f);
   }
-  const char *want = "unload_game\ncontext_destroy\ndeinit\n";
+  const char *want = "context_destroy\nunload_game\ndeinit\n";
   printf("order seen by the core:\n%s", got);
   if (strcmp(got, want) != 0) {
-    fprintf(stderr, "FAIL: expected unload_game, context_destroy, deinit\n");
+    fprintf(stderr, "FAIL: expected context_destroy, unload_game, deinit\n");
     return 1;
   }
-  printf("ok: unload_game, then context_destroy, then deinit\n");
+  printf("ok: context_destroy, then unload_game, then deinit\n");
 
   /* A core that asked for a context but failed its load was never given
    * that context (context_reset), so it must not be told to destroy it. */
