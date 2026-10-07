@@ -99,13 +99,17 @@ class ContentImporter {
       );
     }
 
-    // Validate file content — reject text files, wrong-size files, and
-    // files whose bytes don't match the expected ROM format.
-    final isValidRom = await _romValidator.validate(filePath, ext);
-    if (!isValidRom) {
+    // Validate file content and identify the system from the bytes. A
+    // wrong magic (or a non-ROM wearing the extension) is rejected; an
+    // identity lets the importer pick a core of the *right* system when
+    // several cores claim the same extension (e.g. .gb is claimed by
+    // GB-first and GBA-first cores).
+    final identity = await _romValidator.identify(filePath, ext);
+    if (identity.rejected) {
       return ImportResult(
         filePath: filePath,
-        skippedReason: 'Not a valid ROM file (content validation failed)',
+        skippedReason: identity.rejectReason ??
+            'Not a valid ROM file (content validation failed)',
       );
     }
 
@@ -117,8 +121,9 @@ class ContentImporter {
       );
     }
 
-    final core = matchingCores.first;
-    final system = core.systems.isNotEmpty ? core.systems.first : ext;
+    final core = _selectCore(matchingCores.toList(), identity.system);
+    final system =
+        identity.system ?? (core.systems.isNotEmpty ? core.systems.first : ext);
     final title = filePath.split(Platform.pathSeparator).last;
     final game = GameEntry(
       id: 'imp-$sha',
@@ -126,10 +131,58 @@ class ContentImporter {
       system: system,
       filePath: filePath,
       extension: ext,
+      fileSize: await file.length(),
       sha1: sha,
       coreId: core.id,
     );
     return ImportResult(filePath: filePath, game: game);
+  }
+
+  /// Identifies an existing file's content without hashing or importing.
+  ///
+  /// Used by the library rescan to reconcile entries imported under older
+  /// rules: fix a wrong system/core label, or drop files that are not
+  /// playable ROM content for any bundled core.
+  Future<RomIdentity> identifyFile(String filePath, String extension) =>
+      _romValidator.identify(filePath, extension);
+
+  /// Picks the best core for [system] among [cores] claiming the file.
+  ///
+  /// Preference order:
+  /// 1. cores whose system list contains the identified system,
+  /// 2. among those, a core that lists it *first* (its primary system),
+  /// 3. original catalog order otherwise.
+  ///
+  /// With no identified system, the first core in catalog order wins —
+  /// the pre-identification behavior.
+  static CoreManifest _selectCore(
+      List<CoreManifest> cores, String? system) {
+    if (system == null) return cores.first;
+    final containing = cores.where((m) => m.systems.contains(system));
+    if (containing.isEmpty) return cores.first;
+    for (final core in containing) {
+      if (core.systems.isNotEmpty && core.systems.first == system) {
+        return core;
+      }
+    }
+    return containing.first;
+  }
+
+  /// Public wrapper over [_selectCore] for callers that know the catalog
+  /// and the file extension (the rescan reconciler). Returns null when no
+  /// core claims [extension].
+  static CoreManifest? selectCore(
+    Map<String, CoreManifest> catalog,
+    String extension,
+    String? system,
+  ) {
+    final cores = catalog.values
+        .where((m) => m.extensions
+            .map((e) => e.toLowerCase())
+            .contains(extension.toLowerCase()))
+        .toList();
+    if (cores.isEmpty) return null;
+    return _selectCore(cores, system);
   }
 
   /// Scans [dirPath] for import candidates.
@@ -176,6 +229,15 @@ class ContentImporter {
           catalog: catalog,
         );
         results.add(result);
+        // A file accepted in this pass becomes "known" so a second copy
+        // of the same content (same directory or a sibling folder in the
+        // same scan) is reported as a duplicate instead of imported
+        // twice. Without this, one scan could add both copies, and the
+        // library showed the same game twice.
+        final game = result.game;
+        if (game != null && game.sha1.isNotEmpty) {
+          knownShas.add(game.sha1);
+        }
       }
     }
   }

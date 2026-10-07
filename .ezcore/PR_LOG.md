@@ -26,11 +26,11 @@
   passed / 15 skipped / 0 failed**; Linux CTest **3/3**; Linux debug build
   passed; Android debug APK build passed; manifest, license, artwork,
   provenance, banned-content, and whitespace gates passed.
-- **Result:** PR [#29](https://github.com/JinUltimate1995/ezcore/pull/29) merged
+- **Result:** PR [#29](https://github.com/0xJ1nn/ezcore/pull/29) merged
   the artwork/evidence base into `main`; PR
-  [#30](https://github.com/JinUltimate1995/ezcore/pull/30) merged the reviewed
+  [#30](https://github.com/0xJ1nn/ezcore/pull/30) merged the reviewed
   child into the stacked base; PR
-  [#31](https://github.com/JinUltimate1995/ezcore/pull/31) replayed only the
+  [#31](https://github.com/0xJ1nn/ezcore/pull/31) replayed only the
   child delta into `main`. Independent review found no blocking defect. Old
   PRs #27 and #28 were closed as superseded after the replacement PRs opened.
 

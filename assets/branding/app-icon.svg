@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="ezCORE">
+  <title>ezCORE</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0E1626"/><stop offset="1" stop-color="#05070C"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.5" cy="0.18" r="0.75">
+      <stop offset="0" stop-color="#1B2C48" stop-opacity="0.9"/><stop offset="1" stop-color="#1B2C48" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7F9FC"/><stop offset="0.55" stop-color="#D3DBE8"/><stop offset="1" stop-color="#AEB9CC"/>
+    </linearGradient>
+    <filter id="rimglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="18.43"/></filter>
+  </defs>
+  <rect x="112.64" y="112.64" width="798.72" height="798.72" rx="179.71" fill="none" stroke="#007BFF" stroke-width="12.29" filter="url(#rimglow)" opacity="0.95"/>
+  <rect x="112.64" y="112.64" width="798.72" height="798.72" rx="179.71" fill="url(#tile)"/>
+  <rect x="112.64" y="112.64" width="798.72" height="798.72" rx="179.71" fill="url(#sheen)"/>
+  <rect x="112.64" y="112.64" width="798.72" height="798.72" rx="179.71" fill="none" stroke="#3D95FF" stroke-width="4.1"/>
+  <g transform="translate(216.47 272.38) scale(1.24)">
+  <path fill-rule="evenodd" fill="url(#silver)" d="M4.5 106.62Q0 100 4.5 93.38L63.5 6.62Q68 0 76 0L112.35 0Q120.35 0 124.47 6.86L140.24 33.14Q144.35 40 136.35 40L97.17 40Q89.17 40 84.67 46.62L52.87 93.38Q48.37 100 52.87 106.62L84.67 153.38Q89.17 160 97.17 160L208.35 160Q216.35 160 212.24 153.14L186.87 110.86Q182.75 104 190.75 104L221.4 104Q229.4 104 233.52 110.86L282.88 193.14Q287 200 279 200L76 200Q68 200 63.5 193.38ZM116 68Q116 64 120 64L136 64Q140 64 140 68L140 84Q140 88 144 88L160 88Q164 88 164 92L164 108Q164 112 160 112L144 112Q140 112 140 116L140 132Q140 136 136 136L120 136Q116 136 116 132L116 116Q116 112 112 112L96 112Q92 112 92 108L92 92Q92 88 96 88L112 88Q116 88 116 84Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M473.5 93.38Q478 100 473.5 106.62L414.5 193.38Q410 200 402 200L365.65 200Q357.65 200 353.53 193.14L337.76 166.86Q333.65 160 341.65 160L380.83 160Q388.83 160 393.33 153.38L425.13 106.62Q429.63 100 425.13 93.38L393.33 46.62Q388.83 40 380.83 40L269.65 40Q261.65 40 265.76 46.86L291.13 89.14Q295.25 96 287.25 96L256.6 96Q248.6 96 244.48 89.14L195.12 6.86Q191 0 199 0L402 0Q410 0 414.5 6.62ZM362 76A12 12 0 0 1 338 76A12 12 0 0 1 362 76ZM386 100A12 12 0 0 1 362 100A12 12 0 0 1 386 100ZM362 124A12 12 0 0 1 338 124A12 12 0 0 1 362 124ZM338 100A12 12 0 0 1 314 100A12 12 0 0 1 338 100Z"/>
+  <defs>
+    <linearGradient id="hero-g" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0" stop-color="#007BFF" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#7DB9FF" stop-opacity="1"/>
+      <stop offset="0.65" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#007BFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="hero-c" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0.2" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="hero-blur" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <g stroke-linecap="round">
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#hero-g)" stroke-width="14" filter="url(#hero-blur)"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#hero-g)" stroke-width="4"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#hero-c)" stroke-width="1.6"/>
+  </g>
+  </g>
+  <g transform="translate(248.42 639.8) scale(0.72)"><path fill-rule="evenodd" fill="url(#silver)" d="M66 67A33 33 0 1 0 59 87.32L50.73 80.85A22.5 22.5 0 1 1 55.5 67Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M9.5 61.75L66 61.75L66 72.25L9.5 72.25Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M74 35.5Q74 34 75.5 34L128.5 34Q130 34 130 35.5L130 43Q130 44.5 128.98 45.6L89.02 88.4Q88 89.5 89.5 89.5L128.5 89.5Q130 89.5 130 91L130 98.5Q130 100 128.5 100L75.5 100Q74 100 74 98.5L74 91Q74 89.5 75.02 88.4L114.98 45.6Q116 44.5 114.5 44.5L75.5 44.5Q74 44.5 74 43Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M286 0L204 0A50 50 0 0 0 204 100L286 100L286 74L204 74A24 24 0 0 1 204 26L286 26Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M354 0L386 0A50 50 0 0 1 386 100L354 100A50 50 0 0 1 354 0ZM354 26L386 26A24 24 0 0 1 386 74L354 74A24 24 0 0 1 354 26Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M454 0L480 0L480 100L454 100Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M454 0L547 0A31 31 0 0 1 547 62L454 62ZM480 24L547 24A8 8 0 0 1 547 40L480 40Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M514 61L542 61L578 100L550 100Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M728 0L646 0A50 50 0 0 0 646 100L728 100L728 74L646 74A24 24 0 0 1 646 26L728 26Z"/><path fill-rule="evenodd" fill="url(#silver)" d="M620 38L714 38L714 62L620 62Z"/></g>
+</svg>

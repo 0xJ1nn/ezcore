@@ -49,7 +49,7 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mak
 ## One-Command Bootstrap (macOS)
 
 ```bash
-git clone https://github.com/JinUltimate1995/ezcore.git
+git clone https://github.com/0xJ1nn/ezcore.git
 cd ezcore
 scripts/prereqs.sh                    # installs toolchain via Homebrew
 scripts/build_core.sh --fetch-headers # vendors libretro.h

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/state/app_state.dart';
 
 const _mgbaManifest = '''
@@ -138,4 +139,78 @@ void main() {
     expect(state.games, hasLength(1));
     expect(state.games.first.title, 'game.gba');
   });
+
+  test('rescan relabels a stale system name and keeps a playable core',
+      () async {
+    final rom = await createFakeRom(tmpDir, 'game');
+    await state.addRomFolder(tmpDir.path);
+    await state.rescanRomFolders();
+    expect(state.games, hasLength(1));
+
+    // Simulate an entry imported under older rules with a wrong system.
+    state.games[0] = state.games[0].copyWith(system: 'legacy-system');
+
+    final report = await state.rescanRomFolders();
+
+    expect(report.changed, isTrue);
+    expect(state.games, hasLength(1));
+    expect(state.games.first.system, 'gba');
+    expect(state.games.first.coreId, 'mgba');
+    expect(File(rom.path).existsSync(), isTrue);
+  });
+
+  test('rescan drops entries no core can play (text wearing .gba)',
+      () async {
+    final file = File('${tmpDir.path}/notes.gba');
+    await file.writeAsString('plain text, not a ROM'.padRight(600));
+    await state.addRomFolder(tmpDir.path);
+    // The old importer would not have added this; simulate a stale entry
+    // that points at unplayable content.
+    state.games.add(_staleEntry(file.path));
+
+    final report = await state.rescanRomFolders();
+
+    expect(report.pruned, greaterThanOrEqualTo(1));
+    expect(state.games, isEmpty);
+  });
+
+  test('rescan dedupes identical content imported from two paths', () async {
+    final a = Directory('${tmpDir.path}/a')..createSync();
+    final b = Directory('${tmpDir.path}/b')..createSync();
+    await createFakeRom(a, 'same');
+    // Same bytes, different path -> same sha -> same id.
+    File('${a.path}/same.gba').copySync('${b.path}/same.gba');
+    await state.addRomFolder(tmpDir.path);
+    await state.rescanRomFolders();
+    expect(state.games, hasLength(1));
+
+    // Duplicate the entry as the old importer could have (one per path).
+    final dup = state.games.first.copyWith();
+    state.games.add(GameEntry(
+      id: dup.id,
+      title: dup.title,
+      system: dup.system,
+      filePath: '${b.path}/same.gba',
+      extension: dup.extension,
+      sha1: dup.sha1,
+      coreId: dup.coreId,
+    ));
+    expect(state.games, hasLength(2));
+
+    final report = await state.rescanRomFolders();
+
+    expect(report.pruned, greaterThanOrEqualTo(1));
+    expect(state.games, hasLength(1));
+  });
 }
+
+/// A library entry pointing at [path] claiming GBA, used to simulate a
+/// stale import that current content rules reject.
+GameEntry _staleEntry(String path) => GameEntry(
+      id: 'imp-stale',
+      title: 'notes.gba',
+      system: 'gba',
+      filePath: path,
+      extension: 'gba',
+      coreId: 'mgba',
+    );

@@ -8,11 +8,11 @@
   PR #31, are merged into `main`; local gates and independent review are green
 - **Date:** 2026-09-25
 - **Merged pull requests:**
-  - [#29](https://github.com/JinUltimate1995/ezcore/pull/29) — artwork,
+  - [#29](https://github.com/0xJ1nn/ezcore/pull/29) — artwork,
     provenance, compact-shell evidence, and base repair
-  - [#30](https://github.com/JinUltimate1995/ezcore/pull/30) — signed cover-flow
+  - [#30](https://github.com/0xJ1nn/ezcore/pull/30) — signed cover-flow
     hardening on the stacked base
-  - [#31](https://github.com/JinUltimate1995/ezcore/pull/31) — child-delta
+  - [#31](https://github.com/0xJ1nn/ezcore/pull/31) — child-delta
     integration into `main` after the stacked merge topology was resolved
 - **Base commits:** `a3b3ee7`, `d82b4cd`, `4017681`
 - **Child implementation/evidence commits:** `93a7f29`, `8e0311e`, `da89f77`, `588dff9`

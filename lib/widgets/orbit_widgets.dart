@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../brand/brand_mark.dart';
 import '../services/cover_art.dart';
 import '../theme/tokens.dart';
 import 'space_backdrop.dart';
@@ -82,15 +84,9 @@ class OrbitRail extends StatelessWidget {
           return Column(
             children: [
               if (!short) ...[
-                Semantics(
-                  label: 'ezCORE',
-                  child: Image.asset(
-                    'assets/branding/icon-blue.png',
-                    width: 34,
-                    height: 34,
-                    filterQuality: FilterQuality.high,
-                    errorBuilder: (_, _, _) => const SizedBox(height: 34),
-                  ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: BrandMark(height: 22),
                 ),
                 const SizedBox(height: 20),
               ],
