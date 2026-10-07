@@ -8,6 +8,12 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Cores bring their own data files.** A core package can now ship the data
+  its emulator needs in the system folder — Dolphin's `Sys` folder for
+  GameCube, PPSSPP's assets for PSP — and ezCORE puts it in place before the
+  game starts, refreshing it when the core updates. It is checked to be data
+  only and never includes BIOS, firmware or keys; a folder you made yourself
+  is never touched. (ADR-021, proposed.)
 - **ezCORE looks like the OS it is.** One top bar on every space carries the
   ezCORE lockup, "Emulation shouldn't be hard." and a status corner that only
   shows what is true: the time, and P1 while a controller is connected. The

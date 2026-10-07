@@ -46,5 +46,8 @@
     "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
     "license_note": "Source grants verified: 5236 files 'or later', 0 v2-only.",
     "built_from": "https://github.com/hrydgard/ppsspp (libretro build target)"
-  }
+  },
+  "system_data": [
+    "PPSSPP"
+  ]
 }
