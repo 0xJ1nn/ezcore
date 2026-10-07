@@ -15,14 +15,8 @@ import '../widgets/orbit_widgets.dart';
 /// Appearance / Emulation / Controllers / Audio / Library & storage / About.
 /// All controls persist into [AppState.settings]; nothing leaves the device.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({
-    super.key,
-    required this.state,
-    this.onGoVault,
-    this.initialTab,
-  });
+  const SettingsScreen({super.key, required this.state, this.initialTab});
   final AppState state;
-  final VoidCallback? onGoVault;
   final String? initialTab;
 
   @override
@@ -534,14 +528,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-          ),
-        ),
-        _row(
-          'Saves',
-          'Every save state, for every game.',
-          OrbitSecondary(
-            label: 'Open saves',
-            onPressed: () => widget.onGoVault?.call(),
           ),
         ),
         _row(

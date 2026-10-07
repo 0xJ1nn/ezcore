@@ -11,6 +11,7 @@ import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
 import 'widgets/fade_indexed_stack.dart';
+import 'widgets/orbit_chrome.dart';
 import 'widgets/orbit_widgets.dart';
 import 'widgets/pad_navigator.dart';
 
@@ -59,8 +60,15 @@ class _EmuAppState extends State<EmuApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       // A controller drives every menu (d-pad focus, A select, B back).
-      builder: (context, child) =>
-          PadNavigator(navigatorKey: _navigatorKey, child: child!),
+      // Esc goes back anywhere; a running game handles Esc itself (its
+      // pause menu) before this sees it.
+      builder: (context, child) => CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              _navigatorKey.currentState?.maybePop(),
+        },
+        child: PadNavigator(navigatorKey: _navigatorKey, child: child!),
+      ),
       title: 'ezCORE',
       debugShowCheckedModeBanner: false,
       theme: Tokens.theme(),
@@ -106,10 +114,10 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-/// Three destinations (layout option A): Library (home), Cores, Settings.
-/// A rail on wide screens, a bottom bar on phones in portrait; the same
-/// three either way. Saves live with their game and in the pause menu, and
-/// the full save vault is reachable from Settings.
+/// The OS: four spaces — Library (home), Systems (cores), Capsule (every
+/// save) and Settings — under one top bar (the ezCORE lockup and a status
+/// corner). A rail on wide screens, a bottom bar on phones in portrait; keys
+/// 1–4 switch space, Esc goes back.
 class _ShellState extends State<Shell> {
   String page = 'library';
   final _libraryFilter = ValueNotifier<String?>(null);
@@ -127,8 +135,9 @@ class _ShellState extends State<Shell> {
       (s) => widget.state.games.any((g) => g.system == s),
     );
     _libraryFilter.value = null; // a repeat request must still notify
-    _libraryFilter.value =
-        withGames.isNotEmpty ? withGames.first : core.systems.first;
+    _libraryFilter.value = withGames.isNotEmpty
+        ? withGames.first
+        : core.systems.first;
     _go('library');
   }
 
@@ -138,35 +147,40 @@ class _ShellState extends State<Shell> {
     super.dispose();
   }
 
-  void _openVault() => Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => Scaffold(
-        backgroundColor: Tokens.bg,
-        appBar: AppBar(
-          backgroundColor: Tokens.bg,
-          title: Text('Saves', style: Tokens.display(size: 18)),
-        ),
-        body: VaultScreen(state: widget.state),
-      ),
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final layout = Layout.of(context);
     final hasRail = Layout.hasRail(layout);
     final short = Layout.isShort(layout);
+    final portrait = !hasRail;
     final content = SafeArea(
       bottom: hasRail,
       left: !hasRail,
-      child: _page(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // The OS bar; very short windows give its room to the content.
+          if (!short || portrait)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                portrait ? 16 : 40,
+                portrait ? 12 : 22,
+                portrait ? 16 : 32,
+                0,
+              ),
+              child: OrbitTopBar(compact: portrait),
+            ),
+          Expanded(child: _page()),
+        ],
+      ),
     );
 
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.digit1): () => _go('library'),
         const SingleActivator(LogicalKeyboardKey.digit2): () => _go('cores'),
-        const SingleActivator(LogicalKeyboardKey.digit3): () => _go('settings'),
+        const SingleActivator(LogicalKeyboardKey.digit3): () => _go('capsule'),
+        const SingleActivator(LogicalKeyboardKey.digit4): () => _go('settings'),
       },
       child: Focus(
         autofocus: true,
@@ -200,7 +214,8 @@ class _ShellState extends State<Shell> {
   Widget _page() {
     final index = switch (page) {
       'cores' => 1,
-      'settings' => 2,
+      'capsule' => 2,
+      'settings' => 3,
       _ => 0,
     };
     return FadeIndexedStack(
@@ -212,7 +227,8 @@ class _ShellState extends State<Shell> {
           filterRequests: _libraryFilter,
         ),
         CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
-        SettingsScreen(state: widget.state, onGoVault: _openVault),
+        VaultScreen(state: widget.state),
+        SettingsScreen(state: widget.state),
       ],
     );
   }

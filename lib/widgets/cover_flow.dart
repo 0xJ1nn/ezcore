@@ -28,6 +28,8 @@ class CoverFlow extends StatefulWidget {
     this.focusNode,
     this.semanticLabel,
     this.showArrows = false,
+    this.reflection = false,
+    this.autofocus = false,
   });
 
   final int count;
@@ -46,6 +48,13 @@ class CoverFlow extends StatefulWidget {
   /// Round ← → buttons at the edges, for mouse users.
   final bool showArrows;
 
+  /// Mirror each item on a glossy floor below it.
+  final bool reflection;
+
+  /// Take keyboard focus when nothing below the screen's own focus has it,
+  /// so ← → work straight away.
+  final bool autofocus;
+
   @override
   State<CoverFlow> createState() => _CoverFlowState();
 }
@@ -61,8 +70,27 @@ class _CoverFlowState extends State<CoverFlow> {
 
   /// Horizontal distance between the front item and its first neighbour,
   /// and between neighbours further out.
-  double get _near => widget.itemSize.width * 0.74;
-  double get _far => widget.itemSize.width * 0.36;
+  double get _near => widget.itemSize.width * 0.92;
+  double get _far => widget.itemSize.width * 0.68;
+
+  /// Reflection height, as a share of the item's.
+  static const _mirror = 0.30;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final current = FocusManager.instance.primaryFocus;
+        // Only when focus sits above the shelf (the screen itself), never
+        // when someone is typing in a field or using another control.
+        if (current == null || _focus.ancestors.contains(current)) {
+          _focus.requestFocus();
+        }
+      });
+    }
+  }
 
   PageController _controllerFor(double width) {
     final fraction = (_near / width).clamp(0.05, 1.0);
@@ -83,12 +111,16 @@ class _CoverFlowState extends State<CoverFlow> {
   @override
   void didUpdateWidget(CoverFlow old) {
     super.didUpdateWidget(old);
-    final c = _controller;
-    if (c == null || !c.hasClients) return;
-    final current = (c.page ?? widget.index.toDouble()).round();
-    if (widget.index != current && widget.index < widget.count) {
-      c.jumpToPage(widget.index);
-    }
+    // The parent moved the front item (a filter, a new sort). Jumping notifies
+    // the shelf's listeners, which must not happen mid-build: do it after.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final c = _controller;
+      if (!mounted || c == null || !c.hasClients) return;
+      final current = (c.page ?? widget.index.toDouble()).round();
+      if (widget.index != current && widget.index < widget.count) {
+        c.jumpToPage(widget.index);
+      }
+    });
   }
 
   @override
@@ -193,12 +225,9 @@ class _CoverFlowState extends State<CoverFlow> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      AnimatedBuilder(
-                        animation: controller,
-                        builder: (context, _) =>
-                            _shelf(context, controller, width, c.maxHeight),
-                      ),
-                      // Physics only: transparent pages under the pointer.
+                      // Physics only: transparent pages that take the drags.
+                      // First, so a new controller attaches before anything
+                      // listening to it has built (attaching notifies).
                       ScrollConfiguration(
                         behavior: const _DragEverywhere(),
                         child: PageView.builder(
@@ -206,6 +235,15 @@ class _CoverFlowState extends State<CoverFlow> {
                           itemCount: widget.count,
                           onPageChanged: widget.onIndexChanged,
                           itemBuilder: (_, _) => const SizedBox.expand(),
+                        ),
+                      ),
+                      // The covers, painted over the physics layer; pointers
+                      // pass through to it (taps are handled above).
+                      IgnorePointer(
+                        child: AnimatedBuilder(
+                          animation: controller,
+                          builder: (context, _) =>
+                              _shelf(context, controller, width, c.maxHeight),
                         ),
                       ),
                       if (widget.showArrows)
@@ -240,6 +278,13 @@ class _CoverFlowState extends State<CoverFlow> {
     );
   }
 
+  /// Where the front item's top edge sits: centred, a little high when a
+  /// reflection needs the floor below it.
+  double _top(double height, double h) {
+    final total = widget.reflection ? h * (1 + _mirror) : h;
+    return math.max(0, (height - total) / 2);
+  }
+
   Widget _shelf(
     BuildContext context,
     PageController controller,
@@ -250,17 +295,34 @@ class _CoverFlowState extends State<CoverFlow> {
         ? controller.page ?? widget.index.toDouble()
         : widget.index.toDouble();
     final visible = <int>[
-      for (var i = (page - 5).floor(); i <= (page + 5).ceil(); i++)
+      for (var i = (page - 6).floor(); i <= (page + 6).ceil(); i++)
         if (i >= 0 && i < widget.count) i,
     ]..sort((a, b) => (b - page).abs().compareTo((a - page).abs()));
     final front = page.round();
     final w = widget.itemSize.width;
     final h = widget.itemSize.height;
+    final top = _top(height, h);
     return Stack(
       clipBehavior: Clip.none,
       children: [
+        // Light pooled on the floor under the front item.
+        Positioned(
+          left: width / 2 - w,
+          top: top + h - 24,
+          width: w * 2,
+          height: 70,
+          child: const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [Color(0x55007BFF), Color(0x00007BFF)],
+                ),
+              ),
+            ),
+          ),
+        ),
         for (final i in visible)
-          _placed(context, i, i - page, i == front, width, height, w, h),
+          _placed(context, i, i - page, i == front, width, top, w, h),
       ],
     );
   }
@@ -271,66 +333,111 @@ class _CoverFlowState extends State<CoverFlow> {
     double delta,
     bool front,
     double width,
-    double height,
+    double top,
     double w,
     double h,
   ) {
     final d = delta.abs();
     final near = math.min(d, 1.0);
     final x = delta.sign * (near * _near + math.max(d - 1, 0) * _far);
-    final scale = 1 - 0.13 * math.min(d, 2.0);
-    final angle = -delta.sign * near * 48 * math.pi / 180;
-    final dim = (0.62 * math.min(d, 1.6) / 1.6).clamp(0.0, 0.62);
+    final scale = 1 - 0.14 * near - 0.045 * (math.min(d, 4.0) - near);
+    final angle = -delta.sign * near * 26 * math.pi / 180;
+    final dim = (0.32 * math.min(d, 2.0) / 2.0).clamp(0.0, 0.32);
     final matrix = Matrix4.identity()
-      ..setEntry(3, 2, 0.0008)
+      ..setEntry(3, 2, 0.0009)
       ..rotateY(angle)
       ..scaleByDouble(scale, scale, 1, 1);
-    return Positioned(
-      left: width / 2 + x - w / 2,
-      top: (height - h) / 2,
-      width: w,
-      height: h,
-      child: Transform(
-        alignment: Alignment.center,
-        transform: matrix,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(Tokens.radiusCover + 2),
-                border: Border.all(
-                  color: front && _focused
-                      ? Tokens.accent
-                      : const Color(0x00000000),
-                  width: 2.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: front
-                        ? const Color(0x66007BFF)
-                        : const Color(0x99000000),
-                    blurRadius: front ? 38 : 18,
-                    offset: const Offset(0, 14),
-                  ),
-                ],
+    final radius = BorderRadius.circular(Tokens.radiusCover + 3);
+    final cover = Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(
+              color: front
+                  ? (_focused
+                        ? const Color(0xFF4DA3FF)
+                        : const Color(0xB3007BFF))
+                  : const Color(0x00000000),
+              width: 2.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: front
+                    ? const Color(0x8C007BFF)
+                    : const Color(0x99000000),
+                blurRadius: front ? 44 : 18,
+                spreadRadius: front ? 2 : 0,
+                offset: Offset(0, front ? 0 : 12),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(2.5),
-                child: widget.itemBuilder(context, i, front),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(2.5),
+            child: widget.itemBuilder(context, i, front),
+          ),
+        ),
+        if (dim > 0)
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color.fromRGBO(4, 8, 14, dim),
+                borderRadius: radius,
               ),
             ),
-            if (dim > 0)
-              IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Color.fromRGBO(4, 8, 14, dim),
-                    borderRadius: BorderRadius.circular(Tokens.radiusCover + 2),
-                  ),
-                ),
-              ),
-          ],
+          ),
+      ],
+    );
+    final mirror = h * _mirror;
+    return Positioned(
+      left: width / 2 + x - w / 2,
+      top: top,
+      width: w,
+      height: widget.reflection ? h + 6 + mirror : h,
+      child: Transform(
+        // Turn about the cover's own centre, not the cover plus reflection.
+        alignment: Alignment(
+          0,
+          widget.reflection ? -1 + h / (h + 6 + mirror) : 0,
         ),
+        transform: matrix,
+        child: widget.reflection
+            ? Column(
+                children: [
+                  SizedBox(height: h, child: cover),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: mirror,
+                    child: IgnorePointer(
+                      child: ShaderMask(
+                        blendMode: BlendMode.dstIn,
+                        shaderCallback: (r) => const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x59FFFFFF), Color(0x00FFFFFF)],
+                        ).createShader(r),
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            minHeight: h,
+                            maxHeight: h,
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.diagonal3Values(1, -1, 1),
+                              child: ClipRRect(
+                                borderRadius: radius,
+                                child: widget.itemBuilder(context, i, false),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : cover,
       ),
     );
   }
