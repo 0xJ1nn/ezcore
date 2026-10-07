@@ -252,6 +252,16 @@ target_link_libraries(test_hw_render_core PRIVATE ezcore_runtime ${CMAKE_DL_LIBS
 add_test(NAME hw_render_core COMMAND test_hw_render_core
          $<TARGET_FILE:synth_hw_core>)
 
+# How a core picks its context type: GET_PREFERRED_HW_RENDER is answered by
+# the host, and Vulkan is refused until frames can be handed over.
+add_executable(test_hw_negotiation test/test_hw_negotiation.c)
+target_include_directories(test_hw_negotiation PRIVATE include
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include)
+target_link_libraries(test_hw_negotiation PRIVATE ezcore_runtime ${CMAKE_DL_LIBS})
+add_dependencies(test_hw_negotiation synth_hw_core)
+add_test(NAME hw_negotiation COMMAND test_hw_negotiation
+         $<TARGET_FILE:synth_hw_core>)
+
 # Drawing variant of the same core: renders a known picture and submits it
 # with RETRO_HW_FRAME_BUFFER_VALID, so GPU readback can be checked.
 add_library(synth_hw_draw SHARED test/synth_core/synth_hw_core.c)
