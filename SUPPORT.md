@@ -27,7 +27,7 @@
 
 ### Installation & Setup
 **Q: Where do I download ezCORE?**
-A: [GitHub Releases](https://github.com/JinUltimate1995/ezcore/releases) — the current `v0.2.0` release attaches Linux x64 and Android arm64 artifacts; exact assets and verification are listed in the [release notes](.github/release-notes/v0.2.0.md) and [`docs/MATRIX.md`](docs/MATRIX.md). macOS, Windows, and iOS artifacts are not distributed in that release.
+A: [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases) — the current `v0.2.0` release attaches Linux x64 and Android arm64 artifacts; exact assets and verification are listed in the [release notes](.github/release-notes/v0.2.0.md) and [`docs/MATRIX.md`](docs/MATRIX.md). macOS, Windows, and iOS artifacts are not distributed in that release.
 
 **Q: macOS says "ezCore.app is damaged" or won't open**
 A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity — see RELEASE_PLAN.md.)

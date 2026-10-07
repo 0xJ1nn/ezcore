@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 478 200" width="478" height="200" role="img" aria-label="ezCORE mark">
+  <title>ezCORE mark</title>
+  <path fill-rule="evenodd" fill="#FFFFFF" d="M9 113.23Q0 100 9 86.77L59 13.23Q68 0 84 0L151 0Q167 0 175.23 13.72L278.77 186.28Q287 200 271 200L84 200Q68 200 59 186.77ZM105 60Q105 56 109 56L131 56Q135 56 135 60L135 81Q135 85 139 85L160 85Q164 85 164 89L164 111Q164 115 160 115L139 115Q135 115 135 119L135 140Q135 144 131 144L109 144Q105 144 105 140L105 119Q105 115 101 115L80 115Q76 115 76 111L76 89Q76 85 80 85L101 85Q105 85 105 81Z"/><path fill-rule="evenodd" fill="#FFFFFF" d="M469 86.77Q478 100 469 113.23L419 186.77Q410 200 394 200L327 200Q311 200 302.77 186.28L199.23 13.72Q191 0 207 0L394 0Q410 0 419 13.23ZM373 72A15 15 0 0 1 343 72A15 15 0 0 1 373 72ZM401 100A15 15 0 0 1 371 100A15 15 0 0 1 401 100ZM373 128A15 15 0 0 1 343 128A15 15 0 0 1 373 128ZM345 100A15 15 0 0 1 315 100A15 15 0 0 1 345 100Z"/>
+  <defs>
+    <linearGradient id="m-g" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0" stop-color="#007BFF" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#7DB9FF" stop-opacity="1"/>
+      <stop offset="0.65" stop-color="#007BFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#007BFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="m-c" gradientUnits="userSpaceOnUse" x1="167" y1="-20" x2="311" y2="220">
+      <stop offset="0.2" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="0.8" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="m-blur" x="-50%" y="-20%" width="200%" height="140%"><feGaussianBlur stdDeviation="7"/></filter>
+  </defs>
+  <g stroke-linecap="round">
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#m-g)" stroke-width="14" filter="url(#m-blur)"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#m-g)" stroke-width="4"/>
+    <line x1="167" y1="-20" x2="311" y2="220" stroke="url(#m-c)" stroke-width="1.6"/>
+  </g>
+</svg>

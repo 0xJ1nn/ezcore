@@ -29,7 +29,7 @@ RELEASE = CORES / "release.json"
 
 # Repository slug whose releases host the on-demand core assets. Manual
 # uploads only (`gh release upload`) — GitHub is repo-hosting, no CI (ADR-013).
-REPO = "JinUltimate1995/ezcore"
+REPO = "0xJ1nn/ezcore"
 
 REQUIRED = ("id", "name", "version", "license", "systems", "delivery")
 

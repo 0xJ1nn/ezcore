@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../brand/brand_mark.dart';
+
 import '../emu/pcm_output.dart';
 import '../services/gamepad.dart';
 import '../services/pad_mapping.dart';
@@ -291,10 +293,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _controllers() {
     const inputs = [
-      ('a', 'A'), ('b', 'B'), ('x', 'X'), ('y', 'Y'),
-      ('l', 'L / L1'), ('r', 'R / R1'), ('l2', 'L2 / Z'), ('r2', 'R2'),
-      ('l3', 'L3'), ('r3', 'R3'), ('select', 'Select'), ('start', 'Start'),
-      ('up', 'Up'), ('down', 'Down'), ('left', 'Left'), ('right', 'Right'),
+      ('a', 'A'),
+      ('b', 'B'),
+      ('x', 'X'),
+      ('y', 'Y'),
+      ('l', 'L / L1'),
+      ('r', 'R / R1'),
+      ('l2', 'L2 / Z'),
+      ('r2', 'R2'),
+      ('l3', 'L3'),
+      ('r3', 'R3'),
+      ('select', 'Select'),
+      ('start', 'Start'),
+      ('up', 'Up'),
+      ('down', 'Down'),
+      ('left', 'Left'),
+      ('right', 'Right'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,16 +335,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _row(
           'Pause menu',
           'Hold Select and Start together during a game.',
-          Text('SELECT + START',
-              style: Tokens.body(size: 12, color: Tokens.muted)),
+          Text(
+            'SELECT + START',
+            style: Tokens.body(size: 12, color: Tokens.muted),
+          ),
         ),
         _row(
           'Menus',
           'The d-pad moves, A chooses, B goes back.',
-          Text('D-PAD  A  B', style: Tokens.body(size: 12, color: Tokens.muted)),
+          Text(
+            'D-PAD  A  B',
+            style: Tokens.body(size: 12, color: Tokens.muted),
+          ),
         ),
         const SizedBox(height: 12),
-        Text('Buttons', style: Tokens.display(size: 18, weight: FontWeight.w600)),
+        Text(
+          'Buttons',
+          style: Tokens.display(size: 18, weight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         Text(
           'Choose which controller button presses each game button.',
@@ -539,14 +561,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const BrandLockup(height: 34),
+        const SizedBox(height: 14),
         Text(
-          'ezCORE',
-          style: Tokens.display(size: 26, weight: FontWeight.w700, ls: -1.0),
+          Tokens.taglineMain,
+          style: Tokens.body(size: 11, weight: FontWeight.w600, ls: 3.2),
         ),
         const SizedBox(height: 8),
         Text(
           'One app for every system. Pick a game and play; ezCORE picks the '
-              'core.',
+          'core.',
           style: Tokens.body(size: 12, color: Tokens.muted, height: 1.8),
         ),
         const SizedBox(height: 16),

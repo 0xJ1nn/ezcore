@@ -53,10 +53,12 @@ abstract final class Tokens {
   static const ridgeFar = Color(0xFF0A1422); // far mountain silhouette
   static const ridgeNear = Color(0xFF04070D); // near mountain silhouette
 
-  // ---- Brand taglines (brand plate) ----
+  // ---- Brand taglines (the brand sheet) ----
+  static const taglineMain = 'EMULATION SHOULDN’T BE HARD.';
   static const taglinePlay = 'PLAY  ·  PRESERVE  ·  ANYWHERE';
   static const taglineLeft = 'GAMES BRING US CLOSER.';
-  static const taglineRight = 'BUILT FOR A MORE PLAYFUL TOMORROW.';
+  static const taglineRight = 'ONE APP  ·  ALL GAMES  ·  YOUR WAY';
+  static const taglinePillars = 'SIMPLE  |  POWERFUL  |  EVERYWHERE';
 
   // ---- Geometry ----
   static const radiusSm = 8.0;

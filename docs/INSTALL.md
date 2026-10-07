@@ -15,7 +15,7 @@
 | Windows (x64) | — | not attached in v0.2.0; build from source ([BUILDING.md](BUILDING.md)) |
 | iOS | — | not distributed yet (needs an Apple Developer identity) |
 
-Download from [GitHub Releases](https://github.com/JinUltimate1995/ezcore/releases/latest). Every release page
+Download from [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases/latest). Every release page
 also carries `SHA256SUMS.txt` — verify with `shasum -a 256 <file>` (macOS)
 or `sha256sum <file>` (Linux). Artifact availability and verification are
 release-specific; check the [v0.2.0 release notes](../.github/release-notes/v0.2.0.md)
@@ -163,6 +163,6 @@ affected by updates.
 
 ## Support
 
-- [GitHub Discussions](https://github.com/JinUltimate1995/ezcore/discussions) — questions, help, ideas
-- [GitHub Issues](https://github.com/JinUltimate1995/ezcore/issues) — bugs and feature requests (use templates)
+- [GitHub Discussions](https://github.com/0xJ1nn/ezcore/discussions) — questions, help, ideas
+- [GitHub Issues](https://github.com/0xJ1nn/ezcore/issues) — bugs and feature requests (use templates)
 - [SUPPORT.md](../SUPPORT.md) — FAQ
