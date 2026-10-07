@@ -57,7 +57,7 @@ class _VaultScreenState extends State<VaultScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (!ultraCompact) ...[
-              Text('PLAY. PRESERVE. ANYWHERE.', style: Tokens.eyebrow),
+              Text('EVERY SAVE. EVERY GAME.', style: Tokens.eyebrow),
               const SizedBox(height: 7),
             ],
             Text(
