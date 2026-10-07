@@ -27,7 +27,9 @@ import 'launch.dart';
 ///    its own here.
 ///  - Grid and List: Resume (one tap back into the game played last, on
 ///    whatever core it runs), Continue playing, then every game.
-/// Search, Add games, filters and sort sit in the same place in every view.
+/// Search, the view switch, Add games, the tabs (Time capsule, Favorites,
+/// All systems, then one per system) and sort sit in the same place in every
+/// view, on every screen size.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -49,12 +51,24 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum _Sort { recent, title }
+enum _Sort {
+  recent('Recently played'),
+  title('A–Z'),
+  system('By system');
+
+  const _Sort(this.label);
+  final String label;
+}
+
+/// Tab ids that are not a system id.
+const _capsuleTab = 'capsule';
+const _favoritesTab = 'favorites';
+const _allTab = 'all';
 
 class _HomeScreenState extends State<HomeScreen> {
   final _search = TextEditingController();
   final _searchFocus = FocusNode(debugLabel: 'library search');
-  String _filter = 'all'; // 'all' | 'favorites' | a system id
+  String _filter = _allTab; // or _capsuleTab, _favoritesTab, a system id
   _Sort _sort = _Sort.recent;
   int _flowIndex = 0;
 
@@ -105,24 +119,37 @@ class _HomeScreenState extends State<HomeScreen> {
   List<GameEntry> _visible() {
     final q = _search.text.trim().toLowerCase();
     final out = state.games.where((g) {
-      if (_filter == 'favorites' && !g.favorite) return false;
-      if (_filter != 'all' && _filter != 'favorites' && g.system != _filter) {
-        return false;
+      switch (_filter) {
+        case _capsuleTab:
+          if (g.lastPlayedMs <= 0) return false;
+        case _favoritesTab:
+          if (!g.favorite) return false;
+        case _allTab:
+          break;
+        default:
+          if (g.system != _filter) return false;
       }
       if (q.isEmpty) return true;
       return g.title.toLowerCase().contains(q) ||
           systemLabel(g.system).toLowerCase().contains(q);
     }).toList();
-    out.sort(
-      _sort == _Sort.title
-          ? (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase())
-          : (a, b) {
-              final byPlay = b.lastPlayedMs.compareTo(a.lastPlayedMs);
-              return byPlay != 0
-                  ? byPlay
-                  : a.title.toLowerCase().compareTo(b.title.toLowerCase());
-            },
-    );
+    int byTitle(GameEntry a, GameEntry b) =>
+        a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    int byPlay(GameEntry a, GameEntry b) {
+      final c = b.lastPlayedMs.compareTo(a.lastPlayedMs);
+      return c != 0 ? c : byTitle(a, b);
+    }
+
+    // The time capsule is a history: always the latest first.
+    final sort = _filter == _capsuleTab ? _Sort.recent : _sort;
+    out.sort(switch (sort) {
+      _Sort.recent => byPlay,
+      _Sort.title => byTitle,
+      _Sort.system => (a, b) {
+        final c = systemLabel(a.system).compareTo(systemLabel(b.system));
+        return c != 0 ? c : byTitle(a, b);
+      },
+    });
     return out;
   }
 
@@ -158,10 +185,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_view == CollectionView.flow) {
       return _flowBody(visible, compact, short, pad);
     }
-    final last = lastPlayed(games);
+    // Resume and Continue belong to the whole collection: with a tab or a
+    // search narrowing it, only the matching games show.
+    final everything = _filter == _allTab && _search.text.trim().isEmpty;
+    final last = everything ? lastPlayed(games) : null;
     final recent = [
-      for (final g in games)
-        if (g.lastPlayedMs > 0 && g.id != last?.id) g,
+      if (everything)
+        for (final g in games)
+          if (g.lastPlayedMs > 0 && g.id != last?.id) g,
     ]..sort((a, b) => b.lastPlayedMs.compareTo(a.lastPlayedMs));
 
     return CustomScrollView(
@@ -169,6 +200,12 @@ class _HomeScreenState extends State<HomeScreen> {
         SliverPadding(
           padding: EdgeInsets.fromLTRB(pad, compact || short ? 16 : 28, pad, 0),
           sliver: SliverToBoxAdapter(child: _header(compact, short)),
+        ),
+        // The tabs sit right under the search, as in 3D, so they are never
+        // below the fold.
+        SliverPadding(
+          padding: EdgeInsets.only(top: short ? 6 : 14),
+          sliver: SliverToBoxAdapter(child: _filters(pad, compact)),
         ),
         if (last != null)
           SliverPadding(
@@ -207,45 +244,111 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-        _sectionTitle('All games', pad),
-        SliverToBoxAdapter(child: _filters(pad)),
+        if (last != null || recent.isNotEmpty) _sectionTitle('All games', pad),
         if (visible.isEmpty)
           SliverPadding(
             padding: EdgeInsets.fromLTRB(pad, 32, pad, 48),
             sliver: SliverToBoxAdapter(child: _noMatch()),
           )
-        else if (_view == CollectionView.list)
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(pad, 16, pad, 40),
-            sliver: SliverList.separated(
-              itemCount: visible.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, i) => _ListRow(
-                game: visible[i],
-                onTap: () => _openDetail(visible[i]),
-              ),
-            ),
-          )
+        else if (_grouped)
+          for (final (i, group) in _bySystem(visible).indexed) ...[
+            _systemHeading(group, pad, first: i == 0),
+            _gamesSliver(group, compact, pad, top: 0),
+          ]
         else
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(pad, 16, pad, 40),
-            sliver: SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: compact ? 130 : 176,
-                mainAxisSpacing: 18,
-                crossAxisSpacing: compact ? 12 : 18,
-                childAspectRatio: 0.58,
-              ),
-              itemCount: visible.length,
-              itemBuilder: (context, i) => _Tile(
-                game: visible[i],
-                footnote: shortSystemLabel(visible[i].system),
-                onTap: () => _openDetail(visible[i]),
-                semanticsHint: 'Open details',
-              ),
-            ),
-          ),
+          _gamesSliver(visible, compact, pad),
+        const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
+    );
+  }
+
+  /// Sorted by system with more than one system showing: Grid and List get
+  /// a heading per system.
+  bool get _grouped =>
+      _sort == _Sort.system &&
+      _filter != _capsuleTab &&
+      {for (final g in state.games) g.system}.length > 1;
+
+  /// [games] (already sorted by system) cut into one run per system.
+  List<List<GameEntry>> _bySystem(List<GameEntry> games) {
+    final out = <List<GameEntry>>[];
+    for (final g in games) {
+      if (out.isEmpty || out.last.first.system != g.system) out.add([]);
+      out.last.add(g);
+    }
+    return out;
+  }
+
+  Widget _systemHeading(
+    List<GameEntry> group,
+    double pad, {
+    required bool first,
+  }) {
+    final label = systemLabel(group.first.system);
+    final count = group.length == 1 ? '1 game' : '${group.length} games';
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(pad, first ? 20 : 30, pad, 12),
+      sliver: SliverToBoxAdapter(
+        child: Semantics(
+          header: true,
+          label: '$label, $count',
+          excludeSemantics: true,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.display(size: 17, weight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(count, style: Tokens.body(size: 12, color: Tokens.muted)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// [games] as a grid or a list, per the view switch.
+  Widget _gamesSliver(
+    List<GameEntry> games,
+    bool compact,
+    double pad, {
+    double top = 16,
+  }) {
+    if (_view == CollectionView.list) {
+      return SliverPadding(
+        padding: EdgeInsets.fromLTRB(pad, top, pad, 0),
+        sliver: SliverList.separated(
+          itemCount: games.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, i) =>
+              _ListRow(game: games[i], onTap: () => _openDetail(games[i])),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(pad, top, pad, 0),
+      sliver: SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: compact ? 130 : 176,
+          mainAxisSpacing: 18,
+          crossAxisSpacing: compact ? 12 : 18,
+          childAspectRatio: 0.58,
+        ),
+        itemCount: games.length,
+        itemBuilder: (context, i) => _Tile(
+          game: games[i],
+          footnote: shortSystemLabel(games[i].system),
+          onTap: () => _openDetail(games[i]),
+          semanticsHint: 'Open details',
+        ),
+      ),
     );
   }
 
@@ -272,7 +375,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _header(compact, short),
             ),
             SizedBox(height: short ? 6 : 14),
-            _filters(pad),
+            _filters(pad, compact),
             if (focused == null)
               Padding(
                 padding: EdgeInsets.fromLTRB(pad, 32, pad, 0),
@@ -353,8 +456,18 @@ class _HomeScreenState extends State<HomeScreen> {
     TargetPlatform.windows,
   }.contains(defaultTargetPlatform);
 
+  /// Why nothing shows, and what to do about it.
   Widget _noMatch() => Text(
-    'No games match. Try another filter or search.',
+    _search.text.trim().isNotEmpty
+        ? 'No games match. Try another filter or search.'
+        : switch (_filter) {
+            _capsuleTab =>
+              'Games you play land here, latest first, so you can jump '
+                  'back in.',
+            _favoritesTab =>
+              'No favorites yet. Tap ♡ on a game to keep it here.',
+            _ => 'No games match. Try another filter or search.',
+          },
     style: Tokens.body(size: 13, color: Tokens.muted),
   );
 
@@ -485,7 +598,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-  Widget _sortButton() => PopupMenuButton<_Sort>(
+  /// The sort menu. On phones just its icon, so the tabs keep the room.
+  Widget _sortButton(bool compact) => PopupMenuButton<_Sort>(
     tooltip: 'Sort',
     initialValue: _sort,
     color: Tokens.panel,
@@ -494,18 +608,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _flowIndex = 0;
     }),
     itemBuilder: (_) => [
-      for (final (v, label) in const [
-        (_Sort.recent, 'Recently played'),
-        (_Sort.title, 'A–Z'),
-      ])
+      for (final v in _Sort.values)
         PopupMenuItem(
           value: v,
-          child: Text(label, style: Tokens.body(size: 13)),
+          child: Text(v.label, style: Tokens.body(size: 13)),
         ),
     ],
     child: Container(
       height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0x26DDE6F4)),
@@ -514,23 +625,24 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            _sort == _Sort.recent ? 'Recently played' : 'A–Z',
-            style: Tokens.body(size: 12, color: Tokens.text),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.expand_more, size: 18, color: Tokens.muted),
+          if (compact)
+            const Icon(Icons.sort, size: 18, color: Tokens.text)
+          else ...[
+            Text(_sort.label, style: Tokens.body(size: 12, color: Tokens.text)),
+            const SizedBox(width: 4),
+            const Icon(Icons.expand_more, size: 18, color: Tokens.muted),
+          ],
         ],
       ),
     ),
   );
 
-  /// Favorites, All systems, then each system you own games for; the sort
-  /// stays put at the end, in every view.
-  Widget _filters(double pad) {
+  /// Time capsule (what you played, latest first), Favorites, All systems,
+  /// then each system you own games for; the sort stays put at the end, in
+  /// every view.
+  Widget _filters(double pad, bool compact) {
     final systems = {for (final g in state.games) g.system}.toList()
       ..sort((a, b) => systemLabel(a).compareTo(systemLabel(b)));
-    final favorites = state.games.any((g) => g.favorite);
     Widget tab(String id, String label, [IconData? icon]) => _SystemTab(
       label: label,
       icon: icon,
@@ -556,9 +668,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 scrollDirection: Axis.horizontal,
                 padding: EdgeInsets.only(left: pad - 6, right: 24),
                 children: [
-                  if (favorites)
-                    tab('favorites', 'Favorites', Icons.favorite_border),
-                  tab('all', 'All systems', Icons.grid_view_rounded),
+                  tab(_capsuleTab, 'Time capsule', Icons.history),
+                  tab(_favoritesTab, 'Favorites', Icons.favorite_border),
+                  tab(_allTab, 'All systems', Icons.grid_view_rounded),
                   for (final s in systems) tab(s, systemLabel(s)),
                 ],
               ),
@@ -566,7 +678,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Padding(
             padding: EdgeInsets.only(right: pad),
-            child: _sortButton(),
+            child: _sortButton(compact),
           ),
         ],
       ),
