@@ -1,0 +1,46 @@
+diff --git i/include/lexical_cast_ex.h w/include/lexical_cast_ex.h
+index 9df553f..30397c5 100644
+--- i/include/lexical_cast_ex.h
++++ w/include/lexical_cast_ex.h
+@@ -45,15 +45,34 @@ Format lexical_cast_hex(unsigned int nNumber, unsigned int nWidth = 1)
+ template <typename Format>
+ unsigned int lexical_cast_hex(const Format& sValue)
+ {
+-    unsigned int nNumber;
+-    std::basic_istringstream<typename Format::value_type> Stream(sValue);
+-    Stream >> std::hex >> nNumber;
+-
+-    if(Stream.fail())
++    // Parse directly instead of through std::basic_istringstream. GCC 16 with
++    // -O3 miscompiles the stream extraction for an 8-digit value like
++    // "FFFFFFFF" when this template is instantiated from PlayCore: the result
++    // comes back as 8 (the string length), which silently corrupts restored
++    // save-state registers (IPU currentCmdId=0xFFFFFFFF became 8 and the
++    // emulation thread then dereferenced a null command slot).
++    unsigned int nNumber = 0;
++    for(auto character : sValue)
+     {
+-        throw std::exception();
++        unsigned int digit;
++        if(character >= '0' && character <= '9')
++        {
++            digit = character - '0';
++        }
++        else if(character >= 'a' && character <= 'f')
++        {
++            digit = character - 'a' + 10;
++        }
++        else if(character >= 'A' && character <= 'F')
++        {
++            digit = character - 'A' + 10;
++        }
++        else
++        {
++            throw std::exception();
++        }
++        nNumber = (nNumber << 4) | digit;
+     }
+-
+     return nNumber;
+ }
+ 
