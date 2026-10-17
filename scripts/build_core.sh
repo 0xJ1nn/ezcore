@@ -465,6 +465,45 @@ build_lrps2() {
   stage lrps2 "$SRC_DIR/lrps2/pcsx2_libretro.so"
 }
 
+# DualVU — Play! (jpd002/Play-) ui_libretro, the BIOS-free PS2 path. BSD-2-Clause.
+# Pinned commit: the libretro target exists upstream but is not exercised by
+# Play!'s own CI; d44bfa1 is the commit this recipe was built and smoke-tested at.
+# Play! needs its nested Dependencies submodules (zstd/xxHash/zlib), so the
+# recursive submodule init is mandatory. CMake target `play_libretro`.
+DUALVU_SHA=d44bfa1814b729d4a3ed3c6c3a945432d5ee5bbe
+build_dualvu() {
+  clone https://github.com/jpd002/Play-.git "$SRC_DIR/play"
+  core_reset "$SRC_DIR/play"
+  git -C "$SRC_DIR/play" cat-file -e "$DUALVU_SHA^{commit}" 2>/dev/null \
+    || git -C "$SRC_DIR/play" fetch --depth 1 origin "$DUALVU_SHA"
+  git -C "$SRC_DIR/play" checkout -q --detach "$DUALVU_SHA"
+  (cd "$SRC_DIR/play" && git submodule update --init --depth 1 --recursive)
+  # Local fixes (all BSD-2-compatible, see patches/play/): libretro teardown
+  # (drain the GS mailbox instead of Release()ing GL objects under the emu
+  # thread; let Destroy() tear handlers down in-thread) + an IPU PACK null
+  # slot guard, and a direct hex parser in Framework's lexical_cast_ex.h
+  # (GCC 16 miscompiles the iostream extraction for "FFFFFFFF", which
+  # corrupted restored save-state registers).
+  apply_dualvu_patch() { # repo patch
+    local repo="$1" patch="$2"
+    if git -C "$repo" apply --reverse --check "$patch" >/dev/null 2>&1; then
+      echo "-- patch already applied: $(basename "$patch")"
+    else
+      git -C "$repo" apply "$patch"
+    fi
+  }
+  apply_dualvu_patch "$SRC_DIR/play" "$ROOT/patches/play/0001-libretro-teardown-and-ipu-guard.patch"
+  apply_dualvu_patch "$SRC_DIR/play/deps/Framework" "$ROOT/patches/play/0002-framework-hex-parse.patch"
+  # -j2 by default: each PlayCore translation unit is large and the target
+  # machine is RAM-bound (the brief pins this). Raise only with RAM free.
+  cmake -S "$SRC_DIR/play" -B "$SRC_DIR/play/build-libretro" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_LIBRETRO_CORE=ON -DBUILD_PLAY=OFF -DBUILD_TESTS=OFF -DBUILD_PSFPLAYER=OFF
+  cmake --build "$SRC_DIR/play/build-libretro" --target play_libretro \
+    -j"${DUALVU_JOBS:-2}"
+  stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/play_libretro.$LIB_SUFFIX"
+}
+
 # ---------------- Hold cores: always refuse ----------------
 hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
