@@ -145,9 +145,11 @@ Theme/package work must be incremental and must preserve responsive behavior.
 
 ### Decision
 
-Keep Switch, 3DS, and PS2 slots on hold. Do not distribute ROMs, BIOS,
-firmware, keys, or unlicensed core binaries. Preserve per-core provenance and
-license checks.
+Keep the Switch and 3DS slots on hold. (Updated 2026-10-18: the PS2 slot was
+lifted for BIOS-free-first cores — DualVU (Play!) and LRPS2 — see
+[`../docs/DECISIONS.md`](../docs/DECISIONS.md) ADR-023.) Do not distribute
+ROMs, BIOS, firmware, keys, or unlicensed core binaries. Preserve per-core
+provenance and license checks.
 
 ### Reason
 

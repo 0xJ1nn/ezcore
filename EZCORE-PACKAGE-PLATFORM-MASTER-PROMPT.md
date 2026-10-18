@@ -128,6 +128,12 @@ are enforced by manifest policy (`blocked_reason`) and the pre-commit hook.
 
 ## 6. The PS2 case (the concrete plan)
 
+> **Status (2026-10-18):** steps 1–5 are executed on Linux x64 — LRPS2
+> shipped with a user-BIOS gate (#131) and DualVU, the BIOS-free Play! core
+> (BSD-2, in-tree HLE), joined it (#135). Analog input (P3) and BIOS-present
+> routing between the two cores remain open; the Switch/3DS holds in §5
+> stand.
+
 1. **License gate:** the libretro core is **LRPS2** (renamed from lr-pcsx2 at
    the PCSX2 team's request — respect that). Verify the LICENSE at the pinned
    commit reads GPL-2.0-**or-later** (compatible with the app's GPL-3.0-only
