@@ -1,0 +1,50 @@
+{
+  "id": "dualvu",
+  "name": "DualVU",
+  "version": "0.30+git.d44bfa1",
+  "license": "BSD-2-Clause",
+  "license_url": "https://github.com/jpd002/Play-/blob/master/LICENSE",
+  "homepage": "https://github.com/jpd002/Play-",
+  "upstream": "jpd002/Play- (ui_libretro)",
+  "systems": [
+    "ps2"
+  ],
+  "extensions": [
+    "elf",
+    "iso",
+    "isz",
+    "cso",
+    "cue",
+    "chd",
+    "mds"
+  ],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [],
+  "bios_notes": "Built-in HLE kernel: the EE/IOP BIOS images are implemented in source (Source/ee/PS2OS.cpp, Source/iop/IopBios.cpp) and the EE BIOS region is zero-filled at reset (Source/ee/Ee_SubSystem.cpp:200). No user BIOS file is needed to boot.",
+  "notes": "Hardware-rendered (OpenGL 3.2 core). BIOS-free PS2 path; lrps2 stays the accuracy option when the user supplies their own BIOS. Built at pinned commit d44bfa1 with local BSD-2-compatible fixes in patches/play/ (libretro teardown drain, IPU PACK null guard, direct hex parser for state registers). Linux x64 verified; other platforms need their own build.",
+  "delivery": {
+    "macos": "absent",
+    "windows": "absent",
+    "linux": "bundled",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "linux-x64": "810129882c2c8ba132b1d0545ed68d5349f17e26a9f466b1bdb6ae3ec25c76fc"
+  },
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
+  "provenance": {
+    "built_from": "https://github.com/jpd002/Play-",
+    "upstream_license": "BSD-2-Clause",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "license_note": "LICENSE is the 2-clause BSD text at commit d44bfa1; bundled third-party deps are listed in THIRD_PARTY_NOTICES.md."
+  }
+}

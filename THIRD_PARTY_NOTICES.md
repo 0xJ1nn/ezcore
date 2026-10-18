@@ -50,6 +50,7 @@ remain in-tree as build recipes. Licenses and upstream sources:
 | `joystick` | Stella | GPL-2.0-or-later | libretro/stella2023 |
 | `geometry1` | SwanStation | GPL-3.0 | libretro/swanstation |
 | `lrps2` | LRPS2 (libretro port of PCSX2) | GPL-3.0-or-later | libretro/ps2 |
+| `dualvu` | Play! | BSD-2-Clause | jpd002/Play- (in-tree `ui_libretro` target) |
 
 Notes:
 

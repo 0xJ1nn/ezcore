@@ -2,7 +2,7 @@
   "id": "blastproc",
   "name": "BlastProc",
   "version": "1.7.4",
-  "license": "Genesis-Plus-GX-custom (non-commercial — verify per-file terms at build time)",
+  "license": "Genesis-Plus-GX-custom (non-commercial \u2014 verify per-file terms at build time)",
   "license_url": "https://github.com/libretro/Genesis-Plus-GX",
   "homepage": "https://github.com/libretro/Genesis-Plus-GX",
   "upstream": "libretro/Genesis-Plus-GX",
@@ -34,7 +34,13 @@
   "bios_required": false,
   "bios_files": [
     "bios_MD.bin",
-    "bios_SMS.bin"
+    "bios.gg",
+    "bios_U.sms",
+    "bios_E.sms",
+    "bios_J.sms",
+    "bios_CD_U.bin",
+    "bios_CD_E.bin",
+    "bios_CD_J.bin"
   ],
   "delivery": {
     "macos": "absent",
@@ -55,11 +61,11 @@
     "android": "interpreter",
     "ios": "interpreter"
   },
-  "bios_notes": "Optional. User-supplied.",
-  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid — kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
+  "bios_notes": "Optional for MD/SMS/GG; Sega CD content requires bios_CD_U.bin, bios_CD_E.bin or bios_CD_J.bin. Names verified against libretro/libretro.c:3520-3527 (Genesis-Plus-GX aa74d79).",
+  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
   "provenance": {
     "built_from": "https://github.com/libretro/Genesis-Plus-GX",
-    "upstream_license": "Genesis-Plus-GX-custom (non-commercial — verify per-file terms at build time)",
+    "upstream_license": "Genesis-Plus-GX-custom (non-commercial \u2014 verify per-file terms at build time)",
     "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
   }
 }

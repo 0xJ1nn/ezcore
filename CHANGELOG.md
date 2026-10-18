@@ -8,6 +8,15 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **A PlayStation 2 that boots without a BIOS.** DualVU is a second PS2 core built from
+  Play! (BSD-2-Clause) and its built-in HLE kernel. It boots PS2 ELFs with no firmware file
+  present; LRPS2 remains the accuracy option when you supply your own dump. Linux x64 is
+  verified rendering PS2 homebrew (640×448, save-state round trip). The build carries three
+  local BSD-2-compatible fixes (libretro teardown, IPU PACK guard, save-state hex parsing).
+- **BIOS-free audit.** `docs/BIOS_FREE.md` records, per BIOS-using core, whether an open/HLE
+  path exists, how to enable it, its licence, and what still needs a real dump. DS now boots
+  on melonDS FreeBIOS with no firmware at all; the Sega CD/SMS/GG BIOS filenames in the
+  BlastProc manifest were corrected.
 - **Cores bring their own data files.** A core package can now ship the data
   its emulator needs in the system folder — Dolphin's `Sys` folder for
   GameCube, PPSSPP's assets for PSP — and ezCORE puts it in place before the
