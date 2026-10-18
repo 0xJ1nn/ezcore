@@ -18,7 +18,7 @@
 ### What We Don't Support
 
 - **ROM/BIOS/game file acquisition** — we ship zero copyrighted content. Bring your own dumps.
-- **Switch/3DS/PS2 cores** — holds, never built (see TRADEMARKS.md, CONTRIBUTING.md)
+- **Switch/3DS cores** — holds, never built (see TRADEMARKS.md, CONTRIBUTING.md)
 - **Commercial game compatibility claims** — we verify core boot/render, not game libraries
 - **Proprietary cores** — only open-source libretro cores with compatible licenses
 - **Private builds** — all releases are public on GitHub

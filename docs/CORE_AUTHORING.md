@@ -122,7 +122,7 @@ triggers `git reset --hard` + `git clean -fdx`. Same-platform rebuilds stay
 incremental. Set `EZCORE_NO_RESET=1` for single-core iteration only — never
 for pins or releases (verified: L108, L110).
 
-Hold cores (`citra_hold`, `switch_hold`, `ps2_hold`) refuse to build via
+Hold cores (`citra_hold`, `switch_hold`) refuse to build via
 `hold()` which exits 4 (verified: L421–424).
 
 ## 2. Package
@@ -198,8 +198,8 @@ Validation never throws for policy failures — problems are collected in
 >
 > ⚠️ **Verified gap: extra manifest fields.** *(Resolved in the same PR as
 > this document.)* Real manifests carry `blocked_reason` (holds: citra_hold,
-> switch_hold, ps2_hold), `gated_reason` (license-gated: coinbox, superfx,
-> blastproc, gambatte), and `notes` (powercube). These are now in
+> switch_hold), `gated_reason` (license-gated: coinbox, superfx, blastproc,
+> gambatte), and `notes` (powercube). These are now in
 > `kKnownManifestFields`, so the validator accepts every manifest in this
 > repository.
 
@@ -272,7 +272,7 @@ The iOS rule is enforced in three places (belt-and-suspenders):
 | Gated (license) | `gated_reason` | Builds; delivery=`absent` everywhere | Not shipped in any binary |
 | Recipe-only | — | Built locally, not pinned | User-built only |
 
-Hold cores (citra_hold, switch_hold, ps2_hold) declare `blocked_reason`
+Hold cores (citra_hold, switch_hold) declare `blocked_reason`
 explaining the IP/legal block. `pin_artifacts.py` refuses to pin any core with
 `blocked_reason` (verified: L89–90).
 

@@ -108,7 +108,8 @@ survived a save-state round trip on the named platform. The proof lives in
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Starting · verification in progress |
 | PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Needs GPU · in progress |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own · licences forbid redistribution |
-| PS2 · 3DS · Switch | — | Held by project policy |
+| PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves — DualVU with no BIOS; LRPS2 with your own dump · Linux |
+| 3DS · Switch | — | Held by project policy |
 
 **Big standalone emulators** (PS3 and up, Xbox, PC games) don't speak the
 libretro language. The plan is to launch and supervise them while keeping your

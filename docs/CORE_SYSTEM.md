@@ -197,7 +197,6 @@ and publishes nothing.
 |---|---|
 | Switch | Hold — upstream projects fell to Nintendo's 2024 anti-circumvention actions |
 | 3DS | Hold — same |
-| PS2 | Hold — no shippable open libretro core exists |
 
 Hold manifests live in `cores/*_hold/manifest.json`; validation refuses
 blocked cores that carry artifacts.
@@ -217,7 +216,7 @@ blocked cores that carry artifacts.
 8. **PR with**: manifest diff, catalog diff, pin evidence, test output.
 
 Submission rules: libretro API, valid manifest, pins for every shipped
-platform, no proprietary firmware requirement, no Switch/3DS/PS2.
+platform, no proprietary firmware requirement, no Switch/3DS hold targets.
 
 ## Security
 

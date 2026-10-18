@@ -81,7 +81,7 @@ body:
           required: false
         - label: 'If adding a core: license is compatible with GPL-3.0 (MPL-2.0, MIT, BSD, GPL-2.0+, LGPL — NOT custom non-commercial)'
           required: false
-        - label: 'This is NOT a Switch/3DS/PS2 core request (holds, never built)'
+        - label: 'This is NOT a Switch/3DS core request (holds, never built)'
           required: true
         - label: 'This does NOT request ROM/BIOS/key bundling or downloaders'
           required: true

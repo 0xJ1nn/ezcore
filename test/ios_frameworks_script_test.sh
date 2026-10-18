@@ -91,10 +91,10 @@ fi
 echo
 echo "== wraps staged cores into bundles =="
 STAGE="$WORK/stage"
-mkdir -p "$STAGE/nesbyte" "$STAGE/pocketbit" "$STAGE/ps2_hold" "$STAGE/broken"
+mkdir -p "$STAGE/nesbyte" "$STAGE/pocketbit" "$STAGE/citra_hold" "$STAGE/broken"
 macho "$STAGE/nesbyte/nesbyte_libretro_ios.dylib" "/usr/lib/libnesbyte.dylib"
 macho "$STAGE/pocketbit/pocketbit_libretro_ios.dylib" "/usr/lib/libpocketbit.dylib"
-macho "$STAGE/ps2_hold/ps2_hold_libretro_ios.dylib"
+macho "$STAGE/citra_hold/citra_hold_libretro_ios.dylib"
 printf 'not a mach-o file at all\n' > "$STAGE/broken/broken_libretro_ios.dylib"
 
 out="$WORK/out"
@@ -113,8 +113,8 @@ grep -q "<string>FMWK</string>" "$out/nesbyte.framework/Info.plist" \
 grep -q "com.ezcore.ezcore.core.nesbyte" "$out/nesbyte.framework/Info.plist" \
   && ok "bundle id is namespaced to ezCORE" || bad "bundle id" "absent"
 
-[ -d "$out/ps2_hold.framework" ] \
-  && bad "legal hold skipped" "$out/ps2_hold.framework was created" \
+[ -d "$out/citra_hold.framework" ] \
+  && bad "legal hold skipped" "$out/citra_hold.framework was created" \
   || ok "legal hold core is never packaged"
 
 [ -d "$out/broken.framework" ] \

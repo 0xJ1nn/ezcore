@@ -139,7 +139,7 @@ security-scoped bookmarks, and a moved/renamed folder breaks the bookmark.
   .sms .gg .a26 .pce .n64 .nds .iso .cue .chd .pbp .zip` and more — the
   Systems screen lists each core's full set.
 - Subfolders are scanned recursively; duplicates (same SHA-256) are skipped.
-- Files for held systems (3DS/Switch/PS2) are rejected by policy.
+- Files for held systems (3DS/Switch) are rejected by policy.
 
 ### A game boots to a black screen
 - Check [`MATRIX.md`](MATRIX.md): some cores are load-verified but not yet
