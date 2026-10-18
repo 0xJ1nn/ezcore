@@ -1,12 +1,6 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/lockup-light.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/branding/lockup-dark.png">
-    <img alt="ezCORE" src="assets/branding/lockup-dark.png" width="420">
-  </picture>
+  <img alt="ezCORE: every game you own. One app. Zero menus." src="docs/images/readme-hero.png" width="900">
 </p>
-
-<h1 align="center">Every game you own. One app. Zero menus.</h1>
 
 <p align="center">
   <strong>ezCORE is an open-source home for emulation — your whole library,<br>
@@ -14,16 +8,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/0xJ1nn/ezcore/releases">
-    <img alt="Latest release" src="https://img.shields.io/github/v/release/0xJ1nn/ezcore?include_prereleases&label=release&color=007BFF&style=for-the-badge">
-  </a>
-  <a href="LICENSE">
-    <img alt="GPL-3.0-only" src="https://img.shields.io/badge/license-GPL--3.0--only-007BFF?style=for-the-badge">
-  </a>
-  <img alt="Status: early, public" src="https://img.shields.io/badge/status-early%20%26%20public-007BFF?style=for-the-badge">
-  <a href="https://github.com/sponsors/0xJ1nn">
-    <img alt="Sponsor ezCORE" src="https://img.shields.io/badge/sponsor-ezCORE-ff69b4?style=for-the-badge">
-  </a>
+  <a href="https://github.com/0xJ1nn/ezcore/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/0xJ1nn/ezcore?include_prereleases&label=release&labelColor=0F1825&color=007BFF&style=flat-square"></a>
+  <a href="LICENSE"><img alt="GPL-3.0-only" src="https://img.shields.io/badge/license-GPL--3.0--only-007BFF?labelColor=0F1825&style=flat-square"></a>
+  <img alt="Linux · macOS · Windows · Android · iOS" src="https://img.shields.io/badge/platforms-Linux%20·%20macOS%20·%20Windows%20·%20Android%20·%20iOS-007BFF?labelColor=0F1825&style=flat-square">
 </p>
 
 <p align="center">
@@ -33,10 +20,6 @@
   <a href="#the-big-idea-cores-are-apps">Cores are apps</a> ·
   <a href="#roll-your-own-build">Build</a> ·
   <a href="#contributing">Contribute</a>
-</p>
-
-<p align="center">
-  <img alt="ezCORE library with Resume, Continue playing and every game" src="docs/images/library.png" width="900">
 </p>
 
 ---
@@ -62,15 +45,15 @@ with one front door:
 
 ### Resume. Just press play.
 
+<p align="center"><img alt="The 3D shelf opening on the last game played, with Resume ready" src="docs/images/readme-resume.png" width="900"></p>
+
 ezCORE opens on the game you played last — *any* system — and puts you back
 where you stopped. The decision fatigue is gone. Browse the shelf with the
 arrow keys, the mouse wheel, a swipe, or a controller's d-pad.
 
-<p align="center">
-  <img alt="Browsing the 3D shelf with the arrow keys" src="docs/images/shelf.gif" width="800">
-</p>
-
 ### One library, every system.
+
+<p align="center"><img alt="The library as a grid, with Resume and Continue playing" src="docs/images/readme-library.png" width="900"></p>
 
 Add a file or drop in a folder. ezCORE recognizes what each game is and which
 core plays it, then gives you search, per-system filters, favourites, and a
@@ -78,54 +61,29 @@ core plays it, then gives you search, per-system filters, favourites, and a
 wall of covers? Switch from the 3D shelf to **Grid** or **List**; ezCORE
 remembers your choice.
 
-<p align="center">
-  <img alt="The library as a grid, with Resume and Continue playing" src="docs/images/library-grid.png" width="900">
-</p>
-
 **A real page for every game** — its own art, a Resume button, every save as a
 loadable card, and the honest details: which core plays it, where the file
 lives, what cheats exist.
 
-<p align="center">
-  <img alt="A game page with Resume, Play from start, and its saves" src="docs/images/game.png" width="900">
-</p>
-
 ### Controls that fit the console.
 
-each system gets its own on-screen layout — Nintendo's letters, PlayStation's
+<p align="center"><img alt="The NES layout in landscape, showing a frame from the project's own CC0 test ROM" src="docs/images/readme-controls.png" width="900"></p>
+
+Each system gets its own on-screen layout — Nintendo's letters, PlayStation's
 symbols, Genesis's A/B/C, the shoulders, Start and Select. Handhelds get a
 device shell; the DS opens as a two-screen clamshell. Drag a button, resize it,
 fade it, hide it, and save the layout per system. **Reset** takes you back.
 
-<p align="center">
-  <img alt="The Nintendo DS clamshell layout (no game running)" src="docs/images/controls-ds.png" width="260">
-  &nbsp;&nbsp;
-  <img alt="The NES layout in landscape, showing a frame from the project's own CC0 test ROM" src="docs/images/player-landscape.png" width="560">
-</p>
+**Your controller, your rules.** Remap any button by pressing it. Hold
+**Select + Start** for the pause menu. The d-pad drives every screen; A
+confirms, B backs out. The layout you build is the layout you keep.
 
-### Your controller, your rules.
+**A pause menu that respects your progress.** Resume, save, load, cheats, tweak
+controls, fast-forward, screenshot, reset, quit. Back never throws away your run.
 
-Remap any button by pressing it. Hold **Select + Start** for the pause menu.
-The d-pad drives every screen; A confirms, B backs out. The layout you build is
-the layout you keep.
-
-### A pause menu that respects your progress.
-
-Resume, save, load, cheats, tweak controls, fast-forward, screenshot, reset,
-quit. Back never throws away your run.
-
-### Crash protection *(experimental, desktop)*.
-
-Switch it on and each core runs in its own helper process. A core crash or
-freeze ends the game — with a plain message — but your app, library, and saves
-never notice.
-
-<table>
-  <tr>
-    <td><img alt="Cores, listed by the systems they play" src="docs/images/cores.png"></td>
-    <td width="30%"><img alt="The library on a phone" src="docs/images/library-phone.png"></td>
-  </tr>
-</table>
+**Crash protection** *(experimental, desktop)*. Switch it on and each core runs
+in its own helper process. A core crash or freeze ends the game — with a plain
+message — but your app, library, and saves never notice.
 
 ---
 
@@ -140,16 +98,16 @@ survived a save-state round trip on the named platform. The proof lives in
 
 | System | Core | Status |
 |---|---|---|
-| Game Boy / Game Boy Color | PocketBit (SameBoy) | ✅ Boots and saves (Linux, macOS) |
-| Game Boy Advance | AdvanceBit (mGBA) | ✅ Boots and saves (Linux, macOS) |
-| NES / Famicom | NesByte (Mesen) | ✅ Boots and saves (Linux) |
-| PlayStation | Geometry1 (SwanStation) | ✅ Boots and saves (Linux) |
-| Nintendo DS | DualScreen (melonDS) | ✅ Boots and saves (Linux) |
-| Nintendo 64 | RCP64 (Mupen64Plus-Next) | ✅ Boots and saves on its software renderer (Linux) |
-| PC Engine / TurboGrafx-16 · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Starts; verification in progress |
-| DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Starts; verification in progress |
-| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Needs GPU support (in progress) |
-| Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Working; licences forbid redistribution — build your own |
+| Game Boy / Game Boy Color | PocketBit (SameBoy) | Boots and saves · Linux, macOS |
+| Game Boy Advance | AdvanceBit (mGBA) | Boots and saves · Linux, macOS |
+| NES / Famicom | NesByte (Mesen) | Boots and saves · Linux |
+| PlayStation | Geometry1 (SwanStation) | Boots and saves · Linux |
+| Nintendo DS | DualScreen (melonDS) | Boots and saves · Linux |
+| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots and saves, software renderer · Linux |
+| PC Engine / TurboGrafx-16 · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Starting · verification in progress |
+| DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Starting · verification in progress |
+| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Needs GPU · in progress |
+| Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own · licences forbid redistribution |
 | PS2 · 3DS · Switch | — | Held by project policy |
 
 **Big standalone emulators** (PS3 and up, Xbox, PC games) don't speak the
@@ -190,6 +148,8 @@ xattr -cr /Applications/ezCore.app
 ---
 
 ## The big idea: cores are apps
+
+<p align="center"><img alt="Cores, listed by the systems they play" src="docs/images/readme-cores.png" width="900"></p>
 
 ezCORE is built like an operating system for games. The app is the home screen.
 Each emulator **core** is a part you snap in and snap out.
@@ -280,6 +240,8 @@ one clear problem per pull request. The project never accepts ROMs, BIOS,
 firmware, keys, circumvention tools, or held-system cores.
 
 ## Support ezCORE
+
+<a href="https://github.com/sponsors/0xJ1nn"><img alt="Sponsor ezCORE" src="https://img.shields.io/badge/sponsor-ezCORE-007BFF?labelColor=0F1825&style=flat-square"></a>
 
 ezCORE is free, open source, fully offline, no account required. If it earns a
 spot in your setup, you can
