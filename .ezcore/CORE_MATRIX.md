@@ -1,6 +1,6 @@
 # ezCORE Core Matrix State
 
-> Snapshot date: 2026-09-23
+> Snapshot date: 2026-09-23 (PS2 entries refreshed 2026-10-18)
 > Canonical evidence and refresh procedure:
 > [`../docs/MATRIX.md`](../docs/MATRIX.md).
 > This file is a compact development-memory view. It does not promote a build
@@ -45,13 +45,14 @@ been individually exercised for every feature.
 | DreamArc | Dreamcast/NAOMI | Flycast / GPL-2.0-or-later | desktop download; mobile absent | I | B | — | N/A | N/A | ABI seam; not isolated | normalized input | — | yes | required | Large download core; release-asset evidence platform-specific |
 | PowerCube | GameCube/Wii | Dolphin / GPL-2.0-or-later | desktop download; mobile absent | I | B | — | N/A | N/A | ABI seam; not isolated | normalized input | — | yes | optional | No verified software-renderer path in current matrix |
 | TwinSH | Saturn | Beetle Saturn / GPL-2.0-or-later | bundled | I | B | — | N/A | N/A | ABI seam; not isolated | normalized input | — | yes | required | Slow interpreter; gameplay unverified |
+| LRPS2 | PlayStation 2 | PCSX2 (libretro port) / GPL-3.0-or-later | bundled (Linux x64 only) | — | R | — | — | — | ABI seam; not isolated | normalized input | — | no | required (user dump) | Linux x64 RENDERS on homebrew with a user-supplied BIOS (2026-10-07); other platforms absent |
+| DualVU | PlayStation 2 | Play! / BSD-2-Clause | bundled (Linux x64 only) | — | R | — | — | — | ABI seam; not isolated | normalized input | — | no | none (HLE) | BIOS-free HLE kernel; Linux x64 RENDERS on CC0 homebrew, restore exact (2026-10-18) |
 | 3DS hold (`citra_hold`) | 3DS | Reserved / no build | Hold | — | — | — | — | — | N/A | N/A | — | no | N/A | Never build or ship pending IP/licensing review |
 | Switch hold (`switch_hold`) | Switch | Reserved / no build | Hold | — | — | — | — | — | N/A | N/A | — | no | N/A | Never build or ship pending IP/licensing review |
-| PS2 hold (`ps2_hold`) | PS2 | Reserved / no viable core | Hold | — | — | — | — | — | N/A | N/A | — | no | N/A | Never build or ship |
 
 ## Matrix interpretation
 
-- The catalog contains 18 active core manifests plus 3 explicit hold slots.
+- The catalog contains 20 active core manifests plus 2 explicit hold slots.
 - An em dash in the iOS column means the current committed manifest has no
   iOS artifact pin; older release notes may contain historical build claims.
 - “Bundled,” “download,” “recipe,” and “absent” are distribution policy, not

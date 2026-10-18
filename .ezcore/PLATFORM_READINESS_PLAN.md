@@ -13,20 +13,21 @@ instead of assumed.
 | `ctest` | **14/14** |
 | Released | `v0.2.0` — Linux x64 + Android only |
 
-21 cores carry a `delivery` map. A further 3 (`citra_hold`, `ps2_hold`,
-`switch_hold`) are the project's legal holds and record no delivery at all.
-Measured from `cores/catalog.json`:
+22 cores carry a `delivery` map — 20 active cores plus the two legal holds
+(`citra_hold`, `switch_hold`), which are `absent` everywhere. *(Refreshed
+2026-10-18 on `main` @ `6928ad9` for the PS2 un-hold; the other figures below
+still reflect the 2026-09-29 base.)* Measured from `cores/catalog.json`:
 
 | Platform | bundled | on-demand | absent |
 |---|---|---|---|
-| linux | 11 | 3 | 4 (+3 no key) |
-| windows | 11 | 3 | 7 |
-| macos | 11 | 3 | 7 |
-| android | 7 | 0 | 14 |
-| **ios** | **6** | 0 | **15** |
+| linux | 13 | 3 | 4 (2 no key) |
+| windows | 11 | 3 | 8 |
+| macos | 11 | 3 | 8 |
+| android | 7 | 0 | 15 |
+| **ios** | **6** | 0 | **16** |
 
 The desktop three are symmetric and healthy. **Mobile is the hole** — iOS has
-6 of 21 and Android 7, and neither has a single on-demand core.
+6 of 22 and Android 7, and neither has a single on-demand core.
 
 ## Answering the question directly
 

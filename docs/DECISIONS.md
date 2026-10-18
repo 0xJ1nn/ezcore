@@ -150,7 +150,9 @@ ezCore needs a primary selling point that differentiates it from existing emulat
 ## ADR-005: Platform Holds — No Switch/3DS/PS2
 
 **Date:** 2026-09-16
-**Status:** Accepted
+**Status:** ~~Accepted~~ **Partially superseded** — the PS2 clause was lifted
+on 2026-10-18 for BIOS-free-first cores (see ADR-023); the Switch and 3DS
+holds stand.
 
 ### Context
 
@@ -460,7 +462,8 @@ Non-negotiables for every core repository:
 - Zero game content: no ROMs, BIOS, firmware, decryption keys, game art, or
   cheat databases — now or ever. Binaries are never committed; artifacts are
   sha256-pinned at build time only.
-- No hold targets: Switch, 3DS, and PS2 stay excluded everywhere (ADR-005).
+- No hold targets: Switch and 3DS stay excluded everywhere (ADR-005; the PS2
+  clause was lifted — ADR-023).
 - Licence honesty: scaffolding is GPL-3.0 (matching ezCORE); the engine keeps
   its upstream licence, stated by name in the README. Upstream licences that
   are "GPL-2.0-or-later" are used under the "or later" terms, which make them
@@ -1529,4 +1532,47 @@ artifact whose core set is fixed at build time.
   avoids kernel iOS work, but gives up ezCORE library/save/controller
   continuity and bundles a second app. Kept as fallback.
 - **App Store build with JIT.** Not possible; do not plan around it.
+
+---
+
+## ADR-023: PS2 hold lifted — BIOS-free-first cores (DualVU + LRPS2)
+
+**Date:** 2026-10-18
+**Status:** Accepted — maintainer direction; implemented by merged PRs
+[#131](https://github.com/0xJ1nn/ezcore/pull/131) (LRPS2 catalog entry) and
+[#135](https://github.com/0xJ1nn/ezcore/pull/135) (DualVU). Amends ADR-005 for
+PS2 only: the Switch and 3DS holds stand.
+
+### Context
+
+ADR-005 held PS2 because the only viable route (PCSX2/LRPS2) needed a
+user-supplied proprietary BIOS dump. Two changes made the hold unnecessary:
+
+- **LRPS2** (libretro PCSX2 port, GPL-3.0-or-later at the pin) reached Linux
+  x64 RENDERS on homebrew with a **user-supplied dump** — the repository
+  ships, fetches, and sources no BIOS bytes (`cores/lrps2/manifest.json`,
+  presence-gated at `pcsx2/bios`).
+- **Play!** (BSD-2-Clause) implements the EE/IOP BIOS in open source (HLE) and
+  boots PS2 content with **no firmware file present** — DualVU boots CC0
+  homebrew on Linux x64 with an exact save-state round trip.
+
+Evidence: [`MATRIX.md`](MATRIX.md), [`BIOS_FREE.md`](BIOS_FREE.md).
+
+### Decision
+
+1. PS2 leaves the hold list. **DualVU** (Play!) is the BIOS-free PS2 core;
+   **LRPS2** stays the accuracy option for players who supply their own dump.
+   No BIOS, firmware, decryption key, or Sony code is bundled, fetched, or
+   linked by the project.
+2. The verified claim stays exactly as far as the evidence goes: Linux x64,
+   PS2 homebrew. No commercial-title compatibility claims.
+3. The Switch and 3DS holds continue (`citra_hold`, `switch_hold`) until IP
+   counsel clears them.
+
+### Consequences
+
+- The support surface drops the blanket "PS2 is held" language (README
+  lineup, `SUPPORT.md`, issue/PR templates, `.ezcore` snapshots).
+- Two PS2 manifests now sit in the catalog; Linux x64 release bundles may
+  include both. BIOS-present routing between them is its own work item.
 

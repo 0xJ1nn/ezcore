@@ -31,7 +31,7 @@ Cores are versioned plugins, signed and SHA-pinned, each declaring what systems 
 ### Licensing and Technical Separation
 ezCORE ships no copyrighted game content, BIOS/firmware, decryption keys, proprietary Nintendo assets, or cheat databases, and links to none. The UX clearly separates ezCORE software (which we build) from user-provided content (which the user owns).
 
-For newer or proprietary platforms (3DS, Switch, PS2), the architecture reserves slots and supports modular third-party integrations while keeping ezCORE itself cleanly separated from proprietary system software. Holds are enforced at the manifest level, not as an afterthought.
+For newer or proprietary platforms (3DS, Switch), the architecture reserves slots and supports modular third-party integrations while keeping ezCORE itself cleanly separated from proprietary system software. Holds are enforced at the manifest level, not as an afterthought.
 
 ## Product Identity
 
@@ -61,7 +61,7 @@ For newer or proprietary platforms (3DS, Switch, PS2), the architecture reserves
 GB/GBC · GBA · NES · SNES · Genesis/SMS/GG · Atari 2600 · DOS · TG-16 · PS1 · N64 · DS · PSP · Dreamcast · GameCube/Wii (desktop/Android) · Saturn · Arcade · ScummVM
 
 ### Future / Holds
-3DS, Switch, PS2 — reserved slots. Architecture supports them; IP clearance gates actual implementation.
+3DS, Switch — reserved slots. Architecture supports them; IP clearance gates actual implementation.
 
 ### Dynamic Platform Registry
 The UI does not hardcode a console menu. New platforms appear dynamically as cores are installed. Today's scope is not tomorrow's ceiling.
@@ -123,7 +123,7 @@ Universal — across games, platforms, cores, settings, collections.
 Visually understandable: Game → Platform → Compatible Core(s) → Recommended Core → Launch
 
 ### Empty States
-Designed carefully: "No PS2 games yet → Add your own game files" / "No compatible core installed → Explore available cores"
+Designed carefully: "No N64 games yet → Add your own game files" / "No compatible core installed → Explore available cores"
 
 ### Error / Recovery States
 Missing system file · Incompatible core · Corrupted save · Unsupported format · Controller disconnected · Cloud sync conflict

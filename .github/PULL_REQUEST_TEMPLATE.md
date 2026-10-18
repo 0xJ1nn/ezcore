@@ -52,7 +52,7 @@
 - [ ] No cheat databases added (CONTRIBUTING.md rule 2)
 - [ ] No circumvention tooling added (CONTRIBUTING.md rule 3)
 - [ ] No Nintendo/Sony/Sega trademarks in code, assets, or copy (CONTRIBUTING.md rule 4)
-- [ ] No Switch/3DS/PS2 core changes (CONTRIBUTING.md rule 5)
+- [ ] No Switch/3DS core changes (CONTRIBUTING.md rule 5)
 - [ ] All new code has DCO sign-off: `git commit -s`
 
 ## Checklist
