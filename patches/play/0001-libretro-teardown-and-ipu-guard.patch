@@ -1,0 +1,49 @@
+diff --git i/Source/ee/IPU.cpp w/Source/ee/IPU.cpp
+index b8efa0a..567d310 100644
+--- i/Source/ee/IPU.cpp
++++ w/Source/ee/IPU.cpp
+@@ -351,7 +351,11 @@ void CIPU::LoadState(Framework::CZipArchiveReader& archive)
+ 
+ void CIPU::CountTicks(uint32 ticks)
+ {
+-	if(m_currentCmdId != IPU_INVALID_CMDID)
++	// IPU_CMD_PACK has no implementation (m_commands[PACK] is nullptr), but
++	// m_currentCmdId can legitimately hold it (e.g. restored from a save state
++	// taken while PACK was pending). Upstream dereferences the null slot and
++	// crashes the host; skip the tick instead.
++	if(m_currentCmdId != IPU_INVALID_CMDID && m_commands[m_currentCmdId] != nullptr)
+ 	{
+ 		m_commands[m_currentCmdId]->CountTicks(ticks);
+ 	}
+diff --git i/Source/ui_libretro/main_libretro.cpp w/Source/ui_libretro/main_libretro.cpp
+index 8a07c26..b3e6898 100644
+--- i/Source/ui_libretro/main_libretro.cpp
++++ w/Source/ui_libretro/main_libretro.cpp
+@@ -579,16 +579,22 @@ void retro_deinit()
+ 		if(gsHandler)
+ 		{
+ 			// Note: since we've forced GS into running on this/main/libretro thread
+-			// we need to clear its queue, to prevent it from locking up VM
++			// we need to clear its queue, to prevent it from locking up VM.
++			// FlushMailBox() drains the queue; Release() would also tear down the
++			// GL handler (ReleaseImpl) while the emulation thread is still
++			// producing work, and the next Flip then dereferences freed GL
++			// programs (SIGSEGV in CGSH_OpenGL::CopyToFb on teardown).
+ 			while(m_virtualMachine->GetStatus() != CVirtualMachine::PAUSED)
+ 			{
+ 				std::this_thread::yield();
+-				gsHandler->Release();
++				gsHandler->FlushMailBox();
+ 			}
+ 		}
+-		m_virtualMachine->DestroyPadHandler();
+-		m_virtualMachine->DestroyGSHandler();
+-		m_virtualMachine->DestroySoundHandler();
++		// Destroy() sends DestroyImpl to the emulation thread, which destroys
++		// the GS/pad/sound handlers in that thread and then stops it. Doing
++		// DestroyGSHandler()/DestroySoundHandler() here first (as upstream does)
++		// frees objects the still-running emulation thread can touch: the host
++		// frontend sees a SIGSEGV inside CPS2VM::UpdateEe on teardown.
+ 		m_virtualMachine->Destroy();
+ 		delete m_virtualMachine;
+ 		m_virtualMachine = nullptr;

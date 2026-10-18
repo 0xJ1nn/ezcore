@@ -440,3 +440,11 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
     "${EZCORE_CORES_ROOT}/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes")
 endif()
+# BIOS-free PS2: Play! ui_libretro (DualVU) boots an ELF without any user
+# BIOS. lwx-ps2-guncon-range.elf is CC0 homebrew (kblood/LibretroWebXR) built
+# with ps2sdk; it draws a 640x448 target/crosshair from the first frame.
+if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ps2/lwx-ps2-guncon-range.elf")
+  add_test(NAME boot_dualvu COMMAND test_core_boot
+    "${EZCORE_CORES_ROOT}/dualvu/dualvu_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    "${CMAKE_SOURCE_DIR}/../native/test-roms/ps2/lwx-ps2-guncon-range.elf")
+endif()

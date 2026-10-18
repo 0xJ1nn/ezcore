@@ -1,6 +1,6 @@
 {
   "registry_version": 1,
-  "signature": "dev-unsigned (registry signing lands with P7 — signature/trust hardening)",
+  "signature": "dev-unsigned (registry signing lands with P7 \u2014 signature/trust hardening)",
   "cores": [
     "pocketbit",
     "realmode",
@@ -21,6 +21,7 @@
     "twinsh",
     "coinbox",
     "lrps2",
+    "dualvu",
     "citra_hold",
     "switch_hold"
   ]
