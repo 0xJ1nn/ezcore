@@ -63,8 +63,8 @@ Notes:
 - **`rcp64`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
   the classic Mupen64Plus project license text is included in that tree.
 - **Holds (never built, never distributed):** `citra_hold` (3DS),
-  `switch_hold` (Switch), `ps2_hold` (PS2). Their manifests explain the
-  legal posture and ship no artifacts.
+  `switch_hold` (Switch). Their manifests explain the legal posture and
+  ship no artifacts.
 - Upstream projects may carry additional per-file notices; when you
   redistribute a bundled core, keep the license files that ship with its
   build tree (`native/src/<core>/`, produced by `scripts/build_core.sh`).
