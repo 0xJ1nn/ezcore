@@ -30,14 +30,20 @@ Tagline: **Emulation shouldn't be hard.** Pillars: Simple · Powerful · Everywh
 | `mark-outline.svg` | the mark as rings (app-icon style) |
 | `wordmark-dark.svg`, `wordmark-light.svg` | "ez CORE" |
 | `lockup-dark.svg/.png`, `lockup-light.svg/.png` | mark + wordmark, for light / dark backgrounds |
-| `app-icon.svg`, `app-icon-1024.png` | the hero icon: dark glass tile, blue rim light, silver mark and wordmark |
+| `app-icon.svg`, `app-icon-1024.png` | **the app icon**, used everywhere: the iPhone icon (dark tile, mark at 74%) with its continuous-corner rounding baked in |
+| `app-icon-hero.svg`, `app-icon-hero-1024.png` | the brand sheet's hero tile: dark glass, blue rim light, silver mark and wordmark (presentation only, not a launcher icon) |
 | `icon-dark`, `icon-light`, `icon-blue` (`.svg/.png`) | the three icon variations |
-| `icon-ios.svg` | full-bleed tile for iOS (the system rounds it) |
+| `icon-ios.svg` | full-bleed tile for iOS (the system rounds it): the source of the app icon |
+| `icon-macos.svg` | the app icon on Apple's macOS grid (824 px tile in 1024, drop shadow) |
+| `icon-android-foreground.svg` | adaptive-icon foreground (108 dp canvas; the launcher masks the shape) |
 | `social-preview.svg/.png` | 1280×640 repository card |
 | `palette.svg/.png` | the four swatches |
 
-Launcher icons for Android, iOS, macOS, Windows and Linux are rendered from
-`icon-dark.svg`. The app draws the mark and wordmark from
+Every launcher icon is the iPhone icon. iOS uses `icon-ios.svg` (the system
+rounds it); Windows, Linux and legacy Android use `app-icon.svg` (same tile,
+rounding baked in); Android 8+ gets an adaptive icon (gradient background +
+`icon-android-foreground.svg`, also its themed monochrome layer); macOS uses
+`icon-macos.svg`. The app draws the mark and wordmark from
 `lib/brand/brand_paths.g.dart` (same geometry, generated), so the in-app logo
 always matches these files. The few labels set in type (tagline, ™) use the
 bundled Manrope.
