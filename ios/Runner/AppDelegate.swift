@@ -193,7 +193,7 @@ final class PcmAudioSink {
       case "bundledCoresDir":
         result(Bundle.main.bundlePath + "/ezcore-cores")
       case "runtimeRef":
-        result(["kind": "process"])
+        result(["kind": "path", "path": Bundle.main.bundlePath + "/Frameworks/libezcore_runtime.dylib"])
       default: result(FlutterMethodNotImplemented)
       }
     }

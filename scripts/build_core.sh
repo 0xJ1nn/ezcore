@@ -427,7 +427,9 @@ build_pointclick() {
       core_make "$SRC_DIR/scummvm/backends/platform/libretro" \
       DEBUG_ALLOW_DIRTY_SUBMODULES=1
   fi
-  stage pointclick "$SRC_DIR/scummvm/backends/platform/libretro/scummvm_libretro.$LIB_SUFFIX"
+  out="scummvm_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="scummvm_libretro_ios.dylib"
+  stage pointclick "$SRC_DIR/scummvm/backends/platform/libretro/$out"
 }
 
 build_powercube() {
