@@ -1,100 +1,107 @@
 <p align="center">
-  <img alt="ezCORE: every game you own. One app. Zero menus." src="docs/images/readme-hero.png" width="900">
+  <a href="https://github.com/0xJ1nn/ezcore/releases/latest">
+    <img alt="ezCORE — Every game you own. One app. Play more. Struggle less." src="docs/images/readme-hero.png" width="100%">
+  </a>
 </p>
 
 <p align="center">
-  <strong>ezCORE is an open-source home for emulation — your whole library,<br>
-  every system, every save, one tap from the couch.</strong>
+  <a href="https://github.com/0xJ1nn/ezcore/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/0xJ1nn/ezcore?include_prereleases&label=release&labelColor=0F1825&color=007BFF&style=for-the-badge"></a>
+  <a href="https://github.com/sponsors/0xJ1nn"><img alt="Sponsor ezCORE" src="https://img.shields.io/badge/sponsor-%E2%99%A5-007BFF?labelColor=0F1825&style=for-the-badge"></a>
+  <a href="https://github.com/0xJ1nn/ezcore/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/0xJ1nn/ezcore?labelColor=0F1825&color=007BFF&style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-007BFF?labelColor=0F1825&style=for-the-badge"></a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/0xJ1nn/ezcore/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/0xJ1nn/ezcore?include_prereleases&label=release&labelColor=0F1825&color=007BFF&style=flat-square"></a>
-  <a href="LICENSE"><img alt="GPL-3.0-only" src="https://img.shields.io/badge/license-GPL--3.0--only-007BFF?labelColor=0F1825&style=flat-square"></a>
-  <img alt="Linux · macOS · Windows · Android · iOS" src="https://img.shields.io/badge/platforms-Linux%20·%20macOS%20·%20Windows%20·%20Android%20·%20iOS-007BFF?labelColor=0F1825&style=flat-square">
-</p>
+<h3 align="center">The console-grade home for every game you own.<br>One beautiful app on every screen. Emulators install like apps.</h3>
 
 <p align="center">
-  <a href="#take-a-tour">Tour</a> ·
+  <a href="#download"><b>Download</b></a> ·
+  <a href="#why-ezcore">Why ezCORE</a> ·
+  <a href="#take-the-tour">Tour</a> ·
   <a href="#the-lineup">Systems</a> ·
-  <a href="#download">Download</a> ·
-  <a href="#the-big-idea-cores-are-apps">Cores are apps</a> ·
-  <a href="#roll-your-own-build">Build</a> ·
+  <a href="#support-ezcore">Sponsor</a> ·
   <a href="#contributing">Contribute</a>
 </p>
 
----
+<p align="center">
+  <img alt="The ezCORE shelf turning through a library of games" src="docs/images/shelf.gif" width="800">
+</p>
 
-## The pitch
+## Why ezCORE
 
-You own games on a dozen systems. Playing them shouldn't mean twelve apps,
-twelve settings menus, and twelve folders of saves. ezCORE replaces the pile
-with one front door:
+Emulation has never had a shortage of emulators. It has had a shortage of **calm**: a dozen apps, a dozen settings menus, a folder of saves you are afraid to touch. ezCORE is the front door that was missing.
 
-- **It remembers for you.** Open the app and you land on the last game you
-  played, exactly where you left off — no ROM hunting, no core picking.
-- **It organizes for you.** Point it at a folder and it identifies every game,
-  sorts it by system, and builds a shelf you can actually browse.
-- **It adapts to you.** On-screen controls shaped per console, controllers
-  you can remap in seconds, a pause menu that never kicks you out.
-- **It forgives you.** Every save is a card you can reload. Crash protection
-  keeps one bad core from taking down your library, your saves, or the app.
+<table>
+<tr>
+<td width="50%" valign="top">
 
----
+### Play more. Struggle less.
+Open the app and you are back in your last game, exactly where you stopped. Point it at a folder and every game is identified, sorted by system and put on the shelf. No core picking, no config files.
 
-## Take a tour
+</td>
+<td width="50%" valign="top">
 
-### Resume. Just press play.
+### A UI worth looking at
+A 3D shelf, real game pages, controller-first navigation from the first screen to the pause menu. It looks and feels like a console, because that is how games should feel.
 
-<p align="center"><img alt="The 3D shelf opening on the last game played, with Resume ready" src="docs/images/readme-resume.png" width="900"></p>
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-ezCORE opens on the game you played last — *any* system — and puts you back
-where you stopped. The decision fatigue is gone. Browse the shelf with the
-arrow keys, the mouse wheel, a swipe, or a controller's d-pad.
+### One app, every screen
+The same library and the same experience on Linux, macOS, Windows, Android and iOS. Touch layouts are shaped per console, down to a two-screen DS clamshell.
 
-### One library, every system.
+</td>
+<td valign="top">
 
-<p align="center"><img alt="The library as a grid, with Resume and Continue playing" src="docs/images/readme-library.png" width="900"></p>
+### Emulators install like apps
+Each system is a **core** you add or remove like an app. Official cores are built, fingerprinted and labelled **Verified**. Your own cores install from a file, and crash protection keeps a bad one from taking the app down.
 
-Add a file or drop in a folder. ezCORE recognizes what each game is and which
-core plays it, then gives you search, per-system filters, favourites, and a
-*Continue playing* rail. No more remembering which emulator did what. Prefer a
-wall of covers? Switch from the 3D shelf to **Grid** or **List**; ezCORE
-remembers your choice.
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-**A real page for every game** — its own art, a Resume button, every save as a
-loadable card, and the honest details: which core plays it, where the file
-lives, what cheats exist.
+### Your saves stay yours
+Local-first. No account and no telemetry; the network is used only when you choose to download a core. Every save is a card you can load or delete.
 
-### Controls that fit the console.
+</td>
+<td valign="top">
 
-<p align="center"><img alt="The NES layout in landscape, showing a frame from the project's own CC0 test ROM" src="docs/images/readme-controls.png" width="900"></p>
+### Build your own cores
+Any emulator that speaks libretro can become an ezCORE core: package it, share it under your own name, and pick any licence you like. The [Core Module Exception](LICENSE-EXCEPTION.md) keeps the core ecosystem open to everyone.
 
-Each system gets its own on-screen layout — Nintendo's letters, PlayStation's
-symbols, Genesis's A/B/C, the shoulders, Start and Select. Handhelds get a
-device shell; the DS opens as a two-screen clamshell. Drag a button, resize it,
-fade it, hide it, and save the layout per system. **Reset** takes you back.
+</td>
+</tr>
+</table>
 
-**Your controller, your rules.** Remap any button by pressing it. Hold
-**Select + Start** for the pause menu. The d-pad drives every screen; A
-confirms, B backs out. The layout you build is the layout you keep.
+<p align="center">
+  <img alt="ezCORE on desktop, on a phone, and the Nintendo DS touch layout" src="docs/images/readme-screens.png" width="100%">
+</p>
 
-**A pause menu that respects your progress.** Resume, save, load, cheats, tweak
-controls, fast-forward, screenshot, reset, quit. Back never throws away your run.
+## Take the tour
 
-**Crash protection** *(experimental, desktop)*. Switch it on and each core runs
-in its own helper process. A core crash or freeze ends the game — with a plain
-message — but your app, library, and saves never notice.
+### Your whole library, one shelf
+Add a file or drop in a folder. ezCORE recognises each game and the core that plays it, then gives you search, per-system filters, favourites and a *Continue playing* rail. Prefer a wall of covers? Switch the shelf to **Grid** or **List**, and ezCORE remembers.
 
----
+<p align="center"><img alt="The library: a 3D shelf of games with the selected game ready to resume" src="docs/images/readme-library.png" width="100%"></p>
+
+### A real page for every game
+Art, a **Resume** button, every save as a loadable card, cheats, and the honest details: which core plays it and where the file lives.
+
+<p align="center"><img alt="A game page with Resume, Play from start and three save cards" src="docs/images/readme-game.png" width="100%"></p>
+
+### Cores that snap in and out
+The **Systems** screen is your app store for emulators: what is installed, what it plays, its licence, which BIOS files it needs, and whether the project built and checked it.
+
+<p align="center"><img alt="The Systems screen listing installed cores, with Dreamcast selected and its details" src="docs/images/readme-cores.png" width="100%"></p>
+
+### Built for controllers and couches
+Remap any button by pressing it. Hold **Select + Start** for a pause menu with save, load, cheats, fast-forward, screenshot and controls. The d-pad drives every screen: **A** confirms, **B** goes back. On touch screens, drag, resize, fade or hide any button and save the layout per system.
 
 ## The lineup
 
-ezCORE doesn't write emulators — it hosts the best open-source ones, built on
-the [libretro](https://www.libretro.com/) plugin standard, and polishes
-everything around them. Every claim below is **verified, not aspirational**:
-"boots and saves" means the core loaded real content, drew frames, and
-survived a save-state round trip on the named platform. The proof lives in
-[`docs/MATRIX.md`](docs/MATRIX.md).
+ezCORE hosts the best open-source emulators through the [libretro](https://www.libretro.com/) standard and polishes everything around them. Every status below is **verified, not aspirational**: "Boots and saves" means the core loaded real content, drew frames and survived a save-state round trip on the named platform. Evidence: [`docs/MATRIX.md`](docs/MATRIX.md).
 
 | System | Core | Status |
 |---|---|---|
@@ -102,108 +109,73 @@ survived a save-state round trip on the named platform. The proof lives in
 | Game Boy Advance | AdvanceBit (mGBA) | Boots and saves · Linux, macOS |
 | NES / Famicom | NesByte (Mesen) | Boots and saves · Linux |
 | PlayStation | Geometry1 (SwanStation) | Boots and saves · Linux |
+| PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves · Linux. DualVU needs no BIOS; LRPS2 uses your own dump |
 | Nintendo DS | DualScreen (melonDS) | Boots and saves · Linux |
 | Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots and saves, software renderer · Linux |
-| PC Engine / TurboGrafx-16 · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Starting · verification in progress |
-| DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Starting · verification in progress |
-| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Needs GPU · in progress |
-| Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own · licences forbid redistribution |
-| PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves — DualVU with no BIOS; LRPS2 with your own dump · Linux |
+| PC Engine · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Verification in progress |
+| DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Verification in progress |
+| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | GPU rendering in progress |
+| Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own: their licences forbid redistribution |
 | 3DS · Switch | — | Held by project policy |
 
-**Big standalone emulators** (PS3 and up, Xbox, PC games) don't speak the
-libretro language. The plan is to launch and supervise them while keeping your
-library, saves, and controllers unified — see
-[`docs/PLATFORM.md`](docs/PLATFORM.md). Not today.
-
-> ezCORE ships **no games, BIOS, or keys**. It's the shelves, not the discs.
-> System names are compatibility targets only — marks belong to their owners
-> ([`TRADEMARKS.md`](TRADEMARKS.md)).
-
----
+> ezCORE ships **no games, BIOS files or keys**. It is the shelves, not the discs. System names describe compatibility only; the marks belong to their owners ([`TRADEMARKS.md`](TRADEMARKS.md)).
 
 ## Download
 
-| Platform | Get it | Verified |
+| Platform | Get it | Status |
 |---|---|---|
-| **Linux x64** | [Build from source](docs/BUILDING.md); release archive with the next release | Runs and is tested here |
+| **Linux x64** | [Build from source](docs/BUILDING.md) · release archive with the next release | Runs and is tested here |
 | **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | Builds; on-device testing continues |
-| **macOS arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.zip` | Ran at v0.1.1; current build not yet re-verified |
+| **macOS arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.zip` | Ran at v0.1.1; the current build is not yet re-verified |
 | **Windows x64** | [Build from source](docs/BUILDING.md) | Not yet verified |
 | **iOS** | [Build guide](docs/BUILDING.md) | Not yet verified (Apple only allows cores built into the app) |
 
-Releases come from GitHub only — no store listing. First launch, folders, and
-BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md).
+Official builds come from this repository's [Releases](https://github.com/0xJ1nn/ezcore/releases) only. First launch, folders and BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md).
 
 <details>
-<summary><strong>macOS first launch</strong></summary>
+<summary><b>macOS first launch</b></summary>
 
-Releases are ad-hoc signed and may not be notarized. If macOS blocks the app,
-right-click it and choose **Open**, or:
+Releases are ad-hoc signed and may not be notarised. If macOS blocks the app, right-click it and choose **Open**, or run:
 
 ```bash
 xattr -cr /Applications/ezCore.app
 ```
 </details>
 
----
+## What's next
 
-## The big idea: cores are apps
+Analog sticks, keyboard and mouse for every core · GPU rendering for PSP, Dreamcast, GameCube and faster N64 · crash protection on every platform · single-file shareable core packages · verified builds on every platform. Full plan: [`ROADMAP.md`](ROADMAP.md) · changes: [`CHANGELOG.md`](CHANGELOG.md).
 
-<p align="center"><img alt="Cores, listed by the systems they play" src="docs/images/readme-cores.png" width="900"></p>
+## Support ezCORE
 
-ezCORE is built like an operating system for games. The app is the home screen.
-Each emulator **core** is a part you snap in and snap out.
+<p align="center">
+  <a href="https://github.com/sponsors/0xJ1nn"><img alt="Sponsor ezCORE on GitHub" src="https://img.shields.io/badge/Sponsor%20ezCORE-%E2%99%A5%20on%20GitHub%20Sponsors-007BFF?labelColor=0F1825&style=for-the-badge"></a>
+</p>
 
-- **Official cores** are built and audited by the project and labelled
-  **Verified**. Every file is fingerprint-checked before it runs.
-- **Your own cores** install from a folder and run labelled **Unverified**:
-  opt-in, never auto-updated, and — with crash protection on — unable to
-  sink the app.
-- **Packages are data plus one library.** They can carry recommended settings,
-  on-screen layouts, and device shells — none of which can execute code or
-  touch the network.
+ezCORE is free and open source, with no ads, no paywalled features and no data collection, ever. It is built by people, in the open, and sponsorship is what keeps it moving:
 
-Author your own core: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md). The
-package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md). The
-unbreakable rules — cores never touch the UI, data never executes, claims
-match evidence — in [`docs/PLATFORM.md`](docs/PLATFORM.md).
+- **Hardware for testing:** every platform in the Download table becomes *Verified* on real devices.
+- **Time:** GPU rendering, new cores, and verified builds on every platform.
+- **Sponsors get early builds**, and **every sponsor is thanked by username in the release notes** (unless you ask to stay anonymous).
+
+A star helps too: it is how other players find the project.
+
+## Contributing
+
+Every merged contribution is credited: **your GitHub username goes in the Credits section of the next release notes.** The most valuable help right now:
+
+- A bug fix with a test that fails without it.
+- A verification report from real hardware: Windows, macOS, Android or iOS.
+- A core build, licence check or compatibility improvement.
+- Freely licensed test content with clear provenance.
+- Design work that gets the next person to **Play** faster.
+
+Start with [`CONTRIBUTING.md`](CONTRIBUTING.md): one clear problem per pull request, the [CLA](CLA.md) once, and `git commit -s`. AI-assisted work is welcome when it is disclosed and reviewed. The project never accepts ROMs, BIOS files, firmware, keys or circumvention tools.
+
+<a href="https://github.com/0xJ1nn/ezcore/graphs/contributors"><img alt="ezCORE contributors" src="https://contrib.rocks/image?repo=0xJ1nn/ezcore"></a>
 
 <details>
-<summary><strong>Under the hood</strong></summary>
-
-```
-┌──────────── Flutter app (Dart) ────────────┐
-│ Library · Cores · Settings · Player         │
-│ controls engine · saves · controller input  │
-└───────────────┬─────────────────────────────┘
-                │ C ABI (in-process, or a helper process with crash protection)
-┌───────────────▼─────────────────────────────┐
-│ ezCORE runtime (C11): sessions, video,      │
-│ audio, input, options, save states          │
-└───────────────┬─────────────────────────────┘
-                │ libretro
-┌───────────────▼─────────────────────────────┐
-│ cores: verified or your own, one per system │
-└─────────────────────────────────────────────┘
-```
-
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-</details>
-
----
-
-## Coming soon
-
-In order: analog sticks, keyboard, and mouse for every core (hello DOS and
-3D games); GPU rendering (PSP, Dreamcast, GameCube, faster N64); crash
-protection everywhere; single-file shareable core packages; verified builds on
-every platform. The full plan: [`ROADMAP.md`](ROADMAP.md). Recent changes:
-[`CHANGELOG.md`](CHANGELOG.md).
-
----
-
-## Roll your own build
+<summary><b>Build from source</b></summary>
 
 ```bash
 git clone https://github.com/0xJ1nn/ezcore.git
@@ -223,32 +195,29 @@ flutter run -d linux                  # or macos
 ```
 
 Prerequisites and every platform: [`docs/BUILDING.md`](docs/BUILDING.md).
+</details>
 
----
+<details>
+<summary><b>Under the hood</b></summary>
 
-## Contributing
+```
+┌──────────── Flutter app (Dart) ─────────────┐
+│ Library · Systems · Settings · Player        │
+│ controls engine · saves · controller input   │
+└───────────────┬──────────────────────────────┘
+                │ C ABI (in-process, or a helper process with crash protection)
+┌───────────────▼──────────────────────────────┐
+│ ezCORE runtime (C11): sessions, video,       │
+│ audio, input, options, save states           │
+└───────────────┬──────────────────────────────┘
+                │ libretro
+┌───────────────▼──────────────────────────────┐
+│ cores: verified or your own, one per system  │
+└──────────────────────────────────────────────┘
+```
 
-Highest-value contributions:
-
-- A bug fix with a test that fails without it.
-- A verification report from real hardware (Windows, macOS, Android, iOS).
-- A core build, licence, or compatibility improvement.
-- Freely licensed test content with clear provenance.
-- Design work that gets the next person to **Play** faster.
-
-Start with [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`project.md`](project.md):
-one clear problem per pull request. The project never accepts ROMs, BIOS,
-firmware, keys, circumvention tools, or held-system cores.
-
-## Support ezCORE
-
-<a href="https://github.com/sponsors/0xJ1nn"><img alt="Sponsor ezCORE" src="https://img.shields.io/badge/sponsor-ezCORE-007BFF?labelColor=0F1825&style=flat-square"></a>
-
-ezCORE is free, open source, fully offline, no account required. If it earns a
-spot in your setup, you can
-**[sponsor it on GitHub](https://github.com/sponsors/0xJ1nn)** — code,
-tests, bug reports, art, and docs count just as much. Security:
-[`SECURITY.md`](SECURITY.md). Help: [`SUPPORT.md`](SUPPORT.md).
+Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · core authoring: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md) · package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md) · platform rules: [`docs/PLATFORM.md`](docs/PLATFORM.md).
+</details>
 
 ## License and credits
 
@@ -256,17 +225,10 @@ tests, bug reports, art, and docs count just as much. Security:
 - **Your own cores:** any licence you choose, under the [Core Module Exception](LICENSE-EXCEPTION.md). See [`docs/LICENSING.md`](docs/LICENSING.md).
 - **Official builds:** published only by the maintainer; they may include proprietary first-party cores, which may not be redistributed.
 - **Contributing:** [CLA](CLA.md) plus DCO sign-off; AI assistance is disclosed ([`CONTRIBUTING.md`](CONTRIBUTING.md)).
-- **Name and logo:** trademarks, not covered by any code licence ([`TRADEMARKS.md`](TRADEMARKS.md)).
-- **Cores:** each keeps its upstream licence; see its manifest and
-  [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+- **Name and logo:** trademarks, not covered by any code licence. Forks use their own name, and official builds may not be mirrored or repackaged ([`TRADEMARKS.md`](TRADEMARKS.md)).
+- **Cores:** each keeps its upstream licence; see its manifest and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 - **Fonts:** Space Grotesk and Manrope, [SIL Open Font License 1.1](assets/fonts/OFL.txt).
-- **Trademarks:** [`TRADEMARKS.md`](TRADEMARKS.md).
 
-ezCORE stands on the work of the [libretro](https://www.libretro.com/)
-community and the open-source emulator ecosystem. Screenshots show invented
-titles with generated cover art; the in-game frame is the project's own CC0
-test ROM.
+ezCORE stands on the work of the [libretro](https://www.libretro.com/) community and the open-source emulator ecosystem. Screenshots show invented titles with generated cover art. Security: [`SECURITY.md`](SECURITY.md) · help: [`SUPPORT.md`](SUPPORT.md).
 
-<p align="center">
-  <sub>One home for every game you own.</sub>
-</p>
+<p align="center"><sub>ezCORE · every game you own, one app.</sub></p>
