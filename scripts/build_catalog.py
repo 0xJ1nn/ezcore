@@ -7,7 +7,7 @@ and loaded at startup by AppState. Run before flutter pub get/test/build:
 
     python3 scripts/build_catalog.py
 
-cores/release.json is the on-demand delivery map (ADR-013): the GitHub
+cores/release.json is the on-demand delivery map (hybrid core delivery): the GitHub
 release tag matching this pubspec version plus the asset filename for
 every delivery=download core that has a pin for that platform-arch. The
 app downloads exactly these names, sha256-verifies them against the pin
@@ -28,7 +28,7 @@ CATALOG = CORES / "catalog.json"
 RELEASE = CORES / "release.json"
 
 # Repository slug whose releases host the on-demand core assets. Manual
-# uploads only (`gh release upload`) — GitHub is repo-hosting, no CI (ADR-013).
+# uploads only (`gh release upload`) — GitHub is repo-hosting, no CI (hybrid core delivery).
 REPO = "0xJ1nn/ezcore"
 
 REQUIRED = ("id", "name", "version", "license", "systems", "delivery")
@@ -56,7 +56,7 @@ def asset_ext(plat: str) -> str:
 
 
 def build_release(catalog: dict) -> dict:
-    """cores/release.json — tag + downloadable asset names (ADR-013)."""
+    """cores/release.json — tag + downloadable asset names (hybrid core delivery)."""
     assets: dict[str, dict[str, str]] = {}
     for cid, m in sorted(catalog.items()):
         if m.get("blocked_reason"):

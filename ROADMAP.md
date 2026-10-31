@@ -16,12 +16,11 @@
 > This roadmap describes direction, not permission to implement every item in
 > one change. The code, tests, [`docs/MATRIX.md`](docs/MATRIX.md), and
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) are the evidence for what is
-> real. Release-specific gates live in [`docs/RELEASE_PLAN.md`](docs/RELEASE_PLAN.md).
+> real.
 >
 > **Platform contract:** [`docs/PLATFORM.md`](docs/PLATFORM.md) defines what
 > ezCORE is, how cores are delivered as packages, the security model, and the
-> **platform invariants that may not be broken**. Decisions of record are
-> ADR-014 … ADR-017 in [`docs/DECISIONS.md`](docs/DECISIONS.md). The *Platform
+> **platform invariants that may not be broken**. The *Platform
 > program* below is the authoritative delivery order for making ezCORE a
 > platform; the phase list that follows it remains the long-range product
 > surface.
@@ -145,7 +144,7 @@ the whole product.
 > real SIGSEGV: `crash_core` faults on demand and `crash_signal_exit_code`
 > asserts the child dies on signal 11 and is classified as 9 (#78). A
 > `SupervisorSession` seam exists and `ContainmentMode` defaults to today's
-> in-process path per ADR-015. **The app still dies with the core** —
+> in-process path per crash containment. **The app still dies with the core** —
 > `supervisedProcess` throws `UnsupportedContainmentError` and no child
 > process is ever spawned. Treat this as a spike, not as containment. The
 > P6 exit condition is **not** met, and P6 remains gated on P1 regardless of
@@ -153,7 +152,7 @@ the whole product.
 | **P7** | Signature/trust hardening; make `cores/registry.json` real or remove it | [ ] Planned | Tampered packages and bad signatures are rejected by test | P5 |
 | **P8** | GPU video path — `SET_HW_RENDER`, renderer abstraction, textures | [~] Context seam landed | GL-default cores render on a verified platform; the CPU path stays green | P1 |
 
-> **P8 progress (2026-09-29).** ADR-018 is **Accepted — Option B**: the runtime
+> **P8 progress (2026-09-29).** the GPU render-context design is **Accepted — Option B**: the runtime
 > owns its own EGL/GLES and Vulkan surfaces, and the design is platform-neutral.
 > The render-context seam now exists and is verified on real hardware on the
 > development host: a GLES **3.2** context on a pbuffer binds a

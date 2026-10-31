@@ -1,6 +1,6 @@
 /* Proves the GPU context seam works, or reports honestly why it cannot.
  *
- * This is the test that makes ADR-018 verifiable rather than aspirational. It
+ * This is the test that makes the GPU render-context design verifiable rather than aspirational. It
  * runs as a CTest, and on the development host it exercises a real GLES3
  * context on real hardware and a real Vulkan device.
  *

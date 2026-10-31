@@ -3,9 +3,9 @@ name: Release
 # Manual dispatch: builds each requested platform, uploads artifacts, and
 # creates the GitHub Release from .github/release-notes/<version>.md when
 # that file exists (else generated notes). iOS is intentionally absent —
-# no signing identity yet (see docs/RELEASE_PLAN.md).
+# no signing identity yet.
 #
-# CI is not running yet; the local path in docs/RELEASING.md is the
+# CI is not running yet; the maintainer's local release build is the
 # working alternative until it is.
 
 on:

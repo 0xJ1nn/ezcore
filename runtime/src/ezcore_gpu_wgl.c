@@ -1,4 +1,4 @@
-/* Windows render context: WGL backend (ADR-018, Option B).
+/* Windows render context: WGL backend (the GPU render-context design).
  *
  * NOT YET IMPLEMENTED. This file exists so that a Windows build configures and
  * links -- CMake selects exactly one platform backend, and a missing file would

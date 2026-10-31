@@ -102,7 +102,7 @@
       "chd",
       "zip"
     ],
-    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
+    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/LICENSING.md and THIRD_PARTY_NOTICES.md.",
     "homepage": "https://github.com/libretro/Genesis-Plus-GX",
     "id": "blastproc",
     "license": "Genesis-Plus-GX-custom (non-commercial \u2014 verify per-file terms at build time)",
@@ -438,7 +438,7 @@
       "gbc",
       "zip"
     ],
-    "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat) per docs/CORE_NAMING.md. Recipe retained for local experimentation only.",
+    "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat). Recipe retained for local experimentation only.",
     "homepage": "https://github.com/libretro/gambatte-libretro",
     "id": "gambatte",
     "license": "GPL-2.0-only",
@@ -1007,7 +1007,7 @@
       "fig",
       "zip"
     ],
-    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
+    "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid \u2014 kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/LICENSING.md and THIRD_PARTY_NOTICES.md.",
     "homepage": "https://github.com/snes9xgit/snes9x",
     "id": "superfx",
     "license": "Snes9x-custom (non-commercial, attribution required \u2014 free open-source use OK, paid closed forks NOT permitted)",

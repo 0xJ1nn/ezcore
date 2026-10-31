@@ -101,7 +101,7 @@ class AppState extends ChangeNotifier {
   final CoreRegistry registry = CoreRegistry();
 
   /// Parsed `cores/release.json` — where on-demand core assets live.
-  /// Null when the bundle predates hybrid delivery (ADR-013); downloads
+  /// Null when the bundle predates hybrid delivery (hybrid core delivery); downloads
   /// then fail with an honest message instead of guessing a URL.
   CoreRelease? coreRelease;
 
@@ -110,7 +110,7 @@ class AppState extends ChangeNotifier {
   /// packages installed after boot join the same scan.
   String? coreRootPath;
 
-  /// Layouts shipped by installed core packages (ADR-020), read from the
+  /// Layouts shipped by installed core packages (controls as data), read from the
   /// same core root discovery scans.
   late final packageLayouts = PackageLayouts(() => coreRootPath);
 
@@ -177,7 +177,7 @@ class AppState extends ChangeNotifier {
       }
       registry.addListener(notifyListeners);
 
-      // On-demand core release map (ADR-013). Optional: absent from older
+      // On-demand core release map (hybrid core delivery). Optional: absent from older
       // bundles, downloads then report "release metadata missing".
       try {
         final relRaw = await rootBundle.loadString('cores/release.json');

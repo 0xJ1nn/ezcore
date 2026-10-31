@@ -41,7 +41,7 @@
     "android": "interpreter",
     "ios": "interpreter"
   },
-  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid — kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/MONETIZATION.md and THIRD_PARTY_NOTICES.md.",
+  "gated_reason": "Non-commercial upstream license (paid or closed redistribution not permitted). Not distributed in any binary, free or paid — kept as a build recipe for users who compile their own. Removed from releases 2026-09-19; see docs/LICENSING.md and THIRD_PARTY_NOTICES.md.",
   "provenance": {
     "built_from": "https://github.com/libretro/snes9x",
     "upstream_license": "Snes9x-custom (non-commercial, attribution required — free open-source use OK, paid closed forks NOT permitted)",

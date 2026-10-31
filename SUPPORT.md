@@ -30,7 +30,7 @@
 A: [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases) — the current `v0.2.0` release attaches Linux x64 and Android arm64 artifacts; exact assets and verification are listed in the [release notes](.github/release-notes/v0.2.0.md) and [`docs/MATRIX.md`](docs/MATRIX.md). macOS, Windows, and iOS artifacts are not distributed in that release.
 
 **Q: macOS says "ezCore.app is damaged" or won't open**
-A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity — see RELEASE_PLAN.md.)
+A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity.)
 
 **Q: Android APK won't install**
 A: Enable "Install unknown apps" for your browser/file manager, and make sure any older ezCORE debug build is uninstalled first (debug and release signatures can't upgrade each other). Release APKs are signed with the project's release keystore.
@@ -57,7 +57,7 @@ A:
 A: Time Capsule screen (vault) shows all snapshots. SRAM is per-game in the app's data directory.
 
 **Q: Can I sync saves across devices?**
-A: Not in v1. Local vault only. Cloud sync planned for v1.1 (see CLOUD_SAVES.md).
+A: Not in v1. Local vault only. Cloud sync is planned.
 
 ### Development
 **Q: How do I build from source?**

@@ -244,7 +244,7 @@ Three values ship (verified: `fill_manifest_data.py` L62–64):
 | Value | Meaning | ADR |
 |---|---|---|
 | `bundled` | Artifact ships inside the app bundle (desktop/Android) or as embedded frameworks (iOS) | — |
-| `download` | Fetched on-demand from GitHub Releases; sha256-verified against the manifest pin before staging | ADR-013 |
+| `download` | Fetched on-demand from GitHub Releases; sha256-verified against the manifest pin before staging | hybrid core delivery |
 | `absent` | Not distributed by ezCORE | — |
 
 Desktop giants (pointclick ~170 MB, dreamarc ~39 MB, powercube ~27 MB on

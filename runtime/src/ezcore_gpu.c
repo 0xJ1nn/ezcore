@@ -1,4 +1,4 @@
-/* Backend dispatch for the GPU render context (ADR-018, Option B).
+/* Backend dispatch for the GPU render context (the GPU render-context design).
  *
  * This is the ONLY file that knows which platform implementation is in play.
  * Everything above it -- env_cb in runtime.c, and the C test harness -- talks

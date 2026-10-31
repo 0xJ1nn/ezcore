@@ -1,6 +1,6 @@
 /* test_core_host.c — drives ezcore_core_host over its pipe protocol (P6).
  *
- * The question this answers is the one ADR-015 exists for: when a core
+ * The question this answers is the one crash containment exists for: when a core
  * crashes, does only the process hosting it die? The test spawns the host as
  * a child, talks to it exactly as the app will (length-prefixed frames on its
  * stdin/stdout), and checks three things:

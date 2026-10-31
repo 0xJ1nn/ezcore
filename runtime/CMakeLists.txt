@@ -19,7 +19,7 @@ else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
 endif()
 
-# GPU render context (ADR-018, Option B). ezcore_gpu.c is the only file that
+# GPU render context (the GPU render-context design). ezcore_gpu.c is the only file that
 # knows which backend is in play; exactly one *_platform backend is compiled in
 # per platform, and the Vulkan backend is portable because it goes through the
 # loader rather than linking libvulkan. No EGL/GLES/Vulkan library is linked
@@ -286,7 +286,7 @@ add_dependencies(test_unload_order synth_hw_core)
 add_test(NAME unload_order COMMAND test_unload_order
          $<TARGET_FILE:synth_hw_core> ${CMAKE_BINARY_DIR}/unload_order.txt)
 
-# GPU context seam test (ADR-018, Option B). Exercises a real GLES3 context
+# GPU context seam test (the GPU render-context design). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed
 # reason where it does not -- a GPU test that fails without a GPU would only
 # ever be runnable on one machine, and would get deleted.
@@ -371,7 +371,7 @@ target_link_libraries(test_crash_signal PRIVATE ezcore_runtime)
 target_include_directories(test_crash_signal PRIVATE include)
 add_dependencies(test_crash_signal crash_libretro)
 
-# P6 (ADR-015): the helper process that hosts one core session, so a core
+# P6 (crash containment): the helper process that hosts one core session, so a core
 # crash ends that process instead of the app. Links the unchanged runtime.
 add_executable(ezcore_core_host host/ezcore_core_host.c)
 target_link_libraries(ezcore_core_host PRIVATE ezcore_runtime)

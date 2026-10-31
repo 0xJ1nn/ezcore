@@ -11,7 +11,7 @@
 #   3. flutter build --release
 # 4. bundle runtime + tier cores next to the app (desktop), jniLibs
 #      (Android), unsigned device build (iOS; store pipeline needs a
-#      signing identity — see RELEASE_PLAN Phase C)
+#      signing identity)
 # 5. sign + archive + banned-content scan
 #
 # iOS note: cores ship as versioned .framework bundles embedded via the
@@ -109,11 +109,11 @@ case "$PLATFORM" in
     ;;
   ios)
     # No codesign path yet (needs EZCORE_IOS_SIGNING_IDENTITY + embedded
-    # core frameworks — tracked in RELEASE_PLAN Phase C). Until then an
+    # core frameworks). Until then an
     # unsigned device build proves the app + Swift + assets compile.
     echo "WARN: no iOS signing identity; unsigned device build only"
     gate flutter build ios --no-codesign
-    echo "OK: unsigned iOS build (device deploy needs signing; see RELEASE_PLAN)"
+    echo "OK: unsigned iOS build (device deploy needs signing)"
     exit 0
     ;;
 esac

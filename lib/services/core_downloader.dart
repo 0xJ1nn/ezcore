@@ -11,7 +11,7 @@ import 'local_data_dir.dart';
 /// matching this build's pubspec version plus the asset file name for
 /// every `delivery: download` core that has a pin for that platform.
 ///
-/// This is the whole trust story (ADR-013): the app fetches exactly these
+/// This is the whole trust story (hybrid core delivery): the app fetches exactly these
 /// names, from exactly this tag, and verifies the bytes against the pin
 /// that ships inside the same catalog it already trusts.
 class CoreRelease {

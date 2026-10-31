@@ -82,7 +82,7 @@ flutter run -d macos                  # debug run
 ## Release Build
 
 Full maintainer checklist (secrets, checksums, notes, publish):
-[`RELEASING.md`](RELEASING.md).
+the maintainer's release process.
 
 ```bash
 # Requires: all cores built + pinned for target platform
@@ -97,7 +97,7 @@ scripts/release.sh windows --out dist/
 # Linux:
 scripts/release.sh linux --out dist/
 
-# Android (needs the release keystore; see docs/RELEASING.md):
+# Android (needs the maintainer's release keystore):
 EZCORE_KEYSTORE_FILE="$PWD/ezcore-release.keystore" \
 EZCORE_KEYSTORE_PASSWORD=... EZCORE_KEY_ALIAS=ezcore EZCORE_KEY_PASSWORD=... \
 scripts/release.sh android --out dist/

@@ -1,4 +1,4 @@
-/* GPU render-context surface for the ezCORE runtime (ADR-018, Option B).
+/* GPU render-context surface for the ezCORE runtime (the GPU render-context design).
  *
  * WHY THIS FILE EXISTS
  * --------------------
@@ -6,7 +6,7 @@
  * RETRO_ENVIRONMENT_SET_HW_RENDER and asks the host for a render context.
  * ezCORE's env_cb answers 13 of 93 environment commands and that was not one
  * of them, so six cores (geometry1, rcp64, dualscreen, portcomp, dreamarc,
- * powercube) could not run at all. See docs/DECISIONS.md ADR-018.
+ * powercube) could not run at all.
  *
  * WHAT THIS IS NOT
  * -----------------
@@ -14,7 +14,7 @@
  * libezcore_runtime.so; the whole surface is internal to the runtime, and
  * libretro cores reach it only through env_cb. That is deliberate: a public
  * ABI would mean an EZCORE_ABI_VERSION bump, and a new link-time dependency on
- * EGL or Vulkan, both of which the maintainer has ruled out (ADR-018 Q6).
+ * EGL or Vulkan, both of which the maintainer has ruled out (the GPU render-context design).
  *
  * The design rule that matters: ONE backend-agnostic context owns the surface.
  * Per-platform code (EGL vs WGL vs CGL, and the Vulkan loader) lives behind

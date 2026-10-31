@@ -15,7 +15,7 @@ import 'repo_layout.dart';
 /// jniLibs extraction dir / iOS bundle copy / desktop release bundle),
 /// then the dev-checkout `native/cores` tree — plus, for
 /// `delivery: download` cores, an already-downloaded vault copy with no
-/// external source at all (ADR-013). Destination is always
+/// external source at all (hybrid core delivery). Destination is always
 /// `<localData>/cores/<id>/<id>.<ext>` — the single tree [CoreDiscovery]
 /// and the player resolve from. Every staged byte is sha256-checked
 /// against the manifest pin; mismatches are deleted and recorded, never
@@ -64,7 +64,7 @@ class CoreStagingService {
       // cannot ship here anyway.
       if (manifest.delivery[osKey] == 'absent') continue;
       // A download core needs no source tree: its verified vault copy is
-      // the distribution (ADR-013). Only bundled/dev cores need a local
+      // the distribution (hybrid core delivery). Only bundled/dev cores need a local
       // source, so an empty source list must not drop download cores —
       // doing so left clean checkouts with an empty staging set even when
       // a verified vault copy existed.
@@ -124,7 +124,7 @@ class CoreStagingService {
     final candidate = _findSource(manifest, ext, sources);
     if (candidate == null && manifest.delivery[osKey] == 'download') {
       // A downloaded core has no bundled/dev source — its vault copy IS
-      // the distribution (ADR-013). Keep it iff it still verifies against
+      // the distribution (hybrid core delivery). Keep it iff it still verifies against
       // the pin; otherwise drop it so the downloader can refetch it.
       if (dest.existsSync()) {
         if (await verifyPinnedFile(dest.path, pin, hashes: _hashes)) {
@@ -170,7 +170,7 @@ class CoreStagingService {
     return true;
   }
 
-  /// The core's own system data (ADR-021) from beside the bundled library
+  /// The core's own system data (core system data) from beside the bundled library
   /// (`<source>/<id>/system/`) into the vault, next to the staged core.
   /// Validated first; a bad folder is reported and skipped, never copied.
   Future<void> _stageSystemData(

@@ -5,7 +5,7 @@ import 'emulation_worker.dart';
 
 /// Where a libretro core runs, from the host's point of view.
 ///
-/// ADR-015 requires containment to ship behind a setting that defaults to
+/// The crash-containment design requires containment to ship behind a setting that defaults to
 /// today's path, so [inProcess] is the first value and the default for every
 /// field and constructor in this file.
 enum ContainmentMode {
@@ -132,7 +132,7 @@ class SupervisorSession {
     this.worker,
   });
 
-  /// Defaults to today's path. Changing it is a user/ADR-015 decision.
+  /// Defaults to today's path. Changing it is the user's decision.
   final ContainmentMode containment;
 
   /// How long a single command may take before the session is declared hung.

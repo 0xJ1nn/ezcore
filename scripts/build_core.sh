@@ -66,7 +66,7 @@ stage() { # id file [destname]
   (cd "$OUT_DIR/$id" && { shasum -a 256 "$dest" 2>/dev/null || sha256sum "$dest"; } | tee SHA256SUMS)
 }
 
-stage_system_data() { # id srcdir name — core-owned data for <system>/<name> (ADR-021)
+stage_system_data() { # id srcdir name — core-owned data for <system>/<name> (core system data)
   local id="$1" src="$2" name="$3"
   local dest="$OUT_DIR/$id/system/$name"
   [ -d "$src" ] || { echo "stage_system_data: $src missing" >&2; return 1; }

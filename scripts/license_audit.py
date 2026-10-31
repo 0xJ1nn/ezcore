@@ -17,7 +17,7 @@ Rules enforced:
   7. Every bundled core-art WebP is listed in the artwork provenance record.
 
 `download` distributes the exact same bytes from our release assets as
-`bundled` does from the package — every rule above covers both (ADR-013).
+`bundled` does from the package — every rule above covers both (hybrid core delivery).
 
 Exit 0 = clean. Exit 1 = violations printed.
 """
@@ -132,7 +132,7 @@ def main():
         delivery = d.get("delivery", {})
         # `download` ships the same bytes from our release assets as
         # `bundled` ships inside the package — one distributed set, one
-        # rulebook (ADR-013).
+        # rulebook (hybrid core delivery).
         shipped_os = [
             k for k in OS_KEYS if delivery.get(k) in ("bundled", "download")
         ]

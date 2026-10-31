@@ -25,7 +25,7 @@
  * libretro_vulkan.h defines retro_hw_render_interface_vulkan, but including it
  * pulls in <vulkan/vulkan.h>, which would make the RUNTIME require the Vulkan
  * SDK at build time. That contradicts the decision to have no Vulkan
- * dependency at all (ADR-018 Q6), and it is a build-time cost paid by everyone
+ * dependency at all (the GPU render-context design), and it is a build-time cost paid by everyone
  * to serve a struct only a Vulkan core ever reads.
  *
  * So the layout is mirrored here, field for field, from
@@ -90,12 +90,12 @@ struct ezcore_gpu_vk_body {
   /* Resolved entry points. The Vk* handles themselves are opaque pointers --
    * this runtime never dereferences them, so it needs no Vulkan SDK headers
    * and no -lvulkan, which is what lets it load on a machine with no Vulkan
-   * driver at all (ADR-018 Q6). Signatures are hand-declared to match the
+   * driver at all (the GPU render-context design). Signatures are hand-declared to match the
    * Vulkan ABI; only pointers are passed, so no struct layout is relied on. */
   /* Resolved entry points, declared with their real Vulkan signatures. They
    * are hand-written rather than pulled from <vulkan/vulkan.h> so the runtime
    * needs no Vulkan SDK headers and no -lvulkan, which is what lets it load on
-   * a machine with no Vulkan driver at all (ADR-018 Q6). Only pointers cross
+   * a machine with no Vulkan driver at all (the GPU render-context design). Only pointers cross
    * these boundaries, so no Vulkan struct layout is relied on anywhere --
    * except the three create-info structs in ezcore_gpu_vulkan.c, whose layouts
    * ARE depended on, and which are therefore spelled out there next to their

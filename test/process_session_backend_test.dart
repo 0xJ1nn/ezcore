@@ -1,4 +1,4 @@
-// P6 (ADR-015): a core session hosted in a separate process.
+// P6 (crash containment): a core session hosted in a separate process.
 //
 // These tests drive the real `ezcore_core_host` binary. The crash case is
 // the point: the crashing core faults inside the HOST process, so this test

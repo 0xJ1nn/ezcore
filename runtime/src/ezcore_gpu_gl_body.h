@@ -32,7 +32,7 @@ struct ezcore_gpu_gl_body {
   int width, height;
 
   /* Resolved per context, never linked: the runtime must stay loadable on a
-   * machine with no GPU (ADR-018 Q6, PLATFORM.md §6). */
+   * machine with no GPU (the GPU render-context design, PLATFORM.md §6). */
   void *(*get_proc_address_fn)(const char *);
 
   struct ezcore_gl_table {

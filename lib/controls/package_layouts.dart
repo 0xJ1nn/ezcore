@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'control_layout.dart';
 
-/// On-screen layouts shipped inside a core package (ADR-020): the package's
+/// On-screen layouts shipped inside a core package (controls as data): the package's
 /// `layouts/` folder, staged to `<cores>/<id>/layouts/` on install.
 ///
 /// One set of rules, used by the package validator before install and by the

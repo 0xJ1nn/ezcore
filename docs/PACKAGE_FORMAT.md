@@ -279,7 +279,7 @@ The following files were read and checked against this specification:
 ## 9. On-screen layouts (`layouts/`)
 
 A package may ship touch layouts for its systems in `layouts/`, in the
-`ezcore.controls/1` format defined by ADR-020 (`docs/DECISIONS.md`) and
+`ezcore.controls/1` format defined by the controls-as-data format and
 implemented by `lib/controls/control_layout.dart`. The same rules apply at
 install (validator) and at play time (loader,
 `lib/controls/package_layouts.dart`):
@@ -300,7 +300,7 @@ and orientation (an exact orientation beats `any`), then ezCORE's built-in
 layout. Resetting a layout in the editor returns to the core's layout.
 
 
-## 10. System data (`system/`, ADR-021)
+## 10. System data (`system/`, core system data)
 
 Some cores need their own program data in the libretro system directory:
 Dolphin looks for `<system>/dolphin-emu/Sys` (fonts, the Gecko code handler,

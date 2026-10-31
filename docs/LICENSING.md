@@ -48,7 +48,7 @@ redistributed. The GPL source of the app itself remains available here.
 - A **non-commercial** core (Snes9x, Genesis Plus GX, FBNeo) is never
   bundled or downloaded by any build. Users may build it themselves.
 - A paid build bundles only cores whose licences permit commercial
-  distribution ([`MONETIZATION.md`](MONETIZATION.md)).
+  distribution.
 - A proprietary core is never linked with, or built from, third-party GPL
   code.
 

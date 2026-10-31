@@ -5,7 +5,7 @@ import 'dart:typed_data';
 /// Two implementations: [EmulationWorker] runs the core in this process (a
 /// Dart isolate — fast, but a native crash kills the app), and
 /// `ProcessSessionBackend` runs it in a separate `ezcore_core_host` process,
-/// so a crash ends only the session (P6, ADR-015). The player talks to this
+/// so a crash ends only the session (crash containment). The player talks to this
 /// surface and does not care which one it has.
 abstract interface class CoreSessionBackend {
   Future<Map<String, dynamic>> open({

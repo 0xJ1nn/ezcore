@@ -156,4 +156,4 @@ copyrighted), `test.gba` (4 KB OBJTEST homebrew — **no declared licence**),
 see the provenance table above. RENDERS-level coverage beyond
 GB/GBC/GBA needs sourced public-domain homebrew per system + per-file
 LICENSE (the `test/fixtures/` allowlist in `banned_content_scan.sh`
-exists for exactly this) — open item, tracked in RELEASE_PLAN.
+exists for exactly this) — open item.

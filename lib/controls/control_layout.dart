@@ -1,6 +1,6 @@
 import 'dart:ui' show Rect;
 
-/// On-screen controls as data (format `ezcore.controls/1`, ADR-020).
+/// On-screen controls as data (format `ezcore.controls/1`, controls as data).
 ///
 /// One shape serves the built-in layouts, a user's customised copy, and
 /// layouts that core packages ship. A layout says where the game picture

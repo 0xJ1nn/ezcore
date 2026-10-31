@@ -10,7 +10,7 @@ import 'package:ezcore/services/hash_verifier.dart';
 import 'package:ezcore/services/local_data_dir.dart';
 import 'package:ezcore/services/native_dirs.dart';
 
-/// On-demand core downloads (ADR-013): release metadata → URL → streamed
+/// On-demand core downloads (hybrid core delivery): release metadata → URL → streamed
 /// fetch → sha256-verified against the manifest pin → vault + registry.
 /// Failure-first: none of this existed when this file was first run.
 

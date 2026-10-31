@@ -1,5 +1,5 @@
 /* ezcore_core_host — runs one libretro core session in its own process
- * (P6, ADR-015: a core crash must not terminate ezCORE).
+ * (P6, crash containment: a core crash must not terminate ezCORE).
  *
  * The app starts this program, writes requests to its stdin and reads
  * responses from its stdout, per ezcore_core_host_protocol.h. Everything

@@ -11,7 +11,7 @@
  */
 #include "ezcore_runtime.h"
 
-/* P8: the GPU render-context seam (ADR-018, Option B).
+/* P8: the GPU render-context seam (the GPU render-context design).
  *
  * libretro_vulkan.h is vendored, but it includes <vulkan/vulkan.h> and the
  * project does not have the Vulkan SDK. Including it would make the RUNTIME
@@ -147,7 +147,7 @@ struct ezcore_session {
   unsigned num_controller_ports;
   struct ezcore_mem_desc *mem_descs;
   unsigned num_mem_descs;
-  /* --- GPU render context (ADR-018, Option B) ---
+  /* --- GPU render context (the GPU render-context design) ---
    * The core's requested hw-render callback, kept verbatim so
    * GET_HW_RENDER_INTERFACE and SET_PROC_ADDRESS_CALLBACK can be answered from
    * the same source of truth. Owned by the core, not by us. */
@@ -625,7 +625,7 @@ static bool env_cb(unsigned cmd, void *data) {
       }
       return true;
     }
-    /* ---- P8: GPU render context (ADR-018, Option B) ----
+    /* ---- P8: GPU render context (the GPU render-context design) ----
      *
      * These four answers are what unblocks a GL- or Vulkan-defaulting core.
      * Two of them are the reason this is not a one-liner:

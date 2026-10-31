@@ -84,7 +84,7 @@ void main() {
   });
 
   group('SupervisorSession', () {
-    test('defaults to the in-process path, as ADR-015 requires', () {
+    test('defaults to the in-process path, as the crash-containment design requires', () {
       // The setting must default to today's behaviour, so shipping cannot
       // change where cores run without an explicit opt-in.
       final session = SupervisorSession();

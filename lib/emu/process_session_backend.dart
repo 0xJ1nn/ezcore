@@ -29,7 +29,7 @@ class CoreSessionEndedException implements Exception {
 }
 
 /// Runs a core session in a separate `ezcore_core_host` process (P6,
-/// ADR-015), speaking the protocol in
+/// crash containment), speaking the protocol in
 /// `runtime/host/ezcore_core_host_protocol.h`. A crash in the core kills that
 /// process, never this one; the next command then fails with a
 /// [CoreSessionEndedException] that says what happened.

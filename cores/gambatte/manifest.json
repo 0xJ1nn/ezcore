@@ -47,5 +47,5 @@
     "android": "interpreter",
     "ios": "interpreter"
   },
-  "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat) per docs/CORE_NAMING.md. Recipe retained for local experimentation only."
+  "gated_reason": "GPL-2.0-ONLY upstream. Gambatte's files grant 'GNU General Public License version 2 as published by the Free Software Foundation' with no 'or later' clause anywhere in the tree, so it cannot form a combined work with ezCORE's GPL-3.0-only app (a dlopen'd plugin shipped in the same bundle counts as one). Never bundled, free or paid. GB/GBC is served by a single core (PocketBit, built from SameBoy/Expat). Recipe retained for local experimentation only."
 }

@@ -1,6 +1,6 @@
 /* ezcore_core_host_protocol.h — the wire contract between ezCORE and
  * ezcore_core_host, the helper process that runs one core session (P6,
- * ADR-015).
+ * crash containment).
  *
  * This is NOT a core ABI. Cores still speak libretro and know nothing about
  * it; this is how the *app* talks to the process that hosts a core, so a

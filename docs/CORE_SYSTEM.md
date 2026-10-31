@@ -14,7 +14,7 @@ versioned, license-tagged, and **sha256-pinned** in per-core manifests.
 
 **Delivery is `bundled` by default:** most cores ship inside the app bundle
 (desktop, Android) or as embedded frameworks (iOS) and update together with
-app releases. Since v0.2.0 (ADR-013) delivery is **hybrid**: the three
+app releases. Since v0.2.0 (hybrid core delivery) delivery is **hybrid**: the three
 desktop giants (`pointclick`, `dreamarc`, `powercube`) are `download` — the
 Core Manager fetches them from this repository's GitHub Releases on first
 use and sha256-verifies every byte against the manifest pin before staging.
@@ -101,7 +101,7 @@ game selected in Library
 ```
 
 If no compatible core is installed, the app says so. Download-delivery
-cores (ADR-013) offer an explicit **Download** action in the Core Manager —
+cores (hybrid core delivery) offer an explicit **Download** action in the Core Manager —
 they are fetched only there, verified against the manifest pin, and staged;
 everything else is never fetched behind the user's back. The player gates
 BIOS-dependent cores on an exact-file check before boot
@@ -164,7 +164,7 @@ Saturn · Arcade/Neo Geo (gated) · ScummVM (pending macOS build).
 
 Every core ships under an ezCORE-owned codename; the upstream project is
 credited by name wherever the core appears (repo description, core README,
-`THIRD_PARTY_NOTICES.md`). See ADR-012 in [`docs/DECISIONS.md`](DECISIONS.md).
+`THIRD_PARTY_NOTICES.md`).
 
 | Codename | System | Upstream project | Upstream licence |
 |---|---|---|---|

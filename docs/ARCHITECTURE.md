@@ -28,7 +28,7 @@
 │                    Modular cores (C/C++)                      │
 │  cores/<id>/manifest.json     metadata · pins · policy        │
 │  staged artifact (dylib/so/dll) sha256-verified vs manifest   │
-│  delivered: bundled | on-demand, sha256-verified (ADR-013)     │
+│  delivered: bundled | on-demand, sha256-verified (hybrid core delivery)     │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -152,5 +152,5 @@ scripts/
 Cloud sync, achievements, metadata/artwork services, account sync,
 netplay, rewind, per-game core options (ABI v2) — all have reserved seams
 (`SaveSyncProvider`, `execution`, per-game `coreId`), none is implemented
-ahead of need. See `docs/RELEASE_PLAN.md` for what v1 deliberately
+ahead of need. Version 1 deliberately
 excludes and why.

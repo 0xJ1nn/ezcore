@@ -62,7 +62,7 @@ CHEATS = {
 
 # Delivery = what release.sh ships per OS. Three values ship: `bundled`
 # (in the package), `download` (fetched on demand from this release's core
-# assets and sha256-verified before staging — ADR-013), and `absent`.
+# assets and sha256-verified before staging — hybrid core delivery), and `absent`.
 # iOS is never `download` (App Review 2.5.2/4.7; see CoreManifest.validate)
 # and desktop/mobile apps otherwise carry their tier, verified by MATRIX.md.
 _TIER_DESKTOP = [
@@ -82,7 +82,7 @@ _TIER_IOS = [
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]
 
-# Hybrid download set (ADR-013): staged giants (>= ~25 MB — pointclick
+# Hybrid download set (hybrid core delivery): staged giants (>= ~25 MB — pointclick
 # 170M, dreamarc 39M, powercube 27M on linux-x64) leave the desktop
 # package so the app stays lightweight; the app fetches them on demand,
 # sha256-verified against the manifest pin before staging. Android keeps
@@ -119,7 +119,7 @@ def _delivery(cid: str) -> "dict[str, str] | None":
     if cid in ("coinbox", "superfx", "blastproc"):
         # Non-commercial upstream licenses: never distributed in any binary,
         # free or paid — kept as build recipes only. See gated_reason in each
-        # manifest + docs/MONETIZATION.md.
+        # manifest and the licensing policy.
         return {
             "macos": "absent",
             "windows": "absent",
@@ -135,7 +135,7 @@ def _delivery(cid: str) -> "dict[str, str] | None":
         "ios": "bundled" if cid in _TIER_IOS else "absent",
     }
     if cid in _DOWNLOAD_DESKTOP:
-        # Hybrid set (ADR-013): desktop fetches these on demand; android
+        # Hybrid set (hybrid core delivery): desktop fetches these on demand; android
         # and ios keep their tier value unchanged (see _DOWNLOAD_DESKTOP).
         for os_name in ("macos", "windows", "linux"):
             if ships[os_name] == "bundled":

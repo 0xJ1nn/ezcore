@@ -1,4 +1,4 @@
-// Core packages can ship their own on-screen layouts (ADR-020). The same
+// Core packages can ship their own on-screen layouts (controls as data). The same
 // rules gate them at install (validator) and at play time (loader), the
 // installer stages only what passes, and the player prefers: the user's own
 // copy, then the core's layout, then the built-in.

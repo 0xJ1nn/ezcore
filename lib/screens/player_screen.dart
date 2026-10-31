@@ -164,7 +164,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         final system = await Directory(
           '${data.path}/system',
         ).create(recursive: true);
-        // The core's own data (ADR-021: Dolphin's Sys, PPSSPP's assets),
+        // The core's own data (core system data: Dolphin's Sys, PPSSPP's assets),
         // copied from beside the installed core once per core version.
         final systemData = await copySystemData(
           from: Directory('${File(corePath).parent.path}/system'),
@@ -190,7 +190,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         ).create(recursive: true);
         if (!mounted || leaving) return;
         final runtimeRef = await resolveRuntimeRef();
-        // Crash protection (P6, ADR-015): off by default. When on, the core
+        // Crash protection (crash containment): off by default. When on, the core
         // runs in a separate helper process, so a crash ends only the game.
         // Loud, not silent, when the helper is missing: the user asked for
         // protection, so never quietly run without it.

@@ -1,4 +1,4 @@
-/* Vulkan render context (ADR-018, Option B).
+/* Vulkan render context (the GPU render-context design).
  *
  * Why this is its own file rather than a branch in the EGL backend: Vulkan has
  * no windowing-system dependency on the desktop path and is what four of the

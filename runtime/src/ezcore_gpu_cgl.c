@@ -1,4 +1,4 @@
-/* macOS render context: CGL/NSOpenGL backend (ADR-018, Option B).
+/* macOS render context: CGL/NSOpenGL backend (the GPU render-context design).
  *
  * NOT YET IMPLEMENTED, for the same reason and with the same contract as
  * ezcore_gpu_wgl.c: the file must exist so a macOS build configures and links,

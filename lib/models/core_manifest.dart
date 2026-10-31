@@ -53,7 +53,7 @@ class CoreManifest {
   /// Problems found while parsing `default_options`; surfaced by [validate].
   final List<String> defaultOptionsErrors;
 
-  /// The core's own data folders for the system dir (`system_data`, ADR-021),
+  /// The core's own data folders for the system dir (`system_data`, core system data),
   /// e.g. `["dolphin-emu"]`. Shipped under `system/<name>/` in the package.
   final List<String> systemData;
 
@@ -106,7 +106,7 @@ class CoreManifest {
     return (options: options, errors: errors);
   }
 
-  /// Cap on `system_data` entries (ADR-021).
+  /// Cap on `system_data` entries (core system data).
   static const maxSystemDataEntries = 4;
   static final _systemDataName = RegExp(r'^[A-Za-z0-9._-]+$');
 

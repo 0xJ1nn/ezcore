@@ -6,7 +6,6 @@
 > *what gets built and in what order*.
 > **As-built implementation:** [`ARCHITECTURE.md`](ARCHITECTURE.md).
 > **What is actually verified:** [`MATRIX.md`](MATRIX.md).
-> **Why, per decision:** [`DECISIONS.md`](DECISIONS.md) (ADR-014 … ADR-017).
 
 This is the document a maintainer, a contributor, or an AI agent reads before
 touching the core/runtime/UI boundary. It exists because ezCORE is developed
@@ -120,7 +119,7 @@ existing core ecosystem. Delivered in-process today; containment in P6.
 **Tier 2 — Engine integrations.** A current-generation console emulator, or a
 Windows-PC-games stack, is a large standalone native program. It does not
 expose `retro_*` and will not without upstream cooperation. ezCORE's honest
-promise for Tier 2 (`ADR-017`): **supervise and drive it** — launch the
+promise for Tier 2 (supervised Tier-2 targets): **supervise and drive it** — launch the
 process, route display/input/audio through ezCORE, watch its lifecycle, and
 keep library, save and controller continuity. This is deliberately *not*
 claimed as in-process embedding.
@@ -166,7 +165,7 @@ ezCORE executes native code it did not necessarily write. That is the whole
 product, and it is the whole risk. The model is three layers, and it does not
 pretend to make unknown code safe.
 
-**Layer 1 — Native code: two trust tiers, never blurred (`ADR-016`).**
+**Layer 1 — Native code: two trust tiers, never blurred (the core trust tiers).**
 
 - **ezCORE Verified** — reviewed by the project, listed in-app, labelled with
   a trust badge, updated by the project. Integrity protected by the existing
@@ -198,7 +197,7 @@ a killable process.
 
 **Cryptography:** do not hand-roll. Keep the SHA-256 pins that already work,
 use platform code signing where it is free, and make a real signature scheme
-(Ed25519) its own task with an explicit dependency decision (`ADR-016`).
+(Ed25519) its own task with an explicit dependency decision (the core trust tiers).
 Hand-rolled crypto is worse than none.
 
 ---
@@ -310,5 +309,5 @@ mechanical; it should be caught mechanically, not by a human noticing.
 - Core-authoring walkthrough (how to build, package, and declare a core) is a
   **P1 deliverable**. Until it exists, this file plus the libretro API
   documentation are the authority.
-- Changing anything in §6 requires an ADR in [`DECISIONS.md`](DECISIONS.md) and
+- Changing anything in §6 requires a recorded maintainer decision and
   explicit maintainer approval, per the maintainer-approval rule.

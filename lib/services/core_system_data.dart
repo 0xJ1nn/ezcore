@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-/// Core system data (ADR-021): a core's own non-executable program data —
+/// Core system data (core system data): a core's own non-executable program data —
 /// Dolphin's `dolphin-emu/Sys`, PPSSPP's `PPSSPP` assets — shipped in the
 /// core package under `system/<name>/` and copied into the libretro system
 /// directory, where the core looks for it.

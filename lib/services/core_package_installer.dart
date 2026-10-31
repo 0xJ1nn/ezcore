@@ -207,7 +207,7 @@ class PackageInstaller {
     // - `gated_reason` marks license-gated cores (recipe only, never
     //   distributed BY THE PROJECT). A package with a gated_reason manifest
     //   is the user's own locally-built content — installing it is allowed
-    //   under the self-serve door (ADR-016), with an explicit warning that
+    //   under the self-serve door (the core trust tiers), with an explicit warning that
     //   the user is responsible for holding the rights to this build. The
     //   project itself still never ships those binaries.
     final blockedReason = rawManifest['blocked_reason'];
@@ -342,7 +342,7 @@ class PackageInstaller {
       await infoDir.create(recursive: true);
       await infoFile.copy('${infoDir.path}/$id.info');
     }
-    // On-screen layouts the package ships (ADR-020). Only files that pass
+    // On-screen layouts the package ships (controls as data). Only files that pass
     // the validator's rules are staged; the folder is replaced, not merged,
     // so a reinstall never keeps a layout the new version dropped.
     final layouts = readLayoutDir(
@@ -359,7 +359,7 @@ class PackageInstaller {
       }
     }
 
-    // The core's own system data (ADR-021), validated above; refreshed per
+    // The core's own system data (core system data), validated above; refreshed per
     // version (copySystemData's marker), copied into the system dir at play.
     final systemCopy = await copySystemData(
       from: Directory('${package.path}/system'),

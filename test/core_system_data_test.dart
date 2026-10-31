@@ -1,4 +1,4 @@
-// Core system data (ADR-021): a core's own data folders, shipped under
+// Core system data (core system data): a core's own data folders, shipped under
 // system/ in its package and copied into the system dir. Data only, exactly
 // the declared folders, never BIOS, never someone else's folder.
 import 'dart:convert';

@@ -52,7 +52,7 @@ const Set<String> kKnownManifestFields = <String>{
   'notes',
   // Recommended starting values for the core's own options (data only).
   'default_options',
-  // The core's own data folders for the system dir (ADR-021, data only).
+  // The core's own data folders for the system dir (core system data, data only).
   'system_data',
 };
 
@@ -157,7 +157,7 @@ class PackageValidationReport {
     }
 
     _validateManifest(json as Map<String, dynamic>, report, package);
-    // layouts/ (ADR-020): every file a valid layout for a system this core
+    // layouts/ (controls as data): every file a valid layout for a system this core
     // declares. Same rules the loader applies at play time.
     final systems = json['systems'];
     report.errors.addAll(
@@ -166,7 +166,7 @@ class PackageValidationReport {
         allowedSystems: [if (systems is List) for (final s in systems) '$s'],
       ).errors,
     );
-    // system/ (ADR-021): exactly the declared folders, data only. Same rules
+    // system/ (core system data): exactly the declared folders, data only. Same rules
     // staging and the player apply.
     final systemData = CoreManifest.parseSystemData(json['system_data']);
     report.errors.addAll(systemData.errors);

@@ -29,16 +29,15 @@ same rules.
 | **Self-serve package** | Anyone, including you, right now | A core package — the emulator plus its control layout, skin, cheats, and functions — is placed locally or added from a published release. No account, no network required. |
 | **Reviewed pull request** | Contributors who want the core shipped and labelled | A PR adds `cores/<id>/` with a manifest, license and provenance, and a build recipe. It must pass the manifest, license, and pin gates before it can be labelled **ezCORE Verified**. |
 
-The detailed contract is [`docs/PLATFORM.md`](docs/PLATFORM.md) and the
-decisions behind it are [`docs/DECISIONS.md`](docs/DECISIONS.md)
-(ADR-014 … ADR-017). Read it before designing a core or a package.
+The detailed contract is [`docs/PLATFORM.md`](docs/PLATFORM.md). Read it before
+designing a core or a package.
 
 ### What a core must implement
 
 **The libretro API v1.** A core exports `retro_*` entry points and reports
 `RETRO_API_VERSION == 1`. It does **not** implement, call, or link against the
 `ezcore_*` host API in `runtime/include/ezcore_runtime.h` — that surface belongs
-to the application. See ADR-014.
+to the application.
 
 Please do not design a new ezCORE-specific core interface. Using the existing
 libretro contract is what makes an independent core usable by ezCORE, by

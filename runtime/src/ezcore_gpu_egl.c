@@ -1,4 +1,4 @@
-/* EGL-backed render context: Linux and Android (ADR-018, Option B).
+/* EGL-backed render context: Linux and Android (the GPU render-context design).
  *
  * One implementation serves every GL/GLES API variant ezCORE exposes, because
  * EGL's config/surface/context attributes cover all of them and the
