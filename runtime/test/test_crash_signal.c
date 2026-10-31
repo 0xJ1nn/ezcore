@@ -31,7 +31,7 @@
  * fixture faults and that the fork harness reports a signal death as 9. It
  * proves nothing about the app: ContainmentMode.supervisedProcess still
  * throws UnsupportedContainmentError, so no core is actually isolated from
- * a faulting one at app level. See .ezcore/P6_SPIKE_NOTES.md.
+ * a faulting one at app level.
  *
  * Exit: 0 = pass, 1 = a case failed, 9 = usage error (mirrors the
  * convention in test_input_reset.c / test_core_boot.c).

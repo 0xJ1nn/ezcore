@@ -15,7 +15,7 @@ void main() {
   const games = [
     GameEntry(
       id: 'g1',
-      title: 'Metroid Prime',
+      title: 'Deep Orbit',
       system: 'gc',
       filePath: '/games/metroid.gcm',
       extension: 'gcm',

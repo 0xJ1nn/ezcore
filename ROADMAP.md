@@ -50,7 +50,7 @@ understandable before adding another feature.
 - [x] Complete — audit the implementation against the long-term product
   direction.
 - [x] Complete — establish this authoritative roadmap.
-- [x] Complete — create the `.ezcore/` state memory files.
+- [x] Complete — project state notes for maintainers.
 - [x] Complete — rebuild the public README around the current product,
   evidence-backed capabilities, contribution paths, and sponsorship.
 - [x] Complete — integrate the five-family Orbit redesign and its permanent

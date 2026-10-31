@@ -1,9 +1,8 @@
 # Contributing
 
-> **Canonical engineering rules:** [`project.md`](project.md) defines the full
-> ezCORE development system — read it before contributing. This file covers
-> contribution-specific policy (licensing, CLA, DCO, AI disclosure); everything else lives
-> in `project.md`.
+> How to contribute to ezCORE: the hard rules, how cores are added, licensing,
+> the CLA, and AI-assisted contributions. Architecture lives in
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Hard rules (instant close, no discussion)
 

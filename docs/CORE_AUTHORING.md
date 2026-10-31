@@ -372,7 +372,6 @@ L6). Every `git commit` then runs `.githooks/pre-commit`:
 | Banned content | `scripts/banned_content_scan.sh` | ROM/BIOS/key extensions + exact filename match; `test/fixtures/` allowlist |
 | License/delivery | `scripts/license_audit.py` | license compliance, delivery map consistency |
 | Manifest policy | `scripts/fill_manifest_data.py --check` | execution/cheats/delivery drift (same gate `release.sh` runs) |
-| Design evidence | `scripts/check_design_evidence.py` | only when `design/` or the gate itself is staged |
 
 All gates are read-only — no git rewrites in the hook body. **Verified:**
 `.githooks/pre-commit` L1–92.

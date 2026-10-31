@@ -1,6 +1,6 @@
 # ezCORE Package Format v1
 
-> **Enforcement.** This format is enforced by `lib/services/core_package_validator.dart` as of 2026-09-29. The format draft, install contract, trust labels, and the design invariant that *package data never executes code* are defined in `EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md` §3–§4.
+> **Enforcement.** This format is enforced by `lib/services/core_package_validator.dart` as of 2026-09-29. The format draft, install contract, trust labels, and the design invariant that *package data never executes code* are defined in this document (§3–§4).
 
 ## 1. What a package is
 
@@ -21,7 +21,7 @@ The directory name MUST equal the core's `id` field (see §2). The on-disk shape
 
 The `<core-id>.info` file is a libretro core-info file: plain-text, line-oriented metadata parsed by `lib/services/retro_info_parser.dart`. It is never executed as code. Its grammar is `key = "value"` per line; lines beginning with `#` are comments; a trailing backslash (`\`) joins a logical line across the next physical line; and inside a quoted value, `\"` and `\\` are the only escapes. Unknown keys are preserved for callers.
 
-**Design invariant.** Everything in a package that is not the core library itself is data: schema-validated, size-capped, path-confined, containing no symlinks and no fetched URLs (`EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md` §2.3).
+**Design invariant.** Everything in a package that is not the core library itself is data: schema-validated, size-capped, path-confined, containing no symlinks and no fetched URLs.
 
 The `options/` and `cheats/` directories are reserved for future use and are not parsed or enforced by v1. `layouts/` is parsed and enforced (§9). All three are data-only by design.
 
@@ -197,7 +197,7 @@ Installation is a six-stage pipeline. The entire pipeline is offline-only: no ne
 1. **Parse.** The libretro `.info` file (if present) is parsed by `lib/services/retro_info_parser.dart`. Parsing is lenient — malformed input produces warnings on the returned `RetroInfo` object, never exceptions. Unknown keys are preserved.
 2. **Validate.** The package is validated per §3. A package that fails validation (`ok == false`) is rejected before any staging occurs.
 3. **Pin-verify.** The SHA-256 of the actual core library bytes is compared against the `artifacts` pin for the current platform. The validator checks that pin *values* are well-formed hex (§3.4); pin *matching* is performed separately by `scripts/pin_artifacts.py --check`. A mismatch fails the install.
-4. **Consent.** Installing a package adds native code to the device. Per `EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md` §2.4, this MUST require the user's explicit consent in the UI. The trust level (§5) MUST be stated plainly at the consent prompt. Native code is never staged silently.
+4. **Consent.** Installing a package adds native code to the device. This MUST require the user's explicit consent in the UI. The trust level (§5) MUST be stated plainly at the consent prompt. Native code is never staged silently.
 5. **Stage.** The package is copied into the user's vault. The directory scan (§3.7) is re-applied during staging — symlinks and oversize are rejected.
 6. **Register.** The package is registered into the runtime catalog via `scripts/build_catalog.py`, which enforces the invariants in §4.5.
 
@@ -255,7 +255,6 @@ This specification is enforced by and must be read alongside these files:
 | File | Enforced rules |
 |---|---|
 | `lib/services/core_package_validator.dart` | §3. Manifest existence, JSON parse, root type, size caps (§3.1); known field set (§3.2); `id` regex `^[a-z0-9_]+$` and directory match (§3.3); artifact pin format `^[0-9a-f]{64}$` (§3.4); delivery vocabulary `bundled\|download\|absent` (§3.5); BIOS warning (§3.6); package size cap and symlink rejection (§3.7). |
-| `EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md` | §3 (format draft, install contract, trust labels, signature slot); §2.3 (data-never-executes invariant); §2.4 (opt-in native code). |
 | `lib/models/core_manifest.dart` | iOS delivery rule (never `download`); execution strategy (`interpreter\|dynarec`, iOS never `dynarec`); blocked-core-no-artifacts invariant; required-field checks at runtime. |
 | `lib/services/retro_info_parser.dart` | `.info` file grammar (`key = "value"`, `#` comments, `\` continuation, `\"`/`\\` escapes); lenient parsing with warnings. |
 | `scripts/build_catalog.py` | §4.5. REQUIRED field set, id–directory match (with `_hold` exception), no duplicate ids, iOS `download` rejection, blocked-artifact rejection; writes `cores/catalog.json` and `cores/release.json`. |
@@ -269,7 +268,6 @@ This specification is enforced by and must be read alongside these files:
 
 The following files were read and checked against this specification:
 
-- **`EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md`** — §3: format draft (directory shape, manifest fields, delivery vocabulary, signature slot, install contract, trust labels). §2.3: data-never-executes invariant. §2.4: opt-in native code consent. §4: crash containment.
 - **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (22 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
 - **`cores/nesbyte/manifest.json`** — bundled core reference shape; `delivery: bundled` on all platforms; 3 artifact pins; `bios_files: ["disksys.rom"]`; provenance present.
 - **`cores/gambatte/manifest.json`** — gated core; `gated_reason` present; `delivery: absent` on all platforms; 3 artifact pins despite being gated.

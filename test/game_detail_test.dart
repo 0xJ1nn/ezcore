@@ -37,7 +37,7 @@ void main() {
       s.registry.install(c, expectedSha256: 'p');
     }
     s.games = const [
-      GameEntry(id: 'g', title: 'Metroid Fusion', system: 'gba',
+      GameEntry(id: 'g', title: 'Hollow Orbit', system: 'gba',
           filePath: '/games/fusion.gba', extension: 'gba', coreId: 'alpha',
           lastPlayedMs: 1758000000000),
     ];

@@ -21,7 +21,7 @@ void main() {
   const games = <GameEntry>[
     GameEntry(
       id: 'g1',
-      title: 'Metroid Prime',
+      title: 'Deep Orbit',
       system: 'gc',
       filePath: '/games/metroid.gcm',
       extension: 'gcm',
@@ -32,7 +32,7 @@ void main() {
     ),
     GameEntry(
       id: 'g2',
-      title: 'Super Mario World',
+      title: 'Meadow Isles',
       system: 'snes',
       filePath: '/games/smw.sfc',
       extension: 'sfc',
@@ -44,7 +44,7 @@ void main() {
     ),
     GameEntry(
       id: 'g3',
-      title: 'Sonic the Hedgehog',
+      title: 'Bluestreak',
       system: 'genesis',
       filePath: '/games/sonic.md',
       extension: 'md',
@@ -52,7 +52,7 @@ void main() {
     ),
     GameEntry(
       id: 'g4',
-      title: 'The Legend of Zelda',
+      title: 'Lanterns of Vell',
       system: 'snes',
       filePath: '/games/zelda.sfc',
       extension: 'sfc',
@@ -246,13 +246,13 @@ void main() {
     await pumpShell(tester, const Size(1280, 720));
     expect(find.text('RESUME'), findsOneWidget);
     expect(find.text('Resume'), findsOneWidget);
-    // g1 (Metroid Prime, GameCube) was played after g2.
+    // g1 (Deep Orbit, GameCube) was played after g2.
     final card = find.ancestor(
       of: find.text('RESUME'),
       matching: find.byType(Container),
     ).first;
     expect(
-      find.descendant(of: card, matching: find.text('Metroid Prime')),
+      find.descendant(of: card, matching: find.text('Deep Orbit')),
       findsWidgets,
     );
   });
@@ -262,7 +262,7 @@ void main() {
     expect(find.text('Continue playing'), findsOneWidget);
     // Never-played games are not "continue" material.
     final continueRow = find.ancestor(
-      of: find.text('Super Mario World').first,
+      of: find.text('Meadow Isles').first,
       matching: find.byType(ListView),
     );
     expect(continueRow, findsWidgets);
@@ -291,11 +291,11 @@ void main() {
     final grid = find.byType(SliverGrid);
     expect(grid, findsOneWidget);
     expect(
-      find.descendant(of: grid, matching: find.text('Super Mario World')),
+      find.descendant(of: grid, matching: find.text('Meadow Isles')),
       findsWidgets,
     );
     expect(
-      find.descendant(of: grid, matching: find.text('Sonic the Hedgehog')),
+      find.descendant(of: grid, matching: find.text('Bluestreak')),
       findsNothing,
     );
   });
@@ -303,15 +303,15 @@ void main() {
   testWidgets('search narrows the grid and says when nothing matches',
       (tester) async {
     await pumpShell(tester, const Size(1600, 1000));
-    await tester.enterText(find.byType(TextField), 'zelda');
+    await tester.enterText(find.byType(TextField), 'vell');
     await tester.pump();
     final grid = find.byType(SliverGrid);
     expect(
-      find.descendant(of: grid, matching: find.text('The Legend of Zelda')),
+      find.descendant(of: grid, matching: find.text('Lanterns of Vell')),
       findsWidgets,
     );
     expect(
-      find.descendant(of: grid, matching: find.text('Metroid Prime')),
+      find.descendant(of: grid, matching: find.text('Deep Orbit')),
       findsNothing,
     );
     await tester.enterText(find.byType(TextField), 'no such game');

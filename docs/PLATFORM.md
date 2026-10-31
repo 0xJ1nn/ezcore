@@ -4,7 +4,6 @@
 > **Canonical roadmap:** [`../ROADMAP.md`](../ROADMAP.md) — this file defines
 > *what the platform is and what may never be broken*; the roadmap defines
 > *what gets built and in what order*.
-> **Product vision:** [`../IDEA.md`](../IDEA.md).
 > **As-built implementation:** [`ARCHITECTURE.md`](ARCHITECTURE.md).
 > **What is actually verified:** [`MATRIX.md`](MATRIX.md).
 > **Why, per decision:** [`DECISIONS.md`](DECISIONS.md) (ADR-014 … ADR-017).
@@ -312,4 +311,4 @@ mechanical; it should be caught mechanically, not by a human noticing.
   **P1 deliverable**. Until it exists, this file plus the libretro API
   documentation are the authority.
 - Changing anything in §6 requires an ADR in [`DECISIONS.md`](DECISIONS.md) and
-  explicit maintainer approval, per `project.md` §1 and §65.
+  explicit maintainer approval, per the maintainer-approval rule.

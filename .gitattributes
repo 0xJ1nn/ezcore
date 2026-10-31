@@ -19,7 +19,6 @@
 
 # Language stats: docs and design material are not "code".
 *.md linguist-documentation
-design/** linguist-documentation
 docs/** linguist-documentation
 
 # Patch files must keep the exact bytes of the file they diff (some vendor

@@ -26,9 +26,7 @@
 >
 > **2026-09-23 audit note:** the current committed manifests contain no
 > `ios-arm64` artifact pins. Historical `BUILT` iOS cells below are retained as
-> dated evidence, not current distribution or runtime proof; see
-> [`.ezcore/CORE_MATRIX.md`](../.ezcore/CORE_MATRIX.md) for the conservative
-> snapshot.
+> dated evidence, not current distribution or runtime proof.
 
 ### Fixture provenance (corrected 2026-09-29)
 
@@ -49,7 +47,7 @@ have no per-file LICENSE and are developer-local only
 "3 CC0 test ROMs" sentence before this commit — the header carried no CC0
 claim at all, and the Fixtures list below described the ROMs without per-file
 licence status. This block adds the provenance that was missing; no prior
-"CC0" wording was overwritten. Stated per project.md §30 rather than silently
+"CC0" wording was overwritten. Stated openly rather than silently
 rewriting the header as if it had been wrong.
 
 ## Local test content (2026-10-01)
@@ -106,7 +104,7 @@ levels previously claimed more than the harness asserts):
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Notes |
 |---|---|---|---|---|---|---|
 | pocketbit | RENDERS | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race); Linux verified with live boot test (Damuel.gb: load/init/frames/save-restore) |
-| gambatte | RENDERS ⚠ | BUILT | BUILT | — | — | ⚠ **Catalog contradiction:** `cores/catalog.json` records `delivery: absent` on *all five* platforms, so staging ships it nowhere, while artifact pins exist for `macos-arm64` / `linux-x64` / `android-arm64`. Its licence is **GPL-2.0-only** (distributable — unlike `superfx`/`blastproc`/`coinbox`, which are non-commercial and are correctly `absent`). A pin plus a RENDERS result implies it was meant to ship. Resolving this is a distribution decision under `project.md` §28, not a docs edit — tracked, see `.ezcore/KNOWN_ISSUES.md`. Android via `unix` (no android branch upstream) |
+| gambatte | RENDERS ⚠ | BUILT | BUILT | — | — | ⚠ **Catalog contradiction:** `cores/catalog.json` records `delivery: absent` on *all five* platforms, so staging ships it nowhere, while artifact pins exist for `macos-arm64` / `linux-x64` / `android-arm64`. Its licence is **GPL-2.0-only** (distributable — unlike `superfx`/`blastproc`/`coinbox`, which are non-commercial and are correctly `absent`). A pin plus a RENDERS result implies it was meant to ship. Resolving this is a distribution decision for the maintainer, not a docs edit. Android via `unix` (no android branch upstream) |
 | advancebit | RENDERS | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified; Android needed `-Wno-error=int-conversion` (NDK r27) |
 | nesbyte | IDENTIFIES | BUILT | BUILT | **RENDERS** (2026-10-01) | — | Linux: `ctest -R boot_nesbyte` passes on the project's own CC0 ROM (`ezcore_nes_minimal.nes`) — frames, nonzero pixels, restore pixel sum identical. iOS needed `ios-arm64` (TLS requires minos 9+) |
 | superfx | IDENTIFIES (not distributed) | BUILT | BUILT | — | — | Non-commercial license — no binaries shipped; recipe only. Android via `unix` (no android branch upstream) |

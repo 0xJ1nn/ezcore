@@ -20,7 +20,7 @@
 /// orders); formats without a reliable signature are classified
 /// headerless and only size/text gates apply.
 ///
-/// This file is a permanent test (project.md §79 compliant).
+/// This file is a permanent test.
 library;
 
 import 'dart:convert';

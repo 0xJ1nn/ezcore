@@ -78,11 +78,15 @@ app.*.map.json
 key.properties
 android/key.properties
 
-# Internal design exploration — boards that study other companies' design
-# languages are kept local-only; the shipped identity lives in
-# design/ezcore-orbit/. See TRADEMARKS.md.
-design/moonboard/
+# Design and agent work never lives in this repository.
+design/
 /moonboard/
+.ezcore/
+.opencode/
+.codex/
+.continue/
+.cursor/
+.windsurf/
 
 # Stray vendor fetch from mupen64plus exploration (referenced by nothing).
 /Mupen64plus/

@@ -8,7 +8,7 @@
 //   manifest presence -> structural validation -> platform-artifact pin
 //   verification -> explicit user consent -> vault staging.
 //
-// Platform invariants (see EZCORE-PACKAGE-PLATFORM-MASTER-PROMPT.md §3-4):
+// Platform invariants (see docs/PACKAGE_FORMAT.md §3-4):
 //  * Package data never executes code and never fetches from the network.
 //  * Untrusted native code is opt-in: staging a native library requires
 //    explicit user consent ([PackageInstaller.install] userConsented == true).

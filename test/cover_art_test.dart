@@ -27,7 +27,7 @@ void main() {
   });
 
   test('cover spec stays inside the approved identity ranges', () {
-    for (final id in ['a', 'zelda', 'mario-kart-64', 'imp-xyz', 'homebrew']) {
+    for (final id in ['a', 'vell', 'pocket-rally-64', 'imp-xyz', 'homebrew']) {
       final spec = coverSpecFor(id);
       expect(spec.motif, inInclusiveRange(0, 4));
       expect(

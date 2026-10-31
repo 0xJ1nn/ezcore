@@ -51,7 +51,6 @@ documentation:
   - "README.md"
 
 design:
-  - "design/ezcore-orbit/**"
   - "assets/branding/**"
   - "assets/fonts/**"
 

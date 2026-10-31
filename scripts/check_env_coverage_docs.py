@@ -58,7 +58,7 @@ HEADER = ROOT / "runtime" / "external" / "libretro-common" / "include" / "libret
 RUNTIME_C = ROOT / "runtime" / "src" / "runtime.c"
 
 # Docs that get scanned. Excludes vendored third-party trees and build output.
-SCAN_GLOBS = ["*.md", "docs/**/*.md", ".ezcore/**/*.md"]
+SCAN_GLOBS = ["*.md", "docs/**/*.md"]
 
 # A stated coverage figure, in the forms the docs actually use:
 #   "**13 of 93** environment commands"   (bold, with the context word)

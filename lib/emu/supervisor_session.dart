@@ -107,8 +107,7 @@ class UnsupportedContainmentError extends UnsupportedError {
   UnsupportedContainmentError(ContainmentMode mode, String command)
     : super(
         'Command "$command" is not implemented for ContainmentMode.${mode.name}. '
-        'This spike ships the seam only — no IPC transport exists yet. '
-        'See .ezcore/P6_SPIKE_NOTES.md.',
+        'This build ships the seam only — no IPC transport exists yet.',
       );
 }
 

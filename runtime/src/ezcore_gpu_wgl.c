@@ -26,7 +26,7 @@
  * The sharp edge, recorded so it is not discovered late: a machine with no
  * opengl32.dll has no path, and Microsoft's own answer for modern Windows is
  * ANGLE (translating GLES to D3D11). That is a new dependency and therefore a
- * maintainer decision under project.md §26 -- not something to be introduced
+ * maintainer decision under the dependency-approval rule -- not something to be introduced
  * quietly in an implementation of this file.
  */
 #include "ezcore_gpu_internal.h"
