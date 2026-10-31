@@ -79,6 +79,19 @@ package id, date) and reporting it through the platform's IP form:
 Then note it in the repo's Discussions so users know which listings are
 official.
 
+### Cores, forks and redistribution
+
+- **Build your own cores.** Anyone may build a core and say it **"works with
+  ezCORE"**. That is factual, nominative use, and it is welcome. A core may
+  not be called "ezCORE <anything>", use the logo, or suggest it is official
+  or endorsed.
+- **No redistribution of ezCORE.** Official ezCORE builds are distributed only
+  through the official channels listed above. Mirroring, repackaging or
+  re-uploading them, on any store or website, is not permitted: they carry
+  the ezCORE brand and may contain proprietary first-party cores.
+- **Forks.** The GPL lets anyone build and share the source under **their
+  own name and icon**, following the fork rules above.
+
 ### Requesting Permission
 
 Official distribution partnerships or co-branding: open a GitHub Discussion or email the maintainer.
@@ -89,9 +102,11 @@ Official distribution partnerships or co-branding: open a GitHub Discussion or e
 
 | Component | License | Notes |
 |-----------|---------|-------|
-| App shell (Flutter/Dart) | GPL-3.0-only | Full source freedom |
+| App shell (Flutter/Dart) | GPL-3.0-only + Core Module Exception | Full source freedom |
 | ezCore Runtime (C) | GPL-3.0-only | Full source freedom |
 | Core manifests/scripts | GPL-3.0-only | Full source freedom |
+| Cores you write | Any licence | [Core Module Exception](LICENSE-EXCEPTION.md) |
+| First-party cores in official builds | Proprietary | Not redistributable |
 | Fonts (Space Grotesk, Manrope) | SIL OFL 1.1 | Bundled, can redistribute |
 | Brand assets (icon, lockups) | **All Rights Reserved** | NOT open license |
 | Upstream libretro cores | Their respective licenses | See `cores/<id>/manifest.json` |

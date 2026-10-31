@@ -253,6 +253,10 @@ tests, bug reports, art, and docs count just as much. Security:
 ## License and credits
 
 - **App and runtime:** [GPL-3.0-only](LICENSE).
+- **Your own cores:** any licence you choose, under the [Core Module Exception](LICENSE-EXCEPTION.md). See [`docs/LICENSING.md`](docs/LICENSING.md).
+- **Official builds:** published only by the maintainer; they may include proprietary first-party cores, which may not be redistributed.
+- **Contributing:** [CLA](CLA.md) plus DCO sign-off; AI assistance is disclosed ([`CONTRIBUTING.md`](CONTRIBUTING.md)).
+- **Name and logo:** trademarks, not covered by any code licence ([`TRADEMARKS.md`](TRADEMARKS.md)).
 - **Cores:** each keeps its upstream licence; see its manifest and
   [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 - **Fonts:** Space Grotesk and Manrope, [SIL Open Font License 1.1](assets/fonts/OFL.txt).

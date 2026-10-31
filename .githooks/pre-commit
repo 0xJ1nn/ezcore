@@ -9,6 +9,19 @@ set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 
+# --- identity: commits carry a real, linkable author ------------------------
+# Placeholder identities (appdev@local, v@local, <host>.local) cannot be linked
+# to a GitHub account and blur who holds the copyright. Agents commit as the
+# maintainer and disclose themselves with an Assisted-by:/Co-Authored-By:
+# trailer instead (CONTRIBUTING.md, "AI-assisted contributions").
+author_email="$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')"
+if printf '%s' "$author_email" | grep -qiE '(@local|\.local|@localhost|example\.(com|org|invalid))$|^$'; then
+  echo ""
+  echo "✋ COMMIT BLOCKED — placeholder author identity: <$author_email>"
+  echo "  Set a real identity: git config --global user.email <you>@users.noreply.github.com"
+  exit 1
+fi
+
 # --- §79: scratch agent tooling never enters the repo -----------------------
 # Screenshot drivers, input injectors, capture helpers, probe scripts are
 # /tmp-only, wiped when the task ends, never committed. Only real permanent

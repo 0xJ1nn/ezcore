@@ -482,8 +482,7 @@ A core PR must include (verified: `docs/CORE_SYSTEM.md` L205–216,
 
 ## Verified against this checkout
 
-Branch `docs/p1c-core-authoring`, worktree
-`/home/jinultimate1995/Projects/ezcore/.worktrees/p1c-authoring`.
+Branch `docs/p1c-core-authoring`.
 
 ### Commands verified to exist in source
 

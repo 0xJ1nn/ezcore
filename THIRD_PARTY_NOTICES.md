@@ -20,7 +20,7 @@ see [`TRADEMARKS.md`](TRADEMARKS.md) and [`DMCA.md`](DMCA.md).
 | ezCore Runtime (C11, `runtime/`) | GPL-3.0-only |
 | Core manifests, scripts, docs | GPL-3.0-only |
 
-Full text: [`LICENSE`](LICENSE). SPDX: `GPL-3.0-only`.
+Full text: [`LICENSE`](LICENSE), with the [Core Module Exception](LICENSE-EXCEPTION.md). SPDX: `GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception`.
 
 ## 2. Emulator cores
 

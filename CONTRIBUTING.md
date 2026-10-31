@@ -2,7 +2,7 @@
 
 > **Canonical engineering rules:** [`project.md`](project.md) defines the full
 > ezCORE development system — read it before contributing. This file covers
-> contribution-specific policy (licensing, DCO); everything else lives
+> contribution-specific policy (licensing, CLA, DCO, AI disclosure); everything else lives
 > in `project.md`.
 
 ## Hard rules (instant close, no discussion)
@@ -81,23 +81,38 @@ worked example of how a licensing problem is recorded honestly.
 
 ## Licensing of contributions
 
-By submitting a pull request you agree that:
+Every contribution is covered by the [ezCORE CLA](CLA.md). Sign it once on
+your first pull request, and sign off every commit (DCO): `git commit -s`.
+The full licence map is [`docs/LICENSING.md`](docs/LICENSING.md).
 
-1. The contribution is your own original work, or you have the right to
-   submit it under these terms.
-2. It is licensed to the project under **GPL-3.0-only** (inbound =
-   outbound), and you keep all rights to your own work.
-3. You grant 0xJ1nn a perpetual, worldwide, non-exclusive,
-   royalty-free right to **relicense** your contribution under any
-   OSI-approved license, and to use it in official builds distributed
-   through any channel (including app stores).
+In short:
 
-Why point 3 exists: the project bundles third-party emulator cores whose
-licenses differ per core, and some distribution channels (app stores) have
-terms that conflict with copyleft. Without a relicensing grant, a single
-GPL-only contribution could permanently block the project from adapting.
-This is a license grant, **not a copyright assignment** — your
-contribution stays yours.
+1. You keep the copyright in your work. The CLA is a **licence, not an
+   assignment**.
+2. Your contribution is published under the repository's licence: GPL-3.0-only
+   with the [Core Module Exception](LICENSE-EXCEPTION.md).
+3. You also allow the maintainer to offer it under other terms. That is what
+   lets official builds meet app-store terms and ship first-party cores.
+4. In return, the maintainer **promises** that the open-source version stays
+   available, and that the open-source version is never made less capable in
+   order to sell a paid one (CLA §3).
 
-If you are contributing on behalf of an employer, make sure you have
-permission to agree to these terms.
+If you contribute on behalf of an employer, make sure you have permission to
+agree to these terms.
+
+## AI-assisted contributions
+
+AI tools are welcome. Undisclosed AI output is not.
+
+- **Disclose it.** Any commit containing AI-generated code or text carries an
+  `Assisted-by: <tool>` or `Co-Authored-By: <tool>` trailer. A pull request
+  that is mostly AI-written says so in its description.
+- **Author it as yourself.** Commits use your own real identity, never a
+  placeholder such as `agent@local`. The pre-commit hook rejects placeholder
+  identities. You are the author, and you are responsible for what you
+  submit.
+- **Review it as yourself.** You have read and understood every line, and you
+  have no reason to think it reproduces third-party code (CLA §5.4). "The
+  model wrote it" is not a provenance record.
+- **No automatic merges.** Agent-generated pull requests are never merged into
+  a release branch without human review.
