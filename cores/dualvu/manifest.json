@@ -27,7 +27,7 @@
   "delivery": {
     "macos": "absent",
     "windows": "absent",
-    "linux": "bundled",
+    "linux": "absent",
     "android": "absent",
     "ios": "absent"
   },
