@@ -99,6 +99,12 @@ All notable changes to ezCORE are documented here. The format follows
   not wired yet; iOS cannot support it (Apple forbids helper processes).
 ### Changed
 
+- **The iPhone icon is now the app icon everywhere.** Android (with a proper adaptive icon
+  and themed-icon layer, so Android 8+ no longer shrinks it onto a white plate), macOS, Windows
+  and Linux now show the same tile and mark size as iOS, with the iPhone's continuous-corner
+  rounding. The iOS icon itself is unchanged. The old hero tile with the wordmark is kept as
+  `app-icon-hero` for presentations.
+
 - **A simpler home.** Three destinations — Library, Cores, Settings — on every
   screen size. Library opens on **Resume**: one tap back into the game you
   played last, from where you left off, whatever system it is. Below it,
