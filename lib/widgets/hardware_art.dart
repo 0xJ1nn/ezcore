@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/tokens.dart';
+
 /// Selects unbranded hardware artwork by core identity or supported systems.
 ///
 /// Known catalog cores keep custom artwork. New cores inherit the closest
@@ -143,6 +145,95 @@ String _asset(String name) => 'assets/core_art/$name.webp';
 
 bool _containsAny(Set<String> systems, Set<String> candidates) =>
     systems.any(candidates.contains);
+
+/// The console-art tile used on system cards and the detail panel.
+///
+/// The design shows a striped placeholder naming the artwork file, not the
+/// product render itself: it is deliberately identical for every system until
+/// real console art ships, so the grid stays calm and legible. The name comes
+/// from [hardwareArtworkAsset], so new cores inherit their hardware family's
+/// label without another mapping.
+class CoreConsoleArt extends StatelessWidget {
+  const CoreConsoleArt({
+    super.key,
+    required this.coreId,
+    this.systems = const <String>[],
+    this.radius = 12,
+    this.showLabel = true,
+  });
+
+  final String coreId;
+  final List<String> systems;
+  final double radius;
+
+  /// Phone list rows use the same placeholder tile at 56 px, where the
+  /// technical label would not fit; the hatch alone carries the surface.
+  final bool showLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = hardwareArtworkAsset(coreId, systems: systems);
+    final name = asset.split('/').last.replaceFirst(RegExp(r'\.webp$'), '');
+    return ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            CustomPaint(painter: _ConsoleStripes()),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radius),
+                border: Border.all(color: const Color(0x14DDE6F4)),
+              ),
+            ),
+            if (showLabel)
+              Center(
+                child: Text(
+                  'CONSOLE ART\n$name.webp',
+                  textAlign: TextAlign.center,
+                  // The design's 10.5 px technical label. Manrope (rather than
+                  // a system mono) keeps it renderable in every build,
+                  // including headless design captures with no system fonts.
+                  style: const TextStyle(
+                    fontFamily: Tokens.bodyFamily,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                    height: 1.4,
+                    color: Color(0xBF9AA8BC),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConsoleStripes extends CustomPainter {
+  const _ConsoleStripes();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color =
+          const Color(0x0DDDE6F4) // rgba(221,230,244,.05)
+      ..strokeWidth = 8.49; // 6 px measured across the band
+    const step = 16.97; // 12 px band pitch, at 45°
+    for (double x = -size.height; x < size.width; x += step) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + size.height, 0),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConsoleStripes oldDelegate) => false;
+}
 
 /// Project-generated product renders used in the perspective core carousel.
 ///
