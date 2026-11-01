@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/cover_art.dart';
+import '../services/system_labels.dart';
 import '../theme/tokens.dart';
+import 'orbit_cover.dart';
 import 'space_backdrop.dart';
 
 /// Shared Orbit console chrome — final-01.
@@ -589,291 +591,97 @@ class OrbitChip extends StatelessWidget {
   }
 }
 
-/// Game cover: the pinned screenshot capture when one exists, otherwise a
-/// deterministic generative cover in the approved identity (stable per game).
+/// Game cover: the pinned screenshot capture when one exists, otherwise the
+/// generated mark-cut art ([OrbitCover] in the game's system hue.
 class GameCover extends StatelessWidget {
   const GameCover({
     super.key,
     required this.gameId,
     required this.title,
-    required this.system,
+    required this.systemId,
+    this.sysShort,
+    this.year,
+    this.favorite = false,
+    this.isNew = false,
+    this.badgeText,
+    this.badgeColor,
     this.width,
     this.height,
     this.radius = Tokens.radiusCover,
-    this.selected = false,
     this.dimmed = false,
   });
+
   final String gameId;
   final String title;
-  final String system;
+
+  /// System id ('nds', 'psx', …) — the cover's hue and default names derive
+  /// from it.
+  final String systemId;
+
+  /// Compact code for the top row ('NDS', 'PS1', …); defaults to the design's
+  /// code for [systemId].
+  final String? sysShort;
+  final int? year;
+  final bool favorite;
+  final bool isNew;
+
+  /// A state-driven badge pill ('Needs core', 'Needs BIOS'). The screen owns
+  /// the decision; the cover only paints it.
+  final String? badgeText;
+  final Color? badgeColor;
+
   final double? width;
   final double? height;
   final double radius;
-  final bool selected;
   final bool dimmed;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final art = ValueListenableBuilder<int>(
+      valueListenable: coverRevision,
+      builder: (context, revision, _) {
+        final file = coverFileFor(gameId);
+        if (file != null) {
+          return Image.file(
+            file,
+            // FileImage keys by path, so a revision key is needed to make
+            // same-path screenshot replacements reload.
+            key: ValueKey<String>('game-cover:$gameId:$revision'),
+            fit: BoxFit.cover,
+          );
+        }
+        return OrbitCover(
+          title: title,
+          systemId: systemId,
+          sysShort: sysShort ?? systemCode(systemId),
+          year: year,
+          favorite: favorite,
+          isNew: isNew,
+          badgeText: badgeText,
+          badgeColor: badgeColor,
+          radius: radius,
+        );
+      },
+    );
+    return SizedBox(
       width: width,
       height: height,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF26364B), Color(0xFF111C2A)],
-        ),
-        border: Border.all(
-          color: selected ? Colors.white : const Color(0x22DDE6F4),
-          width: selected ? 2 : 1,
-        ),
-        boxShadow: selected
-            ? const [
-                BoxShadow(
-                  color: Color(0xBB000000),
-                  offset: Offset(0, 26),
-                  blurRadius: 55,
-                ),
-                BoxShadow(
-                  color: Color(0x80007BFF),
-                  blurRadius: 0,
-                  spreadRadius: 6,
-                ),
-              ]
-            : const [
-                BoxShadow(
-                  color: Color(0x55000000),
-                  offset: Offset(0, 10),
-                  blurRadius: 24,
-                ),
-              ],
-      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius - 1),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ValueListenableBuilder<int>(
-              valueListenable: coverRevision,
-              builder: (_, revision, _) {
-                final art = coverFileFor(gameId);
-                return art == null
-                    ? _GenerativeArt(gameId: gameId)
-                    : Image.file(
-                        art,
-                        // FileImage keys by path, so a revision key is needed
-                        // to make same-path screenshot replacements reload.
-                        key: ValueKey<String>('game-cover:$gameId:$revision'),
-                        fit: BoxFit.cover,
-                      );
-              },
-            ),
-            // Spine edge + sheen.
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 4,
-              child: Container(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: const Alignment(-0.8, -0.8),
-                    end: const Alignment(0.4, 0.4),
-                    colors: [
-                      Colors.white.withValues(alpha: 0.07),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.3],
+        borderRadius: BorderRadius.circular(radius),
+        child: dimmed
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  art,
+                  const Positioned.fill(
+                    child: ColoredBox(color: Color(0x59000000)),
                   ),
-                ),
-              ),
-            ),
-            if (dimmed)
-              Positioned.fill(
-                child: Container(color: Colors.black.withValues(alpha: 0.35)),
-              ),
-            // Bottom label scrim.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 18, 10, 8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.78),
-                    ],
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (system.isNotEmpty)
-                      Text(
-                        system.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Tokens.body(
-                          size: 7,
-                          ls: 1.5,
-                          color: Tokens.muted,
-                        ),
-                      ),
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Tokens.body(
-                        size: 11,
-                        weight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+                ],
+              )
+            : art,
       ),
     );
   }
-}
-
-class _GenerativeArt extends StatelessWidget {
-  const _GenerativeArt({required this.gameId});
-  final String gameId;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _CoverPainter(coverSpecFor(gameId)));
-  }
-}
-
-class _CoverPainter extends CustomPainter {
-  _CoverPainter(this.spec);
-  final CoverSpec spec;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(spec.top), Color(spec.bottom)],
-        ).createShader(rect),
-    );
-    final accent = Color(spec.accent);
-    final w = size.width, h = size.height;
-    switch (spec.motif) {
-      case 0: // Concentric rings, top-right.
-        for (var i = 5; i >= 1; i--) {
-          canvas.drawCircle(
-            Offset(w * 0.78, h * 0.24),
-            w * 0.12 * i,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.5
-              ..color = accent.withValues(alpha: 0.10 + 0.05 * (5 - i)),
-          );
-        }
-      case 1: // Diagonal beams.
-        for (var i = 0; i < 3; i++) {
-          final y = h * (0.15 + 0.22 * i);
-          final path = Path()
-            ..moveTo(-w * 0.2, y + h * 0.28)
-            ..lineTo(w * 0.6, y - h * 0.28)
-            ..lineTo(w * 0.85, y - h * 0.28)
-            ..lineTo(w * 0.05, y + h * 0.28)
-            ..close();
-          canvas.drawPath(
-            path,
-            Paint()..color = accent.withValues(alpha: 0.10 - 0.025 * i),
-          );
-        }
-      case 2: // Dot grid, fading downward.
-        for (var r = 0; r < 9; r++) {
-          for (var c = 0; c < 7; c++) {
-            canvas.drawCircle(
-              Offset(w * (0.12 + 0.125 * c), h * (0.10 + 0.09 * r)),
-              1.6,
-              Paint()
-                ..color = Colors.white.withValues(
-                  alpha: (0.16 * (1 - r / 9)).clamp(0.02, 0.16),
-                ),
-            );
-          }
-        }
-        canvas.drawCircle(
-          Offset(w * 0.8, h * 0.72),
-          w * 0.30,
-          Paint()..color = accent.withValues(alpha: 0.12),
-        );
-      case 3: // Large offset disc + horizon line.
-        canvas.drawCircle(
-          Offset(w * 0.5, h * 1.02),
-          w * 0.75,
-          Paint()..color = accent.withValues(alpha: 0.14),
-        );
-        canvas.drawLine(
-          Offset(0, h * 0.62),
-          Offset(w, h * 0.62),
-          Paint()
-            ..strokeWidth = 1
-            ..color = Colors.white.withValues(alpha: 0.18),
-        );
-        canvas.drawCircle(
-          Offset(w * 0.74, h * 0.30),
-          w * 0.07,
-          Paint()..color = Colors.white.withValues(alpha: 0.75),
-        );
-      default: // Arcs from bottom-left.
-        for (var i = 1; i <= 4; i++) {
-          canvas.drawArc(
-            Rect.fromCircle(
-              center: Offset(-w * 0.1, h * 1.05),
-              radius: w * 0.28 * i,
-            ),
-            -1.2,
-            0.9,
-            false,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.5
-              ..color = accent.withValues(alpha: 0.08 + 0.04 * i),
-          );
-        }
-    }
-    // Vignette.
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.5, 0.45),
-          radius: 1.1,
-          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.35)],
-        ).createShader(rect),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_CoverPainter old) =>
-      old.spec.top != spec.top ||
-      old.spec.bottom != spec.bottom ||
-      old.spec.motif != spec.motif ||
-      old.spec.accent != spec.accent;
 }
 
 // ---------------------------------------------------------------------------

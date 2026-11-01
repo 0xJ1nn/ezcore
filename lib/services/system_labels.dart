@@ -122,3 +122,28 @@ String shortSystemLabel(String system) =>
 
 /// Full, human label for [system] ("Game Boy Advance"), never a core name.
 String systemLabel(String system) => systemLabels[system] ?? system;
+
+/// The compact codes the design puts on covers and filter chips
+/// ('NES', 'NDS', 'PS1', …). Additive: [shortSystemLabel] keeps its longer
+/// labels for pickers and rows.
+const systemCodes = <String, String>{
+  'nes': 'NES',
+  'snes': 'SNES',
+  'n64': 'N64',
+  'gb': 'GB',
+  'gbc': 'GBC',
+  'gba': 'GBA',
+  'nds': 'NDS',
+  'psx': 'PS1',
+  'dc': 'DC',
+  'psp': 'PSP',
+};
+
+/// The design's compact code for [system], falling back to the short label.
+String systemCode(String system) =>
+    systemCodes[system] ?? shortSystemLabel(system);
+
+/// The system name on a generated cover's bottom line. The design's PSP
+/// cover reads 'PSP' — its code — not the full label.
+String systemCoverName(String system) =>
+    system == 'psp' ? 'PSP' : systemLabel(system);

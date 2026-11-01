@@ -15,6 +15,7 @@ class GameEntry {
     this.lastPlayedMs = 0,
     this.cheatsOn = 0,
     this.stateCount = 0,
+    this.year,
   });
 
   final String id;
@@ -30,6 +31,10 @@ class GameEntry {
   final int cheatsOn;
   final int stateCount;
 
+  /// Release year, when it is known (ROM headers, the import scan). Null
+  /// keeps covers and badges honest instead of showing a guess.
+  final int? year;
+
   GameEntry copyWith({
     bool? favorite,
     String? coreId,
@@ -38,6 +43,7 @@ class GameEntry {
     int? stateCount,
     int? fileSize,
     String? system,
+    int? year,
   }) {
     return GameEntry(
       id: id,
@@ -52,38 +58,41 @@ class GameEntry {
       lastPlayedMs: lastPlayedMs ?? this.lastPlayedMs,
       cheatsOn: cheatsOn ?? this.cheatsOn,
       stateCount: stateCount ?? this.stateCount,
+      year: year ?? this.year,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'system': system,
-        'filePath': filePath,
-        'extension': extension,
-        'fileSize': fileSize,
-        'sha1': sha1,
-        'favorite': favorite,
-        'coreId': coreId,
-        'lastPlayedMs': lastPlayedMs,
-        'cheatsOn': cheatsOn,
-        'stateCount': stateCount,
-      };
+    'id': id,
+    'title': title,
+    'system': system,
+    'filePath': filePath,
+    'extension': extension,
+    'fileSize': fileSize,
+    'sha1': sha1,
+    'favorite': favorite,
+    'coreId': coreId,
+    'lastPlayedMs': lastPlayedMs,
+    'cheatsOn': cheatsOn,
+    'stateCount': stateCount,
+    'year': year,
+  };
 
   factory GameEntry.fromJson(Map<String, dynamic> json) => GameEntry(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        system: json['system'] as String? ?? '',
-        filePath: json['filePath'] as String? ?? '',
-        extension: json['extension'] as String? ?? '',
-        fileSize: json['fileSize'] as int? ?? 0,
-        sha1: json['sha1'] as String? ?? '',
-        favorite: json['favorite'] as bool? ?? false,
-        coreId: json['coreId'] as String? ?? '',
-        lastPlayedMs: json['lastPlayedMs'] as int? ?? 0,
-        cheatsOn: json['cheatsOn'] as int? ?? 0,
-        stateCount: json['stateCount'] as int? ?? 0,
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    system: json['system'] as String? ?? '',
+    filePath: json['filePath'] as String? ?? '',
+    extension: json['extension'] as String? ?? '',
+    fileSize: json['fileSize'] as int? ?? 0,
+    sha1: json['sha1'] as String? ?? '',
+    favorite: json['favorite'] as bool? ?? false,
+    coreId: json['coreId'] as String? ?? '',
+    lastPlayedMs: json['lastPlayedMs'] as int? ?? 0,
+    cheatsOn: json['cheatsOn'] as int? ?? 0,
+    stateCount: json['stateCount'] as int? ?? 0,
+    year: json['year'] as int?,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -101,10 +110,23 @@ class GameEntry {
           coreId == other.coreId &&
           lastPlayedMs == other.lastPlayedMs &&
           cheatsOn == other.cheatsOn &&
-          stateCount == other.stateCount;
+          stateCount == other.stateCount &&
+          year == other.year;
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, system, filePath, extension, fileSize, sha1,
-          favorite, coreId, lastPlayedMs, cheatsOn, stateCount);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    system,
+    filePath,
+    extension,
+    fileSize,
+    sha1,
+    favorite,
+    coreId,
+    lastPlayedMs,
+    cheatsOn,
+    stateCount,
+    year,
+  );
 }

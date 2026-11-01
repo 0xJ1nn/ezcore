@@ -231,7 +231,8 @@ class _GameDetailScreenState extends State<GameDetailScreen> {
     final cover = GameCover(
       gameId: g.id,
       title: g.title,
-      system: shortSystemLabel(g.system),
+      systemId: g.system,
+      year: g.year,
       width: compact ? 120 : 190,
       height: compact ? 166 : 264,
     );
@@ -324,8 +325,9 @@ class _GameDetailScreenState extends State<GameDetailScreen> {
                   scale: 1.3,
                   child: GameCover(
                     gameId: g.id,
-                    title: '',
-                    system: '',
+                    title: g.title,
+                    systemId: g.system,
+                    year: g.year,
                     radius: 0,
                   ),
                 ),

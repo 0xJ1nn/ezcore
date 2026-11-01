@@ -230,7 +230,7 @@ class _SaveCard extends StatelessWidget {
                 GameCover(
                   gameId: row.gameId,
                   title: row.title,
-                  system: sysLabel,
+                  systemId: row.system,
                   radius: 7,
                   dimmed: true,
                 ),
