@@ -8,28 +8,28 @@ import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
-import 'package:ezcore/widgets/collection_view.dart';
-import 'package:ezcore/widgets/cover_flow.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-CoreManifest core(String id, List<String> systems,
-        {Map<String, String>? delivery, bool bios = false}) =>
-    CoreManifest(
-      id: id,
-      name: id[0].toUpperCase() + id.substring(1),
-      version: '1.0',
-      license: 'GPL-2.0-or-later',
-      systems: systems,
-      extensions: const ['bin'],
-      cheatFamilies: const [],
-      cheatsSupported: false,
-      delivery: delivery ?? {Platform.operatingSystem: 'bundled'},
-      artifacts: const {'x': 'pin'},
-      biosRequired: bios,
-      biosFiles: bios ? const ['scph1001.bin'] : const [],
-    );
+CoreManifest core(
+  String id,
+  List<String> systems, {
+  Map<String, String>? delivery,
+  bool bios = false,
+}) => CoreManifest(
+  id: id,
+  name: id[0].toUpperCase() + id.substring(1),
+  version: '1.0',
+  license: 'GPL-2.0-or-later',
+  systems: systems,
+  extensions: const ['bin'],
+  cheatFamilies: const [],
+  cheatsSupported: false,
+  delivery: delivery ?? {Platform.operatingSystem: 'bundled'},
+  artifacts: const {'x': 'pin'},
+  biosRequired: bios,
+  biosFiles: bios ? const ['scph1001.bin'] : const [],
+);
 
 void main() {
   AppState mk() {
@@ -37,99 +37,121 @@ void main() {
     final cores = [
       core('advancebit', ['gba', 'gb']),
       core('geometry1', ['psx'], bios: true),
-      core('dreamarc', ['dc'], delivery: {Platform.operatingSystem: 'download'}),
+      core(
+        'dreamarc',
+        ['dc'],
+        delivery: {Platform.operatingSystem: 'download'},
+      ),
       core('superfx', ['snes'], delivery: {Platform.operatingSystem: 'absent'}),
     ];
-    s.registry.loadCatalog({for (final c in cores) c.id: jsonEncode(c.toJson())});
+    s.registry.loadCatalog({
+      for (final c in cores) c.id: jsonEncode(c.toJson()),
+    });
     s.registry.install(cores[0], expectedSha256: 'pin');
     s.registry.install(cores[1], expectedSha256: 'pin');
     s.registry.addUserPackage(core('bluemsx', ['msx']));
     s.games = const [
-      GameEntry(id: 'g', title: 'T', system: 'gb', filePath: '/t.gb',
-          extension: 'gb', coreId: 'advancebit'),
+      GameEntry(
+        id: 'g',
+        title: 'T',
+        system: 'gb',
+        filePath: '/t.gb',
+        extension: 'gb',
+        coreId: 'advancebit',
+      ),
     ];
     return s;
   }
 
-  // Most tests below describe the List view; the views have their own tests.
-  Future<AppState> pump(WidgetTester t, Size size,
-      {ValueChanged<String>? onBrowse,
-      CollectionView view = CollectionView.list}) async {
+  Future<AppState> pump(
+    WidgetTester t,
+    Size size, {
+    ValueChanged<String>? onBrowse,
+  }) async {
     t.view.physicalSize = size;
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     final s = mk();
-    await s.setSetting(coresViewKey, view.value);
-    await t.pumpWidget(MaterialApp(
-      theme: Tokens.theme(),
-      home: Scaffold(body: CoreManagerScreen(state: s, onBrowseCore: onBrowse)),
-    ));
+    await t.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(
+          body: CoreManagerScreen(state: s, onBrowseCore: onBrowse),
+        ),
+      ),
+    );
     await t.pump();
     return s;
   }
 
-  for (final view in CollectionView.values) {
-    for (final size in const [Size(1280, 800), Size(390, 844), Size(844, 390)]) {
-      testWidgets('${view.label} view: no overflow at $size', (t) async {
-        await pump(t, size, view: view);
-        expect(t.takeException(), isNull);
-        await t.tap(find.textContaining('Available'));
-        await t.pump();
-        expect(t.takeException(), isNull);
-      });
-    }
+  for (final size in const [Size(1280, 800), Size(390, 844), Size(844, 390)]) {
+    testWidgets('card grid: no overflow at $size', (t) async {
+      await pump(t, size);
+      expect(t.takeException(), isNull);
+      await t.tap(find.text('Available'));
+      await t.pump();
+      expect(t.takeException(), isNull);
+    });
   }
 
-  testWidgets('the view switch changes the view and remembers it', (t) async {
-    final s = await pump(t, const Size(1280, 800));
-    expect(find.byType(CoverFlow), findsNothing);
-    await t.tap(find.byTooltip('3D'));
-    await t.pump();
-    expect(s.settings[coresViewKey], '3d');
-    expect(find.byType(CoverFlow), findsOneWidget);
-    await t.tap(find.byTooltip('Grid'));
-    await t.pump();
-    expect(s.settings[coresViewKey], 'grid');
+  testWidgets('the Installed and Available tabs swap the card grid', (t) async {
+    await pump(t, const Size(1280, 800));
     expect(find.byType(GridView), findsOneWidget);
+    expect(find.text('Installed'), findsOneWidget);
+    expect(find.text('Available'), findsOneWidget);
+    expect(find.text('Game Boy Advance, Game Boy'), findsWidgets);
+    await t.tap(find.text('Available'));
+    await t.pump();
+    expect(find.text('Game Boy Advance, Game Boy'), findsNothing);
+    expect(find.text('Dreamcast'), findsWidgets);
   });
 
-  testWidgets('3D: the detail beside the shelf follows the front core',
-      (t) async {
-    await pump(t, const Size(1280, 800), view: CollectionView.flow);
-    // Installed, by name: Game Boy Advance… first, then PlayStation, whose
-    // detail lists its BIOS file.
-    expect(find.textContaining('scph1001.bin'), findsNothing);
-    await t.tap(find.byType(CoverFlow));
-    await t.pump();
-    await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-    await t.pumpAndSettle();
-    expect(find.textContaining('scph1001.bin'), findsOneWidget);
+  testWidgets('cards name the console art they represent', (t) async {
+    await pump(t, const Size(1280, 800));
+    expect(find.text('CONSOLE ART\nadvancebit.webp'), findsWidgets);
   });
 
   testWidgets('cores are named by system, with status and trust', (t) async {
     await pump(t, const Size(1280, 800));
-    expect(find.text('Installed · 3'), findsOneWidget);
-    expect(find.text('Available · 2'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
     expect(find.text('Game Boy Advance, Game Boy'), findsWidgets);
     expect(find.text('Ready · needs BIOS files'), findsOneWidget);
-    expect(find.text('Unverified'), findsWidgets, reason: 'user package');
-    expect(find.text('Verified'), findsWidgets);
-    expect(find.text('Install core from file'), findsOneWidget);
-
-    await t.tap(find.text('Available · 2'));
+    // The detail panel opens on the first card and shows its Verified pill.
+    expect(find.text('Verified'), findsOneWidget);
+    // Trust is a detail-panel property, not card decoration.
+    expect(find.text('Unverified'), findsNothing);
+    await t.tap(find.text('msx'));
     await t.pump();
-    expect(find.text('Download to install'), findsWidgets);
+    expect(find.text('Unverified'), findsOneWidget, reason: 'user package');
+
+    await t.tap(find.text('Available'));
+    await t.pump();
+    expect(find.text('Not installed · ready to install'), findsWidgets);
     expect(find.text('Not available on this device'), findsWidgets);
+    expect(find.text('Install core from file'), findsOneWidget);
   });
 
   test('titles drop repeats and cap long lists', () {
-    expect(coreTitle(core('cardcon', ['pce', 'tg16'])),
-        'PC Engine / TurboGrafx-16');
-    expect(coreTitle(core('many', ['genesis', 'sms', 'gg', 'sg1000', 'scd'])),
-        endsWith(' +2'));
+    expect(
+      coreTitle(core('cardcon', ['pce', 'tg16'])),
+      'PC Engine / TurboGrafx-16',
+    );
+    expect(
+      coreTitle(core('many', ['genesis', 'sms', 'gg', 'sg1000', 'scd'])),
+      endsWith(' +2'),
+    );
     expect(coreTitle(core('one', ['nds'])), 'Nintendo DS');
-    expect(coreTitle(core('gb', ['gba', 'gb'])), 'Game Boy Advance, Game Boy',
-        reason: 'containing a name is not being that system');
+    expect(
+      coreTitle(core('gb', ['gba', 'gb'])),
+      'Game Boy Advance, Game Boy',
+      reason: 'containing a name is not being that system',
+    );
+    expect(
+      coreTitle(core('nes', ['nes', 'fds'])),
+      'Nintendo Entertainment System',
+      reason: 'the Disk System is an NES add-on, not a second system',
+    );
   });
 
   testWidgets('wide screens show the detail beside the list', (t) async {
@@ -143,14 +165,39 @@ void main() {
     expect(browsed, 'geometry1');
   });
 
-  testWidgets('phones open the detail as its own page', (t) async {
+  testWidgets('phone portrait turns the grid into a list of rows', (t) async {
+    await pump(t, const Size(390, 844));
+    expect(find.byType(GridView), findsNothing);
+    expect(find.byType(ListView), findsOneWidget);
+    // The 56 px rows carry the placeholder thumb without its technical label.
+    expect(find.textContaining('CONSOLE ART'), findsNothing);
+    expect(find.text('Game Boy Advance, Game Boy'), findsOneWidget);
+    expect(find.text('Ready'), findsWidgets);
+    // Installed / Available pills stay under the title on phones.
+    expect(find.text('Installed'), findsOneWidget);
+    expect(find.text('Available'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('phones open the detail as a bottom sheet', (t) async {
     await pump(t, const Size(390, 844));
     expect(find.text('Show games'), findsNothing);
     await t.tap(find.text('Game Boy Advance, Game Boy'));
     await t.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('Show games'), findsOneWidget);
     expect(find.text('Remove'), findsOneWidget);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('phone rows swap with the Installed / Available tabs', (t) async {
+    await pump(t, const Size(390, 844));
+    expect(find.text('Ready'), findsWidgets);
+    await t.tap(find.text('Available'));
+    await t.pump();
+    expect(find.text('Game Boy Advance, Game Boy'), findsNothing);
+    expect(find.text('Dreamcast'), findsOneWidget);
+    expect(find.text('Not installed · ready to install'), findsWidgets);
   });
 
   testWidgets('removing asks first and keeps games', (t) async {

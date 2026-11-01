@@ -9,19 +9,17 @@ import '../models/core_manifest.dart';
 import '../services/core_package_installer.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
-import '../widgets/collection_view.dart';
-import '../widgets/cover_flow.dart';
-import '../widgets/focus_glow.dart';
 import '../widgets/hardware_art.dart';
 import '../widgets/orbit_widgets.dart';
 
-/// Cores — the platform's "apps" (layout option A).
+/// Systems — the cores that play them (Orbit §8.4).
 ///
-/// A list of cores named by the systems they play, with a plain status and a
-/// trust label; a detail panel beside it on wide screens and a page of its
-/// own on phones. Installed and Available are the two views; installing a
-/// core from a file is a first-class action, not a hidden icon.
+/// A four-column grid of console cards, each showing its system, core and an
+/// honest status, with a glass detail panel beside it on wide screens. The
+/// Installed / Available tabs swap the catalog; installing a core from a file
+/// is a first-class action in the detail panel.
 class CoreManagerScreen extends StatefulWidget {
   const CoreManagerScreen({super.key, required this.state, this.onBrowseCore});
   final AppState state;
@@ -36,317 +34,295 @@ class CoreManagerScreen extends StatefulWidget {
 class _CoreManagerScreenState extends State<CoreManagerScreen> {
   bool _installedView = true;
   String? _selectedId;
-  int _flowIndex = 0;
 
   /// Core currently being installed or downloaded (single-flight).
-  String? _busyId;
+  ///
+  /// A notifier (rather than a plain field) so a modal core sheet can follow
+  /// install progress while it is open: the sheet lives in its own route and
+  /// does not rebuild with this screen.
+  final ValueNotifier<String?> _busy = ValueNotifier<String?>(null);
+
+  String? get _busyId => _busy.value;
+
+  set _busyId(String? id) => _busy.value = id;
 
   AppState get state => widget.state;
   CoreRegistry get registry => state.registry;
 
-  CollectionView get _view => CollectionView.fromSetting(
-    state.settings[coresViewKey],
-    fallback: CollectionView.flow,
-  );
-
-  void _setView(CollectionView v) => state.setSetting(coresViewKey, v.value);
-
   List<CoreManifest> get _visible => [
     for (final m in registry.catalog)
       if (registry.isInstalled(m.id) == _installedView) m,
-  ]..sort((a, b) => _title(a).compareTo(_title(b)));
+  ];
 
-  static String _title(CoreManifest m) => coreTitle(m);
+  @override
+  void dispose() {
+    _busy.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final layout = Layout.of(context);
+    final phone = layout == OrbitLayout.phonePortrait;
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => LayoutBuilder(
         builder: (context, c) {
-          final wide = c.maxWidth >= 900;
-          final compact = c.maxWidth < 600;
-          final pad = compact ? 16.0 : (c.maxWidth >= 1180 ? 40.0 : 24.0);
+          // One layout, five families: phone portrait turns the card grid into
+          // a list (§10); every other family keeps the grid.
+          final showPanel =
+              layout == OrbitLayout.desktop ||
+              (layout == OrbitLayout.tablet && c.maxWidth >= 1000);
+          final side = phone ? 18.0 : (Layout.isPhone(layout) ? 20.0 : 44.0);
+          final top = phone ? 18.0 : (Layout.isShort(layout) ? 20.0 : 36.0);
+          final bottom = showPanel
+              ? 84.0
+              : (Layout.isPhone(layout) ? 16.0 : 32.0);
           final list = _visible;
-          final flowIndex = list.isEmpty
-              ? 0
-              : _flowIndex.clamp(0, list.length - 1);
-          final selected = _view == CollectionView.flow
-              ? (wide && list.isNotEmpty ? list[flowIndex] : null)
-              : list.where((m) => m.id == _selectedId).firstOrNull ??
-                    (wide && list.isNotEmpty ? list.first : null);
-          final body = Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: EdgeInsets.fromLTRB(pad, compact ? 16 : 28, pad, 16),
-                child: _header(compact),
-              ),
-              Expanded(
-                child: switch (_view) {
-                  CollectionView.list => _list(list, selected, pad, wide),
-                  CollectionView.grid => _grid(list, selected, pad, wide),
-                  CollectionView.flow => _flow(
-                    list,
-                    flowIndex,
-                    pad,
-                    wide,
-                    compact,
-                  ),
-                },
-              ),
-            ],
+          final selected = showPanel && list.isNotEmpty
+              ? list.where((m) => m.id == _selectedId).firstOrNull ?? list.first
+              : null;
+          // Width the grid actually gets beside the detail panel.
+          final gridWidth = showPanel
+              ? (c.maxWidth - side * 2 - 380 - 24).clamp(0.0, 830.0)
+              : c.maxWidth - side * 2;
+          final content = _content(
+            list,
+            selected,
+            layout: layout,
+            showPanel: showPanel,
+            columns: _columnsFor(gridWidth, phone: phone),
           );
-          if (!wide || selected == null) return body;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(child: body),
-              Padding(
-                padding: EdgeInsets.fromLTRB(0, 28, pad, 24),
-                child: SizedBox(
-                  width: 360,
-                  child: _CoreDetail(
-                    key: ValueKey(selected.id),
-                    manifest: selected,
-                    state: state,
-                    busy: _busyId == selected.id,
-                    actions: this,
+          final body = Padding(
+            padding: EdgeInsets.fromLTRB(side, top, side, bottom),
+            child: content,
+          );
+          if (!showPanel) return body;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(side, top, side, bottom),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 830),
+                      child: content,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 24),
+                SizedBox(
+                  width: 380,
+                  child: selected == null
+                      ? const SizedBox.shrink()
+                      : _CoreDetail(
+                          key: ValueKey(selected.id),
+                          manifest: selected,
+                          state: state,
+                          busy: _busyId == selected.id,
+                          actions: this,
+                        ),
+                ),
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _header(bool compact) {
-    final installed = registry.installedCores.length;
-    final available = registry.catalog.length - installed;
-    final tabs = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        OrbitChip(
-          label: 'Installed · $installed',
-          active: _installedView,
-          onTap: () => setState(() {
-            _installedView = true;
-            _selectedId = null;
-            _flowIndex = 0;
-          }),
-        ),
-        const SizedBox(width: 8),
-        OrbitChip(
-          label: 'Available · $available',
-          active: !_installedView,
-          onTap: () => setState(() {
-            _installedView = false;
-            _selectedId = null;
-            _flowIndex = 0;
-          }),
-        ),
-      ],
-    );
-    final install = compact
-        ? OrbitIconButton(
-            icon: Icons.download_outlined,
-            tooltip: 'Install core from file',
-            onPressed: installPackageFlow,
-          )
-        : OrbitSecondary(
-            label: 'Install core from file',
-            icon: Icons.download_outlined,
-            onPressed: installPackageFlow,
-          );
+  /// Card columns for a given grid width. Phone portrait is a list.
+  int _columnsFor(double width, {required bool phone}) {
+    if (phone) return 1;
+    if (width < 360) return 1;
+    if (width < 560) return 2;
+    if (width < 780) return 3;
+    return 4;
+  }
+
+  Widget _content(
+    List<CoreManifest> list,
+    CoreManifest? selected, {
+    required OrbitLayout layout,
+    required bool showPanel,
+    required int columns,
+  }) {
+    final phone = layout == OrbitLayout.phonePortrait;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'THE CORES THAT PLAY THEM',
-                    style: Tokens.body(
-                      size: 11,
-                      weight: FontWeight.w600,
-                      ls: 4,
-                      color: Tokens.muted,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Systems',
-                    style: Tokens.display(
-                      size: compact ? 28 : 40,
-                      weight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            CollectionViewSwitch(value: _view, onChanged: _setView),
-            const SizedBox(width: 12),
-            install,
-          ],
+        Padding(
+          padding: EdgeInsets.only(left: phone ? 0 : 4),
+          child: _header(small: Layout.isPhone(layout)),
         ),
-        const SizedBox(height: 14),
-        SingleChildScrollView(scrollDirection: Axis.horizontal, child: tabs),
+        SizedBox(height: phone ? 16 : (Layout.isShort(layout) ? 12 : 15)),
+        _tabs(),
+        SizedBox(height: phone ? 14 : (Layout.isShort(layout) ? 16 : 22)),
+        Expanded(
+          child: phone
+              ? _list(list, _selectedId)
+              : _grid(
+                  list,
+                  selected,
+                  wide: showPanel,
+                  compact: Layout.isShort(layout),
+                  columns: columns,
+                ),
+        ),
       ],
     );
   }
 
-  Widget _emptyMessage(double pad) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: pad),
-    child: Text(
-      _installedView
-          ? 'No cores installed yet. Pick one from Available, or install '
-                'one from a file.'
-          : 'Every core in the catalog is installed.',
-      style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
-    ),
-  );
+  Widget _header({required bool small}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'THE CORES THAT PLAY THEM',
+          style: Tokens.eyebrow.copyWith(color: Tokens.muted, height: 1),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Systems',
+          style: Tokens.displayScreen.copyWith(
+            // Phones hold the ×0.85 type scale (§3.2): 44 → 37.4.
+            fontSize: small ? Tokens.screenTitle * 0.85 : Tokens.screenTitle,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _tabs() {
+    final installed = registry.installedCores.length;
+    final available = registry.catalog.length - installed;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SystemsTab(
+            label: 'Installed',
+            count: installed,
+            active: _installedView,
+            onTap: () => setState(() {
+              _installedView = true;
+              _selectedId = null;
+            }),
+          ),
+          const SizedBox(width: 8),
+          _SystemsTab(
+            label: 'Available',
+            count: available,
+            active: !_installedView,
+            onTap: () => setState(() {
+              _installedView = false;
+              _selectedId = null;
+            }),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _grid(
     List<CoreManifest> list,
-    CoreManifest? selected,
-    double pad,
-    bool wide,
-  ) {
-    if (list.isEmpty) return _emptyMessage(pad);
+    CoreManifest? selected, {
+    required bool wide,
+    required bool compact,
+    required int columns,
+  }) {
+    if (list.isEmpty) {
+      return Align(alignment: Alignment.topLeft, child: _emptyMessage(compact));
+    }
     return GridView.builder(
-      padding: EdgeInsets.fromLTRB(pad, 0, pad, 32),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 220,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 0.82,
+      padding: EdgeInsets.only(bottom: compact ? 8 : 24),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        mainAxisExtent: 236,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
       ),
       itemCount: list.length,
       itemBuilder: (context, i) {
         final m = list[i];
+        final busy = _busyId == m.id;
+        final status = coreStatus(m, busy: busy);
         return _CoreCard(
           manifest: m,
-          title: _title(m),
-          status: coreStatus(m),
-          trust: trustLabel(m),
+          title: coreTitle(m),
+          status: status,
+          // The check marks a core that is installed and ready to play.
+          showCheck: !busy && status.color == Tokens.ok,
+          busy: busy,
           selected: wide && selected?.id == m.id,
-          busy: _busyId == m.id,
           onTap: () => _open(m, wide),
         );
       },
     );
   }
 
-  /// The 3D shelf of cores. Wide screens show the front core's details
-  /// beside it; phones get a caption and a Details button underneath.
-  Widget _flow(
-    List<CoreManifest> list,
-    int index,
-    double pad,
-    bool wide,
-    bool compact,
-  ) {
-    if (list.isEmpty) return _emptyMessage(pad);
-    final front = list[index];
+  /// Phone portrait: the grid becomes a list (§10), one row per core.
+  ///
+  /// Rows carry the name and the coloured status only — the art thumb is the
+  /// placeholder tile, and tapping a row opens the same detail as the desktop
+  /// panel, as a sheet from the bottom edge.
+  Widget _list(List<CoreManifest> list, String? selectedId) {
+    if (list.isEmpty) {
+      return Align(alignment: Alignment.topLeft, child: _emptyMessage(true));
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 8),
+      itemCount: list.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, i) {
+        final m = list[i];
+        final busy = _busyId == m.id;
+        return _CoreRow(
+          key: ValueKey('row-${m.id}'),
+          manifest: m,
+          title: coreTitle(m),
+          status: coreStatus(m, busy: busy),
+          busy: busy,
+          selected: selectedId == m.id,
+          onTap: () => _openSheet(m),
+        );
+      },
+    );
+  }
+
+  Widget _emptyMessage(bool compact) {
+    final available = !_installedView;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, c) {
-              final h = (c.maxHeight * 0.8).clamp(96.0, 360.0);
-              final w = (h * 0.82).clamp(
-                64.0,
-                c.maxWidth * (compact ? 0.6 : 0.36),
-              );
-              return CoverFlow(
-                count: list.length,
-                index: index,
-                itemSize: Size(w, w / 0.82),
-                showArrows: !compact,
-                semanticLabel: 'Cores',
-                onIndexChanged: (i) => setState(() => _flowIndex = i),
-                onActivate: (i) => _open(list[i], wide),
-                itemBuilder: (context, i, isFront) => _CoreCard(
-                  manifest: list[i],
-                  title: _title(list[i]),
-                  status: coreStatus(list[i]),
-                  trust: trustLabel(list[i]),
-                  selected: isFront,
-                  busy: _busyId == list[i].id,
-                  onTap: null,
-                ),
-              );
-            },
-          ),
+        Text(
+          available
+              ? 'Every core in the catalog is installed.'
+              : 'No cores installed yet. Pick one from Available, or install '
+                    'one from a file.',
+          style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
         ),
-        // The card shows the name and status, and wide screens show the
-        // details beside the shelf: underneath, only where you are, plus the
-        // way to the details on phones.
-        Padding(
-          padding: EdgeInsets.fromLTRB(pad, 8, pad, compact ? 12 : 24),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${(index + 1).toString().padLeft(2, '0')}  /  '
-                  '${list.length.toString().padLeft(2, '0')}',
-                  textAlign: wide ? TextAlign.center : TextAlign.start,
-                  style: Tokens.body(
-                    size: 11,
-                    weight: FontWeight.w700,
-                    ls: 1.4,
-                    color: Tokens.muted,
-                  ),
-                ),
-              ),
-              if (!wide)
-                OrbitPrimary(
-                  label: 'Details',
-                  icon: Icons.chevron_right,
-                  minHeight: 46,
-                  onPressed: () => _open(front, wide),
-                ),
-            ],
+        if (available) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: compact ? double.infinity : 260,
+            child: _PanelButton(
+              label: 'Install core from file',
+              icon: Icons.folder_open_outlined,
+              onPressed: installPackageFlow,
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _list(
-    List<CoreManifest> list,
-    CoreManifest? selected,
-    double pad,
-    bool wide,
-  ) {
-    if (list.isEmpty) return _emptyMessage(pad);
-    return ListView.separated(
-      padding: EdgeInsets.fromLTRB(pad, 0, pad, 32),
-      itemCount: list.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, i) {
-        final m = list[i];
-        return _CoreRow(
-          manifest: m,
-          title: _title(m),
-          status: coreStatus(m),
-          trust: trustLabel(m),
-          selected: wide && selected?.id == m.id,
-          busy: _busyId == m.id,
-          onTap: () => _open(m, wide),
-        );
-      },
-    );
-  }
-
-  /// Opens [m]: beside the list on wide screens, as its own page on phones.
+  /// Opens [m]: beside the grid on wide screens, as its own page elsewhere.
   void _open(CoreManifest m, bool wide) {
     if (wide) {
       setState(() => _selectedId = m.id);
@@ -355,17 +331,22 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         MaterialPageRoute(
           builder: (_) => Scaffold(
             backgroundColor: Tokens.bg,
-            appBar: AppBar(backgroundColor: Tokens.bg),
+            appBar: AppBar(backgroundColor: Colors.transparent),
             body: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: ListenableBuilder(
-                  listenable: state,
-                  builder: (context, _) => _CoreDetail(
-                    manifest: m,
-                    state: state,
-                    busy: _busyId == m.id,
-                    actions: this,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: ListenableBuilder(
+                      listenable: state,
+                      builder: (context, _) => _CoreDetail(
+                        manifest: m,
+                        state: state,
+                        busy: _busyId == m.id,
+                        actions: this,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -376,10 +357,36 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     }
   }
 
+  /// Phones: the detail is a bottom sheet (the desktop panel's content), so the
+  /// list stays in view behind it.
+  Future<void> _openSheet(CoreManifest m) {
+    setState(() => _selectedId = m.id);
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Tokens.bg.withValues(alpha: 0.6),
+      builder: (sheetContext) => SizedBox(
+        height: MediaQuery.sizeOf(sheetContext).height * 0.86,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([state, _busy]),
+          builder: (context, _) => _CoreDetail(
+            manifest: m,
+            state: state,
+            busy: _busyId == m.id,
+            actions: this,
+            inSheet: true,
+          ),
+        ),
+      ),
+    );
+  }
+
   // ---- status and trust, in plain words ----
 
   /// One honest line about whether this core can be used here.
-  ({String text, Color color}) coreStatus(CoreManifest m) {
+  ({String text, Color color}) coreStatus(CoreManifest m, {bool busy = false}) {
+    if (busy) return (text: 'Installing…', color: Tokens.systemLabelFg);
     if (m.blocked) return (text: 'On hold', color: Tokens.muted);
     final delivery = m.delivery[Platform.operatingSystem];
     if (registry.isInstalled(m.id)) {
@@ -394,10 +401,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     if (delivery == null || delivery == 'absent') {
       return (text: 'Not available on this device', color: Tokens.muted);
     }
-    if (delivery == 'download') {
-      return (text: 'Download to install', color: Tokens.systemLabelFg);
+    if (m.biosRequired) {
+      return (text: 'Not installed · needs BIOS', color: Tokens.muted);
     }
-    return (text: 'Ready to add', color: Tokens.systemLabelFg);
+    return (text: 'Not installed · ready to install', color: Tokens.muted);
   }
 
   String trustLabel(CoreManifest m) =>
@@ -483,8 +490,8 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         orbitToast(
           context,
           downloads
-              ? '${_title(m)} downloaded and verified'
-              : '${_title(m)} is ready',
+              ? '${coreTitle(m)} downloaded and verified'
+              : '${coreTitle(m)} is ready',
         );
       }
     } catch (e) {
@@ -532,217 +539,459 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   }
 }
 
-class _CoreRow extends StatelessWidget {
-  const _CoreRow({
-    required this.manifest,
-    required this.title,
-    required this.status,
-    required this.trust,
-    required this.selected,
-    required this.busy,
+/// One pill of the Installed / Available switch.
+class _SystemsTab extends StatelessWidget {
+  const _SystemsTab({
+    required this.label,
+    required this.count,
+    required this.active,
     required this.onTap,
   });
 
-  final CoreManifest manifest;
-  final String title;
-  final ({String text, Color color}) status;
-  final String trust;
-  final bool selected;
-  final bool busy;
+  final String label;
+  final int count;
+  final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final m = manifest;
-    return FocusGlow(
-      onTap: onTap,
-      lift: 1.01,
-      semanticLabel: title,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0x1A007BFF) : const Color(0x0CDDE6F4),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? const Color(0x66007BFF) : Tokens.line,
-          ),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 56,
-                height: 56,
-                color: Tokens.dockTop,
-                child: Image.asset(
-                  hardwareArtworkAsset(m.id, systems: m.systems),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) =>
-                      const Icon(Icons.memory, color: Tokens.muted),
+    final foreground = active ? Colors.white : Tokens.muted;
+    return Semantics(
+      button: true,
+      selected: active,
+      label: '$label, $count',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(19),
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: Tokens.chipPill(active: active),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: Tokens.body(
+                    size: 14,
+                    weight: FontWeight.w600,
+                    color: foreground,
+                    height: 1,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  '$count',
+                  style: Tokens.body(
+                    size: 14,
+                    color: foreground.withValues(alpha: 0.6),
+                    height: 1,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Tokens.body(size: 15, weight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${m.name} ${m.version}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Tokens.body(size: 12, color: Tokens.muted),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    busy ? 'Working…' : status.text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Tokens.body(size: 12, color: status.color),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            _TrustBadge(label: trust),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// A core as a card: its hardware art large, then name, status and trust.
-class _CoreCard extends StatelessWidget {
-  const _CoreCard({
+/// Phone portrait: one core as a full-width list row.
+///
+/// 56 px art thumb, the system name, a coloured status line and a trailing
+/// state icon; an installing row draws its progress bar along the bottom edge.
+class _CoreRow extends StatefulWidget {
+  const _CoreRow({
+    super.key,
     required this.manifest,
     required this.title,
     required this.status,
-    required this.trust,
-    required this.selected,
     required this.busy,
+    required this.selected,
     required this.onTap,
   });
 
   final CoreManifest manifest;
   final String title;
   final ({String text, Color color}) status;
-  final String trust;
-  final bool selected;
   final bool busy;
+  final bool selected;
+  final VoidCallback onTap;
 
-  /// Null inside the 3D shelf, which handles taps itself.
-  final VoidCallback? onTap;
+  @override
+  State<_CoreRow> createState() => _CoreRowState();
+}
+
+class _CoreRowState extends State<_CoreRow> {
+  bool _hover = false;
+  bool _focus = false;
 
   @override
   Widget build(BuildContext context) {
-    final m = manifest;
-    final card = Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Tokens.dockTop, Tokens.dockBottom],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: selected ? const Color(0x99007BFF) : Tokens.line,
-          width: selected ? 1.5 : 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
+    final lit = widget.selected || _hover || _focus;
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: '${widget.title}. ${widget.status.text}',
+      child: FocusableActionDetector(
+        onShowHoverHighlight: (v) => setState(() => _hover = v),
+        onShowFocusHighlight: (v) => setState(() => _focus = v),
+        mouseCursor: SystemMouseCursors.click,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: Tokens.fastDur,
+            curve: Tokens.ease,
+            height: 76,
+            clipBehavior: Clip.antiAlias,
+            decoration: (lit
+                    ? Tokens.coreCardSelectedDecor
+                    : Tokens.coreCardDecor)
+                .copyWith(borderRadius: BorderRadius.circular(16)),
             child: Stack(
-              fit: StackFit.expand,
               children: [
-                Image.asset(
-                  hardwareArtworkAsset(m.id, systems: m.systems),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) =>
-                      const Icon(Icons.memory, size: 40, color: Tokens.muted),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 10, 14, 10),
+                  child: Row(
+                    children: [
+                      SizedBox.square(
+                        dimension: 56,
+                        child: CoreConsoleArt(
+                          coreId: widget.manifest.id,
+                          systems: widget.manifest.systems,
+                          radius: 10,
+                          showLabel: false,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              widget.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Tokens.body(
+                                size: 17,
+                                weight: FontWeight.w600,
+                                color: Colors.white,
+                                height: 1.15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.status.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Tokens.body(
+                                size: 13,
+                                weight: FontWeight.w600,
+                                color: widget.status.color,
+                                height: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ExcludeSemantics(child: _trailing()),
+                    ],
+                  ),
                 ),
-                Align(
-                  alignment: Alignment.topRight,
-                  child: _TrustIcon(label: trust),
-                ),
+                if (widget.busy)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: LinearProgressIndicator(
+                      minHeight: 4,
+                      color: Tokens.accent,
+                      backgroundColor: Tokens.systemLabelBg,
+                    ),
+                  ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Tokens.body(size: 14, weight: FontWeight.w600),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            busy ? 'Working…' : status.text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Tokens.body(size: 12, color: status.color),
-          ),
-        ],
+        ),
       ),
     );
-    if (onTap == null) return card;
-    return FocusGlow(
-      onTap: onTap!,
-      lift: 1.02,
-      semanticLabel: title,
-      child: card,
-    );
+  }
+
+  Widget _trailing() {
+    if (widget.busy) {
+      return SizedBox.square(
+        dimension: 22,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.2,
+          color: Tokens.systemLabelFg,
+        ),
+      );
+    }
+    if (widget.status.color == Tokens.ok) {
+      return const Icon(Icons.check_circle, size: 22, color: Tokens.ok);
+    }
+    if (widget.status.color == Tokens.warn) {
+      return const Icon(Icons.warning_rounded, size: 22, color: Tokens.warn);
+    }
+    return const SizedBox.shrink();
   }
 }
 
-/// Trust as a small icon, for cards too narrow for the worded badge.
-class _TrustIcon extends StatelessWidget {
-  const _TrustIcon({required this.label});
-  final String label;
+/// A core as a console card: art, system, core and status.
+class _CoreCard extends StatefulWidget {
+  const _CoreCard({
+    required this.manifest,
+    required this.title,
+    required this.status,
+    required this.showCheck,
+    required this.busy,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CoreManifest manifest;
+  final String title;
+  final ({String text, Color color}) status;
+  final bool showCheck;
+  final bool busy;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_CoreCard> createState() => _CoreCardState();
+}
+
+class _CoreCardState extends State<_CoreCard> {
+  bool _hover = false;
+  bool _focus = false;
 
   @override
   Widget build(BuildContext context) {
-    final verified = label == 'Verified';
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        label: label,
-        child: Icon(
-          verified ? Icons.verified_outlined : Icons.gpp_maybe_outlined,
-          size: 18,
-          color: verified ? Tokens.ok : const Color(0xFFFFC46B),
+    final lit = widget.selected || _hover || _focus;
+    return Semantics(
+      button: true,
+      selected: widget.selected,
+      label: '${widget.title}. ${widget.status.text}',
+      child: FocusableActionDetector(
+        onShowHoverHighlight: (v) => setState(() => _hover = v),
+        onShowFocusHighlight: (v) => setState(() => _focus = v),
+        mouseCursor: SystemMouseCursors.click,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              widget.onTap();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: Tokens.fastDur,
+            curve: Tokens.ease,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Tokens.radiusCoreCard),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF1B2A3D), Color(0xFF0C1522)],
+                stops: [0.0, 0.65],
+              ),
+              border: lit ? null : Border.all(color: const Color(0x24DDE6F4)),
+              boxShadow: lit ? Tokens.halo : null,
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 14,
+                  right: 14,
+                  top: 14,
+                  height: 118,
+                  child: CoreConsoleArt(
+                    coreId: widget.manifest.id,
+                    systems: widget.manifest.systems,
+                  ),
+                ),
+                if (widget.showCheck)
+                  Positioned(
+                    right: 20,
+                    top: 20,
+                    child: ExcludeSemantics(
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 22,
+                        color: Tokens.ok,
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  left: 18,
+                  right: 18,
+                  top: 146,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Tokens.body(
+                          size: 16,
+                          weight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        '${widget.manifest.name} ${widget.manifest.version}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Tokens.body(
+                          size: 13,
+                          color: Tokens.muted,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        widget.status.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Tokens.body(
+                          size: 13,
+                          weight: FontWeight.w600,
+                          color: widget.status.color,
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.busy)
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: LinearProgressIndicator(
+                      minHeight: 4,
+                      color: Tokens.accent,
+                      backgroundColor: Colors.transparent,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _TrustBadge extends StatelessWidget {
-  const _TrustBadge({required this.label});
+/// The green outline "Verified" pill (amber for an unverified package).
+class _TrustPill extends StatelessWidget {
+  const _TrustPill({required this.label});
   final String label;
 
   @override
   Widget build(BuildContext context) {
     final verified = label == 'Verified';
-    final color = verified ? Tokens.ok : const Color(0xFFFFC46B);
+    final color = verified ? Tokens.ok : Tokens.warn;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      height: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 9),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
-      child: Text(label, style: Tokens.body(size: 11, color: color)),
+      child: Text(
+        label,
+        style: Tokens.body(
+          size: 12,
+          weight: FontWeight.w600,
+          color: color,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
+/// A 50 px panel button: primary fill or quiet secondary.
+class _PanelButton extends StatelessWidget {
+  const _PanelButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.primary = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final foreground = primary ? Colors.white : Tokens.text;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.4,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
+            child: Container(
+              height: 50,
+              decoration: primary
+                  ? Tokens.primaryButton()
+                  : Tokens.secondaryButton(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 20, color: foreground),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Tokens.body(
+                        size: 15,
+                        weight: FontWeight.w700,
+                        color: foreground,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -755,6 +1004,7 @@ class _CoreDetail extends StatelessWidget {
     required this.state,
     required this.busy,
     required this.actions,
+    this.inSheet = false,
   });
 
   final CoreManifest manifest;
@@ -762,124 +1012,174 @@ class _CoreDetail extends StatelessWidget {
   final bool busy;
   final _CoreManagerScreenState actions;
 
+  /// Phones present this content in a bottom sheet rather than the side panel.
+  final bool inSheet;
+
   @override
   Widget build(BuildContext context) {
     final m = manifest;
     final installed = state.registry.isInstalled(m.id);
-    final status = actions.coreStatus(m);
     final trust = actions.trustLabel(m);
-    final exts = m.extensions.map((e) => '.$e').join('  ');
-    Widget fact(String label, String value) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    final exts = m.extensions.map((e) => '.$e').join(' ');
+    final canAdd = actions.canAdd(m);
+
+    Widget fact(String label, String value, {Color? color}) => Container(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0x0FDDE6F4))),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 96,
+            width: 92,
             child: Text(
               label,
-              style: Tokens.body(size: 12, color: Tokens.muted),
+              style: Tokens.body(size: 13.5, color: Tokens.muted, height: 1.45),
             ),
           ),
-          Expanded(child: Text(value, style: Tokens.body(size: 13))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: Tokens.body(
+                size: 13.5,
+                color: color ?? Tokens.text,
+                height: 1.45,
+              ),
+            ),
+          ),
         ],
       ),
     );
+
     return Container(
-      decoration: BoxDecoration(
-        color: Tokens.panel,
-        borderRadius: BorderRadius.circular(Tokens.dockPanelRadius),
-        border: Border.all(color: Tokens.lineStrong),
-      ),
+      clipBehavior: Clip.antiAlias,
+      // A bottom sheet gets the modal surface (top corners only); the desktop
+      // side panel keeps the glass panel and its uniform ring.
+      decoration: inSheet
+          ? Tokens.sheetDecor
+          // A uniform ring: a border with per-side colours cannot be painted
+          // on a rounded surface.
+          : Tokens.panelGlass.copyWith(
+              border: Border.all(color: Tokens.lineStrong),
+            ),
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          inSheet ? 16 : 24,
+          24,
+          24 + (inSheet ? MediaQuery.paddingOf(context).bottom : 0),
+        ),
         children: [
-          Center(
-            child: SizedBox(
-              height: 120,
-              child: Image.asset(
-                hardwareArtworkAsset(m.id, systems: m.systems),
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          if (inSheet) ...[
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Tokens.lineStrong,
+                  borderRadius: BorderRadius.circular(Tokens.radiusPill),
+                ),
               ),
             ),
+            const SizedBox(height: 18),
+          ],
+          SizedBox(
+            height: 170,
+            child: CoreConsoleArt(coreId: m.id, systems: m.systems),
           ),
           const SizedBox(height: 14),
           Text(
-            _CoreManagerScreenState._title(m),
-            style: Tokens.display(size: 22, weight: FontWeight.w600),
+            coreTitle(m),
+            style: Tokens.displayPanel.copyWith(color: Colors.white),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${m.name} ${m.version}',
-            style: Tokens.body(size: 13, color: Tokens.muted),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Row(
             children: [
-              _TrustBadge(label: trust),
-              const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  busy ? 'Working…' : status.text,
-                  style: Tokens.body(size: 13, color: status.color),
+                  '${m.name} ${m.version}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(size: 14, color: Tokens.muted, height: 1),
                 ),
               ),
+              const SizedBox(width: 10),
+              _TrustPill(label: trust),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           if (installed) ...[
-            OrbitPrimary(
+            _PanelButton(
               label: 'Show games',
               icon: Icons.grid_view,
-              expanded: true,
-              minHeight: 46,
+              primary: true,
               onPressed: () => actions.showGames(m),
             ),
             const SizedBox(height: 8),
-            OrbitSecondary(
+            _PanelButton(
               label: 'Remove',
               icon: Icons.delete_outline,
               onPressed: busy ? null : () => actions.confirmRemove(m),
             ),
-          ] else if (actions.canAdd(m))
-            OrbitPrimary(
-              label: state.needsDownload(m) ? 'Download and install' : 'Add',
-              icon: state.needsDownload(m) ? Icons.download : Icons.add,
-              expanded: true,
-              minHeight: 46,
-              onPressed: busy ? null : () => actions.install(m),
+          ] else ...[
+            _PanelButton(
+              label: busy ? 'Installing…' : 'Install',
+              icon: Icons.download,
+              primary: true,
+              onPressed: busy || !canAdd ? null : () => actions.install(m),
             ),
-          const SizedBox(height: 16),
-          const Divider(color: Tokens.line),
-          fact('Plays', exts.isEmpty ? '—' : exts),
-          fact('Licence', m.license),
-          fact(
-            'BIOS',
-            m.biosRequired
-                ? 'Required: ${m.biosFiles.join(', ')}. You supply these from '
-                      'hardware you own.'
-                : 'Not required',
+            const SizedBox(height: 8),
+            _PanelButton(
+              label: 'Install core from file',
+              icon: Icons.folder_open_outlined,
+              onPressed: busy ? null : actions.installPackageFlow,
+            ),
+          ],
+          const SizedBox(height: 20),
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: Color(0x1ADDE6F4))),
+            ),
+            child: Column(
+              children: [
+                fact('Plays', exts.isEmpty ? '—' : exts),
+                fact('Licence', m.license.isEmpty ? '—' : m.license),
+                fact(
+                  'BIOS',
+                  m.biosRequired
+                      ? 'Required: ${m.biosFiles.join(', ')}. You supply these '
+                            'from hardware you own.'
+                      : 'Not required',
+                  color: m.biosRequired && installed ? Tokens.warn : null,
+                ),
+                fact(
+                  'Source',
+                  installed
+                      ? 'Installed from the app bundle'
+                      : 'Bundled with ezCORE · installs offline',
+                ),
+                fact(
+                  'Trust',
+                  trust == 'Verified'
+                      ? 'Built and checked by the ezCORE project.'
+                      : 'Installed by you from a file. Not reviewed by the '
+                            'project and never updated automatically.',
+                ),
+              ],
+            ),
           ),
-          fact(
-            'Cheats',
-            m.cheatsSupported
-                ? 'Supported (${m.cheatFamilies.join(', ')})'
-                : 'Not supported',
-          ),
-          fact(
-            'Trust',
-            trust == 'Verified'
-                ? 'Built and checked by the ezCORE project.'
-                : 'Installed by you from a file. Not reviewed by the project '
-                      'and never updated automatically.',
-          ),
-          if (m.blocked) fact('On hold', m.blockedReason),
         ],
       ),
     );
   }
 }
+
+/// Add-on systems whose hardware is implied by a base system's name.
+const _addOnSystems = <String, String>{
+  'Famicom Disk System': 'Nintendo Entertainment System',
+};
 
 /// A core is named by what it plays: "Game Boy Advance, Game Boy". A label
 /// that is only another name of one already listed is dropped ("PC Engine /
@@ -887,10 +1187,17 @@ class _CoreDetail extends StatelessWidget {
 /// another ("Game Boy" in "Game Boy Advance") is a different system and
 /// stays. Long lists end in "+N".
 String coreTitle(CoreManifest m) {
+  final labels = m.systems.map(systemLabel).toList();
+  final present = labels.toSet();
   final kept = <String>[];
   final names = <String>{};
-  for (final label in m.systems.map(systemLabel)) {
+  for (final label in labels) {
     if (names.contains(label)) continue;
+    // An add-on is not a second system title when the base system is listed:
+    // the Famicom Disk System plays NES games, so the card reads "Nintendo
+    // Entertainment System", not a list of two.
+    final base = _addOnSystems[label];
+    if (base != null && present.contains(base)) continue;
     kept.add(label);
     names
       ..add(label)
