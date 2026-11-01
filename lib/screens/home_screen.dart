@@ -407,8 +407,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, i, front) => GameCover(
                         gameId: visible[i].id,
                         title: visible[i].title,
-                        system: shortSystemLabel(visible[i].system),
-                        selected: front,
+                        systemId: visible[i].system,
+                        year: visible[i].year,
+                        favorite: visible[i].favorite,
                       ),
                     );
                   },
@@ -756,7 +757,9 @@ class _ResumeCard extends StatelessWidget {
     final cover = GameCover(
       gameId: game.id,
       title: game.title,
-      system: shortSystemLabel(game.system),
+      systemId: game.system,
+      year: game.year,
+      favorite: game.favorite,
       width: compact || short ? 60 : 112,
       height: compact || short ? 80 : 150,
     );
@@ -847,8 +850,9 @@ class _ResumeCard extends StatelessWidget {
                 scale: 1.4,
                 child: GameCover(
                   gameId: game.id,
-                  title: '',
-                  system: '',
+                  title: game.title,
+                  systemId: game.system,
+                  year: game.year,
                   radius: 0,
                 ),
               ),
@@ -908,7 +912,9 @@ class _Tile extends StatelessWidget {
               child: GameCover(
                 gameId: game.id,
                 title: game.title,
-                system: shortSystemLabel(game.system),
+                systemId: game.system,
+                year: game.year,
+                favorite: game.favorite,
               ),
             ),
             const SizedBox(height: 8),
@@ -957,8 +963,9 @@ class _Backdrop extends StatelessWidget {
                     scale: 1.3,
                     child: GameCover(
                       gameId: game.id,
-                      title: '',
-                      system: '',
+                      title: game.title,
+                      systemId: game.system,
+                      year: game.year,
                       radius: 0,
                     ),
                   ),
@@ -1353,11 +1360,11 @@ class _ListRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Too small for the cover's own caption; the title is beside it.
             GameCover(
               gameId: game.id,
-              title: '',
-              system: '',
+              title: game.title,
+              systemId: game.system,
+              year: game.year,
               width: 42,
               height: 58,
             ),

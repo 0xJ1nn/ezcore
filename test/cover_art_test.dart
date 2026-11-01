@@ -86,7 +86,7 @@ void main() {
           body: GameCover(
             gameId: id,
             title: 'Fixture',
-            system: 'test',
+            systemId: 'test',
             width: 120,
             height: 160,
           ),
@@ -122,7 +122,7 @@ void main() {
           body: GameCover(
             gameId: id,
             title: 'Fixture',
-            system: 'test',
+            systemId: 'test',
             width: 120,
             height: 160,
           ),
