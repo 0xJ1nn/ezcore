@@ -7,6 +7,21 @@ import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/import_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 
+/// Production ships its bundled cores; a bare test state has none, and the
+/// review correctly marks a file whose system is not installed as skipped.
+void installCore(AppState state, String id) {
+  for (final m in state.registry.catalog) {
+    if (m.id != id) continue;
+    state.registry.install(
+      m,
+      expectedSha256: m.artifacts.values.isEmpty
+          ? 'test'
+          : m.artifacts.values.first,
+    );
+    return;
+  }
+}
+
 /// "ezCORE ROMs" folder feature: the one-time offer dialog, the managed
 /// folder state, and copy-into-one-place behavior wired into scans.
 void main() {
@@ -148,15 +163,26 @@ void main() {
     });
   });
 
-  group('one-time offer dialog', () {
-    testWidgets('shows for a loaded library; create wires folder and '
-        'never asks again', (tester) async {
+  group('inline offer on the Source step', () {
+    testWidgets('opens without a dialog; the first card offers the folder '
+        'and creating it wires the watched folder', (tester) async {
       final state = makeState();
       state.games.add(game('g1'));
 
       await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
       await tester.pumpAndSettle();
 
+      // No dialog on open (the design has none).
+      expect(find.byKey(const Key('roms-folder-create')), findsNothing);
+      expect(find.text('Create an ezCORE ROMs folder'), findsOneWidget);
+      expect(
+        find.text('One place for your games on this device'),
+        findsOneWidget,
+      );
+
+      // The confirmation only appears after the card is chosen.
+      await tester.tap(find.byKey(const Key('import-source-watched')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key('roms-folder-create')), findsOneWidget);
       expect(
         find.textContaining('copy all the ROMs there'),
@@ -171,20 +197,25 @@ void main() {
       expect(state.romFolders, contains(state.ezcoreRomsFolder));
       expect(find.textContaining('folder created'), findsOneWidget);
 
-      // A fresh ImportScreen stays dialog-free.
+      // A fresh ImportScreen shows the watched card, still dialog-free.
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('roms-folder-create')), findsNothing);
+      expect(find.text('Create an ezCORE ROMs folder'), findsNothing);
       expect(state.romFolders.length, 1);
     });
 
-    testWidgets('decline records the answer and stays silent after',
+    testWidgets('declining records the answer and creates nothing',
         (tester) async {
       final state = makeState();
       state.games.add(game('g1'));
 
       await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('roms-folder-later')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('import-source-watched')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('roms-folder-later')), findsOneWidget);
 
@@ -194,14 +225,20 @@ void main() {
       expect(state.romsFolderPrompted, isTrue);
       expect(state.ezcoreRomsFolder, isNull);
       expect(state.romFolders, isEmpty);
+      expect(
+        Directory(inFolder(docsRoot.path, 'ezCORE ROMs')).existsSync(),
+        isFalse,
+      );
 
+      // Reopening never pops a dialog on its own.
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('roms-folder-later')), findsNothing);
     });
 
-    testWidgets('a fresh library never sees the offer', (tester) async {
+    testWidgets('a fresh library sees the inline offer, not a dialog',
+        (tester) async {
       final state = makeState(); // games stay empty
 
       await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
@@ -209,6 +246,7 @@ void main() {
 
       expect(find.byKey(const Key('roms-folder-create')), findsNothing);
       expect(find.byKey(const Key('roms-folder-later')), findsNothing);
+      expect(find.text('Create an ezCORE ROMs folder'), findsOneWidget);
       expect(state.romsFolderPrompted, isFalse);
     });
   });
@@ -223,6 +261,7 @@ void main() {
       late String folder;
       await tester.runAsync(() async {
         await state.load();
+        installCore(state, 'advancebit');
         folder = await state.createEzcoreRomsFolder();
       });
 
@@ -241,29 +280,33 @@ void main() {
       // Prompt already answered — no dialog over the scan flow.
       expect(find.byKey(const Key('roms-folder-create')), findsNothing);
 
+      final toggle = find.byKey(const Key('import-advanced-toggle'));
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
       await tester.enterText(
           find.byKey(const Key('import-path-field')), src.path);
+      final scan = find.text('Scan typed path');
+      await tester.ensureVisible(scan);
+      await tester.pumpAndSettle();
       await tester.runAsync(() async {
-        await tester.tap(find.text('Scan typed path'));
+        await tester.tap(scan);
         for (var i = 0; i < 100; i++) {
           await Future<void>.delayed(const Duration(milliseconds: 20));
-          await tester.pump();
-          if (find.text('Ready to import').evaluate().isNotEmpty) break;
+          await tester.pump(const Duration(milliseconds: 100));
+          if (find.text('Add 1 game').evaluate().isNotEmpty) break;
         }
       });
 
-      expect(find.text('Ready to import'), findsOneWidget);
+      expect(find.text('Ready'), findsOneWidget);
       // The scan copied the file home before importing:
       expect(
         File(inFolder(folder, 'fixture.gba')).existsSync(),
         isTrue,
       );
 
-      // The watched-folder chip (the managed folder itself) pushes the
-      // import button below the fold — ListView builds lazily.
-      await tester.drag(find.byType(ListView), const Offset(0, -400));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Import scanned content'));
+      await tester.tap(find.text('Add 1 game'));
       await tester.pumpAndSettle();
 
       expect(state.games, hasLength(1));

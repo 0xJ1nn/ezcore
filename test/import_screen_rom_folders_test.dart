@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/screens/import_screen.dart';
 import 'package:ezcore/state/app_state.dart';
+import 'package:ezcore/theme/symbols.dart';
 
 /// TDD-first tests for issue #14: ROM-folder wiring on the Import screen.
 /// "Add ROM folder" registers the typed path for watched-folder rescan;
@@ -16,16 +17,29 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// The watched-folder controls sit in the quiet "Scan a path" panel.
+  Future<void> openAdvanced(WidgetTester tester) async {
+    final toggle = find.byKey(const Key('import-advanced-toggle'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('Add ROM folder registers the typed path (#14)',
       (tester) async {
     final state = AppState.ephemeral();
     await pumpImport(tester, state);
+    await openAdvanced(tester);
 
     await tester.enterText(
       find.byKey(const Key('import-path-field')),
       '/tmp/ezcore_fake_roms',
     );
-    await tester.tap(find.byKey(const Key('import-add-folder')));
+    final add = find.byKey(const Key('import-add-folder'));
+    await tester.ensureVisible(add);
+    await tester.pumpAndSettle();
+    await tester.tap(add);
     await tester.pumpAndSettle();
 
     expect(state.romFolders, contains('/tmp/ezcore_fake_roms'));
@@ -36,8 +50,12 @@ void main() {
   testWidgets('Add ROM folder rejects an empty path', (tester) async {
     final state = AppState.ephemeral();
     await pumpImport(tester, state);
+    await openAdvanced(tester);
 
-    await tester.tap(find.byKey(const Key('import-add-folder')));
+    final add = find.byKey(const Key('import-add-folder'));
+    await tester.ensureVisible(add);
+    await tester.pumpAndSettle();
+    await tester.tap(add);
     await tester.pumpAndSettle();
 
     expect(state.romFolders, isEmpty);
@@ -51,16 +69,20 @@ void main() {
     await state.addRomFolder('/tmp/ezcore_one');
     await state.addRomFolder('/tmp/ezcore_two');
     await pumpImport(tester, state);
+    await openAdvanced(tester);
 
     expect(find.text('/tmp/ezcore_one'), findsOneWidget);
     expect(find.text('/tmp/ezcore_two'), findsOneWidget);
 
     // Removing a chip unregisters the folder (tap the delete icon, not the
     // chip body — InputChip.onDeleted fires from the trailing icon).
-    await tester.tap(find.descendant(
+    final delete = find.descendant(
       of: find.byKey(const Key('remove-folder-/tmp/ezcore_one')),
-      matching: find.byIcon(Icons.close),
-    ));
+      matching: find.byIcon(Symbols.close),
+    );
+    await tester.ensureVisible(delete);
+    await tester.pumpAndSettle();
+    await tester.tap(delete);
     await tester.pumpAndSettle();
     expect(state.romFolders, isNot(contains('/tmp/ezcore_one')));
     expect(state.romFolders, contains('/tmp/ezcore_two'));
@@ -79,8 +101,12 @@ void main() {
       await state.load();
     });
     await pumpImport(tester, state);
+    await openAdvanced(tester);
 
-    await tester.tap(find.byKey(const Key('import-rescan')));
+    final rescan = find.byKey(const Key('import-rescan'));
+    await tester.ensureVisible(rescan);
+    await tester.pumpAndSettle();
+    await tester.tap(rescan);
     await tester.runAsync(() async {
       for (var i = 0; i < 100; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));

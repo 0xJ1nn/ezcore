@@ -7,6 +7,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/screens/import_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 
+/// Production ships its bundled cores; a bare test state has none, and the
+/// review correctly marks a file whose system is not installed as skipped.
+void installCore(AppState state, String id) {
+  for (final m in state.registry.catalog) {
+    if (m.id != id) continue;
+    state.registry.install(
+      m,
+      expectedSha256: m.artifacts.values.isEmpty
+          ? 'test'
+          : m.artifacts.values.first,
+    );
+    return;
+  }
+}
+
 void main() {
   testWidgets('typed folder imports real files and returns to library', (tester) async {
     final state = AppState.ephemeral();
@@ -24,22 +39,35 @@ void main() {
       }
       await File('${folder.path}/fixture.gba').writeAsBytes(bytes);
       await state.load();
+      installCore(state, 'advancebit');
     });
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: HomeScreen(state: state))));
     await tester.tap(find.text('Add games').first);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).last, folder.path);
+    // The typed-path controls live behind the quiet "Scan a path" row.
+    final toggle = find.byKey(const Key('import-advanced-toggle'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('import-path-field')),
+      folder.path,
+    );
+    final scan = find.text('Scan typed path');
+    await tester.ensureVisible(scan);
+    await tester.pumpAndSettle();
     await tester.runAsync(() async {
-      await tester.tap(find.text('Scan typed path'));
+      await tester.tap(scan);
       for (var i = 0; i < 100; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
-        await tester.pump();
-        if (find.text('Import scanned content').evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+        if (find.text('Add 1 game').evaluate().isNotEmpty) break;
       }
     });
-    expect(find.text('fixture.gba'), findsOneWidget);
-    expect(find.text('Ready to import'), findsOneWidget);
-    await tester.tap(find.text('Import scanned content'));
+    expect(find.text('Fixture'), findsOneWidget);
+    expect(find.text('Ready'), findsOneWidget);
+    await tester.tap(find.text('Add 1 game'));
     await tester.runAsync(() async {
       for (var i = 0; i < 100; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -60,12 +88,23 @@ void main() {
   testWidgets('import does not invent preview games for a nonexistent path', (tester) async {
     final state = AppState.ephemeral();
     await tester.pumpWidget(MaterialApp(home: ImportScreen(state: state)));
-    await tester.enterText(find.byType(TextField), '/missing/ezcore-content');
-    await tester.tap(find.text('Scan typed path'));
+    final toggle = find.byKey(const Key('import-advanced-toggle'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('import-path-field')),
+      '/missing/ezcore-content',
+    );
+    final scan = find.text('Scan typed path');
+    await tester.ensureVisible(scan);
+    await tester.pumpAndSettle();
+    await tester.tap(scan);
     await tester.runAsync(() async {
       for (var i = 0; i < 100; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
         if (find.textContaining('does not exist').evaluate().isNotEmpty) {
           break;
         }
