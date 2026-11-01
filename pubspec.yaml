@@ -52,3 +52,9 @@ flutter:
           weight: 700
         - asset: assets/fonts/Manrope-ExtraBold.ttf
           weight: 800
+    # Material Symbols Rounded — Apache-2.0 variable subset (FILL/wght/GRAD/opsz).
+    # Bundled so the app never fetches icons at runtime. See
+    # THIRD_PARTY_NOTICES.md and lib/theme/symbols.dart.
+    - family: MaterialSymbolsRounded
+      fonts:
+        - asset: assets/fonts/MaterialSymbolsRounded.ttf

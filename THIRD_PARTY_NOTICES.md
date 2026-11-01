@@ -69,15 +69,25 @@ Notes:
   redistribute a bundled core, keep the license files that ship with its
   build tree (`native/src/<core>/`, produced by `scripts/build_core.sh`).
 
-## 3. Fonts
+## 3. Fonts and icons
 
 | Font | Copyright | License |
 |---|---|---|
 | Space Grotesk | Florian Karsten / Space Grotesk Project Authors | SIL OFL 1.1 |
 | Manrope | Mikhail Sharanda / Manrope Project Authors | SIL OFL 1.1 |
+| Material Symbols Rounded | Copyright 2026 Google LLC. All Rights Reserved. | Apache License 2.0 |
 
-Full license text with copyright notices: [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt).
-Files are unmodified from the Google Fonts distribution.
+Full license text with copyright notices: [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)
+for the text faces, and
+[`assets/fonts/LICENSE-MaterialSymbolsRounded.txt`](assets/fonts/LICENSE-MaterialSymbolsRounded.txt)
+for the icon font.
+
+Space Grotesk and Manrope are unmodified from the Google Fonts
+distribution. `assets/fonts/MaterialSymbolsRounded.ttf` is a glyph subset of
+the upstream variable font (axes `FILL`, `wght`, `GRAD`, `opsz`), prepared for
+ezCORE and distributed under the same Apache License 2.0. The subset keeps the
+upstream copyright notice; see `lib/theme/symbols.dart` for the bundled glyph
+list.
 
 ## 4. Flutter, Dart packages, and platform runtimes
 
