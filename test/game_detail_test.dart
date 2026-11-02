@@ -60,46 +60,65 @@ void main() {
   }
 
   test('saves get readable names', () {
-    expect(saveName('auto'), 'Automatic');
+    expect(saveName('auto'), 'Autosave');
     expect(saveName('slot0'), 'Quick save');
+    expect(saveName('slot1'), 'Slot 1');
     expect(saveName('slot-142233'), 'Saved 14:22:33');
     expect(saveName('custom'), 'custom');
+  });
+
+  test('snapshot tags mark the automatic and crash-safe saves', () {
+    expect(snapshotTag('auto'), 'Auto');
+    expect(snapshotTag('slot1'), 'Slot 1');
+    expect(snapshotTag('recovered'), 'Crash-safe');
+    expect(snapshotTagColor('auto'), Tokens.systemLabelFg);
+    expect(snapshotTagColor('recovered'), Tokens.warn);
   });
 
   testWidgets('no saves: Play, and an explanation', (t) async {
     await pump(t);
     expect(find.text('Play'), findsOneWidget);
     expect(find.text('Resume'), findsNothing);
-    expect(find.textContaining('No saves yet'), findsOneWidget);
+    expect(find.textContaining('No snapshots yet'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
   testWidgets('an automatic save offers Resume and Play from start',
       (t) async {
-    await pump(t, slots: ['auto', 'slot0', 'slot-101500']);
+    await pump(t, slots: ['auto', 'slot0', 'slot-101500'],
+        size: const Size(1440, 900));
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('Play from start'), findsOneWidget);
-    expect(find.text('Automatic'), findsOneWidget);
+    expect(find.text('Autosave'), findsOneWidget);
     expect(find.text('Quick save'), findsOneWidget);
     expect(find.text('Saved 10:15:00'), findsOneWidget);
   });
 
-  for (final size in const [Size(390, 844), Size(844, 390), Size(1280, 900)]) {
+  for (final size in const [
+    Size(390, 844),
+    Size(844, 390),
+    Size(820, 1180),
+    Size(1180, 820),
+    Size(1280, 900),
+    Size(1440, 900),
+  ]) {
     testWidgets('no overflow at $size', (t) async {
       await pump(t, slots: ['auto', 'slot0'], size: size);
       expect(t.takeException(), isNull);
     });
   }
 
-  testWidgets('deleting a save asks first', (t) async {
+  testWidgets('deleting a snapshot asks first', (t) async {
     final s = await pump(t, slots: ['slot0']);
-    await t.tap(find.byTooltip('Delete save'));
+    await t.longPress(find.byKey(const Key('snapshot-slot0')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Delete snapshot'));
     await t.pumpAndSettle();
     expect(find.textContaining('cannot be undone'), findsOneWidget);
-    await t.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await t.tap(find.text('Delete'));
     await t.pumpAndSettle();
     expect(await s.saves.list('g'), isEmpty);
-    expect(find.text('Quick save'), findsNothing);
+    expect(find.byKey(const Key('snapshot-slot0')), findsNothing);
   });
 
   testWidgets('choosing another core is remembered', (t) async {
@@ -116,12 +135,12 @@ void main() {
     await t.tap(find.byTooltip('Add to favourites'));
     await t.pump();
     expect(s.games.single.favorite, isTrue);
-    await t.tap(find.byTooltip('More'));
+    await t.longPress(find.text('Hollow Orbit').last);
     await t.pumpAndSettle();
     await t.tap(find.text('Remove from library'));
     await t.pumpAndSettle();
     expect(find.textContaining('is not deleted'), findsOneWidget);
-    await t.tap(find.widgetWithText(FilledButton, 'Remove'));
+    await t.tap(find.text('Remove'));
     await t.pumpAndSettle();
     expect(s.games, isEmpty);
   });
