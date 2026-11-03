@@ -7,8 +7,9 @@ import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
-import 'package:ezcore/widgets/orbit_widgets.dart';
+import 'package:ezcore/widgets/orbit_chrome.dart';
 import 'package:ezcore/widgets/collection_view.dart';
+import 'package:ezcore/widgets/hint_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -129,8 +130,11 @@ void main() {
       tester,
     ) async {
       await pumpShell(tester, entry.value);
-      expect(tester.takeException(), isNull,
-          reason: 'layout overflow at ${entry.value}');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'layout overflow at ${entry.value}',
+      );
     });
 
     for (final view in [CollectionView.flow, CollectionView.list]) {
@@ -138,17 +142,21 @@ void main() {
         tester,
       ) async {
         await pumpShell(tester, entry.value, view: view);
-        expect(tester.takeException(), isNull,
-            reason: '${view.label} layout overflow at ${entry.value}');
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${view.label} layout overflow at ${entry.value}',
+        );
       });
     }
 
-    testWidgets('empty library has no overflow: ${entry.key}', (
-      tester,
-    ) async {
+    testWidgets('empty library has no overflow: ${entry.key}', (tester) async {
       await pumpShell(tester, entry.value, library: const []);
-      expect(tester.takeException(), isNull,
-          reason: 'layout overflow at ${entry.value}');
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'layout overflow at ${entry.value}',
+      );
       expect(find.text('Add your first game'), findsOneWidget);
     });
   }
@@ -157,19 +165,24 @@ void main() {
     for (final size in viewports.values) {
       await pumpShell(tester, size);
       final nav = find.byType(
-        find.byType(OrbitRail).evaluate().isNotEmpty ? OrbitRail : OrbitBottomNav,
+        find.byType(OrbitCommandRail).evaluate().isNotEmpty
+            ? OrbitCommandRail
+            : OrbitCommandBar,
       );
       for (final label in ['Library', 'Systems', 'Capsule', 'Settings']) {
-        expect(find.descendant(of: nav, matching: find.text(label)),
-            findsOneWidget, reason: '$label at $size');
+        expect(
+          find.descendant(of: nav, matching: find.text(label)),
+          findsOneWidget,
+          reason: '$label at $size',
+        );
       }
       for (final gone in ['Cores', 'Continue', 'Favorites']) {
         expect(
           find.descendant(
             of: find.byType(
-              find.byType(OrbitRail).evaluate().isNotEmpty
-                  ? OrbitRail
-                  : OrbitBottomNav,
+              find.byType(OrbitCommandRail).evaluate().isNotEmpty
+                  ? OrbitCommandRail
+                  : OrbitCommandBar,
             ),
             matching: find.text(gone),
           ),
@@ -180,16 +193,40 @@ void main() {
     }
   });
 
-  testWidgets('wide screens use the rail, phones in portrait the bottom bar',
-      (tester) async {
-    for (final size in const [Size(1600, 1000), Size(1024, 768), Size(844, 390)]) {
+  testWidgets('wide screens use the rail, phones in portrait the bottom bar', (
+    tester,
+  ) async {
+    for (final size in const [
+      Size(1600, 1000),
+      Size(1024, 768),
+      Size(844, 390),
+    ]) {
       await pumpShell(tester, size);
-      expect(find.byType(OrbitRail), findsOneWidget, reason: '$size');
-      expect(find.byType(OrbitBottomNav), findsNothing, reason: '$size');
+      expect(find.byType(OrbitCommandRail), findsOneWidget, reason: '$size');
+      expect(find.byType(OrbitCommandBar), findsNothing, reason: '$size');
     }
     await pumpShell(tester, const Size(390, 844));
-    expect(find.byType(OrbitBottomNav), findsOneWidget);
-    expect(find.byType(OrbitRail), findsNothing);
+    expect(find.byType(OrbitCommandBar), findsOneWidget);
+    expect(find.byType(OrbitCommandRail), findsNothing);
+  });
+
+  testWidgets('phone portrait command bar carries Add games', (tester) async {
+    await pumpShell(tester, const Size(390, 844));
+    final bar = find.byType(OrbitCommandBar);
+    expect(
+      find.descendant(of: bar, matching: find.text('Add')),
+      findsOneWidget,
+    );
+    // Touch-first portrait has no key hint row.
+    expect(find.byType(HintRow), findsNothing);
+  });
+
+  testWidgets('desktop and tablet render the hint row', (tester) async {
+    for (final size in const [Size(1440, 900), Size(1024, 768)]) {
+      await pumpShell(tester, size);
+      expect(find.byType(HintRow), findsOneWidget, reason: '$size');
+      expect(find.text('Enter'), findsWidgets, reason: '$size');
+    }
   });
 
   // The status corner shows only what is true: no controller, no P1.
@@ -203,15 +240,18 @@ void main() {
 
   testWidgets('short rail keeps accessible touch targets', (tester) async {
     await pumpShell(tester, const Size(640, 320));
-    final rail = find.byType(OrbitRail);
+    final rail = find.byType(OrbitCommandRail);
     for (final label in ['Library', 'Systems', 'Capsule', 'Settings']) {
       final target = find.descendant(
         of: rail,
         matching: find.bySemanticsLabel(label),
       );
       expect(target, findsOneWidget, reason: label);
-      expect(tester.getSize(target).height, greaterThanOrEqualTo(48),
-          reason: '$label target');
+      expect(
+        tester.getSize(target).height,
+        greaterThanOrEqualTo(48),
+        reason: '$label target',
+      );
     }
   });
 
@@ -235,8 +275,12 @@ void main() {
   testWidgets('the top bar carries the brand on every space', (tester) async {
     await pumpShell(tester, const Size(1280, 720));
     for (final space in ['Systems', 'Capsule', 'Settings', 'Library']) {
-      await tester.tap(find.descendant(
-          of: find.byType(OrbitRail), matching: find.text(space)));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(OrbitCommandRail),
+          matching: find.text(space),
+        ),
+      );
       await tester.pump();
       expect(find.byType(BrandLockup), findsWidgets, reason: space);
     }
@@ -245,12 +289,12 @@ void main() {
   testWidgets('Resume shows the game played last, on any core', (tester) async {
     await pumpShell(tester, const Size(1280, 720));
     expect(find.text('RESUME'), findsOneWidget);
-    expect(find.text('Resume'), findsOneWidget);
+    // The dock's Resume button and the hint row both say Resume.
+    expect(find.text('Resume'), findsWidgets);
     // g1 (Deep Orbit, GameCube) was played after g2.
-    final card = find.ancestor(
-      of: find.text('RESUME'),
-      matching: find.byType(Container),
-    ).first;
+    final card = find
+        .ancestor(of: find.text('RESUME'), matching: find.byType(Container))
+        .first;
     expect(
       find.descendant(of: card, matching: find.text('Deep Orbit')),
       findsWidgets,
@@ -268,10 +312,14 @@ void main() {
     expect(continueRow, findsWidgets);
   });
 
-  testWidgets('no Resume or Continue before anything is played', (tester) async {
-    await pumpShell(tester, const Size(1280, 720), library: [
-      for (final g in games) g.copyWith(lastPlayedMs: 0),
-    ]);
+  testWidgets('no Resume or Continue before anything is played', (
+    tester,
+  ) async {
+    await pumpShell(
+      tester,
+      const Size(1280, 720),
+      library: [for (final g in games) g.copyWith(lastPlayedMs: 0)],
+    );
     expect(find.text('RESUME'), findsNothing);
     expect(find.text('Continue playing'), findsNothing);
     // Nothing above the games, so no "All games" heading: the tabs lead.
@@ -300,8 +348,9 @@ void main() {
     );
   });
 
-  testWidgets('search narrows the grid and says when nothing matches',
-      (tester) async {
+  testWidgets('search narrows the grid and says when nothing matches', (
+    tester,
+  ) async {
     await pumpShell(tester, const Size(1600, 1000));
     await tester.enterText(find.byType(TextField), 'vell');
     await tester.pump();
