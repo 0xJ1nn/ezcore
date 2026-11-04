@@ -6,6 +6,7 @@ import 'services/local_data_dir.dart';
 import 'state/app_state.dart';
 import 'screens/core_manager_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
@@ -98,6 +99,9 @@ class _EmuAppState extends State<EmuApp> {
                 ),
               );
             }
+          }
+          if (OnboardingScreen.shouldShow(state)) {
+            return OnboardingScreen(state: state);
           }
           return Shell(state: state);
         },
