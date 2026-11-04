@@ -8,7 +8,8 @@ import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/collection_view.dart';
 import 'package:ezcore/widgets/cover_flow.dart';
-import 'package:ezcore/widgets/orbit_widgets.dart';
+import 'package:ezcore/widgets/game_dock.dart';
+import 'package:ezcore/widgets/library_header.dart';
 import 'package:ezcore/widgets/pad_navigator.dart';
 import 'package:ezcore/services/gamepad.dart';
 import 'package:flutter/material.dart';
@@ -100,11 +101,9 @@ void main() {
     await t.pump();
   }
 
-  /// The title in the 3D action bar.
+  /// The title in the game dock.
   String barTitle(WidgetTester t) {
-    final bar = find.byWidgetPredicate(
-      (w) => w.runtimeType.toString() == '_FlowBar',
-    );
+    final bar = find.byType(GameDock);
     final texts = t.widgetList<Text>(
       find.descendant(of: bar, matching: find.byType(Text)),
     );
@@ -112,6 +111,14 @@ void main() {
         .map((x) => x.data)
         .whereType<String>()
         .firstWhere((d) => [...games, zeta].any((g) => g.title == d));
+  }
+
+  /// Sort through the View chip's menu.
+  Future<void> chooseSort(WidgetTester t, String label) async {
+    await t.tap(find.byTooltip('View options'));
+    await t.pumpAndSettle();
+    await t.tap(find.text(label));
+    await t.pumpAndSettle();
   }
 
   testWidgets('3D is the default view', (t) async {
@@ -122,7 +129,10 @@ void main() {
   testWidgets('3D opens on the game played last, and offers Resume', (t) async {
     await pump(t, view: CollectionView.flow);
     expect(barTitle(t), 'Beta Run');
-    expect(find.widgetWithText(OrbitPrimary, 'Resume'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(GameDock), matching: find.text('Resume')),
+      findsOneWidget,
+    );
     // No separate Resume card or Continue row in 3D: the shelf is both.
     expect(find.text('RESUME'), findsNothing);
     expect(find.text('Continue playing'), findsNothing);
@@ -145,7 +155,10 @@ void main() {
     await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await t.pumpAndSettle();
     expect(barTitle(t), 'Gamma Zone');
-    expect(find.widgetWithText(OrbitPrimary, "Let's play"), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(GameDock), matching: find.text('Play')),
+      findsOneWidget,
+    );
     await t.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await t.pumpAndSettle();
     expect(barTitle(t), 'Alpha Quest');
@@ -176,19 +189,23 @@ void main() {
 
   testWidgets('a filter brings the shelf back to the front', (t) async {
     await pump(t, view: CollectionView.flow);
-    // Test text is wide (Ahem): scroll the tab row to it.
+    // Test text is wide (Ahem): scroll the chip row to it.
+    final snesChip = find.descendant(
+      of: find.byType(LibraryChips),
+      matching: find.text('SNES'),
+    );
     await t.dragUntilVisible(
-      find.text('Super Nintendo'),
+      snesChip,
       find
           .ancestor(
-            of: find.text('Time capsule'),
+            of: find.byType(LibraryChips),
             matching: find.byType(Scrollable),
           )
           .first,
       const Offset(-120, 0),
     );
     await t.pumpAndSettle();
-    await t.tap(find.text('Super Nintendo'));
+    await t.tap(snesChip);
     await t.pumpAndSettle();
     expect(barTitle(t), 'Gamma Zone');
   });
@@ -200,7 +217,7 @@ void main() {
     await t.pump();
     expect(s.settings[libraryViewKey], 'list');
     expect(find.byType(CoverFlow), findsNothing);
-    expect(find.text('All games'), findsOneWidget);
+    expect(find.byKey(const Key('library-all-games')), findsOneWidget);
     expect(find.textContaining('Not played yet'), findsOneWidget);
     await t.tap(find.byTooltip('Grid'));
     await t.pump();
@@ -246,53 +263,63 @@ void main() {
         ) async {
           await pump(t, view: view, size: e.value);
           expect(t.takeException(), isNull);
-          expect(find.byType(OrbitSearch), findsOneWidget);
-          expect(find.byType(CollectionViewSwitch), findsOneWidget);
-          expect(find.byTooltip('Add games'), findsOneWidget);
-          expect(find.byTooltip('Sort'), findsOneWidget);
-          // The test font is wide, so on phones the later tabs are reached
-          // by scrolling the tab row, as a thumb would.
-          final tabs = find
-              .ancestor(
-                of: find.text('Time capsule'),
-                matching: find.byType(Scrollable),
-              )
-              .first;
-          for (final tab in ['Time capsule', 'Favorites', 'All systems']) {
-            await t.dragUntilVisible(
-              find.text(tab),
-              tabs,
-              const Offset(-80, 0),
-            );
-            expect(find.text(tab), findsOneWidget, reason: tab);
+          // Search is a field on desktop and a round button everywhere else.
+          expect(
+            find.byType(LibrarySearchField).evaluate().isNotEmpty ||
+                find.byTooltip('Search').evaluate().isNotEmpty,
+            isTrue,
+          );
+          expect(find.byTooltip('View options'), findsOneWidget);
+          // A look switch on wide screens; the View menu covers phones.
+          if (find.byType(LibraryLookSwitch).evaluate().isNotEmpty) {
+            expect(find.byType(LibraryLookSwitch), findsOneWidget);
+          }
+          // The test font is wide, so the later chips are reached by
+          // scrolling the chip row, as a thumb would.
+          if (find.byType(LibraryChips).evaluate().isNotEmpty) {
+            final chips = find
+                .ancestor(
+                  of: find.byType(LibraryChips),
+                  matching: find.byType(Scrollable),
+                )
+                .first;
+            for (final chip in ['All games', 'Favorites']) {
+              final target = find.descendant(
+                of: find.byType(LibraryChips),
+                matching: find.text(chip),
+              );
+              await t.dragUntilVisible(target, chips, const Offset(-80, 0));
+              expect(target, findsWidgets, reason: chip);
+            }
           }
         });
       }
     }
   });
 
-  testWidgets('Time capsule: the games you played, latest first', (t) async {
+  testWidgets('sorting starts the shelf at the first game in the new order', (
+    t,
+  ) async {
     await pump(t, view: CollectionView.flow);
-    // Sorting A–Z must not reorder the capsule: it is a history.
-    await t.tap(find.byTooltip('Sort'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('A–Z').last);
-    await t.pumpAndSettle();
-    await t.tap(find.text('Time capsule'));
-    await t.pumpAndSettle();
     expect(barTitle(t), 'Beta Run');
-    expect(find.bySemanticsLabel(RegExp('Game 1 of 2')), findsOneWidget);
+    await chooseSort(t, 'Sort: A–Z');
+    expect(barTitle(t), 'Alpha Quest');
   });
 
-  testWidgets('Time capsule before anything is played says so', (t) async {
+  testWidgets('nothing played still shows the collection, ready to play', (
+    t,
+  ) async {
     await pump(
       t,
-      view: CollectionView.grid,
+      view: CollectionView.flow,
       library: [for (final g in games) g.copyWith(lastPlayedMs: 0)],
     );
-    await t.tap(find.text('Time capsule'));
-    await t.pumpAndSettle();
-    expect(find.textContaining('Games you play land here'), findsOneWidget);
+    // No Continue row or Resume card, but the shelf and its Play action stay.
+    expect(find.text('Continue playing'), findsNothing);
+    expect(
+      find.descendant(of: find.byType(GameDock), matching: find.text('Play')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Favorites is there before you have any, and says how', (
@@ -306,10 +333,7 @@ void main() {
 
   testWidgets('sort by system: games grouped by system', (t) async {
     await pump(t, view: CollectionView.flow, library: [...games, zeta]);
-    await t.tap(find.byTooltip('Sort'));
-    await t.pumpAndSettle();
-    await t.tap(find.text('By system').last);
-    await t.pumpAndSettle();
+    await chooseSort(t, 'Sort: By system');
     expect(barTitle(t), 'Alpha Quest');
     await focusShelf(t);
     await t.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -322,15 +346,56 @@ void main() {
     t,
   ) async {
     for (final view in [CollectionView.grid, CollectionView.list]) {
-      await pump(t, view: view, library: [...games, zeta]);
-      await t.tap(find.byTooltip('Sort'));
-      await t.pumpAndSettle();
-      await t.tap(find.text('By system').last);
-      await t.pumpAndSettle();
+      // Tall enough that the grouped games below Resume and Continue build.
+      await pump(
+        t,
+        view: view,
+        size: const Size(1280, 1600),
+        library: [...games, zeta],
+      );
+      await chooseSort(t, 'Sort: By system');
       final headings = find.bySemanticsLabel(
         RegExp(r'^Game Boy Advance, 2 games$'),
       );
       expect(headings, findsOneWidget, reason: view.label);
     }
+  });
+
+  testWidgets('the look switcher offers all five looks', (t) async {
+    await pump(t, view: CollectionView.flow);
+    for (final label in ['3D shelf', 'Shelf', 'Wall', 'Grid', 'List']) {
+      expect(find.byTooltip(label), findsOneWidget, reason: label);
+    }
+  });
+
+  testWidgets('Q opens the options sheet for the selected game', (t) async {
+    await pump(t, view: CollectionView.flow);
+    await focusShelf(t);
+    await t.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await t.pumpAndSettle();
+    // The design's five rows, in order, with Resume focused first.
+    expect(find.text('Resume'), findsWidgets);
+    expect(find.text('Details and snapshots'), findsOneWidget);
+    // Beta Run is not a favorite yet, so the row offers to add it.
+    expect(find.text('Add to favorites'), findsOneWidget);
+    expect(find.text('Cheats'), findsOneWidget);
+    expect(find.text('Remove from collection'), findsOneWidget);
+  });
+
+  testWidgets('removal asks first, then Undo restores the game', (t) async {
+    final s = await pump(t, view: CollectionView.flow);
+    await t.tap(find.byTooltip('More options'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Remove from collection'));
+    await t.pumpAndSettle();
+    // The confirm defaults to the safe choice; remove deliberately.
+    expect(find.text('Keep it'), findsOneWidget);
+    await t.tap(find.text('Remove'));
+    await t.pumpAndSettle();
+    expect(s.games.any((g) => g.title == 'Beta Run'), isFalse);
+    expect(find.textContaining('Removed'), findsOneWidget);
+    await t.tap(find.text('Undo'));
+    await t.pumpAndSettle();
+    expect(s.games.any((g) => g.title == 'Beta Run'), isTrue);
   });
 }

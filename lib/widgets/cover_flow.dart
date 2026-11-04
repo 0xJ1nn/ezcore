@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,10 @@ class CoverFlow extends StatefulWidget {
     this.showArrows = false,
     this.reflection = false,
     this.autofocus = false,
+    this.angle = 58,
+    this.frontScale = 1.04,
+    this.spread = 0.62,
+    this.reflectionRatio = 0.11,
   });
 
   final int count;
@@ -55,6 +60,18 @@ class CoverFlow extends StatefulWidget {
   /// so ← → work straight away.
   final bool autofocus;
 
+  /// How far each neighbour turns away, in degrees (58 in the design).
+  final double angle;
+
+  /// The focused cover comes forward 60 px by growing 4% (§8.1).
+  final double frontScale;
+
+  /// Distance to the first neighbour, as a share of the cover's width.
+  final double spread;
+
+  /// Reflection height, as a share of the cover's height.
+  final double reflectionRatio;
+
   @override
   State<CoverFlow> createState() => _CoverFlowState();
 }
@@ -68,13 +85,16 @@ class _CoverFlowState extends State<CoverFlow> {
   FocusNode get _focus =>
       widget.focusNode ?? (_ownFocus ??= FocusNode(debugLabel: 'cover flow'));
 
-  /// Horizontal distance between the front item and its first neighbour,
-  /// and between neighbours further out.
-  double get _near => widget.itemSize.width * 0.92;
-  double get _far => widget.itemSize.width * 0.68;
+  /// Horizontal centre distance from the front item to its first neighbour,
+  /// and between the neighbours further out. The design stacks covers almost
+  /// edge to edge, so the first step is wider than the rest.
+  // Prototype: first neighbour 196 px, each further one 104 px (at a 270 px
+  // cover). Scaled to the cover's actual width.
+  double get _near => widget.itemSize.width * (196 / 270);
+  double get _far => widget.itemSize.width * (104 / 270);
 
   /// Reflection height, as a share of the item's.
-  static const _mirror = 0.30;
+  double get _mirror => widget.reflectionRatio;
 
   @override
   void initState() {
@@ -305,17 +325,22 @@ class _CoverFlowState extends State<CoverFlow> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Light pooled on the floor under the front item.
+        // Floor glow under the centre cover (prototype: 520×80, blur 8).
         Positioned(
-          left: width / 2 - w,
+          left: width / 2 - 260,
           top: top + h - 24,
-          width: w * 2,
-          height: 70,
-          child: const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Color(0x55007BFF), Color(0x00007BFF)],
+          width: 520,
+          height: 80,
+          child: IgnorePointer(
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.elliptical(260, 40)),
+                  gradient: RadialGradient(
+                    colors: [Color(0x61007BFF), Color(0x00007BFF)],
+                    stops: [0, 1],
+                  ),
                 ),
               ),
             ),
@@ -337,53 +362,84 @@ class _CoverFlowState extends State<CoverFlow> {
     double w,
     double h,
   ) {
-    final d = delta.abs();
-    final near = math.min(d, 1.0);
-    final x = delta.sign * (near * _near + math.max(d - 1, 0) * _far);
-    final scale = 1 - 0.14 * near - 0.045 * (math.min(d, 4.0) - near);
-    final angle = -delta.sign * near * 26 * math.pi / 180;
-    final dim = (0.32 * math.min(d, 2.0) / 2.0).clamp(0.0, 0.32);
+    final ad = delta.abs();
+    final near = math.min(ad, 1.0);
+    final x = delta.sign *
+        (ad < 1
+            ? _near * ad
+            : _near + (ad - 1) * _far);
+    final angle = -delta.sign * near * widget.angle * math.pi / 180;
+    final scale = front ? widget.frontScale : 1.0;
+    // Prototype translateZ: centre 60 (focused) / 20, neighbours -150 -(a-1)*30.
+    final frontZ = _focused ? 60.0 : 20.0;
+    final z = ad < 1
+        ? frontZ * (1 - ad) - 150.0 * ad
+        : -150.0 - (ad - 1.0) * 30.0;
     final matrix = Matrix4.identity()
-      ..setEntry(3, 2, 0.0009)
+      ..setEntry(3, 2, 1 / 1500)
       ..rotateY(angle)
+      ..translateByDouble(0.0, 0.0, z, 1.0)
       ..scaleByDouble(scale, scale, 1, 1);
-    final radius = BorderRadius.circular(Tokens.radiusCover + 3);
+    final radius = BorderRadius.circular(7);
     final cover = Stack(
       fit: StackFit.expand,
       children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            border: Border.all(
-              color: front
-                  ? (_focused
-                        ? const Color(0xFF4DA3FF)
-                        : const Color(0xB3007BFF))
-                  : const Color(0x00000000),
-              width: 2.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: front
-                    ? const Color(0x8C007BFF)
-                    : const Color(0x99000000),
-                blurRadius: front ? 44 : 18,
-                spreadRadius: front ? 2 : 0,
-                offset: Offset(0, front ? 0 : 12),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(2.5),
-            child: widget.itemBuilder(context, i, front),
-          ),
-        ),
-        if (dim > 0)
+        widget.itemBuilder(context, i, front),
+        // Prototype shade: darkens the inner edge of each neighbour.
+        if (!front)
           IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Color.fromRGBO(4, 8, 14, dim),
                 borderRadius: radius,
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    delta > 0
+                        ? const Color(0x8C060B14)
+                        : Colors.transparent,
+                    delta < 0
+                        ? const Color(0x8C060B14)
+                        : Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Focus border on top of the cover (prototype: 1px accent for the
+        // front item, HALO handled by the shelf's focus).
+        if (front)
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                border: Border.all(
+                  color: _focused ? Tokens.accentHi : Tokens.accent,
+                  width: 1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x8C007BFF),
+                    blurRadius: 34,
+                    spreadRadius: -4,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0xAA000000),
+                    blurRadius: 22,
+                    spreadRadius: -2,
+                    offset: Offset(0, 14),
+                  ),
+                ],
               ),
             ),
           ),
@@ -392,21 +448,22 @@ class _CoverFlowState extends State<CoverFlow> {
     final mirror = h * _mirror;
     return Positioned(
       left: width / 2 + x - w / 2,
-      top: top,
+      // Neighbours sit a touch further back, on the same floor plane.
+      top: top + (front ? 0 : 10),
       width: w,
-      height: widget.reflection ? h + 6 + mirror : h,
+      height: widget.reflection ? h + 10 + mirror : h,
       child: Transform(
         // Turn about the cover's own centre, not the cover plus reflection.
         alignment: Alignment(
           0,
-          widget.reflection ? -1 + h / (h + 6 + mirror) : 0,
+          widget.reflection ? -1 + h / (h + 10 + mirror) : 0,
         ),
         transform: matrix,
         child: widget.reflection
             ? Column(
                 children: [
                   SizedBox(height: h, child: cover),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   SizedBox(
                     height: mirror,
                     child: IgnorePointer(
@@ -415,7 +472,12 @@ class _CoverFlowState extends State<CoverFlow> {
                         shaderCallback: (r) => const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Color(0x59FFFFFF), Color(0x00FFFFFF)],
+                          colors: [
+                            Color(0x00FFFFFF),
+                            Color(0x00FFFFFF),
+                            Color(0x26FFFFFF),
+                          ],
+                          stops: [0.0, 0.74, 1.0],
                         ).createShader(r),
                         child: ClipRect(
                           child: OverflowBox(
