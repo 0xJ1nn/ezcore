@@ -43,12 +43,13 @@ void main() {
       ),
     ];
     await pumpPhone(tester, HomeScreen(state: state));
-    // Phone portrait: Resume for the last game, the add button, filters.
+    // Phone portrait: Resume for the last game, search and the View menu, and
+    // the chips (the test font is wide, so later chips are scrolled to;
+    // library_views_test covers them).
     expect(find.text('Resume'), findsOneWidget);
-    expect(find.byTooltip('Add games'), findsOneWidget);
-    // The tabs lead with Time capsule and Favorites (the test font is wide,
-    // so later tabs are scrolled to; library_views_test covers them).
-    expect(find.text('Time capsule'), findsOneWidget);
+    expect(find.byTooltip('Search'), findsOneWidget);
+    expect(find.byTooltip('View options'), findsOneWidget);
+    expect(find.text('All games'), findsOneWidget);
     expect(find.text('My GBA Dump'), findsWidgets);
   });
 

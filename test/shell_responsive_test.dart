@@ -9,6 +9,8 @@ import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
 import 'package:ezcore/widgets/collection_view.dart';
+import 'package:ezcore/widgets/game_dock.dart';
+import 'package:ezcore/widgets/library_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -245,7 +247,10 @@ void main() {
   testWidgets('Resume shows the game played last, on any core', (tester) async {
     await pumpShell(tester, const Size(1280, 720));
     expect(find.text('RESUME'), findsOneWidget);
-    expect(find.text('Resume'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(GameDock), matching: find.text('Resume')),
+      findsOneWidget,
+    );
     // g1 (Deep Orbit, GameCube) was played after g2.
     final card = find.ancestor(
       of: find.text('RESUME'),
@@ -274,14 +279,26 @@ void main() {
     ]);
     expect(find.text('RESUME'), findsNothing);
     expect(find.text('Continue playing'), findsNothing);
-    // Nothing above the games, so no "All games" heading: the tabs lead.
-    expect(find.text('All games'), findsNothing);
-    expect(find.text('Time capsule'), findsOneWidget);
+    // Nothing above the games, so no "All games" heading: the chips lead.
+    expect(find.byKey(const Key('library-all-games')), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(LibraryChips),
+        matching: find.text('All games'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('filters use system names, never core names', (tester) async {
     await pumpShell(tester, const Size(1600, 1000));
-    expect(find.text('All systems'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(LibraryChips),
+        matching: find.text('All games'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Favorites'), findsOneWidget);
     for (final core in ['powercube', 'superfx', 'blastproc']) {
       expect(find.textContaining(core), findsNothing, reason: core);
