@@ -752,21 +752,26 @@ class OrbitBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: Tokens.bottomBarHeight,
       decoration: Tokens.bottomBarDecor,
       child: SafeArea(
         top: false,
-        child: Row(
-          children: [
-            for (final it in orbitNavItems)
-              Expanded(
-                child: _BottomNavButton(
-                  item: it,
-                  active: page == it.id,
-                  onTap: () => onGo(it.id),
+        // The 64 px bar is content; a phone's gesture inset is added below it
+        // rather than eating into the glyphs and their labels.
+        minimum: EdgeInsets.zero,
+        child: SizedBox(
+          height: Tokens.bottomBarHeight,
+          child: Row(
+            children: [
+              for (final it in orbitNavItems)
+                Expanded(
+                  child: _BottomNavButton(
+                    item: it,
+                    active: page == it.id,
+                    onTap: () => onGo(it.id),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
