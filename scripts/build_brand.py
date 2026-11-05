@@ -376,11 +376,30 @@ def wordmark_svg(ink):
     return doc(ww, CAP, "\n  " + svg_paths(words, ink), "ezCORE")
 
 
-def icon_svg(variant, size=1024, full_bleed=False):
-    """Mark-only icons, the sheet's three variations."""
-    m = size * 0.08 if not full_bleed else 0
+def squircle_d(x, y, s, corner=0.30, n=4.0, steps=24):
+    """iOS-style continuous-corner tile, the shape iPhone masks the
+    full-bleed icon to: straight sides, and corners that are superellipse
+    quarters (curvature eases in, unlike a circular rx)."""
+    c = s * corner
+    pts = []
+    # corner centres (inner) and the quadrant each corner sweeps
+    for (cx, cy, a0) in ((x + s - c, y + c, -90), (x + s - c, y + s - c, 0),
+                         (x + c, y + s - c, 90), (x + c, y + c, 180)):
+        for i in range(steps + 1):
+            t = math.radians(a0 + 90 * i / steps)
+            co, si = math.cos(t), math.sin(t)
+            pts.append((cx + c * math.copysign(abs(co) ** (2 / n), co),
+                        cy + c * math.copysign(abs(si) ** (2 / n), si)))
+    return "M" + " L".join(f"{fmt(px)} {fmt(py)}" for px, py in pts) + " Z"
+
+
+def icon_svg(variant, size=1024, full_bleed=False, squircle=False, margin=None, shadow=False):
+    """Mark-only icons, the sheet's three variations. full_bleed is the
+    iPhone tile (the system rounds it); squircle draws that same tile with
+    the iPhone's rounding baked in, for platforms that do not mask icons."""
+    m = (size * 0.08 if not (full_bleed or squircle) else 0) if margin is None else margin
     s = size - 2 * m
-    r = 0 if full_bleed else s * 0.225
+    r = 0 if (full_bleed or squircle) else s * 0.225
     scale = (s * 0.74) / MARK_W
     mx = m + (s - MARK_W * scale) / 2
     my = m + (s - MARK_H * scale) / 2
@@ -396,10 +415,18 @@ def icon_svg(variant, size=1024, full_bleed=False):
         bg = (f'<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">'
               f'<stop offset="0" stop-color="#1F8BFF"/><stop offset="1" stop-color="#0062E0"/></linearGradient>')
         fill, ink, outline, edge = "url(#bg)", WHITE, True, "#FFFFFF26"
+    if shadow:  # macOS icons float on the Dock with a soft drop shadow
+        bg += ('<filter id="sh" x="-20%" y="-20%" width="140%" height="140%">'
+               f'<feDropShadow dx="0" dy="{fmt(size * 0.012)}" stdDeviation="{fmt(size * 0.014)}" '
+               'flood-color="#000000" flood-opacity="0.45"/></filter>')
     body = f"\n  <defs>{bg}</defs>"
-    body += (f'\n  <rect x="{fmt(m)}" y="{fmt(m)}" width="{fmt(s)}" height="{fmt(s)}" '
-             f'rx="{fmt(r)}" fill="{fill}"/>')
-    if not full_bleed:
+    if squircle:
+        body += (f'\n  <path d="{squircle_d(m, m, s)}" fill="{fill}"'
+                 + (' filter="url(#sh)"' if shadow else "") + "/>")
+    else:
+        body += (f'\n  <rect x="{fmt(m)}" y="{fmt(m)}" width="{fmt(s)}" height="{fmt(s)}" '
+                 f'rx="{fmt(r)}" fill="{fill}"/>')
+    if not (full_bleed or squircle):
         body += (f'\n  <rect x="{fmt(m + 1)}" y="{fmt(m + 1)}" width="{fmt(s - 2)}" height="{fmt(s - 2)}" '
                  f'rx="{fmt(r - 1)}" fill="none" stroke="{edge}" stroke-width="2"/>')
     body += (f'\n  <g transform="translate({fmt(mx)} {fmt(my)}) scale({fmt(scale)})">'
@@ -407,7 +434,20 @@ def icon_svg(variant, size=1024, full_bleed=False):
     return doc(size, size, body, "ezCORE")
 
 
-def app_icon_svg(size=1024):
+def android_foreground_svg(size=432):
+    """Adaptive-icon foreground: the iPhone icon's mark on a transparent
+    108 dp canvas. The launcher masks a 72 dp tile from the middle, and the
+    mark takes the same 74% of that tile it takes on iPhone."""
+    w = size * (0.74 * 72 / 108)
+    scale = w / MARK_W
+    mx = (size - MARK_W * scale) / 2
+    my = (size - MARK_H * scale) / 2
+    body = (f'\n  <g transform="translate({fmt(mx)} {fmt(my)}) scale({fmt(scale)})">'
+            f'{mark_svg(WHITE, light=True, outline=True, uid="ic")}\n  </g>')
+    return doc(size, size, body, "ezCORE")
+
+
+def app_icon_hero_svg(size=1024):
     """The sheet's hero icon: dark glass tile, blue rim light, silver mark
     and the wordmark beneath."""
     m = size * 0.11
@@ -587,7 +627,12 @@ def main():
         "icon-light.svg": icon_svg("light"),
         "icon-blue.svg": icon_svg("blue"),
         "icon-ios.svg": icon_svg("dark", full_bleed=True),
-        "app-icon.svg": app_icon_svg(),
+        # The app icon everywhere is the iPhone icon: same tile, same mark,
+        # with the iPhone's rounding baked in where the system doesn't mask.
+        "app-icon.svg": icon_svg("dark", squircle=True),
+        "icon-macos.svg": icon_svg("dark", squircle=True, margin=100, shadow=True),
+        "icon-android-foreground.svg": android_foreground_svg(),
+        "app-icon-hero.svg": app_icon_hero_svg(),
         "social-preview.svg": social_svg(),
         "palette.svg": palette_svg(),
     }
@@ -603,6 +648,7 @@ def main():
     try:
         b = lambda n: os.path.join(OUT, n)
         render(b("app-icon.svg"), b("app-icon-1024.png"), 1024, env=env)
+        render(b("app-icon-hero.svg"), b("app-icon-hero-1024.png"), 1024, env=env)
         for v in ("dark", "light", "blue"):
             render(b(f"icon-{v}.svg"), b(f"icon-{v}.png"), 512, env=env)
         render(b("lockup-dark.svg"), b("lockup-dark.png"), 1400, env=env)
@@ -610,15 +656,35 @@ def main():
         render(b("mark-white.svg"), b("mark-white.png"), 512, env=env)
         render(b("social-preview.svg"), b("social-preview.png"), 1280, 640, env=env)
         render(b("palette.svg"), b("palette.png"), 1120, env=env)
-        # Platform launcher icons.
-        icon = b("icon-dark.svg")
+        # Platform launcher icons, all the iPhone icon.
+        icon = b("app-icon.svg")
         ios = b("icon-ios.svg")
+        res = os.path.join(ROOT, "android/app/src/main/res")
         android = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
         for d, px in android.items():
-            render(icon, os.path.join(ROOT, f"android/app/src/main/res/mipmap-{d}/ic_launcher.png"), px)
+            # Legacy launchers (before Android 8) show the PNG as is.
+            render(icon, os.path.join(res, f"mipmap-{d}/ic_launcher.png"), px)
+            # Adaptive layers: 108 dp canvas, the launcher masks the shape.
+            render(b("icon-android-foreground.svg"),
+                   os.path.join(res, f"mipmap-{d}/ic_launcher_foreground.png"), px * 108 // 48)
+        os.makedirs(os.path.join(res, "mipmap-anydpi-v26"), exist_ok=True)
+        with open(os.path.join(res, "mipmap-anydpi-v26/ic_launcher.xml"), "w") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n'
+                    '<!-- GENERATED by scripts/build_brand.py: the iPhone icon as an adaptive icon. -->\n'
+                    '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+                    '    <background android:drawable="@drawable/ic_launcher_background"/>\n'
+                    '    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>\n'
+                    '    <monochrome android:drawable="@mipmap/ic_launcher_foreground"/>\n'
+                    '</adaptive-icon>\n')
+        with open(os.path.join(res, "drawable/ic_launcher_background.xml"), "w") as f:
+            f.write('<?xml version="1.0" encoding="utf-8"?>\n'
+                    '<!-- GENERATED by scripts/build_brand.py: the iPhone icon\'s tile gradient. -->\n'
+                    '<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">\n'
+                    f'    <gradient android:angle="270" android:startColor="#151A22" android:endColor="{INK}"/>\n'
+                    '</shape>\n')
         mac = os.path.join(ROOT, "macos/Runner/Assets.xcassets/AppIcon.appiconset")
         for px in (16, 32, 64, 128, 256, 512, 1024):
-            render(icon, os.path.join(mac, f"app_icon_{px}.png"), px)
+            render(b("icon-macos.svg"), os.path.join(mac, f"app_icon_{px}.png"), px)
         iosdir = os.path.join(ROOT, "ios/Runner/Assets.xcassets/AppIcon.appiconset")
         for fn in sorted(os.listdir(iosdir)):
             if not fn.endswith(".png"):
