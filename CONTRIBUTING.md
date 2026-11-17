@@ -1,11 +1,5 @@
 # Contributing
 
-> **North star — real playable cores.** Done means games actually play in real
-> emulator cores with working graphics, audio, correct speed, cheats, 2x/4x
-> fast-forward, save states and battery saves. A green test, a built library, a
-> manifest or a golden hash is evidence on the way, not the goal. Every change
-> should say which game and core prove it. Build code, not markdown.
-
 > How to contribute to ezCORE: the hard rules, how cores are added, licensing,
 > the CLA, and AI-assisted contributions. Architecture lives in
 > [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
