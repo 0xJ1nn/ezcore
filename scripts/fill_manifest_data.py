@@ -52,6 +52,11 @@ EXECUTION = {
     "coinbox": INTERP_ALL,
     "pointclick": INTERP_ALL,
     "lrps2": JIT_DESKTOP,  # built without dynarec on iOS
+    # Newly verified license-clean cores. Both are interpreters with no
+    # required firmware. Desktop-only download delivery (conservative first
+    # release); no mobile builds or pins yet.
+    "potator": INTERP_ALL,
+    "gw": INTERP_ALL,
 }
 
 # Verified against libretro docs/.info (cheats = "true"); families must exist
@@ -70,6 +75,7 @@ _TIER_DESKTOP = [
     "joystick", "cardcon", "twinsh", "coinbox", "pointclick",
     "realmode", "geometry1", "rcp64", "dualscreen", "portcomp",
     "dreamarc", "powercube",
+    "potator", "gw",
 ]
 _TIER_ANDROID = [
     "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
@@ -97,7 +103,12 @@ _TIER_IOS = [
 # GPL-3.0-only app, so its manifest delivery is absent on every OS
 # (b1bb9d9); re-adding it without a license re-clear reopens the
 # violation license_audit rejects.
-_DOWNLOAD_DESKTOP = {"pointclick", "dreamarc", "powercube"}
+_DOWNLOAD_DESKTOP = {
+    "pointclick", "dreamarc", "powercube",
+    # Conservative first release for the new license-clean cores: on-demand
+    # desktop download only, no mobile distribution until those builds exist.
+    "potator", "gw",
+}
 
 # Per-core delivery overrides for cores whose verified surface is narrower
 # than a whole tier. LRPS2 reaches RENDERS on linux-x64 only (docs/MATRIX.md,

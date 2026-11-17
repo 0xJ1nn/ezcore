@@ -1,0 +1,44 @@
+{
+  "id": "potator",
+  "name": "SpritePocket",
+  "version": "1.0.5",
+  "license": "Unlicense",
+  "license_url": "https://github.com/libretro/potator/blob/master/LICENSE",
+  "homepage": "https://github.com/libretro/potator",
+  "upstream": "libretro/potator (based on Normmatt's Watara Supervision emulator)",
+  "systems": [
+    "watara"
+  ],
+  "extensions": [
+    "bin",
+    "sv"
+  ],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {
+    "macos": "download",
+    "windows": "download",
+    "linux": "download",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "linux-x64": "bd1b4f21ba0811374118d3b692240f58e58d2d411e6f170cf3230fcbddc56f34"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  },
+  "provenance": {
+    "built_from": "https://github.com/libretro/potator @ 227c5f6f3ce74d32e9002ce24c1420288559a860",
+    "upstream_license": "Unlicense (public-domain dedication; no attribution required)",
+    "original_author": "libretro/potator contributors (based on Normmatt's version); not individualised in upstream LICENSE",
+    "relationship": "independent build of unmodified upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "modifications": "none to upstream source; built from the pinned commit with the project's standard libretro Makefile"
+  }
+}
