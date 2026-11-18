@@ -33,7 +33,7 @@ void main() {
   });
 
   test('every symbol uses the bundled family', () {
-    expect(Symbols.all, hasLength(104));
+    expect(Symbols.all, hasLength(110));
     for (final symbol in Symbols.all) {
       expect(symbol.fontFamily, 'MaterialSymbolsRounded');
       expect(symbol.codePoint, greaterThan(0));

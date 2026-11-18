@@ -9,6 +9,13 @@ import '../services/art_backfill.dart';
 import '../services/game_art.dart';
 import '../services/gamepad.dart';
 import '../services/haptics.dart';
+import '../support/diamond_section.dart';
+import '../support/entitlement.dart';
+import '../support/open_url.dart';
+import '../support/plans_sheet.dart';
+import '../support/support_ui.dart';
+import '../support/thanks_overlay.dart';
+import '../support/tips_sheet.dart';
 import '../services/pad_mapping.dart';
 import '../services/ui_sounds.dart';
 import '../state/app_state.dart';
@@ -21,6 +28,7 @@ import '../update/update_service.dart';
 import '../version.dart';
 import '../widgets/collection_view.dart' show libraryViewKey;
 import '../widgets/orbit_widgets.dart';
+import '../widgets/orbit_toast.dart';
 
 /// Settings — the six local-preference sections from the studio plate.
 ///
@@ -28,12 +36,21 @@ import '../widgets/orbit_widgets.dart';
 /// same tabs into pills above the rows, and phones drill into one section at a
 /// time. Every preference is stored locally on this device.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.state, this.initialTab});
+  const SettingsScreen({
+    super.key,
+    required this.state,
+    this.initialTab,
+    this.entitlement,
+  });
 
   final AppState state;
 
   /// Opens straight into a section (used by tests and deep links).
   final String? initialTab;
+
+  /// Membership and tip state. Defaults to an inert instance so existing
+  /// holders of this widget keep working; the app passes a live one.
+  final Entitlement? entitlement;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -46,6 +63,7 @@ const _tabs = <_SettingsTabData>[
   _SettingsTabData('Controls', Symbols.sportsEsports),
   _SettingsTabData('Audio', Symbols.volumeUp),
   _SettingsTabData('Storage', Symbols.folder),
+  _SettingsTabData('Diamond', Symbols.diamond),
   _SettingsTabData('About', Symbols.info),
 ];
 
@@ -84,6 +102,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _listening;
 
   final _gamepads = GamepadService.shared;
+  late final Entitlement _entitlement;
+  StreamSubscription<SupportEvent>? _supportSub;
   late final _padMap = PadMapping(widget.state);
   String? _padName;
   VoidCallback? _cancelPadConn;
@@ -93,6 +113,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _entitlement = widget.entitlement ?? Entitlement.inert();
+    _supportSub = _entitlement.events.listen(_onSupportEvent);
     tab = widget.initialTab ?? 'Appearance';
     _phoneSection = widget.initialTab;
     _focusId = _firstRowId(tab);
@@ -123,6 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
+    _supportSub?.cancel();
     _cancelPadConn?.call();
     _updates.removeListener(_onUpdateChanged);
     super.dispose();
@@ -130,6 +153,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _onUpdateChanged() {
     if (mounted) setState(() {});
+  }
+
+  void _onSupportEvent(SupportEvent event) {
+    if (!mounted) return;
+    switch (event.kind) {
+      case SupportEventKind.pending:
+        showOrbitToast(
+          context,
+          message: SupportToasts.pending.$1,
+          icon: SupportToasts.pending.$2,
+          iconColor: Tokens.iconBlue,
+        );
+      case SupportEventKind.failed:
+        showOrbitToast(
+          context,
+          message: SupportToasts.failed.$1,
+          icon: SupportToasts.failed.$2,
+          iconColor: Tokens.dangerText,
+        );
+      case SupportEventKind.restored:
+        showOrbitToast(
+          context,
+          message: SupportToasts.restored.$1,
+          icon: SupportToasts.restored.$2,
+          iconColor: const Color(0xFF7BE0A6),
+        );
+      case SupportEventKind.nothingToRestore:
+        showOrbitToast(
+          context,
+          message: SupportToasts.nothing.$1,
+          icon: SupportToasts.nothing.$2,
+          iconColor: Tokens.muted,
+        );
+      case SupportEventKind.tip:
+        showThanksOverlay(
+          context,
+          productId: event.productId ?? 'tip.coffee',
+          tally: _entitlement.tipTally,
+        );
+      case SupportEventKind.diamond:
+        showOrbitToast(
+          context,
+          message: 'Diamond is active on this device.',
+          icon: Symbols.diamond,
+          iconColor: Tokens.iconBlue,
+        );
+    }
   }
 
   AppState get _state => widget.state;
@@ -207,6 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Controls' => 'ctl.a',
     'Audio' => 'audio.sounds',
     'Storage' => 'store.games',
+    'Diamond' => 'diamond.hero',
     _ => 'about.version',
   };
 
@@ -929,6 +1000,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
         break;
+      case 'Diamond':
+        return DiamondSection(
+          entitlement: _entitlement,
+          onSeePlans: () => showPlansSheet(
+            context,
+            entitlement: _entitlement,
+          ),
+          onRestore: () => _entitlement.restore(),
+          onManage: () => openSupportUrl(manageSubscriptionsUrl()),
+          onTips: () => showTipsSheet(context, entitlement: _entitlement),
+        );
       default:
         add(
           _row(

@@ -42,7 +42,12 @@ abstract final class Symbols {
   static const IconData chevronLeft = IconData(0xe5cb, fontFamily: _family);
   static const IconData chevronRight = IconData(0xe5cc, fontFamily: _family);
   static const IconData close = IconData(0xe5cd, fontFamily: _family);
+  static const IconData cloudSync = IconData(0xeb5a, fontFamily: _family);
+  static const IconData coffee = IconData(0xefef, fontFamily: _family);
   static const IconData contentCopy = IconData(0xe14d, fontFamily: _family);
+  static const IconData developerBoard =
+      IconData(0xe30d, fontFamily: _family);
+  static const IconData diamond = IconData(0xead5, fontFamily: _family);
   static const IconData createNewFolder =
       IconData(0xe2cc, fontFamily: _family);
   static const IconData dashboard = IconData(0xe871, fontFamily: _family);
@@ -71,6 +76,8 @@ abstract final class Symbols {
   static const IconData history = IconData(0xe8b3, fontFamily: _family);
   static const IconData hourglassTop = IconData(0xea5b, fontFamily: _family);
   static const IconData info = IconData(0xe88e, fontFamily: _family);
+  static const IconData joystick = IconData(0xf5ee, fontFamily: _family);
+  static const IconData localPizza = IconData(0xe552, fontFamily: _family);
   static const IconData iosShare = IconData(0xe6b8, fontFamily: _family);
   static const IconData key = IconData(0xe73c, fontFamily: _family);
   static const IconData keyboard = IconData(0xe312, fontFamily: _family);
@@ -154,11 +161,15 @@ abstract final class Symbols {
     chevronLeft,
     chevronRight,
     close,
+    cloudSync,
+    coffee,
     contentCopy,
     createNewFolder,
     dashboard,
     delete,
     description,
+    developerBoard,
+    diamond,
     devices,
     devicesFold,
     done,
@@ -183,6 +194,8 @@ abstract final class Symbols {
     hourglassTop,
     info,
     iosShare,
+    joystick,
+    localPizza,
     key,
     keyboard,
     lock,
