@@ -4,7 +4,7 @@
          the runtime ship inside the APK. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <application
-        android:label="ezCore"
+        android:label="ezCORE"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
