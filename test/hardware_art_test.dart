@@ -30,7 +30,13 @@ void main() {
     'coinbox',
     'pointclick',
     'lrps2',
+    'dualvu',
   };
+
+  /// Artwork a core resolves to when it shares a family asset instead of
+  /// having its own file. DualVU is a PS2 core and uses the design's PS2
+  /// family art, exported as lrps2.webp; no new asset is invented for it.
+  const artOverrides = <String, String>{'dualvu': 'lrps2'};
 
   test('active catalog cores have project artwork assets', () {
     final registry =
@@ -43,8 +49,9 @@ void main() {
 
     expect(active, activeCoreIds);
     for (final id in active) {
+      final expected = 'assets/core_art/${artOverrides[id] ?? id}.webp';
       final artwork = hardwareArtworkAsset(id);
-      expect(artwork, 'assets/core_art/$id.webp', reason: id);
+      expect(artwork, expected, reason: id);
       expect(File(artwork).existsSync(), isTrue, reason: '$id artwork exists');
     }
     expect(File('assets/core_art/generic.webp').existsSync(), isTrue);

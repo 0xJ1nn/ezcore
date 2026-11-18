@@ -139,6 +139,10 @@ const _directArtwork = <String, String>{
   'coinbox': 'coinbox',
   'pointclick': 'pointclick',
   'lrps2': 'lrps2',
+  // DualVU is a PS2 core. The design's PS2 hardware art is exported into the
+  // app as the PS2-family asset lrps2.webp; it has no separate per-core art,
+  // so both PS2 cores share it.
+  'dualvu': 'lrps2',
 };
 
 String _asset(String name) => 'assets/core_art/$name.webp';

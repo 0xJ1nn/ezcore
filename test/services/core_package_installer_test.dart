@@ -276,9 +276,15 @@ void main() {
       final libBytes = List<int>.filled(64, 0x42);
       final m = _manifest('testcore', '0' * 64);
       // Replace the current-platform pin with a foreign platform's pin so the
-      // current platform has no pin, while keeping validation green.
+      // current platform has no pin, while keeping validation green. The
+      // foreign key is chosen relative to the host: on macOS macos-arm64 IS
+      // the current platform, so hardcoding it would leave a pin and turn
+      // this into a pin_mismatch case.
+      final foreignKey = platformKey == 'macos-arm64'
+          ? 'linux-x64'
+          : 'macos-arm64';
       (m['artifacts'] as Map<String, String>).clear();
-      (m['artifacts'] as Map<String, String>)['macos-arm64'] = 'a' * 64;
+      (m['artifacts'] as Map<String, String>)[foreignKey] = 'a' * 64;
       final pkg = await _writePackage(
         base,
         'testcore',

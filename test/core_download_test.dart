@@ -9,6 +9,7 @@ import 'package:ezcore/services/core_staging.dart';
 import 'package:ezcore/services/hash_verifier.dart';
 import 'package:ezcore/services/local_data_dir.dart';
 import 'package:ezcore/services/native_dirs.dart';
+import 'package:ezcore/services/core_path_resolver.dart';
 
 /// On-demand core downloads (hybrid core delivery): release metadata → URL → streamed
 /// fetch → sha256-verified against the manifest pin → vault + registry.
@@ -39,7 +40,11 @@ class FakeFetcher implements CoreAssetFetcher {
   }
 }
 
-CoreManifest _giant(String pin, {Map<String, String>? delivery}) {
+CoreManifest _giant(
+  String pin, {
+  Map<String, String>? delivery,
+  String platformKey = 'linux-x64',
+}) {
   return CoreManifest(
     id: 'giant',
     name: 'Giant Core',
@@ -57,7 +62,7 @@ CoreManifest _giant(String pin, {Map<String, String>? delivery}) {
           'android': 'absent',
           'ios': 'absent',
         },
-    artifacts: {'linux-x64': pin},
+    artifacts: {platformKey: pin},
   );
 }
 
@@ -288,7 +293,14 @@ void main() {
       // Seed the vault exactly as CoreDownloader leaves it.
       final coreDir = Directory('${tmpDir.path}/cores/giant')
         ..createSync(recursive: true);
-      final dest = File('${coreDir.path}/giant.so')
+      // The vault layout uses the host library suffix, not a hard-coded
+      // .so — staging resolves <id>.<hostExt> for the running platform.
+      final hostExt = Platform.isWindows
+          ? 'dll'
+          : (Platform.isMacOS || Platform.isIOS)
+          ? 'dylib'
+          : 'so';
+      final dest = File('${coreDir.path}/giant.$hostExt')
         ..writeAsBytesSync(bytes);
       final stat = dest.statSync();
       File('${dest.path}.ezpin').writeAsStringSync(json.encode({
@@ -302,8 +314,15 @@ void main() {
         hashes: const DartHashVerifier(),
         native: const FallbackNativeDirs(),
       );
-      final staged = await staging.ensureStaged(catalog: [_giant(pin)]);
-
+      // The vault copy was downloaded for this host, so its manifest must
+      // carry the current platform's artifact pin: ensureStaged matches
+      // artifacts against CorePathResolver.currentPlatformKey(), not the
+      // linux-x64 key the explicit download cases use.
+      final staged = await staging.ensureStaged(
+        catalog: [
+          _giant(pin, platformKey: CorePathResolver.currentPlatformKey()),
+        ],
+      );
       expect(staged, contains('giant'),
           reason: 'a downloaded core has no bundled source but must count');
       expect(dest.existsSync(), isTrue,
