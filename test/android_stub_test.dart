@@ -36,6 +36,14 @@ void main() {
   final stub = File('scripts/android-stubs/librt.so');
   final cc = _findCompiler();
   final noCompiler = cc == null ? 'no C compiler available' : null;
+  // The stub is a GNU ld script. Apple's ld64 does not read linker scripts, so
+  // on macOS the positive link check needs an ELF toolchain (GNU ld or LLD, as
+  // on a Linux host) and cannot exercise the stub.
+  final noElfLinker = noCompiler ??
+      (Platform.isMacOS
+          ? 'host linker is Apple ld64, which cannot read GNU ld scripts; '
+              'needs a GNU ld or LLD toolchain (Linux cc)'
+          : null);
 
   test('the librt stub exists', () {
     expect(
@@ -124,7 +132,7 @@ int main(void) {
       final run = Process.runSync(out, []);
       expect(run.exitCode, 0, reason: 'linked binary failed to run');
       expect(run.stdout, isNotEmpty);
-    }, skip: noCompiler);
+    }, skip: noElfLinker);
 
     test('without the stub the same link fails — the stub is load-bearing', () {
       // Negative control. If this ever PASSES, something else on the system

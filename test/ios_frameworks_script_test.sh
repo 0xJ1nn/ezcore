@@ -81,7 +81,13 @@ macho() { # path [install_name]
 }
 
 echo "== refuses cleanly when the Apple toolchain is absent =="
-( unset PATH; PATH=/usr/bin:/bin bash "$SCRIPT" --out "$WORK/o" >"$WORK/e" 2>&1 )
+# A PATH with every tool from /usr/bin and /bin except xcrun. macOS ships
+# /usr/bin/xcrun, so PATH=/usr/bin:/bin alone would still find it there.
+NOX="$WORK/no-xcrun-bin"; mkdir -p "$NOX"
+for f in /usr/bin/* /bin/*; do
+  n=${f##*/}; [ "$n" = xcrun ] || [ -e "$NOX/$n" ] || ln -s "$f" "$NOX/$n"
+done
+( unset PATH; PATH="$NOX" bash "$SCRIPT" --out "$WORK/o" >"$WORK/e" 2>&1 )
 if [ $? -ne 0 ] && grep -q "xcrun not found" "$WORK/e"; then
   ok "no xcrun -> non-zero exit with a clear message"
 else
