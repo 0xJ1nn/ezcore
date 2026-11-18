@@ -123,6 +123,19 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **The app now names itself ezCORE and ships cleanly to TestFlight.** The home-screen
+  label on Android and iOS reads ezCORE, and the iOS app declares that it uses only
+  exempt encryption, so an internal build no longer waits for a manual export-compliance
+  answer. Checked in the change: the manifest label, the iOS display name and the
+  `ITSAppUsesNonExemptEncryption` key. (#75)
+- **The test suite passes on main.** Seven cases that failed on a clean checkout now pass.
+  Fixtures that assumed a Linux host use the current platform key, the host library suffix
+  and a genuinely foreign platform key; the extension sweep covers the two disc formats
+  declared by DualVU; the runtime case uses the build that setup provides; DualVU resolves
+  to the existing PS2-family artwork; and the two host toolchain checks skip with a named
+  reason only where the tool is absent. Nothing was deleted or weakened. Evidence: static
+  analysis clean and the full suite passed, with only the pre-existing named skips. (#77)
+
 - **PSP games draw, and quitting them no longer crashes.** Cores that declare
   their settings the way most libretro cores do (`SET_CORE_OPTIONS_V2_INTL`)
   had every setting silently dropped; PPSSPP then never presented a frame. It
