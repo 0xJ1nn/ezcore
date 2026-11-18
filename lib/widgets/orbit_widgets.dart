@@ -77,54 +77,19 @@ class OrbitRail extends StatelessWidget {
         border: Border(right: BorderSide(color: Color(0x16DDE6F4))),
       ),
       padding: EdgeInsets.symmetric(horizontal: short ? 8 : 10, vertical: 14),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final height = short ? 50.0 : 84.0;
-          // The tagline only where there is room under the four spaces.
-          final tagline = !short && constraints.maxHeight >= 560;
-          return Column(
-            children: [
-              for (final it in orbitNavItems) ...[
-                _RailButton(
-                  item: it,
-                  active: page == it.id,
-                  short: short,
-                  height: height,
-                  onTap: () => onGo(it.id),
-                ),
-                SizedBox(height: short ? 4 : 12),
-              ],
-              const Spacer(),
-              if (tagline)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: ExcludeSemantics(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final w in const ['PLAY', 'PRESERVE', 'ANYWHERE'])
-                          Text(
-                            w,
-                            // Decorative small caps, hidden from screen
-                            // readers, so below the 12 px body floor.
-                            style: const TextStyle(
-                              fontFamily: Tokens.bodyFamily,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 2.6,
-                              color: Tokens.muted,
-                              height: 1.9,
-                            ),
-                          ),
-                        const SizedBox(height: 10),
-                        Container(width: 26, height: 2, color: Tokens.accent),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          );
-        },
+      child: Column(
+        children: [
+          for (final it in orbitNavItems) ...[
+            _RailButton(
+              item: it,
+              active: page == it.id,
+              short: short,
+              height: short ? 50.0 : 84.0,
+              onTap: () => onGo(it.id),
+            ),
+            SizedBox(height: short ? 4 : 12),
+          ],
+        ],
       ),
     );
   }

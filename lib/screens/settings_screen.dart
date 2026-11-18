@@ -1016,11 +1016,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const BrandLockup(height: 34),
           const SizedBox(height: 14),
           Text(
-            Tokens.taglineMain,
-            style: Tokens.body(size: 11, weight: FontWeight.w600, ls: 3.2),
-          ),
-          const SizedBox(height: 8),
-          Text(
             'One app for every system. Pick a game and play; ezCORE picks the '
             'core. Open source, and every core is replaceable.',
             style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),

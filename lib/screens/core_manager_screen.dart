@@ -181,11 +181,6 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'THE CORES THAT PLAY THEM',
-          style: Tokens.eyebrow.copyWith(color: Tokens.muted, height: 1),
-        ),
-        const SizedBox(height: 8),
-        Text(
           'Systems',
           style: Tokens.displayScreen.copyWith(
             // Phones hold the ×0.85 type scale (§3.2): 44 → 37.4.
