@@ -26,26 +26,12 @@ class OrbitTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) return const BrandLockup(height: 22);
-    return LayoutBuilder(
-      builder: (context, c) => Row(
-        children: [
-          const BrandLockup(height: 30),
-          const Spacer(),
-          if (c.maxWidth >= 860) ...[
-            Text(
-              Tokens.taglineMain,
-              style: Tokens.body(
-                size: 10.5,
-                weight: FontWeight.w600,
-                ls: 4.2,
-                color: Tokens.muted,
-              ),
-            ),
-            const SizedBox(width: 28),
-          ],
-          OrbitStatus(subscribeConnection: subscribeConnection),
-        ],
-      ),
+    return Row(
+      children: [
+        const BrandLockup(height: 30),
+        const Spacer(),
+        OrbitStatus(subscribeConnection: subscribeConnection),
+      ],
     );
   }
 }

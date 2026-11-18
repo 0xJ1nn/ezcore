@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/0xJ1nn/ezcore/releases/latest">
-    <img alt="ezCORE — Every game you own. One app. Play more. Struggle less." src="docs/images/readme-hero.png" width="100%">
+    <img alt="The ezCORE game shelf" src="docs/images/readme-hero.png" width="100%">
   </a>
 </p>
 
@@ -11,7 +11,7 @@
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-007BFF?labelColor=0F1825&style=for-the-badge"></a>
 </p>
 
-<h3 align="center">The console-grade home for every game you own.<br>One beautiful app on every screen. Emulators install like apps.</h3>
+<h3 align="center">Emulators install like apps.</h3>
 
 <p align="center">
   <a href="#download"><b>Download</b></a> ·
@@ -34,7 +34,7 @@ Emulation has never had a shortage of emulators. It has had a shortage of **calm
 <tr>
 <td width="50%" valign="top">
 
-### Play more. Struggle less.
+### Open and play
 Open the app and you are back in your last game, exactly where you stopped. Point it at a folder and every game is identified, sorted by system and put on the shelf. No core picking, no config files.
 
 </td>
@@ -230,5 +230,3 @@ Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · core authoring: 
 - **Fonts:** Space Grotesk and Manrope, [SIL Open Font License 1.1](assets/fonts/OFL.txt).
 
 ezCORE stands on the work of the [libretro](https://www.libretro.com/) community and the open-source emulator ecosystem. Screenshots show invented titles with generated cover art. Security: [`SECURITY.md`](SECURITY.md) · help: [`SUPPORT.md`](SUPPORT.md).
-
-<p align="center"><sub>ezCORE · every game you own, one app.</sub></p>

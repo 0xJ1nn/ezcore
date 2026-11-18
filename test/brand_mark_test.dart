@@ -1,50 +1,47 @@
-// The in-app logo is drawn from the generated brand paths
-// (scripts/build_brand.py), in the brand files' proportions.
+// The in-app logos are the exported brand files, rendered into Flutter's
+// density buckets by scripts/render_icons.sh.
 import 'package:ezcore/brand/brand_mark.dart';
-import 'package:ezcore/brand/brand_paths.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('the generated mark and wordmark have their shapes', () {
-    expect(solidMarkPaths, hasLength(2)); // the two halves of the pad
-    expect(wordmarkPaths.length, greaterThanOrEqualTo(7)); // e z C O R E
-    for (final p in [...solidMarkPaths, ...wordmarkPaths]) {
-      expect(p.getBounds().isEmpty, isFalse);
-    }
-    final mark = solidMarkPaths
-        .map((p) => p.getBounds())
-        .reduce((a, b) => a.expandToInclude(b));
-    expect(mark.right, lessThanOrEqualTo(markWidth + 0.5));
-    expect(mark.bottom, lessThanOrEqualTo(markHeight + 0.5));
-  });
+  Future<Image> pumpLogo(WidgetTester t, Widget logo) async {
+    await t.pumpWidget(
+      Directionality(textDirection: TextDirection.ltr, child: logo),
+    );
+    final image = t.widget<Image>(find.byType(Image));
+    expect(image.image, isA<AssetImage>());
+    expect(image.filterQuality, FilterQuality.medium);
+    expect(find.bySemanticsLabel('ezCORE'), findsOneWidget);
+    expect(t.takeException(), isNull);
+    return image;
+  }
 
-  testWidgets('mark, wordmark and lockup keep the brand proportions', (
+  testWidgets('the mark shows the exported mark at its requested height', (
     t,
   ) async {
-    await t.pumpWidget(
-      const Directionality(
-        textDirection: TextDirection.ltr,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              BrandMark(height: 40),
-              BrandWordmark(height: 20),
-              BrandLockup(height: 30),
-            ],
-          ),
-        ),
-      ),
-    );
-    final mark = t.getSize(find.byType(BrandMark).first);
-    expect(mark.width / mark.height, closeTo(markWidth / markHeight, 0.01));
-    final word = t.getSize(find.byType(BrandWordmark).first);
+    final image = await pumpLogo(t, const BrandMark(height: 40));
+    expect((image.image as AssetImage).assetName, 'assets/branding/inapp/mark.png');
+    expect(image.height, 40);
+  });
+
+  testWidgets('the wordmark shows the exported wordmark at its height', (
+    t,
+  ) async {
+    final image = await pumpLogo(t, const BrandWordmark(height: 20));
     expect(
-      word.width / word.height,
-      closeTo(wordmarkWidth / wordmarkHeight, 0.01),
+      (image.image as AssetImage).assetName,
+      'assets/branding/inapp/wordmark.png',
     );
-    expect(find.bySemanticsLabel('ezCORE'), findsWidgets);
-    expect(t.takeException(), isNull);
+    expect(image.height, 20);
+  });
+
+  testWidgets('the lockup shows the exported lockup at its height', (t) async {
+    final image = await pumpLogo(t, const BrandLockup(height: 30));
+    expect(
+      (image.image as AssetImage).assetName,
+      'assets/branding/inapp/lockup.png',
+    );
+    expect(image.height, 30);
   });
 }

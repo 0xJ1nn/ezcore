@@ -28,6 +28,7 @@ flutter:
   assets:
     - cores/
     - assets/core_art/
+    - assets/branding/inapp/
 
   fonts:
     - family: SpaceGrotesk
