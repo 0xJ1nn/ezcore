@@ -49,6 +49,11 @@ const headerless = {
   // LRPS2-only formats the validator accepts with size/text gates (no
   // signature check exists for them yet):
   'dump', 'gz', 'mdf', 'nrg', 'zso',
+  // DualVU disc formats (catalog commit dd7aea3): .mds is the descriptor
+  // that accompanies a .mdf image and .isz is a compressed disc image.
+  // Neither carries a spec-level signature the validator checks, so both
+  // validate on the same binary size/text gates as the formats above.
+  'isz', 'mds',
 };
 
 /// Spec-level magic per extension: (offset, bytes) checks as the real
