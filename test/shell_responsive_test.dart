@@ -197,6 +197,10 @@ void main() {
     await pumpShell(tester, const Size(1280, 720));
     expect(find.text('P1'), findsNothing);
     expect(find.byIcon(Icons.wifi), findsNothing);
+    expect(find.textContaining('GAMES BRING US CLOSER'), findsNothing);
+    expect(find.textContaining('Play. Preserve.'), findsNothing);
+    expect(find.textContaining('PRESERVE'), findsNothing);
+    expect(find.textContaining('SHOULDN'), findsNothing);
     expect(find.byType(BrandLockup), findsWidgets);
   });
 
