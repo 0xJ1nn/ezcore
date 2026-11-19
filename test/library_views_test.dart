@@ -11,6 +11,7 @@ import 'package:ezcore/widgets/cover_flow.dart';
 import 'package:ezcore/widgets/game_dock.dart';
 import 'package:ezcore/widgets/library_header.dart';
 import 'package:ezcore/widgets/pad_navigator.dart';
+import 'package:ezcore/widgets/search_overlay.dart';
 import 'package:ezcore/services/gamepad.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -312,8 +313,13 @@ void main() {
             root.focusNode!.requestFocus();
             await t.pump();
             await t.sendKeyEvent(LogicalKeyboardKey.slash);
-            await t.pump();
-            expect(find.byType(LibrarySearchField), findsOneWidget);
+            // The overlay is a pushed route: give its transition a few frames.
+            for (var i = 0; i < 10; i++) {
+              await t.pump(const Duration(milliseconds: 50));
+            }
+            // `/` now opens the full search overlay; the compact inline field
+            // is no longer revealed. Search stays reachable from the keyboard.
+            expect(find.byType(SearchOverlay), findsOneWidget);
             return;
           }
           // Search is a field on desktop and a round button on phones.
