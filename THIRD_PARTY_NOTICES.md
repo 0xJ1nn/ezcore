@@ -51,6 +51,8 @@ remain in-tree as build recipes. Licenses and upstream sources:
 | `geometry1` | SwanStation | GPL-3.0 | libretro/swanstation |
 | `lrps2` | LRPS2 (libretro port of PCSX2) | GPL-3.0-or-later | libretro/ps2 |
 | `dualvu` | Play! | BSD-2-Clause | jpd002/Play- (in-tree `ui_libretro` target) |
+| `gw` | PocketTick (invented ezCORE name) | Zlib (zlib/libpng, © 2015 Andre Leiradella) | libretro/gw-libretro (Andre Leiradella) |
+| `potator` | SpritePocket (invented ezCORE name) | Unlicense (public-domain dedication) | libretro/potator (based on Normmatt's emulator) |
 
 Notes:
 

@@ -1,0 +1,43 @@
+{
+  "id": "gw",
+  "name": "PocketTick",
+  "version": "1.6.3",
+  "license": "Zlib",
+  "license_url": "https://github.com/libretro/gw-libretro/blob/master/LICENSE",
+  "homepage": "https://github.com/libretro/gw-libretro",
+  "upstream": "libretro/gw-libretro (LCD handheld emulator)",
+  "systems": [
+    "lcdhandheld"
+  ],
+  "extensions": [
+    "mgw"
+  ],
+  "cheats_supported": false,
+  "cheat_families": [],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {
+    "macos": "download",
+    "windows": "download",
+    "linux": "download",
+    "android": "absent",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "linux-x64": "3d68a0797bedb55be236d631fe1d70b8d293a5fc7ed105149a3a358e48bc6467"
+  },
+  "execution": {
+    "macos": "interpreter",
+    "windows": "interpreter",
+    "linux": "interpreter",
+    "android": "interpreter",
+    "ios": "interpreter"
+  },
+  "provenance": {
+    "built_from": "https://github.com/libretro/gw-libretro @ 91d599b951e7bfe7e040347f58667cba20074adc",
+    "upstream_license": "zlib/libpng License, Copyright (c) 2015 Andre Leiradella",
+    "original_author": "Andre Leiradella (upstream LICENSE); libretro contributors",
+    "relationship": "independent build of unmodified upstream source; not affiliated with, endorsed by, or supported by the upstream project",
+    "modifications": "none to upstream source; the ezCORE product name is invented and contains no third-party marks, while the upstream core self-identifies in its own binary metadata, which is left unchanged"
+  }
+}

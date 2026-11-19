@@ -664,6 +664,39 @@ build_dualvu() {
   stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/$out"
 }
 
+# ---------------- New verified-license cores ----------------
+# Each is pinned to the exact upstream commit the artifact was built from.
+# Both are pure interpreters with no required firmware:
+#   potator  — Unlicense (public domain), Watara Supervision
+#   gw       — zlib/libpng, LCD handhelds (upstream: libretro/gw-libretro)
+# Product names and system ids in the manifests are ezCORE-invented; the
+# upstream project names are recorded as provenance only.
+
+POTATOR_SHA=227c5f6f3ce74d32e9002ce24c1420288559a860
+build_potator() {
+  clone https://github.com/libretro/potator.git "$SRC_DIR/potator"
+  core_reset "$SRC_DIR/potator"
+  git -C "$SRC_DIR/potator" cat-file -e "$POTATOR_SHA^{commit}" 2>/dev/null \
+    || git -C "$SRC_DIR/potator" fetch --depth 1 origin "$POTATOR_SHA"
+  git -C "$SRC_DIR/potator" checkout -q --detach "$POTATOR_SHA"
+  core_make "$SRC_DIR/potator/platform/libretro"
+  stage potator "$SRC_DIR/potator/platform/libretro/potator_libretro.$LIB_SUFFIX"
+}
+
+GW_SHA=91d599b951e7bfe7e040347f58667cba20074adc
+build_gw() {
+  clone https://github.com/libretro/gw-libretro.git "$SRC_DIR/gw-libretro"
+  core_reset "$SRC_DIR/gw-libretro"
+  git -C "$SRC_DIR/gw-libretro" cat-file -e "$GW_SHA^{commit}" 2>/dev/null \
+    || git -C "$SRC_DIR/gw-libretro" fetch --depth 1 origin "$GW_SHA"
+  git -C "$SRC_DIR/gw-libretro" checkout -q --detach "$GW_SHA"
+  core_make "$SRC_DIR/gw-libretro"
+  # Makefile.libretro sets TARGET_NAME := gw; unix builds emit gw_libretro.so.
+  out="gw_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="gw_libretro_ios.dylib"
+  stage gw "$SRC_DIR/gw-libretro/$out"
+}
+
 # ---------------- Hold cores: always refuse ----------------
 hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }

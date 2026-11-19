@@ -54,6 +54,11 @@ const headerless = {
   // Neither carries a spec-level signature the validator checks, so both
   // validate on the same binary size/text gates as the formats above.
   'isz', 'mds',
+  // potator (SpritePocket) .sv = raw Watara Supervision cart dumps;
+  // gw (PocketTick) .mgw = Game & Watch "MGW" TAR-like container dumps.
+  // Neither has a reliable byte-0 signature, so both validate on the same
+  // binary size/text gates; content validation stays in the core.
+  'sv', 'mgw',
 };
 
 /// Spec-level magic per extension: (offset, bytes) checks as the real
