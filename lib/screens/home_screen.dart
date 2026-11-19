@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/gestures.dart' show kSecondaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +13,9 @@ import '../theme/layout.dart';
 import '../theme/symbols.dart';
 import '../theme/tokens.dart';
 import '../widgets/collection_view.dart' show libraryViewKey;
+import '../widgets/context_menu.dart';
 import '../widgets/cover_flow.dart';
+import '../widgets/empty_library.dart';
 import '../widgets/focus_glow.dart';
 import '../widgets/game_dock.dart';
 import '../widgets/library_header.dart';
@@ -23,6 +26,7 @@ import '../widgets/library_looks/look_theme.dart';
 import '../widgets/library_looks/look_toast.dart';
 import '../widgets/library_looks/shelf_look.dart';
 import '../widgets/library_looks/wall_look.dart';
+import '../widgets/library_skeleton.dart';
 import '../widgets/orbit_chrome.dart' show OrbitKeyHints;
 import '../widgets/orbit_overlays.dart';
 import '../widgets/orbit_widgets.dart';
@@ -45,6 +49,7 @@ class HomeScreen extends StatefulWidget {
     required this.state,
     this.onOpenCores,
     this.filterRequests,
+    this.loading = false,
   });
 
   final AppState state;
@@ -55,6 +60,10 @@ class HomeScreen extends StatefulWidget {
 
   /// Opens the Cores destination (from the empty state).
   final VoidCallback? onOpenCores;
+
+  /// Shows the collection-reading skeleton instead of the library. A host
+  /// that loads the collection itself sets this while that work is in flight.
+  final bool loading;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -284,8 +293,13 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  void _play(GameEntry g) =>
-      launchGame(context, state, g, resume: g.lastPlayedMs > 0);
+  void _play(GameEntry g) => launchGame(
+    context,
+    state,
+    g,
+    resume: g.lastPlayedMs > 0,
+    onOpenSystems: widget.onOpenCores,
+  );
 
   List<GameEntry> _visible() {
     final q = _search.text.trim().toLowerCase();
@@ -447,8 +461,18 @@ class _HomeScreenState extends State<HomeScreen> {
         skipTraversal: true,
         child: ListenableBuilder(
           listenable: state,
-          builder: (context, _) => LayoutBuilder(
-            builder: (context, c) => _body(c.maxWidth, c.maxHeight),
+          builder: (context, _) => Listener(
+            // Right-click is the pointer's route to the same actions as X on
+            // a pad, drawn as a menu at the pointer (Devices 4d).
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (event) {
+              if (event.buttons & kSecondaryButton != 0) {
+                _openContextMenu(event.position);
+              }
+            },
+            child: LayoutBuilder(
+              builder: (context, c) => _body(c.maxWidth, c.maxHeight),
+            ),
           ),
         ),
       ),
@@ -498,9 +522,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _body(double width, double height) {
+    if (widget.loading) return const LibrarySkeleton();
     final games = state.games;
     if (games.isEmpty) {
-      return CustomScrollView(slivers: [SliverToBoxAdapter(child: _empty())]);
+      final phone =
+          Layout.ofSize(
+            MediaQuery.sizeOf(context),
+            MediaQuery.orientationOf(context),
+          ) ==
+          OrbitLayout.phonePortrait;
+      return EmptyLibrary(
+        phone: phone,
+        onAddGames: _openImport,
+        onOpenSystems: widget.onOpenCores,
+      );
     }
     final modifier = Layout.modifierOf(context);
     final shape = _shape(MediaQuery.sizeOf(context), height);
@@ -1208,6 +1243,63 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     setState(() => _optionsOpen = false);
     if (action == null) return;
+    await _applyGameAction(game, action);
+  }
+
+  /// A right-click opens the same actions at the pointer instead of as a
+  /// sheet. The keyboard hints in the menu teach the mouse-only shortcuts.
+  Future<void> _openContextMenu(Offset at) async {
+    if (_typing || widget.loading || state.games.isEmpty) return;
+    final selected = _selected(_visible());
+    if (selected == null) return;
+    final played = selected.lastPlayedMs > 0;
+    final action = await showContextMenuAt<String>(
+      context,
+      at,
+      items: [
+        ContextMenuItem(
+          label: played ? 'Resume' : 'Play',
+          icon: Symbols.playArrow,
+          value: 'resume',
+          shortcut: 'Enter',
+        ),
+        ContextMenuItem(
+          label: 'Details and snapshots',
+          icon: Symbols.info,
+          value: 'details',
+          shortcut: 'E',
+        ),
+        ContextMenuItem(
+          label: selected.favorite ? 'Remove from favorites' : 'Add to favorites',
+          icon: Symbols.favorite,
+          value: 'favorite',
+          shortcut: 'F',
+        ),
+        ContextMenuItem(
+          label: 'Cheats',
+          icon: Symbols.bolt,
+          value: 'cheats',
+        ),
+        ContextMenuItem(
+          label: 'Show file',
+          icon: Symbols.folderOpen,
+          value: 'file',
+        ),
+        ContextMenuItem(
+          label: 'Remove from collection',
+          icon: Symbols.delete,
+          value: 'remove',
+          shortcut: 'Del',
+          danger: true,
+        ),
+      ],
+    );
+    if (!mounted || action == null) return;
+    await _applyGameAction(selected, action);
+  }
+
+  /// The one dispatcher for the sheet, the pointer menu and the dock's ⋯.
+  Future<void> _applyGameAction(GameEntry game, String action) async {
     switch (action) {
       case 'resume':
         _play(game);
@@ -1217,6 +1309,8 @@ class _HomeScreenState extends State<HomeScreen> {
         state.toggleFavorite(game.id);
       case 'cheats':
         _openCheats(game);
+      case 'file':
+        showOrbitToast(context, message: game.filePath);
       case 'remove':
         await _confirmRemove(game);
     }
@@ -1750,48 +1844,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  Widget _empty() => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Symbols.videogameAsset, size: 44, color: Tokens.muted),
-            const SizedBox(height: 16),
-            Text(
-              'Add your first game',
-              style: Tokens.display(size: 22, weight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'ezCORE plays the game files you own. Pick a file or a folder '
-              'and it finds the right core for each game.',
-              textAlign: TextAlign.center,
-              style: Tokens.body(size: 14, color: Tokens.muted, height: 1.6),
-            ),
-            const SizedBox(height: 20),
-            OrbitPrimary(
-              label: 'Add games',
-              icon: Symbols.add,
-              onPressed: _openImport,
-            ),
-            if (widget.onOpenCores != null) ...[
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: widget.onOpenCores,
-                child: Text(
-                  'See systems',
-                  style: Tokens.body(size: 14, color: Tokens.systemLabelFg),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 /// Where you are on a short shelf: a small run of dots, the current one a
