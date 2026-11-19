@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Signing values may come from the environment or from a Gradle property of
+// the same name (for example in ~/.gradle/gradle.properties). Never print
+// them: they are secrets.
+fun signingValue(name: String): String? =
+    System.getenv(name) ?: (project.findProperty(name) as String?)
+
 android {
     namespace = "com.ezcore.app"
     compileSdk = flutter.compileSdkVersion
@@ -53,25 +59,26 @@ android {
 
     signingConfigs {
         create("release") {
-            // Release signing via environment (CI secrets or local export):
+            // Release signing via environment (CI secrets or local export)
+            // or a Gradle property of the same name:
             // EZCORE_KEYSTORE_FILE, EZCORE_KEYSTORE_PASSWORD,
             // EZCORE_KEY_ALIAS, EZCORE_KEY_PASSWORD.
-            val storePath = System.getenv("EZCORE_KEYSTORE_FILE")
+            val storePath = signingValue("EZCORE_KEYSTORE_FILE")
             if (!storePath.isNullOrBlank()) {
                 storeFile = file(storePath)
-                storePassword = System.getenv("EZCORE_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("EZCORE_KEY_ALIAS")
-                keyPassword = System.getenv("EZCORE_KEY_PASSWORD")
+                storePassword = signingValue("EZCORE_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("EZCORE_KEY_ALIAS")
+                keyPassword = signingValue("EZCORE_KEY_PASSWORD")
             }
         }
     }
 
     buildTypes {
         release {
-            // A keystore without EZCORE_KEYSTORE_FILE falls back to debug
-            // keys so `flutter run --release` works; store builds must set
-            // the env (scripts/release.sh fails loudly otherwise).
-            val hasReleaseKeystore = System.getenv("EZCORE_KEYSTORE_FILE")
+            // Without a keystore (env or Gradle property) the release build
+            // uses the debug keys so `flutter run --release` works; store
+            // builds must supply the four signing values.
+            val hasReleaseKeystore = signingValue("EZCORE_KEYSTORE_FILE")
                 .isNullOrBlank().not()
             signingConfig = if (hasReleaseKeystore) {
                 signingConfigs.getByName("release")

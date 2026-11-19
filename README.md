@@ -157,9 +157,17 @@ ezCORE is free and open source, with no ads and no data collection. It is built 
 
 - **Hardware for testing:** every platform in the Download table becomes *Verified* on real devices.
 - **Time:** GPU rendering, new cores, and verified builds on every platform.
-- **Sponsors get early builds**, and **every sponsor is thanked by username in the release notes** (unless you ask to stay anonymous).
+- **Every sponsor is thanked by username in the release notes** (unless you ask to stay anonymous).
 
-A star helps too: it is how other players find the project.
+A star helps too: it is how other players find the project. Sponsorship never gates the app: every feature and every core is free for everyone, on every platform.
+
+## Diamond and tips
+
+App Store and Google Play builds offer an optional **Diamond** membership. It supports the project and unlocks nothing — it adds a badge and accent in the app and the option to be named in the credits, and every feature and core stays free for everyone whether or not a person subscribes. **Tips** are voluntary one-time purchases that also unlock nothing. Outside the stores, support goes through GitHub Sponsors. Renewal, cancellation and refunds are in [`docs/TERMS.md`](docs/TERMS.md).
+
+## Privacy and terms
+
+The library, saves, settings and tip tally stay on your device. Two things can leave it: the store's purchase check in the store builds, and one daily update request in the desktop downloads, which can be turned off in Settings › About. Read [`docs/PRIVACY.md`](docs/PRIVACY.md) and [`docs/TERMS.md`](docs/TERMS.md). Security reports: [`SECURITY.md`](SECURITY.md) · help: [`SUPPORT.md`](SUPPORT.md).
 
 ## Contributing
 

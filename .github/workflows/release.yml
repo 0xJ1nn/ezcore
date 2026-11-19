@@ -1,242 +1,276 @@
 name: Release
 
-# Manual dispatch: builds each requested platform, uploads artifacts, and
-# creates the GitHub Release from .github/release-notes/<version>.md when
-# that file exists (else generated notes). iOS is intentionally absent —
-# no signing identity yet.
-#
-# CI is not running yet; the maintainer's local release build is the
-# working alternative until it is.
+# Builds the desktop downloads and prepares a draft release. A person reviews
+# the draft and publishes it; the workflow never publishes on its own.
 
 on:
+  push:
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
-        description: "Version tag (e.g., v0.1.1)"
+        description: 'Release tag, for example v0.2.0'
         required: true
         type: string
-      platforms:
-        description: "Comma-separated platforms to build"
-        required: false
-        default: "macos,windows,linux,android"
-        type: string
-      prerelease:
-        description: "Mark the release as a pre-release"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.event.inputs.version }}
+  group: release-${{ github.event.inputs.version || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  # ============ macOS ============
-  release-macos:
-    if: github.event.inputs.platforms == '' || contains(github.event.inputs.platforms, 'macos')
+  macos:
+    name: macOS
     runs-on: macos-latest
-    timeout-minutes: 360
-    steps:
-      - uses: actions/checkout@v7
-      - name: Prereqs
-        run: brew install cmake ninja pkg-config make rgbds libpng mad || true
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - name: Setup
-        run: |
-          python3 scripts/fill_manifest_data.py --check
-          python3 scripts/build_catalog.py
-          scripts/build_core.sh --fetch-headers
-          scripts/build_runtime.sh macos
-          # Full desktop tier: release.sh verifies the staged set against
-          # the committed pins, so a partial tier fails the gate on purpose.
-          scripts/build_core.sh --tier-desktop
-      - name: Release build
-        env:
-          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
-          EZCORE_CODESIGN_IDENTITY: ${{ secrets.EZCORE_CODESIGN_IDENTITY }}
-        run: scripts/release.sh macos --out dist/
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ezcore-macos
-          path: dist/ezcore-*-macos-arm64.zip
-          retention-days: 30
-
-  # ============ Windows ============
-  release-windows:
-    if: github.event.inputs.platforms == '' || contains(github.event.inputs.platforms, 'windows')
-    runs-on: windows-latest
-    timeout-minutes: 300
-    steps:
-      - uses: actions/checkout@v7
-      - uses: msys2/setup-msys2@v2
-        with:
-          install: make mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja python
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - name: Setup
-        shell: msys2 {0}
-        run: |
-          python scripts/fill_manifest_data.py --check
-          python scripts/build_catalog.py
-          scripts/build_runtime.sh windows
-          EZCORE_PLATFORM=windows scripts/build_core.sh --tier-desktop
-      - name: Release build
-        shell: msys2 {0}
-        env:
-          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
-        run: scripts/release.sh windows --out dist/
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ezcore-windows
-          path: dist/ezcore-*-windows-x64.zip
-          retention-days: 30
-
-  # ============ Linux ============
-  release-linux:
-    if: github.event.inputs.platforms == '' || contains(github.event.inputs.platforms, 'linux')
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
-    steps:
-      - uses: actions/checkout@v7
-      - name: Toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build pkg-config libpng-dev libgtk-3-dev clang
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - name: Setup
-        run: |
-          python3 scripts/fill_manifest_data.py --check
-          python3 scripts/build_catalog.py
-          scripts/build_core.sh --fetch-headers
-          scripts/build_runtime.sh linux
-          EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop
-      - name: Release build
-        env:
-          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
-        run: scripts/release.sh linux --out dist/
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ezcore-linux
-          path: dist/ezcore-*-linux-x64.tar.gz
-          retention-days: 30
-
-  # ============ Android ============
-  release-android:
-    if: github.event.inputs.platforms == '' || contains(github.event.inputs.platforms, 'android')
-    runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 180
     env:
-      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
-      # Mapped here so the step can test presence (secrets aren't usable in
-      # step `if:` conditionals directly).
-      EZCORE_KEYSTORE_BASE64: ${{ secrets.EZCORE_KEYSTORE_BASE64 }}
-      EZCORE_KEYSTORE_PASSWORD: ${{ secrets.EZCORE_KEYSTORE_PASSWORD }}
-      EZCORE_KEY_ALIAS: ${{ secrets.EZCORE_KEY_ALIAS }}
-      EZCORE_KEY_PASSWORD: ${{ secrets.EZCORE_KEY_PASSWORD }}
+      TAG: ${{ github.event.inputs.version || github.ref_name }}
+      MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: subosito/flutter-action@v2
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: NDK + CMake
-        run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" "platforms;android-34"
-      - name: Setup
-        run: |
-          python3 scripts/fill_manifest_data.py --check
-          python3 scripts/build_catalog.py
-          scripts/build_runtime.sh android
-          EZCORE_PLATFORM=android scripts/build_core.sh --tier-android
-      - name: Release build (release-signed when the keystore secret exists)
-        env:
-          EZCORE_VERSION: ${{ github.event.inputs.version || 'dev' }}
-        run: |
-          if [ -n "${EZCORE_KEYSTORE_BASE64:-}" ]; then
-            echo "$EZCORE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ezcore.keystore"
-            export EZCORE_KEYSTORE_FILE="$RUNNER_TEMP/ezcore.keystore"
-          else
-            echo "::warning title=Android signing::No EZCORE_KEYSTORE_BASE64 secret — APK will be debug-signed (not for distribution)"
-          fi
-          scripts/release.sh android --out dist/
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ezcore-android
-          path: dist/ezcore-*-android-arm64.apk
-          retention-days: 30
-
-  # ============ Create GitHub Release ============
-  create-release:
-    needs: [release-macos, release-windows, release-linux, release-android]
-    if: |
-      always() && !cancelled() &&
-      (needs.release-macos.result == 'success' ||
-       needs.release-windows.result == 'success' ||
-       needs.release-linux.result == 'success' ||
-       needs.release-android.result == 'success')
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7 # for .github/release-notes/<version>.md
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: dist/
-          pattern: ezcore-*
-          merge-multiple: true
-
-      - name: Checksums
-        run: |
-          cd dist
-          ls -la
-          shasum -a 256 ezcore-* > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      - name: Create Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.inputs.version }}
-          PRERELEASE: ${{ github.event.inputs.prerelease }}
+      - name: Build
         run: |
           set -euo pipefail
-          notes_file=".github/release-notes/${VERSION}.md"
-          if [ -f "$notes_file" ]; then
-            notes=(--notes-file "$notes_file")
-          else
-            echo "::warning title=Release notes::No $notes_file — using generated notes"
-            notes=(--generate-notes)
-          fi
-          flags=()
-          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); else flags+=(--latest); fi
+          flutter pub get
+          flutter build macos --release
+      - name: Archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cd build/macos/Build/Products/Release
+          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCore.app
+      - name: Import signing certificate
+        if: >-
+          env.MACOS_CERT_P12 != '' && env.MACOS_CERT_PASSWORD != '' &&
+          env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' &&
+          env.APPLE_APP_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/ezcore-signing.keychain-db"
+          security create-keychain -p "" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "" "$keychain"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/ezcore.p12"
+          security import "$RUNNER_TEMP/ezcore.p12" \
+            -k "$keychain" -P "$MACOS_CERT_PASSWORD" \
+            -T /usr/bin/codesign -A
+          security list-keychains -d user -s "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -s -k "" "$keychain" > /dev/null
+          rm -f "$RUNNER_TEMP/ezcore.p12"
+      - name: Sign and notarise
+        if: >-
+          env.MACOS_CERT_P12 != '' && env.MACOS_CERT_PASSWORD != '' &&
+          env.APPLE_ID != '' && env.APPLE_TEAM_ID != '' &&
+          env.APPLE_APP_PASSWORD != ''
+        run: |
+          set -euo pipefail
+          app="build/macos/Build/Products/Release/ezCore.app"
+          codesign --force --deep --options runtime --timestamp -s \
+            "$APPLE_TEAM_ID" "$app"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/ezcore-notarise.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/ezcore-notarise.zip" \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" --wait
+          xcrun stapler staple "$app"
+          cd build/macos/Build/Products/Release
+          rm -f "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip"
+          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCore.app
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 30
 
-          assets=(dist/ezcore-* dist/SHA256SUMS.txt)
-          [ "${#assets[@]}" -ge 2 ] || { echo "no artifacts downloaded"; exit 1; }
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      TAG: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Build
+        run: |
+          flutter pub get
+          flutter build windows --release
+      - name: Portable archive
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "dist\ezcore-$env:TAG-windows-x64.zip" -Force
+      - name: Installer
+        shell: pwsh
+        run: |
+          $version = $env:TAG.TrimStart('v')
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "Inno Setup is not installed" }
+          & $iscc /DMyAppVersion=$version `
+            "windows\installer\ezcore.iss"
+          if ($LASTEXITCODE -ne 0) { throw "Installer build failed" }
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/*.zip
+            dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
 
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            "${notes[@]}" "${flags[@]}" \
-            "${assets[@]}"
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      TAG: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config libpng-dev \
+            libgtk-3-dev clang desktop-file-utils
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Build
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build linux --release
+      - name: Archive
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          tar -czf "dist/ezcore-${TAG}-linux-x64.tar.gz" \
+            -C build/linux/x64/release bundle
+      - name: AppImage
+        env:
+          UPDATE_INFORMATION: >-
+            gh-releases-zsync|0xJ1nn|ezcore|latest|ezcore-*x86_64.AppImage.zsync
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$RUNNER_TEMP/appimagetool"
+          appdir="$RUNNER_TEMP/ezcore.AppDir"
+          mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
+            "$appdir/usr/share/icons/hicolor/256x256/apps"
+          cp -a build/linux/x64/release/bundle/. "$appdir/usr/bin/"
+          cp assets/branding/app-icon-1024.png \
+            "$appdir/usr/share/icons/hicolor/256x256/apps/ezcore.png"
+          cat > "$appdir/ezcore.desktop" <<'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=ezCORE
+          Exec=ezcore
+          Icon=ezcore
+          Categories=Game;
+          DESKTOP
+          cp "$appdir/ezcore.desktop" \
+            "$appdir/usr/share/applications/ezcore.desktop"
+          ln -sf usr/share/icons/hicolor/256x256/apps/ezcore.png \
+            "$appdir/ezcore.png"
+          "$RUNNER_TEMP/appimagetool" --appimage-extract-and-run \
+            "$appdir" "dist/ezcore-${TAG}-x86_64.AppImage"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Verify Release
+  draft-release:
+    name: Draft release
+    needs: [macos, windows, linux]
+    if: always() && !cancelled() &&
+      (needs.macos.result == 'success' ||
+       needs.windows.result == 'success' ||
+       needs.linux.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' \
+            -printf '%f\n' | sort | while read -r name; do
+            sha256sum "$name"
+          done > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Release notes from changelog
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          python3 - "$version" <<'PY' > notes.md
+          import sys
+          version = sys.argv[1]
+          lines = open('CHANGELOG.md', encoding='utf-8').read().splitlines()
+          start = next(
+              (i for i, l in enumerate(lines)
+               if l.strip() == f'## [{version}]'),
+              None,
+          )
+          if start is None:
+              start = next(
+                  (i for i, l in enumerate(lines)
+                   if l.strip() == '## [Unreleased]'),
+                  None,
+              )
+          if start is None:
+              print(f'No changelog section for {version}.', file=sys.stderr)
+              sys.exit(1)
+          end = next(
+              (i for i in range(start + 1, len(lines))
+               if lines[i].startswith('## [')),
+              len(lines),
+          )
+          print('\n'.join(lines[start + 1:end]).strip())
+          PY
+      - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.event.inputs.version }}
         run: |
-          gh release view "$VERSION"
-          gh release view "$VERSION" --json assets --jq '.assets[].name'
+          set -euo pipefail
+          assets=(dist/*)
+          if [ "${#assets[@]}" -lt 2 ]; then
+            echo "No release assets were built." >&2
+            exit 1
+          fi
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            --notes-file notes.md \
+            "${assets[@]}"

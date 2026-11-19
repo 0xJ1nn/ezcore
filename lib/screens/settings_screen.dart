@@ -16,6 +16,8 @@ import '../theme/accessibility.dart';
 import '../theme/layout.dart';
 import '../theme/symbols.dart';
 import '../theme/tokens.dart';
+import '../update/update_checker.dart';
+import '../update/update_service.dart';
 import '../version.dart';
 import '../widgets/collection_view.dart' show libraryViewKey;
 import '../widgets/orbit_widgets.dart';
@@ -86,6 +88,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _padName;
   VoidCallback? _cancelPadConn;
 
+  UpdateService get _updates => UpdateService.instance;
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cancelPadConn = _gamepads.onConnection((connected, name) {
       if (mounted) setState(() => _padName = connected ? name : null);
     });
+    _updates.addListener(_onUpdateChanged);
   }
 
   /// One reconciliation point for all three local preference gates.
@@ -119,7 +124,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _cancelPadConn?.call();
+    _updates.removeListener(_onUpdateChanged);
     super.dispose();
+  }
+
+  void _onUpdateChanged() {
+    if (mounted) setState(() {});
   }
 
   AppState get _state => widget.state;
@@ -956,10 +966,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _row(
             id: 'about.privacy',
             label: 'Privacy',
-            description: 'No account, no telemetry, no network connections.',
-            trailing: _ValuePill(value: 'Offline', quiet: true),
+            description:
+                'Your library, saves and settings stay on this device. '
+                'Download builds make one update request a day.',
+            trailing: _ValuePill(value: 'On device', quiet: true),
           ),
         );
+        if (_updates.supported) {
+          add(
+            _row(
+              id: 'about.autoUpdate',
+              label: 'Check for updates automatically',
+              description:
+                  'Once a day, download builds ask whether a newer version '
+                  'has been published. Store builds never check.',
+              trailing: _Toggle(
+                value: _updates.autoCheck,
+                label: 'Check for updates automatically',
+                reduceMotion: reduceMotion,
+                onChanged: (v) => _updates.setAutoCheck(v),
+              ),
+              onTap: () => _updates.setAutoCheck(!_updates.autoCheck),
+            ),
+          );
+          add(
+            _row(
+              id: 'about.checkNow',
+              label: 'Check now',
+              description: _updates.busy
+                  ? 'Looking for a newer version...'
+                  : 'Looks for a newer version and shows what it contains.',
+              trailing: _ValuePill(
+                value: _updates.busy ? 'Checking' : _updateStatusLabel(),
+                quiet: true,
+              ),
+              onTap: _updates.busy ? null : () => _updates.checkNow(),
+            ),
+          );
+        }
+        if (_updates.supported && _updates.result.isUpdate) {
+          add(_updateCard());
+        }
+        if (_updates.supported && _updates.error != null) {
+          add(_updateErrorCard());
+        }
         add(
           _row(
             id: 'about.reset',
@@ -1273,6 +1323,114 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  String _updateStatusLabel() {
+    final result = _updates.result;
+    return switch (result.status) {
+      UpdateStatus.available =>
+        'Update available · ${result.release?.tag ?? ''}',
+      UpdateStatus.upToDate => result.message ?? 'Up to date',
+      UpdateStatus.error => 'Check failed',
+      UpdateStatus.skipped => 'Not checked',
+    };
+  }
+
+  Widget _updateCard() {
+    final release = _updates.result.release;
+    if (release == null) return const SizedBox.shrink();
+    final lines = release.body
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .take(4)
+        .join('\n');
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: _rowBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _rowRing),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Update available · ${release.tag}',
+            style: Tokens.body(size: 17, weight: FontWeight.w700, height: 1.2),
+          ),
+          if (lines.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              lines,
+              style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+            ),
+          ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OrbitPrimary(
+                label: 'Download and install',
+                icon: Symbols.download,
+                minHeight: 44,
+                onPressed: _updates.busy ? null : () => _updates.install(),
+              ),
+              OrbitSecondary(
+                label: 'Release notes',
+                icon: Symbols.description,
+                onPressed: () => _updates.openReleaseNotes(),
+              ),
+              if (_updates.restartRequired)
+                OrbitSecondary(
+                  label: 'Restart',
+                  icon: Symbols.restartAlt,
+                  onPressed: () => _updates.restart(),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _updateErrorCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: _rowBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _rowRing),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Symbols.error, size: 18, color: Tokens.iconBlue),
+              const SizedBox(width: 10),
+              Text(
+                'Update problem',
+                style: Tokens.body(
+                  size: 17,
+                  weight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _updates.error ?? '',
+            style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _aboutCard() {
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -1288,8 +1446,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const BrandLockup(height: 34),
           const SizedBox(height: 14),
           Text(
-            'One app for every system. Pick a game and play; ezCORE picks the '
-            'core. Open source, and every core is replaceable.',
+            'ezCORE is free and open source. Your library, saves and settings '
+            'are kept on this device.',
             style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
           ),
         ],

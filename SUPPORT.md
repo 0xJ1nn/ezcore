@@ -11,9 +11,11 @@
 
 | Channel | Purpose | Response Time |
 |---------|---------|---------------|
-| **GitHub Discussions** | Questions, ideas, community help | Community-driven |
-| **GitHub Issues** | Bug reports, feature requests (use templates) | Triage within 7 days |
+| **GitHub Issues** | Questions, bug reports and feature requests (use templates) | Triage within 7 days |
 | **Security** | Vulnerabilities only — see [SECURITY.md](SECURITY.md) | 48h acknowledgment |
+
+Privacy questions can be raised on the GitHub issues page as well; see
+[PRIVACY.md](docs/PRIVACY.md) and [TERMS.md](docs/TERMS.md) first.
 
 ### What We Don't Support
 
@@ -27,13 +29,24 @@
 
 ### Installation & Setup
 **Q: Where do I download ezCORE?**
-A: [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases) — the current `v0.2.0` release attaches Linux x64 and Android arm64 artifacts; exact assets and verification are listed in the [release notes](.github/release-notes/v0.2.0.md) and [`docs/MATRIX.md`](docs/MATRIX.md). macOS, Windows, and iOS artifacts are not distributed in that release.
+A: The desktop builds are on [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases): a signed and notarised download for macOS, an installer and a portable zip for Windows, and an AppImage and a tar.gz archive for Linux. The iOS and iPadOS builds come from the App Store and the Android build from Google Play; both listings are coming soon. Every official download is listed in the README, and checksums are published with each release.
 
 **Q: macOS says "ezCore.app is damaged" or won't open**
 A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity.)
 
 **Q: Android APK won't install**
 A: Enable "Install unknown apps" for your browser/file manager, and make sure any older ezCORE debug build is uninstalled first (debug and release signatures can't upgrade each other). Release APKs are signed with the project's release keystore.
+
+**Q: How do desktop updates work?**
+A: The Windows, Linux and macOS download builds check once a day for a newer release. When one is found, Settings › About offers the download and the release notes, and verifies the file against the published checksum before opening it. Turn the check off in Settings › About if you prefer. Store builds update through their store.
+
+### Purchases
+
+**Q: What is Diamond?**
+A: An optional subscription in the App Store and Google Play builds that supports the project. It adds the Diamond badge and accent and the option to be named in the credits, and unlocks nothing: every feature and core is free for everyone. See [TERMS.md](docs/TERMS.md) for renewal, cancellation and refunds.
+
+**Q: What are tips?**
+A: One-time purchases that unlock nothing. Outside the stores, support goes through GitHub Sponsors. Purchases are handled by the stores; the app only reads the result on your device.
 
 ### Emulation
 **Q: My game won't load / black screen / crashes**

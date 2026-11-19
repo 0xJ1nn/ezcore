@@ -20,7 +20,6 @@ Rules for contributors and the app itself:
 | "ezCORE" word mark | ™ Reserved |
 | App icon (blue hexagon + "ez") | ™ Reserved |
 | Lockups (horizontal/vertical) | ™ Reserved |
-| "Game → Play" tagline | ™ Reserved |
 | Orbit console UI design language | © Copyright |
 
 ### What This Means
@@ -33,7 +32,7 @@ Rules for contributors and the app itself:
 - Contribute changes back upstream
 
 **You MAY NOT (without explicit written permission):**
-- Publish apps to any store (Play Store, App Store, Microsoft Store, etc.) under the name "ezCORE" or confusingly similar names
+- Publish apps to any store under the name "ezCORE" or confusingly similar names
 - Use the ezCORE app icon, lockups, or brand assets in your builds
 - Represent your fork as the official ezCORE release
 - Use the ezCORE brand in marketing, screenshots, or store listings
@@ -42,11 +41,12 @@ Rules for contributors and the app itself:
 ### For Store Distribution
 
 Only the official maintainer (0xJ1nn) may publish ezCORE to:
-- Google Play Store
+- Google Play
 - Apple App Store / TestFlight
-- Microsoft Store
 - GitHub Releases (official)
 - Any other software distribution platform
+
+There is no Microsoft Store listing.
 
 Forks must:
 1. Use a different app name (e.g., "MyEmu", "RetroCore", etc.)
@@ -63,8 +63,10 @@ platform for trademark infringement. The GPL-3.0 license on the code does
 not grant trademark rights.
 
 **Official builds are only these:** GitHub Releases
-(`0xJ1nn/ezcore`) and, once live, the Play Store listings for
-ezCORE (free) and ezCORE Platinum. Anything else is a fork or a copycat.
+(`0xJ1nn/ezcore`), the App Store listing for ezCORE, and the Google Play
+listing for ezCORE. Both store listings are free to download; the optional
+Diamond membership is bought inside the store builds. Anything else is a fork
+or a copycat.
 
 If you find a copycat, help by capturing evidence (store URL, screenshots,
 package id, date) and reporting it through the platform's IP form:
@@ -73,7 +75,6 @@ package id, date) and reporting it through the platform's IP form:
 |---|---|
 | Google Play | Play Console help → "Report infringement / impersonation" |
 | Apple App Store | Apple's "Report a Concern" form (App Store content) |
-| Microsoft Store | Store policies → "Report an app" |
 | GitHub | `github.com/contact/report-abuse` |
 
 Then note it in the repo's Discussions so users know which listings are
