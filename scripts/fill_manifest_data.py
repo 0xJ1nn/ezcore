@@ -78,6 +78,10 @@ _TIER_ANDROID = [
 _TIER_IOS = [
     "pocketbit", "nesbyte", "superfx", "blastproc",
     "joystick", "cardcon", "realmode", "pointclick",
+    # Interpreter-only iOS builds, verified with the explicit interpreter
+    # flags in scripts/build_core.sh (App Review 2.5.2/4.7: no JIT).
+    "advancebit", "geometry1", "dualscreen", "rcp64",
+    "dreamarc", "dualvu", "lrps2", "twinsh",
     # fbneo excluded: its gated_reason requires IP-lawyer review +
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]
@@ -106,7 +110,7 @@ _PLATFORM_LIMITED = {
         "windows": "absent",
         "linux": "bundled",
         "android": "absent",
-        "ios": "absent",
+        "ios": "bundled",
     },
 }
 
