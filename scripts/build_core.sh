@@ -256,107 +256,14 @@ build_portcomp() {
   # scripts/apply_ppsspp_macos_fix.py is idempotent and refuses loudly
   # when upstream drifts.
   python3 "$ROOT/scripts/apply_ppsspp_macos_fix.py" "$SRC_DIR/ppsspp"
-  if [ "$PLATFORM" = ios ]; then
-    # Upstream Makefile.common is included before the platform block sets
-    # PLATFORM_EXT=darwin, so the generic branch adds the X11 Vulkan define
-    # even for iOS. Remove it; iOS has no X11 and uses GLES/OpenGLES.
-    # Upstream tests the generic `arm64` platform branch before the `ios`
-    # branch, so `ios-arm64` is misdetected as a host arm64 build (GNU ld
-    # flags, .so target). Exclude it from the generic branch.
-    mk="$SRC_DIR/ppsspp/libretro/Makefile"
-    python3 - "$mk" <<'PY'
-import re
-import sys
-p = sys.argv[1]
-s = open(p).read()
-s, n = re.subn(
-    r"else ifneq \(,\$\(findstring arm64,\$\(platform\)\)\)",
-    "else ifneq (,$(findstring arm64,$(filter-out %ios-arm64,$(platform))))",
-    s, count=1)
-if n != 1:
-    raise SystemExit("PPSSPP arm64 platform guard not found; refusing stale patch")
-# Upstream's iOS min-version is 5.0/8.0; our floor is 15.0 and thread_local
-# needs the modern target.
-s = s.replace("-miphoneos-version-min=5.0", "-miphoneos-version-min=15.0")
-s = s.replace("-miphoneos-version-min=8.0", "-miphoneos-version-min=15.0")
-# The generic branch adds a GNU ld flag that Apple's linker rejects.
-s = s.replace("LDFLAGS += -Wl,--gc-sections", "")
-open(p, "w").write(s)
-PY
-    # iOS has no system(3); this call only opens an editor for ini files.
-    fu="$SRC_DIR/ppsspp/Common/File/FileUtil.cpp"
-    python3 - "$fu" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = "int retval = system(iniFile.c_str());"
-if needle in s:
-    open(p, "w").write(s.replace(needle, 'int retval = -1; (void)iniFile;  // ezCORE: no system(3) on iOS', 1))
-PY
-    lua="$SRC_DIR/ppsspp/ext/lua/loslib.c"
-    python3 - "$lua" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = "#define l_system(cmd)\tsystem(cmd)"
-if needle in s:
-    open(p, "w").write(s.replace(needle, "#define l_system(cmd) ((cmd) == NULL ? 0 : -1)", 1))
-PY
-    common="$SRC_DIR/ppsspp/libretro/Makefile.common"
-    python3 - "$common" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = "COREFLAGS += -DVK_USE_PLATFORM_XLIB_KHR\n"
-if needle in s:
-    open(p, "w").write(s.replace(needle, "", 1))
-# The osx-arm64 workaround disables libpng runtime NEON; iOS arm64 has the
-# same missing asm wiring, so apply it there too.
-s = s.replace("ifneq (,$(findstring osx,$(platform)))\nCPUFLAGS += -DPNG_ARM_NEON_OPT=0",
-              "ifneq (,$(filter osx ios-arm64,$(platform)))\nCPUFLAGS += -DPNG_ARM_NEON_OPT=0")
-open(p, "w").write(s)
-PY
-    # A stale generated config can still define HAVE_STRONG_GETAUXVAL from a
-    # previous host build; iOS has no <sys/auxv.h>. Guard that branch.
-    hw="$SRC_DIR/ppsspp/ext/cpu_features/src/hwcaps.c"
-    python3 - "$hw" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-s = s.replace("#if defined(HAVE_STRONG_GETAUXVAL)\n#include <sys/auxv.h>",
-              "#if defined(HAVE_STRONG_GETAUXVAL) && !defined(__APPLE__)\n#include <sys/auxv.h>", 1)
-s = s.replace('#else\n#error "This platform does not provide hardware capabilities."',
-              '#elif defined(__APPLE__)\nstatic unsigned long GetElfHwcapFromGetauxval(uint32_t hwcap_type) {\n  (void)hwcap_type;\n  return 0;\n}\n#else\n#error "This platform does not provide hardware capabilities."', 1)
-open(p, "w").write(s)
-PY
-  fi
-  # PPSSPP's libretro port starts with CPUCore::INTERPRETER on platforms
-  # without JIT capability and exposes a runtime CPU-core option. For the iOS
-  # bundle pin that option's default to Interpreter so no shipped default
-  # selects the dynarec (App Review 2.5.2/4.7).
-  require_interpreter_ios portcomp "runtime CPUCore::INTERPRETER default"
-  if [ "$PLATFORM" = ios ]; then
-    opts="$SRC_DIR/ppsspp/libretro/libretro_core_options.h"
-    python3 - "$opts" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = '         "JIT"\n   },\n   {\n      "ppsspp_fast_memory",'
-if needle in s:
-    open(p, "w").write(s.replace(needle, '         "Interpreter"\n   },\n   {\n      "ppsspp_fast_memory",', 1))
-PY
-  fi
+  require_interpreter_ios portcomp
   # TARGET_ARCH=arm64 (macOS only): the Makefile misdetects arm64
   # (contains "64") as x86_64 and injects -msse/-msse2. Override wins.
   extra=""
-  case "$PLATFORM" in
-    macos|ios) extra="TARGET_ARCH=arm64" ;;
-  esac
+  [ "$PLATFORM" = macos ] && extra="TARGET_ARCH=arm64"
   # shellcheck disable=SC2086
   core_make "$SRC_DIR/ppsspp/libretro" $extra
-  out="ppsspp_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="ppsspp_libretro_ios.dylib"
-  stage portcomp "$SRC_DIR/ppsspp/libretro/$out"
+  stage portcomp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.$LIB_SUFFIX"
   stage_system_data portcomp "$SRC_DIR/ppsspp/assets" PPSSPP
 }
 
@@ -415,9 +322,7 @@ build_twinsh() {
   clone https://github.com/libretro/beetle-saturn-libretro.git "$SRC_DIR/beetle-saturn"
   core_reset "$SRC_DIR/beetle-saturn"
   core_make "$SRC_DIR/beetle-saturn"
-  out="mednafen_saturn_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="mednafen_saturn_libretro_ios.dylib"
-  stage twinsh "$SRC_DIR/beetle-saturn/$out"
+  stage twinsh "$SRC_DIR/beetle-saturn/mednafen_saturn_libretro.$LIB_SUFFIX"
 }
 
 build_rcp64() {
@@ -452,21 +357,10 @@ build_dreamarc() {
   clone https://github.com/flyinghead/flycast.git "$SRC_DIR/flycast"
   core_reset "$SRC_DIR/flycast"
   (cd "$SRC_DIR/flycast" && git submodule update --init --depth 1 --recursive)
-  # Flycast's libretro build has no compile-time JIT switch in its CMake
-  # options; the interpreter/JIT choice is a documented runtime setting. The
-  # explicit argument records that this iOS bundle must use the interpreter.
-  require_interpreter_ios dreamarc "runtime interpreter setting; no JIT flag exposed upstream"
+  require_interpreter_ios dreamarc
   # Thin arm64 on macOS: upstream defaults to universal (x86_64 slice wasted).
   extra=""
   [ "$PLATFORM" = macos ] && extra="-DCMAKE_OSX_ARCHITECTURES=arm64"
-  if [ "$PLATFORM" = ios ]; then
-    # Without CMAKE_SYSTEM_NAME CMake uses the host macOS SDK and produces a
-    # MACOS dylib that the App Store rejects.
-    export CFLAGS="-DIOS -DHAVE_OPENGLES3"
-    export CXXFLAGS="-DIOS -DHAVE_OPENGLES3"
-    extra="-DIOS=ON -DUSE_GLES=ON -DUSE_VULKAN=OFF -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
-    rm -rf "$SRC_DIR/flycast/build-$PLATFORM-$ARCH"
-  fi
   # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/flycast" -B "$SRC_DIR/flycast/build-$PLATFORM-$ARCH" \
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
@@ -491,6 +385,62 @@ build_coinbox() {
 build_pointclick() {
   clone https://github.com/scummvm/scummvm.git "$SRC_DIR/scummvm"
   core_reset "$SRC_DIR/scummvm"
+  # Linux libretro build: Makefile.common:344 generates shared_modules.mk by
+  # sed-blanking the `-include engines/engines.mk` line, but that line is
+  # wrapped in ifeq/endif — the blanking orphans the `endif`, so make fails
+  # with "extraneous 'endif'". Drop the wrapper, keep the include: the sed
+  # then produces a valid file. Idempotent; restored by core_reset.
+  scumm_common="$SRC_DIR/scummvm/Makefile.common"
+  if grep -q 'ifeq (,$(filter updatepot,$(MAKECMDGOALS)))' "$scumm_common" 2>/dev/null; then
+    python3 - "$scumm_common" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+s = s.replace('ifeq (,$(filter updatepot,$(MAKECMDGOALS)))\n-include engines/engines.mk\nendif',
+              '-include engines/engines.mk')
+p.write_text(s)
+PY
+  fi
+  # configure_engines.sh generates config.h.engines/config.mk.engines with the
+  # enabled engine components, but the libretro port does NOT merge the header
+  # into its static include/config.h — instead it curates its own -DUSE_* list
+  # in backends/platform/libretro/Makefile.common. That list drifted behind
+  # config.h.engines: components like sjis and coktel_decoder are enabled on
+  # the make side (their .o files build) but never defined for C++, so engine
+  # code that uses their classes unconditionally fails with "incomplete type"
+  # (e.g. Graphics::FontSJIS in scumm/charset.cpp, Video::CoktelDecoder in
+  # gob/videoplayer.cpp). Enable every component from config.h.engines that
+  # the curated list omits, the same way the existing ones are enabled.
+  # Idempotent; restored by core_reset.
+  lrc_common="$SRC_DIR/scummvm/backends/platform/libretro/Makefile.common"
+  if grep -q '^USE_FAAD          = 1' "$lrc_common" 2>/dev/null && ! grep -q '^USE_SJIS' "$lrc_common" 2>/dev/null; then
+    python3 - "$lrc_common" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+anchor = 'USE_FAAD          = 1\n'
+assert s.count(anchor) == 1, "unexpected USE_FAAD anchor count"
+add = anchor + '''
+# ezCORE: components enabled by configure_engines.sh (config.h.engines) but
+# missing from the libretro curated -DUSE_* list. Engine code uses their
+# classes unconditionally; without these defines the headers gate them out.
+USE_SJIS             = 1
+USE_COKTEL_DECODER   = 1
+USE_HMI_AUDIO        = 1
+USE_MACTOOLBOX       = 1
+USE_MFC              = 1
+USE_MSMPEG4          = 1
+USE_QDM2             = 1
+USE_SVQ1             = 1
+USE_UNIVERSALTRACKER = 1
+USE_UNP64            = 1
+DEFINES += -DUSE_SJIS -DUSE_COKTEL_DECODER -DUSE_HMI_AUDIO -DUSE_MACTOOLBOX \\
+           -DUSE_MFC -DUSE_MSMPEG4 -DUSE_QDM2 -DUSE_SVQ1 \\
+           -DUSE_UNIVERSALTRACKER -DUSE_UNP64
+'''
+p.write_text(s.replace(anchor, add))
+PY
+  fi
   # USE_SYSTEM_mad=1: vendored libmad ships an extensionless `version` stamp
   # file that hijacks libc++'s <version> header (Xcode 27 libc++ includes it
   # from <limits>). USE_SYSTEM_png=1: vendored libpng hits the
@@ -542,57 +492,18 @@ build_powercube() {
   clone https://github.com/libretro/dolphin.git "$SRC_DIR/dolphin-libretro"
   core_reset "$SRC_DIR/dolphin-libretro"
   (cd "$SRC_DIR/dolphin-libretro" && git submodule update --init --depth 1 --recursive)
-  # Dolphin has no JIT backend on iOS at all (manifest execution.ios is
-  # unset); the platform's dynarec is simply not compiled in this build.
-  require_interpreter_ios powercube "no JIT backend on iOS"
+  require_interpreter_ios powercube
   # Deployment target 27.0 (macOS only): bundled curl calls pipe2()
   # (27+ SDK API) and the build sets -Werror=unguarded-availability.
   # Artifact requires macOS 27+; revisit with an @available-guarded curl
   # patch for wider distribution.
   extra=""
   [ "$PLATFORM" = macos ] && extra="-DCMAKE_OSX_DEPLOYMENT_TARGET=27.0"
-  # iOS: bundled curl detects pipe2 and then trips -Werror on the SDK
-  # availability annotation. Downgrade that one warning so the core builds;
-  # pipe2 exists on our iOS 15 deployment target.
-  if [ "$PLATFORM" = ios ]; then
-    # iOS forbids Mach exception ports; Dolphin's sigaction path avoids them.
-    export CFLAGS="-Wno-error=unguarded-availability-new -DUSE_SIGACTION_ON_APPLE -DTARGET_OS_IPHONE=1 -march=armv8-a+crc+aes+sha2"
-    # With the sigaction path the Mach thread-state macros are unused; skip
-    # their definition block so a generic (JIT-less) build does not trip the
-    # "Unsupported architecture" error or reference JitArm64 symbols.
-    mt="$SRC_DIR/dolphin-libretro/Source/Core/Core/MemTools.cpp"
-    python3 - "$mt" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = "#if defined(__APPLE__)\n#include <TargetConditionals.h>"
-if needle in s:
-    open(p, "w").write(s.replace(needle, "#if defined(__APPLE__) && !defined(USE_SIGACTION_ON_APPLE)\n#include <TargetConditionals.h>", 1))
-PY
-    export CXXFLAGS="$CFLAGS"
-    extra="-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_SYSTEM_PROCESSOR=arm64 -DENABLE_GENERIC=ON -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
-    # The CURL CMake probe enables pipe2, but the SDK availability annotation
-    # is enforced as an error after our warning override. Use plain pipe() on
-    # iOS instead, which is available at our deployment target.
-    sp="$SRC_DIR/dolphin-libretro/Externals/curl/curl/lib/socketpair.c"
-    python3 - "$sp" <<'PY'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-needle = "#ifdef HAVE_PIPE2\n"
-if needle in s and "#undef HAVE_PIPE2 /* ezCORE iOS */" not in s:
-    open(p, "w").write(s.replace(needle, "#ifdef __APPLE__\n#undef HAVE_PIPE2 /* ezCORE iOS */\n#endif\n" + needle, 1))
-PY
-    rm -rf "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH"
-  fi
   # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/dolphin-libretro" -B "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH" \
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
   cmake --build "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH" -j"$JOBS"
-  out="dolphin_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="dolphin_libretro_ios.dylib"
-  [ -f "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/$out" ] || out="dolphin_libretro.$LIB_SUFFIX"
-  stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/$out"
+  stage powercube "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH/dolphin_libretro.$LIB_SUFFIX"
   stage_system_data powercube "$SRC_DIR/dolphin-libretro/Data/Sys" dolphin-emu/Sys
 }
 
@@ -608,13 +519,8 @@ build_lrps2() {
   # override the SSE4.1 baseline flags are never applied and GCC rejects
   # PCSX2's intrinsics ("target specific option mismatch" on _mm_min_epu32).
   # The arm64 backend is selected from `uname -m` and is unaffected.
-  x86flag="IS_X86=1"
-  [ "$PLATFORM" = ios ] && x86flag="IS_X86=0"
-  # shellcheck disable=SC2086
-  core_make "$SRC_DIR/lrps2" $x86flag
-  out="pcsx2_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="pcsx2_libretro_ios.dylib"
-  stage lrps2 "$SRC_DIR/lrps2/$out"
+  core_make "$SRC_DIR/lrps2" IS_X86=1
+  stage lrps2 "$SRC_DIR/lrps2/pcsx2_libretro.so"
 }
 
 # DualVU — Play! (jpd002/Play-) ui_libretro, the BIOS-free PS2 path. BSD-2-Clause.
@@ -648,20 +554,12 @@ build_dualvu() {
   apply_dualvu_patch "$SRC_DIR/play/deps/Framework" "$ROOT/patches/play/0002-framework-hex-parse.patch"
   # -j2 by default: each PlayCore translation unit is large and the target
   # machine is RAM-bound (the brief pins this). Raise only with RAM free.
-  ioscmake=""
-  if [ "$PLATFORM" = ios ]; then
-    ioscmake="-DTARGET_IOS=ON -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
-    rm -rf "$SRC_DIR/play/build-libretro"
-  fi
-  # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/play" -B "$SRC_DIR/play/build-libretro" \
-    -DCMAKE_BUILD_TYPE=Release $ioscmake \
+    -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_LIBRETRO_CORE=ON -DBUILD_PLAY=OFF -DBUILD_TESTS=OFF -DBUILD_PSFPLAYER=OFF
   cmake --build "$SRC_DIR/play/build-libretro" --target play_libretro \
     -j"${DUALVU_JOBS:-2}"
-  out="play_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="play_libretro_ios.dylib"
-  stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/$out"
+  stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/play_libretro.$LIB_SUFFIX"
 }
 
 # ---------------- Hold cores: always refuse ----------------
