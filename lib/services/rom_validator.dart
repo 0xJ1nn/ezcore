@@ -794,6 +794,11 @@ class RomValidator {
         'sg', 'sfc', 'smc',
         // container/disc dumps without a canonical byte-0 magic:
         'dol', 'gcm', 'cdi', 'rvz', 'pbp', 'prx',
+        // potator (SpritePocket) .sv = raw Watara Supervision cart dumps;
+        // gw (PocketTick) .mgw = Game & Watch "MGW" TAR-like containers.
+        // Neither has a reliable byte-0 signature; content validation
+        // stays in the core, so both pass the binary size/text gates.
+        'sv', 'mgw',
       }.contains(ext);
 
   /// Returns the system id of the strongest foreign signature in
