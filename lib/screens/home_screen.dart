@@ -25,6 +25,7 @@ import '../widgets/library_looks/wall_look.dart';
 import '../widgets/orbit_chrome.dart' show OrbitKeyHints;
 import '../widgets/orbit_overlays.dart';
 import '../widgets/orbit_widgets.dart';
+import '../widgets/search_overlay.dart';
 import 'cheats_screen.dart';
 import 'game_detail_screen.dart';
 import 'import_screen.dart';
@@ -70,6 +71,39 @@ enum _Sort {
 /// Filter ids that are not a system id.
 const _favoritesTab = 'favorites';
 const _allTab = 'all';
+
+/// Letters that open search with that character pre-filled (§4.2). Q, E, P and
+/// V keep their own library actions; 1–4 stay with the shell's destinations.
+const _searchLetterKeys = <(LogicalKeyboardKey, String)>[
+  (LogicalKeyboardKey.keyA, 'a'),
+  (LogicalKeyboardKey.keyB, 'b'),
+  (LogicalKeyboardKey.keyC, 'c'),
+  (LogicalKeyboardKey.keyD, 'd'),
+  (LogicalKeyboardKey.keyF, 'f'),
+  (LogicalKeyboardKey.keyG, 'g'),
+  (LogicalKeyboardKey.keyH, 'h'),
+  (LogicalKeyboardKey.keyI, 'i'),
+  (LogicalKeyboardKey.keyJ, 'j'),
+  (LogicalKeyboardKey.keyK, 'k'),
+  (LogicalKeyboardKey.keyL, 'l'),
+  (LogicalKeyboardKey.keyM, 'm'),
+  (LogicalKeyboardKey.keyN, 'n'),
+  (LogicalKeyboardKey.keyO, 'o'),
+  (LogicalKeyboardKey.keyR, 'r'),
+  (LogicalKeyboardKey.keyS, 's'),
+  (LogicalKeyboardKey.keyT, 't'),
+  (LogicalKeyboardKey.keyU, 'u'),
+  (LogicalKeyboardKey.keyW, 'w'),
+  (LogicalKeyboardKey.keyX, 'x'),
+  (LogicalKeyboardKey.keyY, 'y'),
+  (LogicalKeyboardKey.keyZ, 'z'),
+  (LogicalKeyboardKey.digit0, '0'),
+  (LogicalKeyboardKey.digit5, '5'),
+  (LogicalKeyboardKey.digit6, '6'),
+  (LogicalKeyboardKey.digit7, '7'),
+  (LogicalKeyboardKey.digit8, '8'),
+  (LogicalKeyboardKey.digit9, '9'),
+];
 
 /// The order the design lists system chips in (§8.1): Nintendo handhelds and
 /// consoles by generation, then the other platforms.
@@ -392,8 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
-      bindings: {
-        for (final a in librarySearchActivators) a: _openSearch,
+      bindings: <ShortcutActivator, VoidCallback>{
+        for (final a in librarySearchActivators) a: () => _openSearch(),
+        for (final e in _searchLetterKeys)
+          SingleActivator(e.$1): () => _openSearch(letter: e.$2),
         const SingleActivator(LogicalKeyboardKey.keyQ): _quickOptions,
         const SingleActivator(LogicalKeyboardKey.keyE): _quickDetails,
         const SingleActivator(LogicalKeyboardKey.keyV): _cycleLook,
@@ -418,11 +454,18 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// `/` and ⌘K open search on every family. Where the short rhythm hides the
-  /// header field, this reveals the compact one before moving focus into it.
-  void _openSearch() {
-    if (!_phoneSearchOpen) setState(() => _phoneSearchOpen = true);
-    _searchFocus.requestFocus();
+  /// `/` and ⌘K open the full search overlay on every family. A letter or
+  /// digit opens it with that character already typed (§4.2). The overlay
+  /// returns the game the player picked, which opens its detail page.
+  Future<void> _openSearch({String? letter}) async {
+    if (letter != null && _typing) return;
+    final picked = await showSearchOverlay(
+      context,
+      games: state.games,
+      initialQuery: letter ?? '',
+    );
+    if (!mounted || picked == null) return;
+    _openDetail(picked);
   }
 
   void _quickOptions() {

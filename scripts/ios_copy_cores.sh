@@ -41,4 +41,4 @@ for d in "$SRC"/*/; do
   echo "wrapped $id"
 done
 
-echo "wrapped $(find "$FWROOT" -name '*_libretro.dylib' | wc -l | tr -d ' ') cores"
+find "$FWROOT" -type f | head -40
