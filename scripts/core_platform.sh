@@ -77,13 +77,18 @@ ios_fix_min_version() { # file
   sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
   xcrun vtool -arch "$ARCH" -set-build-version ios "$IOS_MINOS" "$sdk" \
     -output "$1.fixed" "$1" && mv "$1.fixed" "$1"
-  local minos
-  minos="$(vtool -show-build "$1" | grep -A3 LC_BUILD_VERSION | grep minos | head -n 1)"
+  # A cross-built dylib can carry more than one LC_BUILD_VERSION (a macOS
+  # entry from the upstream toolchain plus the iOS one we set). Only the IOS
+  # entry governs App Store validation; read that one, not the first minos.
+  local shown minos
+  shown="$(vtool -show-build "$1")"
+  if ! printf '%s\n' "$shown" | grep -A4 -E "platform[[:space:]]+IOS" \
+      | grep -qE "minos[[:space:]]+$IOS_MINOS"; then
+    echo "REFUSED: minos repair failed for $1" >&2
+    return 1
+  fi
+  minos="$(printf '%s\n' "$shown" | grep -A4 -E "platform[[:space:]]+IOS" | grep minos | head -n 1)"
   echo "-- minos check: $minos"
-  case "$minos" in
-    *"$IOS_MINOS"*) ;;
-    *) echo "REFUSED: minos repair failed for $1" >&2; return 1 ;;
-  esac
 }
 
 android_toolchain() {
