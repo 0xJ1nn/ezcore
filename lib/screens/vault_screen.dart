@@ -64,13 +64,6 @@ class _VaultScreenState extends State<VaultScreen> {
                 ls: -1.0,
               ),
             ),
-            if (!ultraCompact) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Not just where you stopped. Where you want to return.',
-                style: Tokens.body(size: 12, color: Tokens.muted, height: 1.6),
-              ),
-            ],
           ],
         );
         final badge = Container(
