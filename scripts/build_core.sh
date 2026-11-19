@@ -400,6 +400,30 @@ build_pointclick() {
   if grep -q '!defined(MACOS) && !defined(TARGET_OS_MAC)' "$fzconf" 2>/dev/null; then
     sed -i.bak 's/#if !defined(MACOS) \&\& !defined(TARGET_OS_MAC)/#if 1 \/* ezCORE: Byte is identical (unsigned char) on all targets *\//' "$fzconf" && rm -f "$fzconf.bak"
   fi
+  # Upstream wraps `-include engines/engines.mk` in an ifeq/endif block, but
+  # the libretro Makefile strips only the include line when it generates
+  # shared_modules.mk. That leaves a dangling `endif` and make stops with
+  # "extraneous `endif'". Collapse the block to the bare include so the
+  # generated file is valid. Idempotent; core_reset restores it on switches.
+  rootmc="$SRC_DIR/scummvm/Makefile.common"
+  python3 - "$rootmc" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+block = "ifeq (,$(filter updatepot,$(MAKECMDGOALS)))\n-include engines/engines.mk\nendif\n"
+if block in s:
+    open(p, "w").write(s.replace(block, "-include engines/engines.mk\n", 1))
+PY
+  # Current upstream moved FontSJIS/FontTowns into graphics/sjis.h and no
+  # longer pulls it in through graphics/font.h, so the SCUMM engine fails to
+  # compile against an "incomplete type" / missing FontTowns. Add the direct
+  # include. Idempotent; core_reset restores it on switches.
+  charset="$SRC_DIR/scummvm/engines/scumm/charset.cpp"
+  if grep -q '#include "graphics/sjis.h"' "$charset" 2>/dev/null; then
+    :
+  elif grep -q '#include "graphics/font.h"' "$charset" 2>/dev/null; then
+    sed -i.bak '/#include "graphics\/font.h"/a\#include "graphics/sjis.h"' "$charset" && rm -f "$charset.bak"
+  fi
   if [ "$PLATFORM" = macos ]; then
     # DEBUG_ALLOW_DIRTY_SUBMODULES=1: same reason as the mobile branch —
     # their configure_submodules.sh git-reset --hard's any dirty dep at
