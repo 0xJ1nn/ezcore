@@ -459,6 +459,14 @@ build_dreamarc() {
   # Thin arm64 on macOS: upstream defaults to universal (x86_64 slice wasted).
   extra=""
   [ "$PLATFORM" = macos ] && extra="-DCMAKE_OSX_ARCHITECTURES=arm64"
+  if [ "$PLATFORM" = ios ]; then
+    # Without CMAKE_SYSTEM_NAME CMake uses the host macOS SDK and produces a
+    # MACOS dylib that the App Store rejects.
+    export CFLAGS="-DIOS -DHAVE_OPENGLES3"
+    export CXXFLAGS="-DIOS -DHAVE_OPENGLES3"
+    extra="-DIOS=ON -DUSE_GLES=ON -DUSE_VULKAN=OFF -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
+    rm -rf "$SRC_DIR/flycast/build-$PLATFORM-$ARCH"
+  fi
   # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/flycast" -B "$SRC_DIR/flycast/build-$PLATFORM-$ARCH" \
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
@@ -547,7 +555,22 @@ build_powercube() {
   # availability annotation. Downgrade that one warning so the core builds;
   # pipe2 exists on our iOS 15 deployment target.
   if [ "$PLATFORM" = ios ]; then
-    extra="-DCMAKE_C_FLAGS=-Wno-error=unguarded-availability-new"
+    # iOS forbids Mach exception ports; Dolphin's sigaction path avoids them.
+    export CFLAGS="-Wno-error=unguarded-availability-new -DUSE_SIGACTION_ON_APPLE -DTARGET_OS_IPHONE=1 -march=armv8-a+crc+aes+sha2"
+    # With the sigaction path the Mach thread-state macros are unused; skip
+    # their definition block so a generic (JIT-less) build does not trip the
+    # "Unsupported architecture" error or reference JitArm64 symbols.
+    mt="$SRC_DIR/dolphin-libretro/Source/Core/Core/MemTools.cpp"
+    python3 - "$mt" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = "#if defined(__APPLE__)\n#include <TargetConditionals.h>"
+if needle in s:
+    open(p, "w").write(s.replace(needle, "#if defined(__APPLE__) && !defined(USE_SIGACTION_ON_APPLE)\n#include <TargetConditionals.h>", 1))
+PY
+    export CXXFLAGS="$CFLAGS"
+    extra="-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_SYSTEM_PROCESSOR=arm64 -DENABLE_GENERIC=ON -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
     # The CURL CMake probe enables pipe2, but the SDK availability annotation
     # is enforced as an error after our warning override. Use plain pipe() on
     # iOS instead, which is available at our deployment target.
@@ -625,12 +648,20 @@ build_dualvu() {
   apply_dualvu_patch "$SRC_DIR/play/deps/Framework" "$ROOT/patches/play/0002-framework-hex-parse.patch"
   # -j2 by default: each PlayCore translation unit is large and the target
   # machine is RAM-bound (the brief pins this). Raise only with RAM free.
+  ioscmake=""
+  if [ "$PLATFORM" = ios ]; then
+    ioscmake="-DTARGET_IOS=ON -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=$IOSSDK -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=arm64"
+    rm -rf "$SRC_DIR/play/build-libretro"
+  fi
+  # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/play" -B "$SRC_DIR/play/build-libretro" \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=Release $ioscmake \
     -DBUILD_LIBRETRO_CORE=ON -DBUILD_PLAY=OFF -DBUILD_TESTS=OFF -DBUILD_PSFPLAYER=OFF
   cmake --build "$SRC_DIR/play/build-libretro" --target play_libretro \
     -j"${DUALVU_JOBS:-2}"
-  stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/play_libretro.$LIB_SUFFIX"
+  out="play_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="play_libretro_ios.dylib"
+  stage dualvu "$SRC_DIR/play/build-libretro/Source/ui_libretro/$out"
 }
 
 # ---------------- Hold cores: always refuse ----------------
