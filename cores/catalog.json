@@ -16,7 +16,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "bundled",
-      "ios": "bundled",
+      "ios": "absent",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -323,7 +323,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "bundled",
+      "ios": "absent",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -368,7 +368,7 @@
     "delivery": {
       "android": "absent",
       "ios": "absent",
-      "linux": "absent",
+      "linux": "bundled",
       "macos": "absent",
       "windows": "absent"
     },
@@ -475,7 +475,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "bundled",
+      "ios": "absent",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -891,7 +891,7 @@
     },
     "delivery": {
       "android": "absent",
-      "ios": "bundled",
+      "ios": "absent",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"

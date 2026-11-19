@@ -16,6 +16,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Cover titles balance across lines in the measured library looks.
+Finder findCoverWords(String title) => find.byWidgetPredicate(
+  (w) => w is Text && w.data?.replaceAll(RegExp(r'\s+'), ' ').trim() == title,
+);
+
 /// Whole-shell gate for layout option A (Library · Cores · Settings).
 ///
 /// Pumps the real [Shell] at every viewport the app supports, because the
@@ -320,11 +325,11 @@ void main() {
     final grid = find.byType(SliverGrid);
     expect(grid, findsOneWidget);
     expect(
-      find.descendant(of: grid, matching: find.text('Meadow Isles')),
+      find.descendant(of: grid, matching: findCoverWords('Meadow Isles')),
       findsWidgets,
     );
     expect(
-      find.descendant(of: grid, matching: find.text('Bluestreak')),
+      find.descendant(of: grid, matching: findCoverWords('Bluestreak')),
       findsNothing,
     );
   });
@@ -336,11 +341,11 @@ void main() {
     await tester.pump();
     final grid = find.byType(SliverGrid);
     expect(
-      find.descendant(of: grid, matching: find.text('Lanterns of Vell')),
+      find.descendant(of: grid, matching: findCoverWords('Lanterns of Vell')),
       findsWidgets,
     );
     expect(
-      find.descendant(of: grid, matching: find.text('Deep Orbit')),
+      find.descendant(of: grid, matching: findCoverWords('Deep Orbit')),
       findsNothing,
     );
     await tester.enterText(find.byType(TextField), 'no such game');

@@ -119,27 +119,18 @@ ezCORE hosts the best open-source emulators through the [libretro](https://www.l
 | 3DS · Switch | — | Held by project policy |
 
 > ezCORE ships **no games, BIOS files or keys**. It is the shelves, not the discs. System names describe compatibility only; the marks belong to their owners ([`TRADEMARKS.md`](TRADEMARKS.md)).
->
-> Every core keeps its own licence and credits its upstream project. The full list, with source links, is in [`docs/CORES.md`](docs/CORES.md).
 
 ## Download
 
 | Platform | Get it | Status |
 |---|---|---|
-| **Android arm64** | [Direct APK (v0.2.0)](https://github.com/0xJ1nn/ezcore/releases/download/v0.2.0/ezcore-0.2.0-android-arm64.apk) · [all releases](https://github.com/0xJ1nn/ezcore/releases) | Builds; on-device testing continues |
-| **Linux x64** | [Direct archive (v0.2.0)](https://github.com/0xJ1nn/ezcore/releases/download/v0.2.0/ezcore-0.2.0-linux-x64.tar.gz) · [build from source](docs/BUILDING.md) | Runs and is tested here |
+| **Linux x64** | [Build from source](docs/BUILDING.md) · release archive with the next release | Runs and is tested here |
+| **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | Builds; on-device testing continues |
 | **macOS arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.zip` | Ran at v0.1.1; the current build is not yet re-verified |
 | **Windows x64** | [Build from source](docs/BUILDING.md) | Not yet verified |
-| **iOS** | Early builds are distributed through TestFlight. Ask for an invite through [Support](SUPPORT.md); Apple requires cores to be built into the app. | Early builds; the bundled core set is expanding |
+| **iOS** | [Build guide](docs/BUILDING.md) | Not yet verified (Apple only allows cores built into the app) |
 
-The [Android closed test](https://play.google.com/apps/testing/com.ezcore.app)
-is open to invited testers; the sign-up page becomes active when the first test
-build is published. Until then, install the direct APK above. Early iOS builds
-are distributed through TestFlight, with invites managed through
-[Support](SUPPORT.md). Test build numbers are recorded in the
-[changelog](CHANGELOG.md).
-
-Official builds come from this repository's [Releases](https://github.com/0xJ1nn/ezcore/releases) only. First launch, folders and BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md). Verify a download with the `SHA256SUMS.txt` attached to its release.
+Official builds come from this repository's [Releases](https://github.com/0xJ1nn/ezcore/releases) only. First launch, folders and BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md).
 
 <details>
 <summary><b>macOS first launch</b></summary>

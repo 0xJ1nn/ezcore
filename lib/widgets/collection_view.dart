@@ -27,8 +27,10 @@ enum CollectionView {
   }
 }
 
-/// Settings keys for each collection's view.
-const libraryViewKey = 'libraryView';
+/// Settings keys for each collection's view. The library's five looks are
+/// persisted under `libraryLook`; older saves that stored `libraryView` are
+/// still read by [LibraryLook.fromSetting]'s value match.
+const libraryViewKey = 'libraryLook';
 const coresViewKey = 'coresView';
 
 /// The 3D / Grid / List switch: three icons in one pill, the current one lit.

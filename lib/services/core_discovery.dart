@@ -21,7 +21,7 @@ class CoreDiscovery {
     if (manifest.blocked) throw StateError('Core is on hold');
     final pin = manifest.artifacts[platformKey];
     if (pin == null) return null;
-    final suffix = Platform.isMacOS || Platform.isIOS
+    final suffix = Platform.isMacOS
         ? '.dylib'
         : Platform.isWindows
         ? '.dll'

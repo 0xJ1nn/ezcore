@@ -1,53 +1,53 @@
 {
-  "artifacts": {
-    "android-arm64": "441611bd198a78feab5e41e668433b6783240d706ef3944abcbce98d9bbe0c10",
-    "linux-x64": "26f5826576c722e144351e851baf8b2b37122070a19c082475f2166f59044f09",
-    "macos-arm64": "2d8029a2287b9b92b190812feb54c033c5624bb7b2a3713a974a3ea0f2a42fdb"
-  },
-  "bios_files": [],
-  "bios_required": false,
-  "cheat_families": [
-    "gba_actionreplay",
-    "gba_codebreaker",
-    "gba_gameshark",
-    "gb_gameshark"
+  "id": "advancebit",
+  "name": "AdvanceBit",
+  "version": "0.11-dev",
+  "license": "MPL-2.0",
+  "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
+  "homepage": "https://mgba.io",
+  "upstream": "libretro/mgba",
+  "systems": [
+    "gba",
+    "gb",
+    "gbc"
   ],
-  "cheats_supported": true,
-  "delivery": {
-    "macos": "bundled",
-    "windows": "bundled",
-    "linux": "bundled",
-    "android": "bundled",
-    "ios": "bundled"
-  },
-  "execution": {
-    "android": "dynarec",
-    "ios": "interpreter",
-    "linux": "dynarec",
-    "macos": "dynarec",
-    "windows": "dynarec"
-  },
   "extensions": [
     "gba",
     "gb",
     "gbc",
     "zip"
   ],
-  "homepage": "https://mgba.io",
-  "id": "advancebit",
-  "license": "MPL-2.0",
-  "license_url": "https://github.com/mgba-emu/mgba/blob/master/LICENSE",
-  "name": "AdvanceBit",
+  "cheats_supported": true,
+  "cheat_families": [
+    "gba_actionreplay",
+    "gba_codebreaker",
+    "gba_gameshark",
+    "gb_gameshark"
+  ],
+  "bios_required": false,
+  "bios_files": [],
+  "delivery": {
+    "macos": "bundled",
+    "windows": "bundled",
+    "linux": "bundled",
+    "android": "bundled",
+    "ios": "absent"
+  },
+  "artifacts": {
+    "macos-arm64": "2d8029a2287b9b92b190812feb54c033c5624bb7b2a3713a974a3ea0f2a42fdb",
+    "android-arm64": "441611bd198a78feab5e41e668433b6783240d706ef3944abcbce98d9bbe0c10",
+    "linux-x64": "26f5826576c722e144351e851baf8b2b37122070a19c082475f2166f59044f09"
+  },
+  "execution": {
+    "macos": "dynarec",
+    "windows": "dynarec",
+    "linux": "dynarec",
+    "android": "dynarec",
+    "ios": "interpreter"
+  },
   "provenance": {
     "built_from": "https://github.com/libretro/mgba",
-    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project",
-    "upstream_license": "MPL-2.0"
-  },
-  "systems": [
-    "gba",
-    "gb",
-    "gbc"
-  ],
-  "upstream": "libretro/mgba",
-  "version": "0.11-dev"
+    "upstream_license": "MPL-2.0",
+    "relationship": "independent build of upstream source; not affiliated with, endorsed by, or supported by the upstream project"
+  }
 }

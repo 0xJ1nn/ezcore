@@ -13,20 +13,13 @@
 | Android (arm64) | `ezcore-<version>-android-arm64.apk` | attached in v0.2.0; app artifact only, core/device boot not verified |
 | macOS (Apple Silicon) | — | not attached in v0.2.0; build from source or use a later release |
 | Windows (x64) | — | not attached in v0.2.0; build from source ([BUILDING.md](BUILDING.md)) |
-| iOS | TestFlight | early builds; ask for an invite through [Support](../SUPPORT.md) |
+| iOS | — | not distributed yet (needs an Apple Developer identity) |
 
-Download from [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases/latest), or use a direct link:
-
-- Android: [ezcore-0.2.0-android-arm64.apk](https://github.com/0xJ1nn/ezcore/releases/download/v0.2.0/ezcore-0.2.0-android-arm64.apk)
-- Linux: [ezcore-0.2.0-linux-x64.tar.gz](https://github.com/0xJ1nn/ezcore/releases/download/v0.2.0/ezcore-0.2.0-linux-x64.tar.gz)
-
-Every release page also carries `SHA256SUMS.txt` — verify with `shasum -a 256 <file>` (macOS)
+Download from [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases/latest). Every release page
+also carries `SHA256SUMS.txt` — verify with `shasum -a 256 <file>` (macOS)
 or `sha256sum <file>` (Linux). Artifact availability and verification are
 release-specific; check the [v0.2.0 release notes](../.github/release-notes/v0.2.0.md)
-and [`MATRIX.md`](MATRIX.md) before downloading. The [Android closed test](https://play.google.com/apps/testing/com.ezcore.app)
-is available to invited testers; the sign-up page activates when the first test
-build is published. Until then, install the direct APK above. iOS TestFlight
-invites are managed through [Support](../SUPPORT.md).
+and [`MATRIX.md`](MATRIX.md) before downloading.
 
 ## macOS (Apple Silicon)
 
