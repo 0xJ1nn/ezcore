@@ -246,6 +246,13 @@ class CoreStagingService {
         if (sub.existsSync()) return sub;
         final flat = File('${source.path}/$name');
         if (flat.existsSync()) return flat;
+        // iOS: cores are wrapped in a .framework bundle under Frameworks/ so
+        // the App Store accepts them. The dylib bytes, and therefore its pin,
+        // are unchanged.
+        final framework = File(
+          '${source.path}/${manifest.id}_libretro.framework/$name',
+        );
+        if (framework.existsSync()) return framework;
       }
     }
     return null;

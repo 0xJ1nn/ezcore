@@ -20,6 +20,7 @@ import '../services/repo_layout.dart';
 import '../services/persistence_service.dart';
 import '../services/content_importer.dart';
 import '../services/hash_verifier.dart';
+import '../services/native_dirs.dart';
 import 'save_sync.dart';
 
 /// Summary of a [AppState.rescanRomFolders] pass.
@@ -165,6 +166,28 @@ class AppState extends ChangeNotifier {
       // Load the merged catalog (single file — reliable asset bundling)
       final catalogRaw = await rootBundle.loadString('cores/catalog.json');
       final catalog = json.decode(catalogRaw) as Map<String, dynamic>;
+      // iOS bundles cores as signed frameworks inside the app. Xcode re-signs
+      // them, so their bytes differ from the build-time pin. The app bundle
+      // signature is the trust root here: hash the shipped framework at
+      // startup and use that as the pin for bundled cores. Downloaded and
+      // user cores keep their published sha256 unchanged.
+      if (Platform.isIOS) {
+        final bundleRoot = await createNativeDirs().bundledCoresDir();
+        if (bundleRoot != null) {
+          const verifier = DartHashVerifier();
+          for (final entry in catalog.values) {
+            final m = entry as Map<String, dynamic>;
+            if (m['delivery']?['ios'] != 'bundled') continue;
+            final id = m['id'] as String;
+            final shipped = File(
+              '$bundleRoot/${id}_libretro.framework/${id}_libretro.dylib',
+            );
+            if (!shipped.existsSync()) continue;
+            (m['artifacts'] as Map<String, dynamic>)['ios-arm64'] =
+                (await verifier.sha256File(shipped.path)).toLowerCase();
+          }
+        }
+      }
       final manifests = <String, String>{};
       for (final entry in catalog.entries) {
         manifests[entry.key] = json.encode(entry.value);
