@@ -47,7 +47,8 @@
     "macos": "dynarec",
     "windows": "dynarec",
     "linux": "dynarec",
-    "android": "dynarec"
+    "android": "dynarec",
+    "ios": "interpreter"
   },
   "provenance": {
     "upstream_license": "GPL-3.0-or-later",

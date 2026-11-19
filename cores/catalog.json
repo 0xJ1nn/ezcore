@@ -16,7 +16,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "bundled",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -265,7 +265,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "download",
       "macos": "download",
       "windows": "download"
@@ -323,7 +323,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -367,8 +367,8 @@
     "cheats_supported": false,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
-      "linux": "bundled",
+      "ios": "bundled",
+      "linux": "absent",
       "macos": "absent",
       "windows": "absent"
     },
@@ -475,7 +475,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -571,13 +571,14 @@
     "cheats_supported": false,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "absent",
       "windows": "absent"
     },
     "execution": {
       "android": "dynarec",
+      "ios": "interpreter",
       "linux": "dynarec",
       "macos": "dynarec",
       "windows": "dynarec"
@@ -775,7 +776,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -831,13 +832,14 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "download",
       "macos": "download",
       "windows": "download"
     },
     "execution": {
       "android": "dynarec",
+      "ios": "interpreter",
       "linux": "dynarec",
       "macos": "dynarec",
       "windows": "dynarec"
@@ -891,7 +893,7 @@
     },
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"
@@ -1065,7 +1067,7 @@
     "cheats_supported": true,
     "delivery": {
       "android": "absent",
-      "ios": "absent",
+      "ios": "bundled",
       "linux": "bundled",
       "macos": "bundled",
       "windows": "bundled"

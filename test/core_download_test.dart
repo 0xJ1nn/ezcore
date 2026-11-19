@@ -388,15 +388,16 @@ void main() {
           (manifestOf('portcomp')['delivery'] as Map).cast<String, String>();
       expect(portcomp['linux'], 'bundled');
       expect(portcomp['macos'], 'bundled');
-      // Mobile keeps its tier: pointclick bundled on android + ios,
-      // the console giants absent everywhere mobile.
+      // Mobile keeps its tier: pointclick bundled on android + ios.
       final pc = (manifestOf('pointclick')['delivery'] as Map).cast<String, String>();
       expect(pc['android'], 'bundled');
       expect(pc['ios'], 'bundled');
+      // The console giants are now bundled on iOS as interpreter-only builds;
+      // they are still absent on Android, where no build exists yet.
       for (final id in ['dreamarc', 'powercube']) {
         final d = (manifestOf(id)['delivery'] as Map).cast<String, String>();
         expect(d['android'], 'absent', reason: id);
-        expect(d['ios'], 'absent', reason: id);
+        expect(d['ios'], 'bundled', reason: id);
       }
     });
 

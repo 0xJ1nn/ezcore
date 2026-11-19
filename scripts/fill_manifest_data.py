@@ -44,14 +44,14 @@ EXECUTION = {
     "dualscreen": JIT_DESKTOP,
     "portcomp": JIT_DESKTOP,
     "dreamarc": JIT_DESKTOP,
-    "powercube": JIT_NO_IOS,  # ios delivery absent; do not declare it
+    "powercube": JIT_DESKTOP,  # built interpreter-only on iOS
     "twinsh": INTERP_ALL,  # Mednafen Saturn: SH-2 interpreter
     # Verified 2026-09-18: USE_CYCLONE=0 by default and only enabled for
     # 32-bit ARM (rpi1/rpi2/rpi3-32); all 64-bit builds use the Musashi C
     # interpreter. No JIT anywhere we ship.
     "coinbox": INTERP_ALL,
     "pointclick": INTERP_ALL,
-    "lrps2": JIT_NO_IOS,  # only linux-x64 reaches RENDERS today; iOS absent
+    "lrps2": JIT_DESKTOP,  # built without dynarec on iOS
 }
 
 # Verified against libretro docs/.info (cheats = "true"); families must exist
@@ -81,7 +81,7 @@ _TIER_IOS = [
     # Interpreter-only iOS builds, verified with the explicit interpreter
     # flags in scripts/build_core.sh (App Review 2.5.2/4.7: no JIT).
     "advancebit", "geometry1", "dualscreen", "rcp64",
-    "dreamarc", "dualvu", "lrps2", "twinsh",
+    "dreamarc", "dualvu", "lrps2", "twinsh", "portcomp", "powercube",
     # fbneo excluded: its gated_reason requires IP-lawyer review +
     # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]

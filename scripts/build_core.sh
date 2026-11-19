@@ -260,6 +260,48 @@ build_portcomp() {
     # Upstream Makefile.common is included before the platform block sets
     # PLATFORM_EXT=darwin, so the generic branch adds the X11 Vulkan define
     # even for iOS. Remove it; iOS has no X11 and uses GLES/OpenGLES.
+    # Upstream tests the generic `arm64` platform branch before the `ios`
+    # branch, so `ios-arm64` is misdetected as a host arm64 build (GNU ld
+    # flags, .so target). Exclude it from the generic branch.
+    mk="$SRC_DIR/ppsspp/libretro/Makefile"
+    python3 - "$mk" <<'PY'
+import re
+import sys
+p = sys.argv[1]
+s = open(p).read()
+s, n = re.subn(
+    r"else ifneq \(,\$\(findstring arm64,\$\(platform\)\)\)",
+    "else ifneq (,$(findstring arm64,$(filter-out %ios-arm64,$(platform))))",
+    s, count=1)
+if n != 1:
+    raise SystemExit("PPSSPP arm64 platform guard not found; refusing stale patch")
+# Upstream's iOS min-version is 5.0/8.0; our floor is 15.0 and thread_local
+# needs the modern target.
+s = s.replace("-miphoneos-version-min=5.0", "-miphoneos-version-min=15.0")
+s = s.replace("-miphoneos-version-min=8.0", "-miphoneos-version-min=15.0")
+# The generic branch adds a GNU ld flag that Apple's linker rejects.
+s = s.replace("LDFLAGS += -Wl,--gc-sections", "")
+open(p, "w").write(s)
+PY
+    # iOS has no system(3); this call only opens an editor for ini files.
+    fu="$SRC_DIR/ppsspp/Common/File/FileUtil.cpp"
+    python3 - "$fu" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = "int retval = system(iniFile.c_str());"
+if needle in s:
+    open(p, "w").write(s.replace(needle, 'int retval = -1; (void)iniFile;  // ezCORE: no system(3) on iOS', 1))
+PY
+    lua="$SRC_DIR/ppsspp/ext/lua/loslib.c"
+    python3 - "$lua" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = "#define l_system(cmd)\tsystem(cmd)"
+if needle in s:
+    open(p, "w").write(s.replace(needle, "#define l_system(cmd) ((cmd) == NULL ? 0 : -1)", 1))
+PY
     common="$SRC_DIR/ppsspp/libretro/Makefile.common"
     python3 - "$common" <<'PY'
 import sys
@@ -268,6 +310,11 @@ s = open(p).read()
 needle = "COREFLAGS += -DVK_USE_PLATFORM_XLIB_KHR\n"
 if needle in s:
     open(p, "w").write(s.replace(needle, "", 1))
+# The osx-arm64 workaround disables libpng runtime NEON; iOS arm64 has the
+# same missing asm wiring, so apply it there too.
+s = s.replace("ifneq (,$(findstring osx,$(platform)))\nCPUFLAGS += -DPNG_ARM_NEON_OPT=0",
+              "ifneq (,$(filter osx ios-arm64,$(platform)))\nCPUFLAGS += -DPNG_ARM_NEON_OPT=0")
+open(p, "w").write(s)
 PY
     # A stale generated config can still define HAVE_STRONG_GETAUXVAL from a
     # previous host build; iOS has no <sys/auxv.h>. Guard that branch.
@@ -302,10 +349,14 @@ PY
   # TARGET_ARCH=arm64 (macOS only): the Makefile misdetects arm64
   # (contains "64") as x86_64 and injects -msse/-msse2. Override wins.
   extra=""
-  [ "$PLATFORM" = macos ] && extra="TARGET_ARCH=arm64"
+  case "$PLATFORM" in
+    macos|ios) extra="TARGET_ARCH=arm64" ;;
+  esac
   # shellcheck disable=SC2086
   core_make "$SRC_DIR/ppsspp/libretro" $extra
-  stage portcomp "$SRC_DIR/ppsspp/libretro/ppsspp_libretro.$LIB_SUFFIX"
+  out="ppsspp_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="ppsspp_libretro_ios.dylib"
+  stage portcomp "$SRC_DIR/ppsspp/libretro/$out"
   stage_system_data portcomp "$SRC_DIR/ppsspp/assets" PPSSPP
 }
 
@@ -497,6 +548,18 @@ build_powercube() {
   # pipe2 exists on our iOS 15 deployment target.
   if [ "$PLATFORM" = ios ]; then
     extra="-DCMAKE_C_FLAGS=-Wno-error=unguarded-availability-new"
+    # The CURL CMake probe enables pipe2, but the SDK availability annotation
+    # is enforced as an error after our warning override. Use plain pipe() on
+    # iOS instead, which is available at our deployment target.
+    sp="$SRC_DIR/dolphin-libretro/Externals/curl/curl/lib/socketpair.c"
+    python3 - "$sp" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = "#ifdef HAVE_PIPE2\n"
+if needle in s and "#undef HAVE_PIPE2 /* ezCORE iOS */" not in s:
+    open(p, "w").write(s.replace(needle, "#ifdef __APPLE__\n#undef HAVE_PIPE2 /* ezCORE iOS */\n#endif\n" + needle, 1))
+PY
     rm -rf "$SRC_DIR/dolphin-libretro/build-$PLATFORM-$ARCH"
   fi
   # shellcheck disable=SC2086
