@@ -412,7 +412,8 @@ void main() {
     test('linux-x64 download set is exactly the giants', () {
       final assets = (release['assets'] as Map<String, dynamic>)['linux-x64']
           as Map<String, dynamic>?;
-      expect(assets?.keys.toSet(), {'pointclick', 'dreamarc', 'powercube'});
+      expect(assets?.keys.toSet(),
+          {'pointclick', 'dreamarc', 'powercube', 'potator', 'gw'});
     });
   });
 }
