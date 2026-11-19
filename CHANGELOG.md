@@ -28,7 +28,7 @@ All notable changes to ezCORE are documented here. The format follows
   shows what is true: the time, and P1 while a controller is connected. The
   rail holds four spaces — Library, Systems, Capsule (every save, now one tap
   away instead of inside Settings) and Settings — switched with keys 1–4; Esc
-  goes back. The library opens on "The collection": system tabs, a sort menu,
+  goes back. The library opens on "Library": system tabs, a sort menu,
   and a 3D shelf with flatter angles, floor reflections and a glowing front
   cover over the game's art. Its dock shows the system, file type and size,
   with a favourite heart, Let's play (or Resume) and a menu (game page, play
@@ -99,6 +99,9 @@ All notable changes to ezCORE are documented here. The format follows
   not wired yet; iOS cannot support it (Apple forbids helper processes).
 ### Changed
 
+- **Library and Capsule use plain titles.** Both screens now show just their names,
+  with no eyebrow above either one, and a played game's dock no longer ends its
+  last-played line with a tagline.
 - **A simpler home.** Three destinations — Library, Cores, Settings — on every
   screen size. Library opens on **Resume**: one tap back into the game you
   played last, from where you left off, whatever system it is. Below it,

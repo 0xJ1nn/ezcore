@@ -56,12 +56,8 @@ class _VaultScreenState extends State<VaultScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!ultraCompact) ...[
-              Text('EVERY SAVE. EVERY GAME.', style: Tokens.eyebrow),
-              const SizedBox(height: 7),
-            ],
             Text(
-              'Your time capsule',
+              'Capsule',
               style: Tokens.display(
                 size: ultraCompact ? 20 : (short ? 22 : (portrait ? 27 : 32)),
                 weight: FontWeight.w500,

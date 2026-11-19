@@ -97,8 +97,7 @@ class GameDock extends StatelessWidget {
 
   String get _status {
     if (!_played) return 'Not played yet · ready when you are';
-    return 'Last played ${lastPlayedLabel(game.lastPlayedMs).toLowerCase()} '
-        '· picks up where you left off';
+    return 'Last played ${lastPlayedLabel(game.lastPlayedMs).toLowerCase()}';
   }
 
   @override
