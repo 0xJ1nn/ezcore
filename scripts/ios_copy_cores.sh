@@ -24,7 +24,15 @@ for d in "$SRC"/*/; do
   mkdir -p "$fw"
   cp "$so" "$fw/${id}_libretro.dylib"
   [ -f "$d/SHA256SUMS" ] && cp "$d/SHA256SUMS" "$fw/"
-  [ -d "$d/system" ] && cp -R "$d/system" "$fw/"
+  if [ -d "$d/system" ]; then
+    cp -R "$d/system" "$fw/"
+    # Apple treats scripts and executable files inside the app bundle as code
+    # that must be signed. Core system data is data only: drop scripts and
+    # clear executable bits before the framework is signed.
+    find "$fw/system" -type f \( -name '*.py' -o -name '*.sh' -o -name '*.bat' \
+      -o -name '*.cmd' -o -name '*.exe' -o -name '*.js' \) -delete
+    chmod -R a-x "$fw/system"
+  fi
 
   printf '%s\n' \
     '<?xml version="1.0" encoding="UTF-8"?>' \
@@ -41,4 +49,4 @@ for d in "$SRC"/*/; do
   echo "wrapped $id"
 done
 
-find "$FWROOT" -type f | head -40
+echo "wrapped $(find "$FWROOT" -name '*_libretro.dylib' | wc -l | tr -d ' ') cores"
