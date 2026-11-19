@@ -1,16 +1,19 @@
-/* ezcore_core_host — runs one libretro core session in its own process
- * (P6, crash containment: a core crash must not terminate ezCORE).
+/* ezcore_core_host — runs ONE engine session in its own process
+ * (P6 crash containment; Tier 2 engine hosting).
  *
  * The app starts this program, writes requests to its stdin and reads
- * responses from its stdout, per ezcore_core_host_protocol.h. Everything
- * the core does happens here, through the unchanged runtime library, so a
- * segfault in a core ends this process and nothing else.
+ * responses from its stdout, per ezcore_core_host_protocol.h. This host owns
+ * the wire protocol: framing, decoding, validation and encoding live here and
+ * NEVER change when a new engine is added. What an engine does lives behind
+ * ezh_engine_vtable (ezcore_engine.h): libretro is the default backend;
+ * a non-libretro backend is selected with --engine=NAME. Adding a backend
+ * changes no op and no byte on the wire.
  *
  * Two details carry the design:
  *  - The protocol owns the original stdout. Fd 1 is then pointed at stderr,
  *    because cores print freely (printf, puts) and one stray line on the
  *    protocol stream would desynchronise every message after it.
- *  - EOF on stdin means the app is gone: unload and exit 0, so a host never
+ *  - EOF on stdin means the app is gone: destroy and exit 0, so a host never
  *    outlives the app that started it.
  */
 #include <stdint.h>
@@ -28,12 +31,13 @@
 #include <unistd.h>
 #endif
 
-#include "ezcore_runtime.h"
 #include "ezcore_core_host_protocol.h"
+#include "ezcore_engine.h"
 
 static FILE *g_in;
 static FILE *g_out;
-static ezcore_session *g_session;
+static ezh_engine *g_engine;
+static const ezh_engine_vtable *E;
 static int g_paused;
 
 /* ---- reading a request ---- */
@@ -140,11 +144,11 @@ static int send_error(const char *msg) {
 /* ---- ops ---- */
 
 static void release_all_buttons(void) {
-  for (unsigned port = 0; port < 4; port++) ezcore_clear_buttons(g_session, port);
+  for (unsigned port = 0; port < 4; port++) E->clear_buttons(g_engine, port);
 }
 
 static int op_open(reader_t *r) {
-  if (g_session) return send_error("a session is already open");
+  if (g_engine) return send_error("a session is already open");
   char *core = rd_str(r), *content = rd_str(r), *sys = rd_str(r),
        *save = rd_str(r);
   uint32_t n_opts = rd_u32(r);
@@ -166,71 +170,47 @@ static int op_open(reader_t *r) {
     send_error("malformed OPEN request");
     goto done;
   }
-  ezcore_set_dirs(sys, save);
-  g_session = ezcore_load(core, err, sizeof(err));
-  if (!g_session) {
-    send_error(err[0] ? err : "core failed to load");
+  g_engine = E->create();
+  if (!g_engine) {
+    send_error("engine backend could not be created");
     goto done;
   }
-  if (!ezcore_init(g_session)) {
-    send_error("core initialization failed");
-    goto fail_unload;
+  if (!E->open(g_engine, core, sys, save, err, sizeof(err))) {
+    send_error(err[0] ? err : "engine failed to open");
+    goto fail_destroy;
   }
-  /* Options go in between init and load_game, the same point the in-process
-   * path uses: many cores read them only inside retro_load_game. */
+  /* Options go in between open and load_content, the same point the
+   * in-process path uses: many cores read them only inside retro_load_game. */
   wr_u8(&w, EZH_OK);
-  wr_str(&w, ezcore_core_name(g_session));
+  wr_str(&w, E->core_name(g_engine));
   uint32_t n_rejected = 0;
   writer_t rej = {0};
   for (uint32_t i = 0; i < n_opts; i++) {
-    if (!ezcore_set_core_option(g_session, keys[i], vals[i])) {
+    if (!E->option_set(g_engine, keys[i], vals[i])) {
       wr_str(&rej, keys[i]);
       n_rejected++;
     }
   }
-  {
-    FILE *f = fopen(content, "rb");
-    uint8_t *data = NULL;
-    long size = 0;
-    if (f) {
-      fseek(f, 0, SEEK_END);
-      size = ftell(f);
-      fseek(f, 0, SEEK_SET);
-      if (size > 0) {
-        data = malloc((size_t)size);
-        if (data && fread(data, 1, (size_t)size, f) != (size_t)size) size = 0;
-      }
-      fclose(f);
-    }
-    int loaded = f && ezcore_load_game(g_session, content, data,
-                                       (size_t)(size > 0 ? size : 0));
-    free(data);
-    if (!f) {
-      free(rej.buf);
-      send_error("content file could not be read");
-      goto fail_unload;
-    }
-    if (!loaded) {
-      free(rej.buf);
-      send_error("core rejected the content");
-      goto fail_unload;
-    }
+  if (!E->load_content(g_engine, content, err, sizeof(err))) {
+    free(rej.buf);
+    send_error(err[0] ? err : "engine rejected the content");
+    goto fail_destroy;
   }
   unsigned gw = 0, gh = 0;
   double fps = 0;
-  ezcore_system_geometry(g_session, &gw, &gh, &fps);
+  E->geometry(g_engine, &gw, &gh, &fps);
   wr_u32(&w, gw);
   wr_u32(&w, gh);
   wr_f64(&w, fps);
-  wr_f64(&w, ezcore_sample_rate(g_session));
+  wr_f64(&w, E->sample_rate(g_engine));
   wr_u32(&w, n_rejected);
   wr_bytes(&w, rej.buf, rej.len);
   free(rej.buf);
   ok = send_body(w.buf, w.len);
   goto done;
-fail_unload:
-  ezcore_unload(g_session);
-  g_session = NULL;
+fail_destroy:
+  E->destroy(g_engine);
+  g_engine = NULL;
   ok = 1;
 done:
   free(w.buf);
@@ -256,17 +236,15 @@ static int op_frame(reader_t *r) {
   }
   writer_t pcm = {0};
   int16_t chunk[4096];
-  for (uint32_t i = 0; i < count; i++) {
-    ezcore_run_frame(g_session);
-    /* Fast-forward drains every frame's audio but keeps none of it, matching
-     * the in-process worker. */
-    size_t got;
-    while ((got = ezcore_audio_drain_copy(g_session, chunk, 2048)) > 0) {
-      if (count == 1) wr_bytes(&pcm, chunk, got * 2 * sizeof(int16_t));
-    }
+  E->run_frame(g_engine, count);
+  /* Fast-forward drains every frame's audio but keeps none of it, matching
+   * the in-process worker. */
+  size_t got;
+  while ((got = E->audio_drain(g_engine, chunk, 2048)) > 0) {
+    if (count == 1) wr_bytes(&pcm, chunk, got * 2 * sizeof(int16_t));
   }
   unsigned fw = 0, fh = 0;
-  ezcore_frame_size(g_session, &fw, &fh);
+  E->frame_size(g_engine, &fw, &fh);
   if (fw == 0 || fh == 0) {
     wr_u8(&w, 0);
   } else {
@@ -276,7 +254,7 @@ static int op_frame(reader_t *r) {
     wr_u32(&w, fh);
     wr_u32(&w, (uint32_t)bytes);
     if (wr_reserve(&w, bytes)) {
-      ezcore_frame_pixels_copy(g_session, w.buf + w.len, bytes);
+      E->pixels_copy(g_engine, w.buf + w.len, bytes);
       w.len += bytes;
     }
     wr_u32(&w, (uint32_t)pcm.len);
@@ -294,12 +272,13 @@ static int send_ok_empty(void) {
 }
 
 static int op_save(void) {
-  size_t n = ezcore_serialize_size(g_session);
-  if (n == 0) return send_error("core does not support save states");
+  size_t n = E->serialize_size(g_engine);
+  if (n == 0) return send_error("engine does not support save states");
   writer_t w = {0};
   wr_u8(&w, EZH_OK);
   wr_u32(&w, (uint32_t)n);
-  if (!wr_reserve(&w, n) || !ezcore_serialize(g_session, w.buf + w.len, n)) {
+  if (!wr_reserve(&w, n) ||
+      !E->serialize(g_engine, w.buf + w.len, n)) {
     free(w.buf);
     return send_error("save state failed");
   }
@@ -312,7 +291,7 @@ static int op_save(void) {
 static int op_cheats(reader_t *r) {
   uint32_t n = rd_u32(r);
   if (r->bad || n > 100000) return send_error("malformed CHEATS request");
-  ezcore_cheat_reset(g_session);
+  E->cheat_reset(g_engine);
   writer_t failed = {0};
   uint32_t n_failed = 0;
   for (uint32_t i = 0; i < n && !r->bad; i++) {
@@ -320,7 +299,7 @@ static int op_cheats(reader_t *r) {
     uint8_t enabled = rd_u8(r);
     char *code = rd_str(r);
     if (code && code[strspn(code, " \t\r\n")] != '\0' &&
-        !ezcore_cheat_set(g_session, index, enabled != 0, code)) {
+        !E->cheat_set(g_engine, index, enabled != 0, code)) {
       wr_u32(&failed, index);
       n_failed++;
     }
@@ -339,12 +318,12 @@ static int op_cheats(reader_t *r) {
 
 static int op_options(void) {
   writer_t w = {0};
-  unsigned n = ezcore_get_core_option_count(g_session);
+  unsigned n = E->option_count(g_engine);
   wr_u8(&w, EZH_OK);
   wr_u32(&w, n);
   for (unsigned i = 0; i < n; i++) {
     const char *k = NULL, *d = NULL, *v = NULL;
-    ezcore_get_core_option(g_session, i, &k, &d, &v);
+    E->option_get(g_engine, i, &k, &d, &v);
     wr_str(&w, k);
     wr_str(&w, d);
     wr_str(&w, v);
@@ -360,11 +339,11 @@ static int dispatch(const uint8_t *body, size_t n) {
   uint8_t op = rd_u8(&r);
   if (op == EZH_OP_OPEN) return op_open(&r);
   if (op == EZH_OP_CLOSE) {
-    if (g_session) { ezcore_unload(g_session); g_session = NULL; }
+    if (g_engine) { E->destroy(g_engine); g_engine = NULL; }
     send_ok_empty();
     return 0;
   }
-  if (!g_session) {
+  if (!g_engine) {
     if ((op >= EZH_OP_FRAME && op <= EZH_OP_SET_OPTION) ||
         (op >= EZH_OP_ANALOG && op <= EZH_OP_POINTER))
       return send_error("no session is open");
@@ -376,12 +355,13 @@ static int dispatch(const uint8_t *body, size_t n) {
       g_paused = rd_u8(&r) != 0;
       /* A button held on any pad must not stay down across the pause. */
       if (g_paused) release_all_buttons();
+      E->pause(g_engine, g_paused);
       return send_ok_empty();
     case EZH_OP_BUTTON: {
       uint32_t port = rd_u32(&r), id = rd_u32(&r);
       uint8_t pressed = rd_u8(&r);
       if (r.bad || port > 3 || id > 15) return send_error("bad button");
-      ezcore_set_button(g_session, port, id, pressed != 0);
+      E->set_button(g_engine, port, id, pressed != 0);
       return send_ok_empty();
     }
     case EZH_OP_SAVE: return op_save();
@@ -389,13 +369,13 @@ static int dispatch(const uint8_t *body, size_t n) {
       uint32_t len = 0;
       const uint8_t *state = rd_blob(&r, &len);
       if (!state) return send_error("malformed RESTORE request");
-      if (!ezcore_unserialize(g_session, state, len))
-        return send_error("core rejected save state");
+      if (!E->unserialize(g_engine, state, len))
+        return send_error("engine rejected save state");
       return send_ok_empty();
     }
     case EZH_OP_CHEATS: return op_cheats(&r);
     case EZH_OP_RESET:
-      ezcore_reset(g_session);
+      E->reset(g_engine);
       return send_ok_empty();
     case EZH_OP_OPTIONS: return op_options();
     case EZH_OP_SET_OPTION: {
@@ -405,7 +385,7 @@ static int dispatch(const uint8_t *body, size_t n) {
         ok = send_error("malformed SET_OPTION request");
       } else {
         uint8_t body2[2] = {EZH_OK,
-                            (uint8_t)(ezcore_set_core_option(g_session, k, v) ? 1 : 0)};
+                            (uint8_t)(E->option_set(g_engine, k, v) ? 1 : 0)};
         ok = send_body(body2, 2);
       }
       free(k); free(v);
@@ -415,21 +395,21 @@ static int dispatch(const uint8_t *body, size_t n) {
       uint32_t port = rd_u32(&r), stick = rd_u32(&r), axis = rd_u32(&r);
       int32_t value = (int32_t)rd_u32(&r);
       if (r.bad) return send_error("malformed ANALOG request");
-      ezcore_set_analog(g_session, port, stick, axis,
-                        (int16_t)(value > 32767 ? 32767 : value < -32768 ? -32768 : value));
+      E->set_analog(g_engine, port, stick, axis,
+                    (int16_t)(value > 32767 ? 32767 : value < -32768 ? -32768 : value));
       return send_ok_empty();
     }
     case EZH_OP_MOUSE_MOVE: {
       int32_t dx = (int32_t)rd_u32(&r), dy = (int32_t)rd_u32(&r);
       if (r.bad) return send_error("malformed MOUSE_MOVE request");
-      ezcore_mouse_move(g_session, dx, dy);
+      E->mouse_move(g_engine, dx, dy);
       return send_ok_empty();
     }
     case EZH_OP_MOUSE_BTN: {
       uint32_t id = rd_u32(&r);
       uint8_t pressed = rd_u8(&r);
       if (r.bad) return send_error("malformed MOUSE_BTN request");
-      ezcore_set_mouse_button(g_session, id, pressed != 0);
+      E->mouse_button(g_engine, id, pressed != 0);
       return send_ok_empty();
     }
     case EZH_OP_KEY: {
@@ -437,24 +417,41 @@ static int dispatch(const uint8_t *body, size_t n) {
       uint8_t pressed = rd_u8(&r);
       uint32_t ch = rd_u32(&r), mods = rd_u32(&r);
       if (r.bad) return send_error("malformed KEY request");
-      ezcore_set_key(g_session, code, pressed != 0, ch, (uint16_t)mods);
+      E->key(g_engine, code, pressed != 0, ch, (uint16_t)mods);
       return send_ok_empty();
     }
     case EZH_OP_POINTER: {
       int32_t x = (int32_t)rd_u32(&r), y = (int32_t)rd_u32(&r);
       uint8_t pressed = rd_u8(&r);
       if (r.bad) return send_error("malformed POINTER request");
-      ezcore_set_pointer(g_session,
-                         (int16_t)(x > 32767 ? 32767 : x < -32767 ? -32767 : x),
-                         (int16_t)(y > 32767 ? 32767 : y < -32767 ? -32767 : y),
-                         pressed != 0);
+      E->pointer(g_engine,
+                 (int16_t)(x > 32767 ? 32767 : x < -32767 ? -32767 : x),
+                 (int16_t)(y > 32767 ? 32767 : y < -32767 ? -32767 : y),
+                 pressed != 0);
       return send_ok_empty();
     }
     default: return send_error("unknown op");
   }
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+  /* Engine selection is data, not a protocol change: --engine=NAME, or the
+   * EZCORE_ENGINE environment variable. libretro remains the default. */
+  const char *name = getenv("EZCORE_ENGINE");
+  for (int i = 1; i < argc; i++) {
+    if (strncmp(argv[i], "--engine=", 9) == 0) name = argv[i] + 9;
+  }
+  if (!name || !*name) name = "libretro";
+  ezh_engine_register(&ezh_engine_libretro);
+  ezh_engine_register(&ezh_engine_synthetic);
+  E = ezh_engine_find(name);
+  if (!E) {
+    char names[256];
+    ezh_engine_names(names, sizeof(names));
+    fprintf(stderr, "ezcore_core_host: unknown engine '%s' (available: %s)\n",
+            name, names);
+    return 2;
+  }
 #ifdef _WIN32
   _setmode(_fileno(stdin), _O_BINARY);
   _setmode(_fileno(stdout), _O_BINARY);
@@ -481,6 +478,6 @@ int main(void) {
     free(body);
     if (!keep_going) break;
   }
-  if (g_session) ezcore_unload(g_session);
+  if (g_engine) E->destroy(g_engine);
   return 0;
 }

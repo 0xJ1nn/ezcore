@@ -113,6 +113,21 @@ CTest runs the native suite (`cd runtime/build-<platform> && ctest`); the
 synthetic core means boot/player tests need no game content. Per-core boot
 tests fork() a child so a native crash can't take down the harness.
 
+### Generic engine host (Tier 2)
+
+`ezcore_core_host` speaks one wire protocol
+(`runtime/host/ezcore_core_host_protocol.h`) and never changes it to add an
+engine. Behind that protocol, an engine is a function table
+(`runtime/host/ezcore_engine.h`): `libretro` is the default backend and a
+non-libretro backend is selected at launch with `--engine=NAME` (data, not a
+protocol op). The host alone owns framing, validation and encoding; each
+backend owns only what its operations do. `runtime/host/ezcore_engine_synthetic.c`
+is an original CC0 backend that opens a synthetic content id, renders a
+deterministic pattern and round-trips save states without any ROM or libretro
+core. It is the in-tree proof that a supervised Tier-2 engine can use the same
+session, save and controller continuity as a libretro core. Real third-party
+Tier-2 engine integration is future work.
+
 ## Cores: manifests and pins
 
 - `cores/<id>/manifest.json` — id, version, license + license URL,

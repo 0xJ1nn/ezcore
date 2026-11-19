@@ -373,9 +373,14 @@ add_dependencies(test_crash_signal crash_libretro)
 
 # P6 (crash containment): the helper process that hosts one core session, so a core
 # crash ends that process instead of the app. Links the unchanged runtime.
-add_executable(ezcore_core_host host/ezcore_core_host.c)
+add_executable(ezcore_core_host
+  host/ezcore_core_host.c
+  host/ezcore_engine.c
+  host/ezcore_engine_libretro.c
+  host/ezcore_engine_synthetic.c
+)
 target_link_libraries(ezcore_core_host PRIVATE ezcore_runtime)
-target_include_directories(ezcore_core_host PRIVATE include)
+target_include_directories(ezcore_core_host PRIVATE include host)
 # Finds libezcore_runtime beside itself, in the build tree and in a release
 # bundle alike (release.sh ships the two side by side).
 if(APPLE)
@@ -392,6 +397,12 @@ endif()
 add_executable(test_core_host test/test_core_host.c)
 add_dependencies(test_core_host ezcore_core_host synth_libretro crash_libretro)
 
+# Generic engine host (Tier 2): the SAME wire protocol, a non-libretro engine
+# selected by --engine=synthetic. POSIX-only (fork/exec/waitpid), like the
+# core host harness above.
+add_executable(test_engine_host test/test_engine_host.c)
+add_dependencies(test_engine_host ezcore_core_host)
+
 if(NOT WIN32)
   add_test(NAME crash_signal_exit_code
     COMMAND test_crash_signal
@@ -401,6 +412,8 @@ if(NOT WIN32)
     $<TARGET_FILE:ezcore_core_host>
     $<TARGET_FILE:synth_libretro>
     $<TARGET_FILE:crash_libretro>)
+  add_test(NAME engine_host_generic_protocol
+    COMMAND test_engine_host $<TARGET_FILE:ezcore_core_host>)
 endif()
 
 # Boot tests for cores that have test ROMs available.

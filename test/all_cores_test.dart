@@ -14,6 +14,10 @@ String _dylib(String id) => paths.stagedCoreLib(id) ?? '';
 
 /// Cores with test ROMs available for full boot + render + save test.
 const _coresWithRom = <String, ({String name, String romPath})>{
+  'nesbyte': (
+    name: 'Mesen',
+    romPath: 'native/test-roms/ezcore_nes_minimal.nes'
+  ),
   'pocketbit': (name: 'SameBoy', romPath: 'native/test-roms/cpu_instrs.gb'),
   'gambatte': (name: 'Gambatte', romPath: 'native/test-roms/cpu_instrs.gb'),
   'advancebit': (name: 'mGBA', romPath: 'native/test-roms/test.gba'),
@@ -22,7 +26,6 @@ const _coresWithRom = <String, ({String name, String romPath})>{
 /// Cores without test ROMs — load + identify only.
 const _coresNoRom = <String, String>{
   'superfx': 'Snes9x',
-  'nesbyte': 'Mesen',
   'blastproc': 'Genesis Plus GX',
   'realmode': 'DOSBox-pure',
   'dualscreen': 'melonDS',
