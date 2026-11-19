@@ -484,16 +484,14 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// Screen title block: eyebrow, title and the count beside it (§8).
+/// Screen title block: the title and the count beside it (§8).
 class LibraryTitle extends StatelessWidget {
   const LibraryTitle({
     super.key,
-    this.title = 'The collection',
+    this.title = 'Library',
     required this.count,
     required this.titleSize,
     this.countSize = 16,
-    this.eyebrowSize = 13,
-    this.showEyebrow = true,
     this.showCount = true,
     this.compactCount = false,
   });
@@ -502,8 +500,6 @@ class LibraryTitle extends StatelessWidget {
   final int count;
   final double titleSize;
   final double countSize;
-  final double eyebrowSize;
-  final bool showEyebrow;
   final bool showCount;
 
   /// Phones show just the number beside the title ("12"), as the phone frame
@@ -519,19 +515,6 @@ class LibraryTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showEyebrow) ...[
-          Text(
-            'YOUR GAMES. YOUR WAY.',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Tokens.eyebrow.copyWith(
-              fontSize: eyebrowSize < 12 ? 12 : eyebrowSize,
-              letterSpacing: 0.30 * (eyebrowSize < 12 ? 12 : eyebrowSize),
-              color: Tokens.muted,
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,

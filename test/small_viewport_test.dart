@@ -64,7 +64,7 @@ void main() {
   testWidgets('vault empty state renders on a phone viewport', (tester) async {
     final state = AppState();
     await pumpPhone(tester, VaultScreen(state: state));
-    expect(find.text('Your time capsule'), findsOneWidget);
+    expect(find.text('Capsule'), findsOneWidget);
   });
 
   testWidgets('settings render on a phone viewport', (tester) async {

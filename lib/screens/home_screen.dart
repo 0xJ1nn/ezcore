@@ -506,7 +506,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   count: state.games.length,
                   titleSize: 20,
                   countSize: 12,
-                  showEyebrow: false,
                 ),
               ),
               Expanded(
@@ -714,18 +713,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ? 44.0
         : (shape == _LibraryShape.phoneLandscape ? 24.0 : 16.0);
     // The OS bar is 76 px tall in the design (§7.2); the shell's compact bar
-    // ends higher, so the screen adds the difference before the eyebrow.
-    // With 36 here the eyebrow lands at 88 and the shelf content at 236,
+    // ends higher, so the screen adds the difference before the title.
+    // With 36 here the title lands at 88 and the shelf content at 236,
     // exactly as the 1440×900 reference.
     final top = mini ? 6.0 : (desktop ? 36.0 : 18.0);
     final titleSize = mini
         ? 22.0
         : (phone ? Tokens.screenTitle * 0.72 : Tokens.screenTitle);
-    final showEyebrow =
-        !mini &&
-        (shape == _LibraryShape.desktop ||
-            shape == _LibraryShape.tabletPortrait ||
-            shape == _LibraryShape.foldable);
     // The short rhythm (tablet landscape) and the sideways phone drop the
     // chips and tools entirely; only the desktop and upright phone keep the
     // chip row, and only the desktop shows the counts inside it (§10).
@@ -756,7 +750,6 @@ class _HomeScreenState extends State<HomeScreen> {
       count: state.games.length,
       titleSize: titleSize,
       countSize: desktop ? 16 : 14,
-      showEyebrow: showEyebrow,
       showCount: !mini && shape != _LibraryShape.tabletPortrait,
       compactCount: shape == _LibraryShape.phonePortrait,
     );

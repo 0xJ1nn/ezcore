@@ -83,7 +83,7 @@ void main() {
     expect(find.text('Lanterns\nof Vell'), findsWidgets);
   });
 
-  testWidgets('the eyebrow uses muted text, not the accent blue', (
+  testWidgets('the library header shows a plain title with no eyebrow', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1440, 900);
@@ -101,8 +101,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final eyebrow = tester.widget<Text>(find.text('YOUR GAMES. YOUR WAY.'));
-    expect(eyebrow.style?.color, Tokens.muted);
+    // The title and count stand on their own: no slogan eyebrow above them.
+    expect(find.text('YOUR GAMES. YOUR WAY.'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(LibraryTitle),
+        matching: find.text('Library'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('1 game'), findsOneWidget);
   });
 
   // The phone command bar belongs to the shell (task T02). The library must
@@ -130,7 +138,13 @@ void main() {
     expect(nav, findsOneWidget);
     final box = tester.renderObject<RenderBox>(nav);
     expect(box.size.height, Tokens.bottomBarHeight);
-    expect(find.text('The collection'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(LibraryTitle),
+        matching: find.text('Library'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Resume'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -346,7 +360,7 @@ void main() {
       expect(find.byType(LibraryChips), findsNothing);
       expect(find.byTooltip('View options'), findsNothing);
       expect(find.text('YOUR GAMES. YOUR WAY.'), findsNothing);
-      expect(find.text('The collection'), findsOneWidget);
+      expect(find.text('Library'), findsOneWidget);
       // Both rows use the device frame's curated order. Covers balance long
       // titles, so match on the words regardless of where the wrap falls.
       for (final title in [

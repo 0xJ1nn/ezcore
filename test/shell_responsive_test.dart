@@ -5,6 +5,7 @@ import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/screens/home_screen.dart';
+import 'package:ezcore/screens/vault_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/orbit_widgets.dart';
@@ -231,7 +232,15 @@ void main() {
     expect(find.byType(HomeScreen).hitTestable(), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.text('Your time capsule').hitTestable(), findsOneWidget);
+    expect(
+      find
+          .descendant(
+            of: find.byType(VaultScreen),
+            matching: find.text('Capsule'),
+          )
+          .hitTestable(),
+      findsOneWidget,
+    );
     await tester.sendKeyEvent(LogicalKeyboardKey.digit4);
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Appearance').hitTestable(), findsWidgets);
