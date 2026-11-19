@@ -8,6 +8,9 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **Every core now names its upstream project.** A new `docs/CORES.md` lists each
+  installable core with its source repository, licence and systems, and the README and
+  install guide now carry direct download links and the Android closed-test link.
 - **A PlayStation 2 that boots without a BIOS.** DualVU is a second PS2 core built from
   Play! (BSD-2-Clause) and its built-in HLE kernel. It boots PS2 ELFs with no firmware file
   present; LRPS2 remains the accuracy option when you supply your own dump. Linux x64 is
@@ -126,6 +129,11 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **iOS builds now include a core bundle.** Earlier TestFlight builds had no cores: the
+  release workflow had no iOS job and the Xcode project never embedded core binaries. The
+  app now stages every iOS core the manifests promise, wraps each one in a signed framework
+  under `Frameworks/` (the layout the App Store accepts), and finds them there at launch.
+  The first build with the bundle is 2611190404.
 - **The app now names itself ezCORE and ships cleanly to TestFlight.** The home-screen
   label on Android and iOS reads ezCORE, and the iOS app declares that it uses only
   exempt encryption, so an internal build no longer waits for a manual export-compliance
