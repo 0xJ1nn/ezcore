@@ -7,12 +7,14 @@ import 'package:ezcore/controls/builtin_layouts.dart';
 import 'package:ezcore/controls/control_layout.dart';
 import 'package:ezcore/controls/layout_editor.dart';
 import 'package:ezcore/controls/layout_store.dart';
+import 'package:ezcore/controls/phone_controls.dart';
 import 'package:ezcore/services/local_data_dir.dart';
 import 'package:ezcore/services/persistence_service.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/state/save_sync.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _Dir implements LocalDataDirProvider {
@@ -103,8 +105,11 @@ void main() {
   });
 
   group('LayoutEditorScreen', () {
-    Future<LayoutStore> pump(WidgetTester t) async {
-      t.view.physicalSize = const Size(390, 844);
+    Future<LayoutStore> pump(
+      WidgetTester t, {
+      Size size = const Size(390, 844),
+    }) async {
+      t.view.physicalSize = size;
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.resetPhysicalSize);
       // In memory: real file I/O never completes under the widget-test clock.
@@ -121,7 +126,7 @@ void main() {
                       builder: (_) => LayoutEditorScreen(
                         store: store,
                         system: 'gba',
-                        portrait: true,
+                        portrait: size.height > size.width,
                       ),
                     ),
                   ),
@@ -140,15 +145,18 @@ void main() {
     ControlSpec ctl(ControlLayout l, String id) =>
         l.controls.firstWhere((c) => c.id == id);
 
-    testWidgets('dragging a control moves it, and Save keeps it', (t) async {
+    testWidgets('dragging a control moves it, and Done keeps it', (t) async {
       final store = await pump(t);
-      final before = ctl(builtinLayout('gba', portrait: true), 'a').rect;
+      final before = ctl(
+        phoneControls(builtinLayout('gba', portrait: true), portrait: true),
+        'a',
+      ).rect;
       await t.drag(
         find.byKey(const ValueKey('edit-a')),
         const Offset(-60, -40),
       );
       await t.pumpAndSettle();
-      await t.tap(find.text('Save'));
+      await t.tap(find.text('Done'));
       await t.pumpAndSettle();
       final after = ctl(store.resolve('gba', portrait: true), 'a').rect;
       expect(after.x, lessThan(before.x));
@@ -160,14 +168,19 @@ void main() {
       t,
     ) async {
       final store = await pump(t);
-      final before = ctl(builtinLayout('gba', portrait: true), 'start').rect;
+      final before = ctl(
+        phoneControls(builtinLayout('gba', portrait: true), portrait: true),
+        'start',
+      ).rect;
       await t.tap(find.byKey(const ValueKey('edit-start')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('edit-scale-label')));
       await t.pump();
       for (var i = 0; i < 30; i++) {
         await t.tap(find.byTooltip('Bigger'));
       }
       await t.pump();
-      await t.tap(find.text('Save'));
+      await t.tap(find.text('Done'));
       await t.pumpAndSettle();
       final after = ctl(store.resolve('gba', portrait: true), 'start').rect;
       expect(after.w, greaterThan(before.w));
@@ -177,32 +190,71 @@ void main() {
 
     testWidgets('a control can be hidden — but never Menu', (t) async {
       final store = await pump(t);
+      await t.tap(find.byKey(const ValueKey('edit-select')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('edit-scale-label')));
+      await t.pump();
+      await t.tap(find.byTooltip('Hide'));
+      await t.pump();
+      expect(find.text('Show hidden (1)'), findsOneWidget);
+      await t.tap(find.text('Done'));
+      await t.pumpAndSettle();
+      final saved = store.resolve('gba', portrait: true);
+      expect(saved.controls.map((c) => c.id), isNot(contains('select')));
+      expect(saved.controls.map((c) => c.id), contains('a'));
+    });
+
+    testWidgets('a saved landscape layout is edited as saved', (t) async {
+      t.view.physicalSize = const Size(844, 390);
+      t.view.devicePixelRatio = 1;
+      addTearDown(t.view.resetPhysicalSize);
+      final store = LayoutStore(AppState.ephemeral());
+      final base = phoneControls(
+        builtinLayout('gba', portrait: false),
+        portrait: false,
+      );
+      await store.save(base.copyWith(opacity: 0.4));
+      await t.pumpWidget(
+        MaterialApp(
+          theme: Tokens.theme(),
+          home: LayoutEditorScreen(store: store, system: 'gba', portrait: false),
+        ),
+      );
+      await t.pumpAndSettle();
+      expect(t.widget<Slider>(find.byType(Slider)).value, closeTo(0.4, 1e-9));
+      // A saved layout keeps the player's board rather than the edit baseline:
+      // the printed A position is lower than the editing snapshot's.
+      final pos = t.widget<Positioned>(
+        find
+            .ancestor(
+              of: find.byKey(const ValueKey('edit-a')),
+              matching: find.byType(Positioned),
+            )
+            .first,
+      );
+      expect(pos.top!, greaterThan(170));
+    });
+
+    testWidgets('Menu can never be hidden, in either orientation', (t) async {
+      await pump(t, size: const Size(844, 390));
       await t.tap(find.byKey(const ValueKey('edit-menu')));
+      await t.pump();
+      await t.tap(find.byKey(const Key('edit-scale-label')));
       await t.pump();
       expect(
         find.byTooltip('Hide'),
         findsNothing,
         reason: 'Menu is the touch way out of a game',
       );
-      await t.tap(find.byKey(const ValueKey('edit-select')));
-      await t.pump();
-      await t.tap(find.byTooltip('Hide'));
-      await t.pump();
-      expect(find.text('Show hidden (1)'), findsOneWidget);
-      await t.tap(find.text('Save'));
-      await t.pumpAndSettle();
-      final saved = store.resolve('gba', portrait: true);
-      expect(saved.controls.map((c) => c.id), isNot(contains('select')));
-      expect(saved.controls.map((c) => c.id), contains('menu'));
     });
 
     testWidgets('Cancel saves nothing; Reset to default clears a saved copy', (
       t,
     ) async {
       final store = await pump(t);
-      await t.drag(find.byKey(const ValueKey('edit-b')), const Offset(30, 0));
+      await t.drag(find.byKey(const ValueKey('edit-a')), const Offset(30, 0));
       await t.pump();
-      await t.tap(find.text('Cancel'));
+      await t.sendKeyEvent(LogicalKeyboardKey.escape);
       await t.pumpAndSettle();
       expect(store.isCustomised('gba_portrait'), isFalse);
 
@@ -211,7 +263,7 @@ void main() {
       );
       await t.tap(find.text('open'));
       await t.pumpAndSettle();
-      await t.tap(find.text('Reset to default'));
+      await t.tap(find.text('Reset'));
       await t.pumpAndSettle();
       expect(store.isCustomised('gba_portrait'), isFalse);
     });
