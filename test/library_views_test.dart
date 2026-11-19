@@ -5,6 +5,7 @@ import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/game_detail_screen.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
+import 'package:ezcore/state/input_mode.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:ezcore/widgets/collection_view.dart';
 import 'package:ezcore/widgets/cover_flow.dart';
@@ -69,7 +70,13 @@ void main() {
   }) async {
     t.view.physicalSize = size;
     t.view.devicePixelRatio = 1;
-    addTearDown(t.view.resetPhysicalSize);
+    // These views are the desktop library: a mouse is present, so the
+    // 1280x800 window stays in the plain desktop family and keeps its chips.
+    InputMode.shared.notePointer();
+    addTearDown(() {
+      t.view.resetPhysicalSize();
+      InputMode.shared.reset();
+    });
     final s = AppState.ephemeral()..games = List.of(library);
     if (view != null) await s.setSetting(libraryViewKey, view.value);
     await t.pumpWidget(

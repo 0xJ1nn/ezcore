@@ -7,6 +7,7 @@ import '../models/game_entry.dart';
 import '../services/human_time.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
+import '../state/input_mode.dart';
 import '../theme/layout.dart';
 import '../theme/symbols.dart';
 import '../theme/tokens.dart';
@@ -501,6 +502,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (games.isEmpty) {
       return CustomScrollView(slivers: [SliverToBoxAdapter(child: _empty())]);
     }
+    final modifier = Layout.modifierOf(context);
     final shape = _shape(MediaQuery.sizeOf(context), height);
     final visible = _visible();
     final selected = _selected(visible);
@@ -520,6 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return _scaffold(
         shape: shape,
         width: width,
+        modifier: modifier,
         chips: chips,
         selected: selected,
         content: _noMatch(),
@@ -533,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
         shape == _LibraryShape.tabletPortrait ||
         shape == _LibraryShape.phoneLandscape;
     final content = switch (look) {
-      LibraryLook.flow => _coverFlow(shape, visible),
+      LibraryLook.flow => _coverFlow(shape, visible, modifier),
       LibraryLook.wall => legacy
           ? _wall(shape, visible)
           : WallLook(
@@ -571,6 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return _scaffold(
       shape: shape,
       width: width,
+      modifier: modifier,
       chips: chips,
       selected: selected,
       content: content,
@@ -805,17 +809,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _scaffold({
     required _LibraryShape shape,
     required double width,
+    required LayoutModifier modifier,
     required List<LibraryFilterChip> chips,
     required GameEntry? selected,
     required Widget content,
   }) {
     final desktop = shape == _LibraryShape.desktop;
     final mini = shape == _LibraryShape.mini;
+    final tv = Layout.isTv(modifier);
+    final handheld = Layout.isHandheld(modifier);
+    final ultrawide = Layout.isUltrawide(modifier);
+    final padFirst = tv || handheld;
     final phone =
         shape == _LibraryShape.phonePortrait ||
         shape == _LibraryShape.phoneLandscape;
     final pad = mini ? 12.0 : (phone ? 20.0 : 48.0);
-    final dockPad = mini
+    final dockPad = ultrawide
+        ? 0.0
+        : mini
         ? 10.0
         : shape == _LibraryShape.desktop ||
               shape == _LibraryShape.tablet ||
@@ -838,23 +849,33 @@ class _HomeScreenState extends State<HomeScreen> {
     final phoneFullScreen =
         shape == _LibraryShape.phonePortrait &&
         (_look == LibraryLook.grid || _look == LibraryLook.list);
+    // A 10-foot, ultrawide or handheld window has no mouse to discover tools
+    // with: the header stays at the title and count the device frames show.
     final showChips =
         !mini &&
         !phoneFullScreen &&
+        !padFirst &&
+        !ultrawide &&
         (shape == _LibraryShape.desktop ||
             shape == _LibraryShape.phonePortrait);
     final showTools =
         !mini &&
+        !padFirst &&
+        !ultrawide &&
         (shape == _LibraryShape.desktop ||
             shape == _LibraryShape.phonePortrait);
-    final dockMode = switch (shape) {
-      _LibraryShape.desktop => GameDockMode.full,
-      _LibraryShape.phonePortrait => phoneFullScreen
-          ? GameDockMode.oneLine
-          : GameDockMode.stacked,
-      _LibraryShape.mini => GameDockMode.mini,
-      _ => GameDockMode.oneLine,
-    };
+    final dockMode = tv
+        ? GameDockMode.full
+        : handheld || ultrawide
+        ? GameDockMode.oneLine
+        : switch (shape) {
+          _LibraryShape.desktop => GameDockMode.full,
+          _LibraryShape.phonePortrait => phoneFullScreen
+              ? GameDockMode.oneLine
+              : GameDockMode.stacked,
+          _LibraryShape.mini => GameDockMode.mini,
+          _ => GameDockMode.oneLine,
+        };
     final bottomSpace = switch (shape) {
       _LibraryShape.phonePortrait => 14.0,
       _LibraryShape.phoneLandscape => 14.0,
@@ -994,15 +1015,19 @@ class _HomeScreenState extends State<HomeScreen> {
               mode: dockMode,
               height: shape == _LibraryShape.tabletPortrait ? 112 : null,
               showBadgeOnOneLine: shape == _LibraryShape.tabletPortrait,
-              showFavorite:
+              showGlyph: shape != _LibraryShape.tablet,
+              detailsWithLabel: shape == _LibraryShape.tablet,
+              showMeta: !tv,
+              showFavorite: !tv && !handheld && !ultrawide &&
                   shape != _LibraryShape.phoneLandscape &&
                   shape != _LibraryShape.tabletPortrait,
-              showMore:
+              showDetails: !handheld && !ultrawide,
+              showMore: !tv && !handheld && !ultrawide &&
                   !phoneFullScreen &&
                   shape != _LibraryShape.tablet &&
                   shape != _LibraryShape.tabletPortrait,
-              showGlyph: shape != _LibraryShape.tablet,
-              detailsWithLabel: shape == _LibraryShape.tablet,
+              glyphConfirm: padFirst ? 'A' : 'Enter',
+              glyphDetails: padFirst ? 'Y' : 'E',
               onResume: () => _play(selected),
               onDetails: () => _openDetail(selected),
               onFavorite: () => state.toggleFavorite(selected.id),
@@ -1020,6 +1045,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(right: 44, bottom: 14),
                     child: OrbitKeyHints(
+                      padHints: handheld
+                          ? const [
+                              (glyph: 'A', label: 'Resume'),
+                              (glyph: 'Y', label: 'Details'),
+                              (glyph: 'X', label: 'Options'),
+                              (glyph: 'L1△', label: 'System'),
+                            ]
+                          : null,
                       hints: _optionsOpen
                           ? const [
                               (['Enter'], 'Select'),
@@ -1216,14 +1249,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// The 3D shelf: 270×360 covers on a 1500 px perspective, the focused one
   /// forward and its neighbours turned 58° away (§8.1).
-  Widget _coverFlow(_LibraryShape shape, List<GameEntry> visible) {
+  Widget _coverFlow(
+    _LibraryShape shape,
+    List<GameEntry> visible,
+    LayoutModifier modifier,
+  ) {
     final phone =
         shape == _LibraryShape.phonePortrait ||
         shape == _LibraryShape.phoneLandscape;
     // The device frames open the shelf on the last-played game and place the
     // previously played one to its left and the next family member to its
-    // right (Devices 1a/1b). Desktop keeps the plain recency order.
-    final games = phone ? _inDeviceOrder(visible) : visible;
+    // right (Devices 1a/1b, 1f–1h). The plain desktop look keeps recency order;
+    // every input-aware family uses the device fan so focus has neighbours on
+    // both sides.
+    var games = phone || modifier != LayoutModifier.none
+        ? _inDeviceOrder(visible)
+        : visible;
+    if (Layout.isUltrawide(modifier) && games.length > 1) {
+      // The ultrawide frame leads with the older games so the last-played one
+      // sits in the middle of the arc rather than at its left edge.
+      games = [games.last, ...games.take(games.length - 1)];
+    }
     final selected = _selected(games);
     final index = selected == null
         ? 0
@@ -1235,7 +1281,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final Size size;
         switch (shape) {
           case _LibraryShape.desktop:
-            size = const Size(270, 360);
+            size = Layout.isUltrawide(modifier)
+                ? const Size(360, 480)
+                : const Size(270, 360);
           case _LibraryShape.phonePortrait:
             // Frame 1a: one wide featured cover with two neighbours peeking.
             final w = (c.maxWidth * 0.565).clamp(150.0, 250.0);
@@ -1268,7 +1316,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 : shape == _LibraryShape.phoneLandscape
                 ? 55
                 : 58,
-            neighbours: shape == _LibraryShape.phonePortrait
+            neighbours: modifier != LayoutModifier.none
+                ? Layout.coverNeighbours(modifier)
+                : shape == _LibraryShape.phonePortrait
                 ? 2
                 : shape == _LibraryShape.phoneLandscape
                 ? 3

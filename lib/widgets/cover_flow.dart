@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
 
 /// Balances a generated cover title the way CSS `text-wrap: balance` does
@@ -444,6 +445,9 @@ class _CoverFlowState extends State<CoverFlow> {
       ..rotateY(angle)
       ..scaleByDouble(scale, scale, 1, 1);
     final radius = BorderRadius.circular(7);
+    // TV keeps HALO3 (3 + 11) instead of the desktop HALO (2 + 7); there is
+    // no hover state on a pad-first screen, so focus is the only highlight.
+    final tv = Layout.isTv(Layout.modifierOf(context));
     final cover = Stack(
       fit: StackFit.expand,
       children: [
@@ -455,16 +459,21 @@ class _CoverFlowState extends State<CoverFlow> {
             decoration: BoxDecoration(
               borderRadius: radius,
               boxShadow: [
-                if (front) ...const [
+                if (front) ...[
                   // HALO (§3.6): a 7 px soft ring and the blue drop shadow.
-                  // The solid 2 px inner ring is painted on the cover itself.
-                  BoxShadow(color: Color(0x3D007BFF), spreadRadius: 7),
+                  // HALO3 on TV is a 3 + 11 ring with no drop shadow.
+                  // The solid inner ring is painted on the cover itself.
                   BoxShadow(
-                    color: Color(0x99007BFF),
-                    blurRadius: 40,
-                    spreadRadius: -12,
-                    offset: Offset(0, 16),
+                    color: Color(0x3D007BFF),
+                    spreadRadius: tv ? 11 : 7,
                   ),
+                  if (!tv)
+                    const BoxShadow(
+                      color: Color(0x99007BFF),
+                      blurRadius: 40,
+                      spreadRadius: -12,
+                      offset: Offset(0, 16),
+                    ),
                 ] else
                   const BoxShadow(
                     color: Color(0xAA000000),
@@ -506,7 +515,7 @@ class _CoverFlowState extends State<CoverFlow> {
                 borderRadius: radius,
                 border: Border.all(
                   color: _focused ? Tokens.accentHi : Tokens.accent,
-                  width: 2,
+                  width: tv ? 3 : 2,
                 ),
               ),
             ),

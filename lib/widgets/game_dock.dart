@@ -43,9 +43,11 @@ class GameDock extends StatelessWidget {
     this.glyphConfirm = 'Enter',
     this.glyphDetails = 'E',
     this.showMeta = true,
+    this.showBadge = true,
     this.showStatus = true,
     this.showBadgeOnOneLine = false,
     this.showFavorite = true,
+    this.showDetails = true,
     this.showMore = true,
     this.showGlyph = true,
     this.detailsWithLabel = false,
@@ -68,6 +70,7 @@ class GameDock extends StatelessWidget {
   final String glyphDetails;
 
   final bool showMeta;
+  final bool showBadge;
   final bool showStatus;
 
   /// The one-line dock usually names the system in its sub-line; a tablet
@@ -77,6 +80,10 @@ class GameDock extends StatelessWidget {
   /// A short landscape dock keeps only the actions that fit; the favourite
   /// heart steps aside there (§10, frame 1b).
   final bool showFavorite;
+
+  /// A compact pad-first dock keeps only Resume; Details stays on the hint
+  /// row and the selected game's own page.
+  final bool showDetails;
 
   /// The tablet's one-line dock ends on Details, with its label and no more
   /// button (§10, frame 1d).
@@ -195,7 +202,7 @@ class GameDock extends StatelessWidget {
       status: _status,
       showMeta: showMeta,
       showStatus: showStatus,
-      showBadge: showBadgeOnOneLine,
+      showBadge: mode == GameDockMode.oneLine ? showBadgeOnOneLine : showBadge,
     );
     final heart = _DockAction(
       size: buttonSize,
@@ -225,56 +232,56 @@ class GameDock extends StatelessWidget {
         actions = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            heart,
-            const SizedBox(width: 10),
+            if (showFavorite) ...[heart, const SizedBox(width: 10)],
             _DockPrimary(
               label: resumeLabel,
               glyph: glyphConfirm,
               onPressed: onResume,
             ),
-            const SizedBox(width: 10),
-            _DockAction(
-              size: buttonSize,
-              tooltip: 'Details and snapshots',
-              semanticLabel: 'Details and snapshots',
-              onPressed: onDetails,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _GlyphChip(glyphDetails, onPrimary: false),
-                  const SizedBox(width: 10),
-                  const Icon(Symbols.info, size: 20, color: Tokens.text),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Details',
-                    style: Tokens.body(
-                      size: 16,
-                      weight: FontWeight.w700,
-                      color: Tokens.text,
-                      height: null,
+            if (showDetails) ...[
+              const SizedBox(width: 10),
+              _DockAction(
+                size: buttonSize,
+                tooltip: 'Details and snapshots',
+                semanticLabel: 'Details and snapshots',
+                onPressed: onDetails,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _GlyphChip(glyphDetails, onPrimary: false),
+                    const SizedBox(width: 10),
+                    const Icon(Symbols.info, size: 20, color: Tokens.text),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Details',
+                      style: Tokens.body(
+                        size: 16,
+                        weight: FontWeight.w700,
+                        color: Tokens.text,
+                        height: null,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            more,
+            ],
+            if (showMore) ...[const SizedBox(width: 10), more],
           ],
         );
       case GameDockMode.oneLine:
         final showHeart = showFavorite && width >= 470;
-        final showDetails = width >= 700;
+        final detailsFit = detailsWithLabel || width >= 700;
         actions = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (showHeart) ...[heart, const SizedBox(width: 10)],
             _DockPrimary(
               label: resumeLabel,
-              glyph: showDetails && showGlyph ? glyphConfirm : null,
+              glyph: showGlyph ? glyphConfirm : null,
               onPressed: onResume,
               size: buttonSize,
             ),
-            if (showDetails) ...[
+            if (showDetails && detailsFit) ...[
               const SizedBox(width: 10),
               _DockAction(
                 size: buttonSize,
@@ -442,11 +449,11 @@ class _Info extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showMeta) ...[
+        if (showMeta || showBadge) ...[
           Row(
             children: [
-              Flexible(child: badge),
-              const SizedBox(width: 10),
+              if (showBadge) Flexible(child: badge),
+              if (showMeta && showBadge) const SizedBox(width: 10),
               if (stacked)
                 Flexible(
                   child: Text(
@@ -462,7 +469,7 @@ class _Info extends StatelessWidget {
                     ),
                   ),
                 )
-              else
+              else if (showMeta)
                 Flexible(
                   child: Text(
                     meta,

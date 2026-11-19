@@ -2,10 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'brand/brand_mark.dart';
+import 'services/gamepad.dart';
 import 'services/local_data_dir.dart';
 import 'state/app_state.dart';
+import 'state/input_mode.dart';
 import 'screens/core_manager_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/import_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
 import 'theme/layout.dart';
@@ -37,12 +41,34 @@ class EmuApp extends StatefulWidget {
 class _EmuAppState extends State<EmuApp> {
   late final AppState state;
   final _navigatorKey = GlobalKey<NavigatorState>();
+  void Function()? _cancelPad;
 
   @override
   void initState() {
     super.initState();
     state = AppState(dirProvider: widget.dirProvider);
-    state.load().then((_) => _rescanWatchedFolders());
+    state.addListener(_syncInputMode);
+    _cancelPad = GamepadService.shared.onConnection((connected, name) {
+      InputMode.shared.notePad(connected ? name : null);
+    });
+    InputMode.shared.notePad(GamepadService.shared.connectedPad);
+    state.load().then((_) {
+      _syncInputMode();
+      _rescanWatchedFolders();
+    });
+  }
+
+  /// The persisted "TV mode" setting (and any other input override) is the
+  /// single source the modifier layer reads when it resolves a window.
+  void _syncInputMode() {
+    InputMode.shared.syncFromSettings(state.settings);
+  }
+
+  @override
+  void dispose() {
+    state.removeListener(_syncInputMode);
+    _cancelPad?.call();
+    super.dispose();
   }
 
   /// Issue #14: after startup load, best-effort rescan of watched ROM
@@ -72,35 +98,42 @@ class _EmuAppState extends State<EmuApp> {
       title: 'ezCORE',
       debugShowCheckedModeBanner: false,
       theme: Tokens.theme(),
-      home: ListenableBuilder(
-        listenable: state,
-        builder: (context, _) {
-          if (!state.loaded) {
-            return const Scaffold(
-              backgroundColor: Tokens.bg,
-              body: Center(
-                child: CircularProgressIndicator(color: Tokens.accent),
-              ),
-            );
-          }
-          if (state.loadError != null && kReleaseMode == false) {
-            if (state.registry.catalog.isEmpty) {
-              return Scaffold(
+      home: Listener(
+        onPointerHover: (_) => InputMode.shared.notePointer(),
+        onPointerDown: (_) => InputMode.shared.notePointer(),
+        child: ListenableBuilder(
+          listenable: state,
+          builder: (context, _) {
+            if (!state.loaded) {
+              return const Scaffold(
                 backgroundColor: Tokens.bg,
                 body: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(Tokens.pad),
-                    child: Text(
-                      'Core catalog failed to load:\n${state.loadError}',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  child: CircularProgressIndicator(color: Tokens.accent),
                 ),
               );
             }
-          }
-          return Shell(state: state);
-        },
+            if (state.loadError != null && kReleaseMode == false) {
+              if (state.registry.catalog.isEmpty) {
+                return Scaffold(
+                  backgroundColor: Tokens.bg,
+                  body: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(Tokens.pad),
+                      child: Text(
+                        'Core catalog failed to load:\n${state.loadError}',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            }
+            return ListenableBuilder(
+              listenable: InputMode.shared,
+              builder: (context, _) => Shell(state: state),
+            );
+          },
+        ),
       ),
     );
   }
@@ -150,17 +183,23 @@ class _ShellState extends State<Shell> {
   @override
   Widget build(BuildContext context) {
     final layout = Layout.of(context);
+    final modifier = Layout.modifierOf(context);
+    final tv = Layout.isTv(modifier);
+    final handheld = Layout.isHandheld(modifier);
+    final ultrawide = Layout.isUltrawide(modifier);
     final hasRail = Layout.hasRail(layout);
-    final short = Layout.isShort(layout);
+    final short = Layout.isShort(layout) || handheld;
     final portrait = !hasRail;
-    final content = SafeArea(
-      bottom: hasRail,
+
+    Widget content = SafeArea(
+      bottom: hasRail && !tv,
       left: !hasRail,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // The OS bar; very short windows give its room to the content.
-          if (!short || portrait)
+          // A TV draws its status bar outside the scaled viewport so the
+          // shelf keeps its full desktop height (and its 3D cover flow).
+          if ((!short || portrait) && !tv)
             Padding(
               padding: EdgeInsets.fromLTRB(
                 portrait ? 16 : 40,
@@ -174,6 +213,72 @@ class _ShellState extends State<Shell> {
         ],
       ),
     );
+    if (tv) {
+      content = Padding(
+        padding: EdgeInsets.only(right: Layout.safeArea(modifier)),
+        child: content,
+      );
+    }
+    if (ultrawide) {
+      content = Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Layout.contentMaxWidth(modifier),
+          ),
+          child: content,
+        ),
+      );
+    }
+
+    final safe = Layout.safeArea(modifier);
+    Widget body = Stack(
+      children: [
+        Ambient(motion: widget.state.settings['motion'] != false),
+        if (hasRail)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OrbitRail(
+                page: page,
+                onGo: _go,
+                short: short,
+                modifier: modifier,
+                onAddGames: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ImportScreen(state: widget.state),
+                  ),
+                ),
+              ),
+              Expanded(child: content),
+            ],
+          )
+        else
+          Column(
+            children: [
+              Expanded(child: content),
+              OrbitBottomNav(page: page, onGo: _go),
+            ],
+          ),
+      ],
+    );
+    body = InputAwareViewport(child: body);
+    if (tv && page == 'library') {
+      body = Stack(
+        children: [
+          body,
+          Positioned(
+            left: Layout.railWidth(layout, modifier) + safe,
+            top: safe + Tokens.s2,
+            child: const BrandLockup(height: 30),
+          ),
+          Positioned(
+            right: safe,
+            top: safe + Tokens.s2,
+            child: const OrbitStatus(),
+          ),
+        ],
+      );
+    }
 
     return CallbackShortcuts(
       bindings: {
@@ -184,29 +289,7 @@ class _ShellState extends State<Shell> {
       },
       child: Focus(
         autofocus: true,
-        child: Scaffold(
-          backgroundColor: Tokens.bg,
-          body: Stack(
-            children: [
-              Ambient(motion: widget.state.settings['motion'] != false),
-              if (hasRail)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    OrbitRail(page: page, onGo: _go, short: short),
-                    Expanded(child: content),
-                  ],
-                )
-              else
-                Column(
-                  children: [
-                    Expanded(child: content),
-                    OrbitBottomNav(page: page, onGo: _go),
-                  ],
-                ),
-            ],
-          ),
-        ),
+        child: Scaffold(backgroundColor: Tokens.bg, body: body),
       ),
     );
   }

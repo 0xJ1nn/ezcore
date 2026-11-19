@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../brand/brand_mark.dart';
 import '../services/gamepad.dart';
+import '../state/input_mode.dart';
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
 
 /// The OS bar across the top of every destination: the ezCORE lockup, the
@@ -148,13 +150,26 @@ class _OrbitStatusState extends State<OrbitStatus> {
 
 /// Keyboard hints along the foot of a screen: what each key does here.
 class OrbitKeyHints extends StatelessWidget {
-  const OrbitKeyHints({super.key, required this.hints});
+  const OrbitKeyHints({super.key, required this.hints, this.padHints});
 
   /// (keys, what they do).
   final List<(List<String>, String)> hints;
 
+  /// Screen-specific pad glyphs, used instead of the defaults on pad-first
+  /// families (for example the handheld's "L1△ System").
+  final List<({String glyph, String label})>? padHints;
+
   @override
   Widget build(BuildContext context) {
+    final modifier = Layout.modifierOf(context);
+    if (Layout.showHintRow(modifier)) {
+      return OrbitHintRow(modifier: modifier, hints: padHints ?? const [
+        (glyph: 'A', label: 'Resume'),
+        (glyph: 'Y', label: 'Details'),
+        (glyph: 'X', label: 'Options'),
+        (glyph: 'CTRL', label: 'System'),
+      ]);
+    }
     Widget key(String k) => Container(
       constraints: const BoxConstraints(minWidth: 30),
       height: 30,
@@ -189,6 +204,119 @@ class OrbitKeyHints extends StatelessWidget {
                 Text(label, style: Tokens.body(size: 12, color: Tokens.muted)),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Applies the input-aware modifiers that affect *every* screen: the TV's
+/// uniform 1.33 scale (which makes the 270 px shelf cover a 360 px one and
+/// the 104 px rail a 136 px one) and the virtual viewport that goes with it.
+///
+/// Width-first modifiers (ultrawide's centred dock) and the safe area are
+/// applied by the shell, because they depend on where the rail sits.
+class InputAwareViewport extends StatelessWidget {
+  const InputAwareViewport({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final outer = context
+        .dependOnInheritedWidgetOfExactType<InputAwareViewportMarker>();
+    if (outer != null) return child; // already measured by an ancestor
+    final media = MediaQuery.of(context);
+    final modifier = Layout.modifierOfSize(media.size, media.orientation);
+    if (modifier != LayoutModifier.tv) {
+      return InputAwareViewportMarker(modifier: modifier, child: child);
+    }
+    final scale = Layout.typeScale(modifier);
+    final virtual = Size(media.size.width / scale, media.size.height / scale);
+    return InputAwareViewportMarker(
+      modifier: modifier,
+      // A Transform is laid out by its parent, so a tight screen-sized
+      // constraint would size the child to the physical window and then blow
+      // it up again, pushing the right-hand third off screen. UnconstrainedBox
+      // lets the virtual SizedBox choose its own size; the transform then
+      // maps exactly that box onto the screen.
+      child: Transform.scale(
+        scale: scale,
+        alignment: Alignment.topLeft,
+        child: UnconstrainedBox(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: virtual.width,
+            height: virtual.height,
+            child: MediaQuery(
+              data: media.copyWith(size: virtual),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The always-visible glyph hints on pad-first layouts (§7.4). There is no
+/// mouse to discover hidden actions from across the room, so every action in
+/// the current layer stays on screen.
+class OrbitHintRow extends StatelessWidget {
+  const OrbitHintRow({
+    super.key,
+    this.modifier = LayoutModifier.handheld,
+    this.hints = const [
+      (glyph: 'A', label: 'Resume'),
+      (glyph: 'Y', label: 'Details'),
+      (glyph: 'X', label: 'Options'),
+      (glyph: 'CTRL', label: 'System'),
+    ],
+  });
+
+  final LayoutModifier modifier;
+  final List<({String glyph, String label})> hints;
+
+  @override
+  Widget build(BuildContext context) {
+    final floor = Layout.textFloor(modifier);
+    Widget chip(String glyph) => Container(
+      constraints: BoxConstraints(minWidth: 26, minHeight: 26),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0x1ADDE6F4),
+        borderRadius: BorderRadius.circular(13),
+        border: const Border.fromBorderSide(
+          BorderSide(color: Color(0x2BFFFFFF)),
+        ),
+      ),
+      child: Text(
+        glyph,
+        style: Tokens.display(
+          size: floor < 12 ? floor : 12,
+          weight: FontWeight.w700,
+        ),
+      ),
+    );
+    return ExcludeSemantics(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final hint in hints) ...[
+            chip(hint.glyph),
+            const SizedBox(width: 6),
+            Text(
+              hint.label,
+              style: Tokens.body(
+                size: floor < 14 ? floor : 14,
+                weight: FontWeight.w600,
+                color: Tokens.muted,
+                height: null,
+              ),
+            ),
+            const SizedBox(width: 24),
+          ],
         ],
       ),
     );

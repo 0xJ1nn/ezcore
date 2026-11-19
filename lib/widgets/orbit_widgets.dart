@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/cover_art.dart';
 import '../services/system_labels.dart';
+import '../state/input_mode.dart';
+import '../theme/layout.dart';
 import '../theme/tokens.dart';
 import 'orbit_cover.dart';
 import 'space_backdrop.dart';
@@ -63,14 +65,35 @@ class OrbitRail extends StatelessWidget {
     required this.page,
     required this.onGo,
     this.short = false,
+    this.modifier = LayoutModifier.none,
+    this.onAddGames,
   });
   final String page;
   final ValueChanged<String> onGo;
   final bool short;
 
+  /// Pad-first families keep every destination, including Add games, in the
+  /// rail: there is no mouse to reveal a hidden action from across the room.
+  final LayoutModifier modifier;
+  final VoidCallback? onAddGames;
+
   @override
   Widget build(BuildContext context) {
+    final handheld = Layout.isHandheld(modifier);
+    final padFirst = handheld || Layout.isTv(modifier);
+    final items = [
+      ...orbitNavItems,
+      if (padFirst)
+        const OrbitNavItem(
+          'import',
+          'Add games',
+          Icons.add_circle_outline,
+          Icons.add_circle,
+        ),
+    ];
     return Container(
+      // TV gets its width from the viewport's 1.33 scale, so the logical
+      // 104 px rail lands at the measured 136 px on screen.
       width: short ? Tokens.railShort : Tokens.rail,
       decoration: const BoxDecoration(
         color: Color(0xE608101C),
@@ -79,13 +102,15 @@ class OrbitRail extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: short ? 8 : 10, vertical: 14),
       child: Column(
         children: [
-          for (final it in orbitNavItems) ...[
+          for (final it in items) ...[
             _RailButton(
               item: it,
               active: page == it.id,
               short: short,
+              hideLabel: handheld,
               height: short ? 50.0 : 84.0,
-              onTap: () => onGo(it.id),
+              onTap: () =>
+                  it.id == 'import' ? onAddGames?.call() : onGo(it.id),
             ),
             SizedBox(height: short ? 4 : 12),
           ],
@@ -101,12 +126,14 @@ class _RailButton extends StatelessWidget {
     required this.active,
     required this.short,
     required this.height,
+    required this.hideLabel,
     required this.onTap,
   });
   final OrbitNavItem item;
   final bool active;
   final bool short;
   final double height;
+  final bool hideLabel;
   final VoidCallback onTap;
 
   @override
@@ -157,20 +184,22 @@ class _RailButton extends StatelessWidget {
                     size: short ? 18 : 26,
                     color: foreground,
                   ),
-                  SizedBox(height: short ? 2 : 8),
-                  ExcludeSemantics(
-                    child: Text(
-                      item.label,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.ellipsis,
-                      style: Tokens.body(
-                        size: short ? 10 : 12.5,
-                        weight: active ? FontWeight.w600 : FontWeight.w500,
-                        color: foreground,
+                  if (!hideLabel) ...[
+                    SizedBox(height: short ? 2 : 8),
+                    ExcludeSemantics(
+                      child: Text(
+                        item.label,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: Tokens.body(
+                          size: short ? 10 : 12.5,
+                          weight: active ? FontWeight.w600 : FontWeight.w500,
+                          color: foreground,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
