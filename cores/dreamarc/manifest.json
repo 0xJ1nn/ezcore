@@ -34,7 +34,7 @@
     "windows": "download",
     "linux": "download",
     "android": "absent",
-    "ios": "absent"
+    "ios": "bundled"
   },
   "artifacts": {
     "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327",

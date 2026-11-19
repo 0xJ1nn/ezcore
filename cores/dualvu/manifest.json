@@ -29,7 +29,7 @@
     "windows": "absent",
     "linux": "absent",
     "android": "absent",
-    "ios": "absent"
+    "ios": "bundled"
   },
   "artifacts": {
     "linux-x64": "810129882c2c8ba132b1d0545ed68d5349f17e26a9f466b1bdb6ae3ec25c76fc"

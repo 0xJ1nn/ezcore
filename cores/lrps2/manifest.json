@@ -6,12 +6,31 @@
   "license_url": "https://github.com/libretro/ps2/blob/master/COPYING.GPLv3",
   "homepage": "https://github.com/libretro/ps2",
   "upstream": "libretro/ps2 (LRPS2, based on PCSX2)",
-  "systems": ["ps2"],
-  "extensions": ["elf", "iso", "ciso", "cue", "bin", "gz", "chd", "cso", "zso", "mdf", "nrg", "dump", "img", "m3u"],
+  "systems": [
+    "ps2"
+  ],
+  "extensions": [
+    "elf",
+    "iso",
+    "ciso",
+    "cue",
+    "bin",
+    "gz",
+    "chd",
+    "cso",
+    "zso",
+    "mdf",
+    "nrg",
+    "dump",
+    "img",
+    "m3u"
+  ],
   "cheats_supported": false,
   "cheat_families": [],
   "bios_required": true,
-  "bios_files": ["pcsx2/bios"],
+  "bios_files": [
+    "pcsx2/bios"
+  ],
   "bios_notes": "User-supplied PS2 BIOS dump; presence-gated at boot.",
   "notes": "Hardware-rendered (OpenGL). Linux x64 verified (RENDERS, 2026-10-07); macOS/Windows GPU path and Android packaging are separate workstreams.",
   "delivery": {
@@ -19,7 +38,7 @@
     "windows": "absent",
     "linux": "bundled",
     "android": "absent",
-    "ios": "absent"
+    "ios": "bundled"
   },
   "artifacts": {
     "linux-x64": "245fae1147317a9f24792b0f36c36550966dbc759f208518ad2e05f37c20e7c7"
@@ -28,7 +47,8 @@
     "macos": "dynarec",
     "windows": "dynarec",
     "linux": "dynarec",
-    "android": "dynarec"
+    "android": "dynarec",
+    "ios": "interpreter"
   },
   "provenance": {
     "upstream_license": "GPL-3.0-or-later",

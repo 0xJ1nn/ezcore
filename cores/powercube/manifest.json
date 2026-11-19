@@ -32,7 +32,8 @@
     "macos": "dynarec",
     "windows": "dynarec",
     "linux": "dynarec",
-    "android": "dynarec"
+    "android": "dynarec",
+    "ios": "interpreter"
   },
   "notes": "Desktop/Android only. No JIT on iOS so delivery.ios=absent. Heavy CPU/GPU — on-demand download, high-end devices. macOS artifact requires macOS 27+ (bundled curl pipe2); revisit with guarded curl for wider distribution.",
   "delivery": {
@@ -40,7 +41,7 @@
     "windows": "download",
     "linux": "download",
     "android": "absent",
-    "ios": "absent"
+    "ios": "bundled"
   },
   "artifacts": {
     "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327",
