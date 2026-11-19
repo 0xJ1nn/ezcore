@@ -7,6 +7,12 @@ import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 
+/// Cover titles are balanced across lines in the measured looks, so match the
+/// words rather than the exact line break.
+Finder findTitle(String title) => find.byWidgetPredicate(
+  (w) => w is Text && w.data?.replaceAll(RegExp(r'\s+'), ' ').trim() == title,
+);
+
 void main() {
   const games = [
     GameEntry(
@@ -48,8 +54,8 @@ void main() {
     // Set games directly to avoid rootBundle catalog load in test env
     final state = AppState.ephemeral()..games = games;
     await pump(tester, state);
-    expect(find.text('My GBA Dump'), findsWidgets);
-    expect(find.text('My SNES Dump'), findsWidgets);
+    expect(findTitle('My GBA Dump'), findsWidgets);
+    expect(findTitle('My SNES Dump'), findsWidgets);
     // Nothing played yet: no Resume or Continue, so no "All games" heading
     // either; the chips sit right above the games.
     expect(find.byType(LibraryChips), findsOneWidget);
@@ -57,8 +63,8 @@ void main() {
 
     await tester.enterText(find.byType(TextField).first, 'snes');
     await tester.pumpAndSettle();
-    expect(find.text('My SNES Dump'), findsWidgets);
-    expect(find.text('My GBA Dump'), findsNothing);
+    expect(findTitle('My SNES Dump'), findsWidgets);
+    expect(findTitle('My GBA Dump'), findsNothing);
   });
 
   testWidgets('a system filter shows that system only', (tester) async {
@@ -73,7 +79,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(chip);
     await tester.pumpAndSettle();
-    expect(find.text('My GBA Dump'), findsWidgets);
-    expect(find.text('My SNES Dump'), findsNothing);
+    expect(findTitle('My GBA Dump'), findsWidgets);
+    expect(findTitle('My SNES Dump'), findsNothing);
   });
 }

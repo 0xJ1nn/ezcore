@@ -191,9 +191,7 @@ final class PcmAudioSink {
     native.setMethodCallHandler { call, result in
       switch call.method {
       case "bundledCoresDir":
-        // Cores ship as framework bundles in Frameworks/ (App Store bundle
-        // rules); the runtime is statically linked.
-        result(Bundle.main.bundlePath + "/Frameworks")
+        result(Bundle.main.bundlePath + "/ezcore-cores")
       case "runtimeRef":
         result(["kind": "path", "path": Bundle.main.bundlePath + "/Frameworks/libezcore_runtime.dylib"])
       default: result(FlutterMethodNotImplemented)

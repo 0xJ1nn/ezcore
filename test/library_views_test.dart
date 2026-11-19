@@ -395,11 +395,12 @@ void main() {
     expect(barTitle(t), 'Zeta Strike');
   });
 
-  testWidgets('sort by system: Grid and List get a heading per system', (
+  testWidgets('sort by system orders Grid and List covers by system', (
     t,
   ) async {
     for (final view in [CollectionView.grid, CollectionView.list]) {
-      // Tall enough that the grouped games below Resume and Continue build.
+      // The measured looks are flat: they no longer add a heading per system,
+      // but the shared sort still decides which cover comes first.
       await pump(
         t,
         view: view,
@@ -407,10 +408,17 @@ void main() {
         library: [...games, zeta],
       );
       await chooseSort(t, 'Sort: By system');
-      final headings = find.bySemanticsLabel(
-        RegExp(r'^Game Boy Advance, 2 games$'),
-      );
-      expect(headings, findsOneWidget, reason: view.label);
+      final titles = t.widgetList<Text>(find.byType(Text))
+          .map((w) => w.data?.replaceAll(RegExp(r'\s+'), ' ').trim())
+          .toList();
+      final alpha = titles.indexWhere((s) => s == 'Alpha Quest');
+      final zetaAt = titles.indexWhere((s) => s == 'Zeta Strike');
+      final beta = titles.indexWhere((s) => s == 'Beta Run');
+      expect(alpha, isNonNegative, reason: '${view.label}: $titles');
+      expect(zetaAt, isNonNegative, reason: '${view.label}: $titles');
+      expect(beta, isNonNegative, reason: '${view.label}: $titles');
+      // Both GBA games sit ahead of the NES and SNES ones.
+      expect(zetaAt, lessThan(beta), reason: '${view.label}: $titles');
     }
   });
 

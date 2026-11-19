@@ -15,6 +15,13 @@ import '../widgets/cover_flow.dart';
 import '../widgets/focus_glow.dart';
 import '../widgets/game_dock.dart';
 import '../widgets/library_header.dart';
+import '../widgets/library_looks/grid_look.dart';
+import '../widgets/library_looks/list_look.dart';
+import '../widgets/library_looks/look_picker_sheet.dart';
+import '../widgets/library_looks/look_theme.dart';
+import '../widgets/library_looks/look_toast.dart';
+import '../widgets/library_looks/shelf_look.dart';
+import '../widgets/library_looks/wall_look.dart';
 import '../widgets/orbit_chrome.dart' show OrbitKeyHints;
 import '../widgets/orbit_overlays.dart';
 import '../widgets/orbit_widgets.dart';
@@ -148,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedId;
   bool _phoneSearchOpen = false;
   bool _optionsOpen = false;
+  late LibraryLook _lastLook;
   final _viewChipKey = GlobalKey();
   final _screenFocus = FocusNode(debugLabel: 'library screen');
 
@@ -159,14 +167,44 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setLook(LibraryLook look) =>
       state.setSetting(libraryViewKey, look.value);
 
+  /// The four measured looks share one selected game and one set of actions.
+  LookActions _lookActions(List<GameEntry> games) => LookActions(
+    games: games,
+    selectedId: _selectedId,
+    state: state,
+    onTap: _onShelfTap,
+  );
+
   @override
   void initState() {
     super.initState();
     // Open on the game played last (§2). An explicit filter or sort later
     // clears it, so the shelf then starts at the first game in view.
     _selectedId = lastPlayed(widget.state.games)?.id;
+    _lastLook = _look;
     widget.filterRequests?.addListener(_applyRequest);
     _search.addListener(_onSearchChanged);
+    state.addListener(_onLookChanged);
+  }
+
+  /// Every path to a new look — V, the header switch, the phone picker,
+  /// Settings — confirms the choice with the same small pill (§8.1).
+  void _onLookChanged() {
+    final look = _look;
+    if (look == _lastLook) return;
+    _lastLook = look;
+    if (!mounted) return;
+    // The cover flow owns autofocus in the default look; when it is replaced
+    // the screen needs focus back or the next V would have nowhere to land.
+    _screenFocus.requestFocus();
+    // A phone opens the look picker sheet instead; a toast under that sheet
+    // would only cover the covers (Devices 4b).
+    final size = MediaQuery.sizeOf(context);
+    if (Layout.ofSize(size, MediaQuery.orientationOf(context)) ==
+        OrbitLayout.phonePortrait) {
+      return;
+    }
+    showLibraryLookToast(context, look.label);
   }
 
   void _applyRequest() {
@@ -188,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     widget.filterRequests?.removeListener(_applyRequest);
     _search.removeListener(_onSearchChanged);
+    state.removeListener(_onLookChanged);
     _search.dispose();
     _searchFocus.dispose();
     _screenFocus.dispose();
@@ -431,6 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final look = _resolvedLook(shape);
     final phonePortrait = shape == _LibraryShape.phonePortrait;
+    final compactLook = phonePortrait || shape == _LibraryShape.mini;
     final chips = _chips(phone: phonePortrait);
 
     if (visible.isEmpty) {
@@ -443,19 +483,46 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // Tablets keep the hub-style rows: the measured four looks are drawn for
+    // the desktop reference and the two phone device frames (§10).
+    final legacy =
+        shape == _LibraryShape.tablet ||
+        shape == _LibraryShape.tabletPortrait ||
+        shape == _LibraryShape.phoneLandscape;
     final content = switch (look) {
       LibraryLook.flow => _coverFlow(shape, visible),
-      LibraryLook.wall => _wall(shape, visible),
-      LibraryLook.shelf => _shelfRows(
-        visible,
-        showHeaders: shape != _LibraryShape.phoneLandscape,
-        continueAspect: shape == _LibraryShape.tabletPortrait ? 0.72 : 1.5,
-        deviceFrame:
-            shape == _LibraryShape.tablet ||
-            shape == _LibraryShape.tabletPortrait,
-        landscape: shape == _LibraryShape.tablet,
-      ),
-      LibraryLook.grid || LibraryLook.list => _collectionPage(shape, visible),
+      LibraryLook.wall => legacy
+          ? _wall(shape, visible)
+          : WallLook(
+              actions: _lookActions(visible),
+              compact: compactLook,
+            ),
+      LibraryLook.shelf =>
+        shape == _LibraryShape.tablet ||
+                shape == _LibraryShape.tabletPortrait
+            ? _shelfRows(
+                visible,
+                showHeaders: shape != _LibraryShape.phoneLandscape,
+                continueAspect: shape == _LibraryShape.tabletPortrait ? 0.72 : 1.5,
+                deviceFrame: true,
+                landscape: shape == _LibraryShape.tablet,
+              )
+            : ShelfLook(
+                actions: _lookActions(visible),
+                compact: compactLook,
+              ),
+      LibraryLook.grid => legacy
+          ? _collectionPage(shape, visible)
+          : GridLook(
+              actions: _lookActions(visible),
+              compact: compactLook,
+            ),
+      LibraryLook.list => legacy
+          ? _collectionPage(shape, visible)
+          : ListLook(
+              actions: _lookActions(visible),
+              compact: compactLook,
+            ),
     };
 
     return _scaffold(
@@ -723,8 +790,14 @@ class _HomeScreenState extends State<HomeScreen> {
     // The short rhythm (tablet landscape) and the sideways phone drop the
     // chips and tools entirely; only the desktop and upright phone keep the
     // chip row, and only the desktop shows the counts inside it (§10).
+    // The phone's Grid and List frames give the whole screen to the covers;
+    // the chips only stay in the featured (flow) layout (Devices 4a/4b).
+    final phoneFullScreen =
+        shape == _LibraryShape.phonePortrait &&
+        (_look == LibraryLook.grid || _look == LibraryLook.list);
     final showChips =
         !mini &&
+        !phoneFullScreen &&
         (shape == _LibraryShape.desktop ||
             shape == _LibraryShape.phonePortrait);
     final showTools =
@@ -733,7 +806,9 @@ class _HomeScreenState extends State<HomeScreen> {
             shape == _LibraryShape.phonePortrait);
     final dockMode = switch (shape) {
       _LibraryShape.desktop => GameDockMode.full,
-      _LibraryShape.phonePortrait => GameDockMode.stacked,
+      _LibraryShape.phonePortrait => phoneFullScreen
+          ? GameDockMode.oneLine
+          : GameDockMode.stacked,
       _LibraryShape.mini => GameDockMode.mini,
       _ => GameDockMode.oneLine,
     };
@@ -819,7 +894,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? CrossAxisAlignment.start
                 : CrossAxisAlignment.center,
             children: [
-              Expanded(child: title),
+              Expanded(
+                // The phone look picker holds only the five looks (Devices
+                // 4b); sorting stays in the header through a long press on
+                // the title, so the header itself matches the design.
+                child: GestureDetector(
+                  onLongPress: phone ? _showSortMenu : null,
+                  child: title,
+                ),
+              ),
               SizedBox(width: phone ? 6 : 16),
               if (desktop)
                 Padding(padding: const EdgeInsets.only(top: 4), child: tools)
@@ -872,6 +955,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   shape != _LibraryShape.phoneLandscape &&
                   shape != _LibraryShape.tabletPortrait,
               showMore:
+                  !phoneFullScreen &&
                   shape != _LibraryShape.tablet &&
                   shape != _LibraryShape.tabletPortrait,
               showGlyph: shape != _LibraryShape.tablet,
@@ -914,12 +998,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// V / the View chip: the five looks and the three sorts in one menu, so
-  /// every way of changing the view is reachable with a mouse or a thumb.
-  ///
-  /// A menu (not a sheet) because it can scroll: on a phone held sideways
-  /// eight rows are taller than the screen.
+  /// V / the View chip. On a phone the looks open as a bottom sheet with a
+  /// miniature of each one (Devices 4b); everywhere else a menu keeps the
+  /// looks and the sorts together so every action stays reachable.
   Future<void> _openViewMenu() async {
+    final size = MediaQuery.sizeOf(context);
+    final layout = Layout.ofSize(size, MediaQuery.orientationOf(context));
+    if (layout == OrbitLayout.phonePortrait) {
+      // The picker holds only the five looks (Devices 4b). Sorting stays in
+      // the header's view control: a long press on the V chip opens it.
+      final look = await showLookPickerSheet(context, value: _look);
+      if (!mounted || look == null) return;
+      _setLook(look);
+      return;
+    }
     final box = _viewChipKey.currentContext?.findRenderObject() as RenderBox?;
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
@@ -956,6 +1048,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
     if (!mounted || value == null) return;
+    _applyMenuValue(value);
+  }
+
+  Future<void> _showSortMenu() async {
+    final box = _viewChipKey.currentContext?.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+    final value = await showMenu<String>(
+      context: context,
+      color: Tokens.toastBg,
+      position: RelativeRect.fromRect(
+        box.localToGlobal(Offset.zero) & box.size,
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        for (final sort in _Sort.values)
+          PopupMenuItem(
+            value: 'sort:${sort.name}',
+            height: 44,
+            child: _MenuRow(
+              icon: Symbols.tune,
+              label: 'Sort: ${sort.label}',
+              selected: sort == _sort,
+            ),
+          ),
+      ],
+    );
+    if (!mounted || value == null) return;
+    _applyMenuValue(value);
+  }
+
+  void _applyMenuValue(String value) {
     final parts = value.split(':');
     if (parts.length != 2) return;
     if (parts.first == 'look') {

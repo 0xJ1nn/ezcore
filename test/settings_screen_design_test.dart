@@ -83,7 +83,7 @@ void main() {
 
     await tester.tap(find.text('Library look'));
     await tester.pumpAndSettle();
-    expect(state.settings['libraryView'], 'shelf');
+    expect(state.settings['libraryLook'], 'shelf');
   });
 
   testWidgets('text size scales the screen text', (tester) async {
