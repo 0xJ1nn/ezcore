@@ -157,7 +157,8 @@ void main() {
       await pumpShell(tester, entry.value, library: const []);
       expect(tester.takeException(), isNull,
           reason: 'layout overflow at ${entry.value}');
-      expect(find.text('Add your first game'), findsOneWidget);
+      // The empty state's title is the design's "Your shelf is empty".
+      expect(find.text('Your shelf is empty'), findsOneWidget);
     });
   }
 

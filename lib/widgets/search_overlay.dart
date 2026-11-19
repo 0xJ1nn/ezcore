@@ -284,7 +284,7 @@ class _SearchOverlayState extends State<SearchOverlay>
   }
 
   Widget _field({required bool wide}) {
-    final radius = BorderRadius.circular(wide ? 16 : 12);
+    final radius = BorderRadius.circular(wide ? 16 : 23);
     final query = _controller.text;
     return AnimatedContainer(
       duration: Tokens.fastDur,
@@ -754,7 +754,9 @@ class _SearchOverlayState extends State<SearchOverlay>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(height: MediaQuery.paddingOf(context).top + 10),
+            // The device frame's status bar occupies the first band; the
+            // field starts below it, as in the phone reference.
+            SizedBox(height: MediaQuery.paddingOf(context).top + 64),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -782,7 +784,7 @@ class _SearchOverlayState extends State<SearchOverlay>
                 ],
               ),
             ),
-            const SizedBox(height: 36),
+            const SizedBox(height: 46),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: _results(wide: false),
