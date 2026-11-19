@@ -176,7 +176,11 @@ build_gambatte() {
 build_advancebit() {
   clone https://github.com/libretro/mgba.git "$SRC_DIR/mgba-libretro"
   core_reset "$SRC_DIR/mgba-libretro"
-  require_interpreter_ios advancebit
+  # mGBA selects its ARM JIT at runtime through libretro's
+  # RETRO_ENVIRONMENT_GET_JIT_CAPABLE. ezCORE never advertises that capability
+  # on iOS, so this build always runs the interpreter there. No build flag is
+  # needed; the explicit argument records the legal posture for this platform.
+  require_interpreter_ios advancebit "runtime JIT-capable probe; interpreter on iOS"
   if [ "$PLATFORM" = android ]; then
     android_toolchain
     # NDK r27 (Clang 18) promotes implicit declarations to errors; mGBA's
@@ -193,8 +197,14 @@ build_advancebit() {
     stage advancebit "$SRC_DIR/mgba-libretro/build-android/mgba_libretro.so"
     return
   fi
+  # iOS: mGBA's toolchain writes LC_VERSION_MIN_IPHONEOS (minos 11.0), which
+  # vtool's LC_BUILD_VERSION repair cannot rewrite. Set the deployment target
+  # at configure time so the linked dylib is already at the 15.0 floor.
+  ideploy=""
+  [ "$PLATFORM" = ios ] && ideploy="-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0"
+  # shellcheck disable=SC2086
   cmake -S "$SRC_DIR/mgba-libretro" -B "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH" \
-    -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -G Ninja -DCMAKE_BUILD_TYPE=Release $ideploy \
     -DBUILD_LIBRETRO=ON -DBUILD_QT=OFF -DBUILD_SDL=OFF -DBUILD_SUITE=OFF \
     -DBUILD_TEST=OFF -DBUILD_PYTHON=OFF -DBUILD_EXAMPLE=OFF \
     -DBUILD_PERF=OFF -DBUILD_CINEMA=OFF -DBUILD_HEADLESS=OFF
@@ -243,9 +253,28 @@ unverified() { echo "UNVERIFIED recipe: $1 — see script source"; exit 3; }
 build_geometry1() {
   clone https://github.com/libretro/swanstation.git "$SRC_DIR/swanstation"
   core_reset "$SRC_DIR/swanstation"
-  require_interpreter_ios geometry1
-  core_make "$SRC_DIR/swanstation" -f Makefile.libretro
-  stage geometry1 "$SRC_DIR/swanstation/swanstation_libretro.$LIB_SUFFIX"
+  # SwanStation's recompiler is opt-in (WITH_RECOMPILER=1 adds
+  # -DWITH_RECOMPILER). Leaving it off builds the MIPS interpreter, which is
+  # the only JIT-free path and the one Apple's App Store rules allow.
+  require_interpreter_ios geometry1 "WITH_RECOMPILER=0"
+  extra=""
+  if [ "$PLATFORM" = ios ]; then
+    # SwanStation's makefile has no ios platform branch, but its osx branch
+    # supports Apple cross-compilation through LIBRETRO_APPLE_* / CROSS_COMPILE.
+    export LIBRETRO_APPLE_PLATFORM="arm64-apple-ios15.0"
+    export LIBRETRO_APPLE_ISYSROOT
+    LIBRETRO_APPLE_ISYSROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
+    MAKE_PLATFORM_OVERRIDE="platform=osx CROSS_COMPILE=1"
+    # arch=arm64 makes the makefile select aarch64 (not its default x64),
+    # so the x86-only xxhash dispatcher is not compiled into an arm64 core.
+    extra="arch=arm64 CPU_ARCH=aarch64 WITH_RECOMPILER=0 WITH_MMAP_FASTMEM=0"
+  fi
+  # shellcheck disable=SC2086
+  core_make "$SRC_DIR/swanstation" -f Makefile.libretro $extra
+  out="swanstation_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="swanstation_libretro_ios.dylib"
+  [ -f "$SRC_DIR/swanstation/$out" ] || out="swanstation_libretro.$LIB_SUFFIX"
+  stage geometry1 "$SRC_DIR/swanstation/$out"
 }
 
 build_portcomp() {
@@ -279,9 +308,18 @@ build_nesbyte() {
 build_dualscreen() {
   clone https://github.com/libretro/melonDS.git "$SRC_DIR/melonDS-libretro"
   core_reset "$SRC_DIR/melonDS-libretro"
-  require_interpreter_ios dualscreen
-  core_make "$SRC_DIR/melonDS-libretro"
-  stage dualscreen "$SRC_DIR/melonDS-libretro/melonds_libretro.$LIB_SUFFIX"
+  # melonDS enables its ARM JIT only when JIT_ARCH is set. The upstream ios
+  # platform block deliberately leaves it unset, so the build is the
+  # interpreter; pin JIT_ARCH empty explicitly so a stale make variable or a
+  # reused object tree cannot silently turn JIT back on.
+  require_interpreter_ios dualscreen "JIT_ARCH= (interpreter)"
+  extra=""
+  [ "$PLATFORM" = ios ] && extra="JIT_ARCH="
+  # shellcheck disable=SC2086
+  core_make "$SRC_DIR/melonDS-libretro" $extra
+  out="melonds_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="melonds_libretro_ios.dylib"
+  stage dualscreen "$SRC_DIR/melonDS-libretro/$out"
 }
 
 build_joystick() {
@@ -337,7 +375,10 @@ build_rcp64() {
   core_reset "$SRC_DIR/mupen64plus-nx"
   # SYSTEM_LIBPNG/ZLIB: vendored libpng hits the TARGET_OS_MAC/fp.h SDK rot
   # and vendored zlib-1.2.11 hits the _stdio.h rot (same as beetle-pce).
-  require_interpreter_ios rcp64
+  # Upstream's ios-arm64 block already sets WITH_DYNAREC empty (no dynarec),
+  # matching the manifest's execution.ios=interpreter. Pass it explicitly so a
+  # reused object tree cannot re-enable the dynarec on this platform.
+  require_interpreter_ios rcp64 "WITH_DYNAREC= (interpreter)"
   # Software rendering: the core offers the Angrylion RDP as an option, but
   # upstream's Makefile only compiles it (and the LLE RSP it requires) for
   # osx/ios/rpi5 and a few others -- not for unix or windows. Asking a build
@@ -348,9 +389,25 @@ build_rcp64() {
   case "$PLATFORM" in
     linux|windows) sw=(HAVE_THR_AL=1 HAVE_PARALLEL_RSP=1 LLE=1) ;;
   esac
-  core_make "$SRC_DIR/mupen64plus-nx" SYSTEM_LIBPNG=1 SYSTEM_ZLIB=1 ${sw[@]+"${sw[@]}"}
+  i386=""
+  pngsystem="SYSTEM_LIBPNG=1"
+  if [ "$PLATFORM" = ios ]; then
+    i386="WITH_DYNAREC="
+    # Homebrew's libpng is a macOS dylib and cannot be linked into an iOS
+    # core. Use the vendored copy, patched for the Xcode 27 SDK the same way
+    # ScummVM's copy is patched below (TARGET_OS_MAC is also true on iOS).
+    pngsystem=""
+    pngpriv="$SRC_DIR/mupen64plus-nx/custom/dependencies/libpng/pngpriv.h"
+    if grep -q "defined(TARGET_OS_MAC)" "$pngpriv" 2>/dev/null && ! grep -q "TARGET_OS_IPHONE" "$pngpriv" 2>/dev/null; then
+      sed -i.bak 's/defined(TARGET_OS_MAC)/(defined(TARGET_OS_MAC) \&\& !defined(TARGET_OS_IPHONE))/g' "$pngpriv" && rm -f "$pngpriv.bak"
+    fi
+  fi
+  # shellcheck disable=SC2086
+  core_make "$SRC_DIR/mupen64plus-nx" $pngsystem SYSTEM_ZLIB=1 $i386 ${sw[@]+"${sw[@]}"}
   echo "$flags_want" > "$flags_mark"
-  stage rcp64 "$SRC_DIR/mupen64plus-nx/mupen64plus_next_libretro.$LIB_SUFFIX"
+  out="mupen64plus_next_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="mupen64plus_next_libretro_ios.dylib"
+  stage rcp64 "$SRC_DIR/mupen64plus-nx/$out"
 }
 
 build_dreamarc() {
@@ -414,16 +471,34 @@ block = "ifeq (,$(filter updatepot,$(MAKECMDGOALS)))\n-include engines/engines.m
 if block in s:
     open(p, "w").write(s.replace(block, "-include engines/engines.mk\n", 1))
 PY
-  # Current upstream moved FontSJIS/FontTowns into graphics/sjis.h and no
-  # longer pulls it in through graphics/font.h, so the SCUMM engine fails to
-  # compile against an "incomplete type" / missing FontTowns. Add the direct
-  # include. Idempotent; core_reset restores it on switches.
+  # Current upstream gates FontSJIS/FontTowns behind USE_SJIS in
+  # graphics/sjis.h and no longer includes it from graphics/font.h, so the
+  # SCUMM engine fails with "incomplete type" / missing FontTowns. Add the
+  # define and force the header in through the compiler command line, which
+  # survives their configure step resetting the tracked source tree.
+  scumdefs="$SRC_DIR/scummvm/backends/platform/libretro/Makefile.common"
+  python3 - "$scumdefs" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+line = "DEFINES += -DUSE_SJIS=1 -DUSE_COKTEL_DECODER=1\n"
+needle = "DEFINES += -DUSE_HNM\n"
+if needle in s and line not in s:
+    open(p, "w").write(s.replace(needle, line + needle, 1))
+PY
+  # Include the header only in charset.cpp. A global -include is harmful:
+  # it drags common/scummsys.h (and forbidden.h) into libretro-common's VFS
+  # sources, where FILE/strcasecmp are deliberately forbidden.
   charset="$SRC_DIR/scummvm/engines/scumm/charset.cpp"
-  if grep -q '#include "graphics/sjis.h"' "$charset" 2>/dev/null; then
-    :
-  elif grep -q '#include "graphics/font.h"' "$charset" 2>/dev/null; then
-    sed -i.bak '/#include "graphics\/font.h"/a\#include "graphics/sjis.h"' "$charset" && rm -f "$charset.bak"
-  fi
+  python3 - "$charset" <<'PY'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+needle = '#include "graphics/font.h"\n'
+add = '#include "graphics/sjis.h"\n'
+if needle in s and add not in s:
+    open(p, "w").write(s.replace(needle, needle + add, 1))
+PY
   if [ "$PLATFORM" = macos ]; then
     # DEBUG_ALLOW_DIRTY_SUBMODULES=1: same reason as the mobile branch —
     # their configure_submodules.sh git-reset --hard's any dirty dep at
@@ -542,7 +617,7 @@ TIER1="pocketbit advancebit superfx blastproc realmode"
 TIER_ANDROID="pocketbit advancebit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
 # iOS: pure-interpreter make cores only. mgba/melonds/JIT-default cores stay
 # out until an explicit interpreter flag is verified (manifest rule).
-TIER_IOS="pocketbit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
+TIER_IOS="pocketbit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox advancebit geometry1 dualscreen rcp64"
 # Desktop (linux/windows native): everything shippable.
 TIER_DESKTOP="pocketbit advancebit nesbyte superfx blastproc joystick cardcon twinsh coinbox pointclick realmode geometry1 rcp64 dualscreen portcomp dreamarc powercube"
 
