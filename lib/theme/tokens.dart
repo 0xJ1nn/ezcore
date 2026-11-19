@@ -63,6 +63,24 @@ abstract final class Tokens {
   /// 7 px outer focus glow. **NEW** in Orbit.
   static const focusHalo = Color(0x3D007BFF); // rgba(0,123,255,0.24)
 
+  // ---- On-screen controls (device boards 2a–2c) ----
+
+  /// Resting face / shoulder / d-pad fill: rgba(221,230,244,.10) over ink.
+  static const controlFill = Color(0xFF14181F);
+
+  /// Edit mode lifts the buttons so their handles stay legible on the game.
+  static const controlEditFill = Color(0xFF1E2E40);
+
+  /// The design's player stage behind the game: ink in portrait, a quiet
+  /// radial wash in landscape.
+  static const playerInk = Color(0xFF05080F);
+  static const playerGlow = Color(0xFF0D1322);
+  static const playerEdge = Color(0xFF080B15);
+
+  /// Active press: accent at 55%, with a soft blue glow (2a caption).
+  static const controlPressed = Color(0x8C007BFF); // rgba(0,123,255,.55)
+  static const controlGlow = Color(0x66007BFF);
+
   // ---- Space scene (studio plate background) ----
   // The approved identity stays black / electric blue / silver-white. The
   // scene only re-mixes those same values across depth instead of a new hue.

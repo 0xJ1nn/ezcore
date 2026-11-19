@@ -274,6 +274,7 @@ class ControlOverlayState extends State<ControlOverlay> {
           child: Opacity(
             opacity: widget.layout.opacity,
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 for (final ctl in widget.layout.controls)
                   Positioned.fromRect(
@@ -294,20 +295,31 @@ class ControlOverlayState extends State<ControlOverlay> {
 /// How one control looks, pressed or not. Shared by the game overlay and
 /// the layout editor so editing shows exactly what playing will.
 class ControlVisual extends StatelessWidget {
-  const ControlVisual({super.key, required this.spec, this.pressed = const {}});
+  const ControlVisual({
+    super.key,
+    required this.spec,
+    this.pressed = const {},
+    this.editing = false,
+  });
   final ControlSpec spec;
   final Set<String> pressed;
+  final bool editing;
 
   @override
   Widget build(BuildContext context) => spec.type == ControlType.dpad
-      ? _DPad(pressed: pressed)
-      : _Button(spec: spec, down: pressed.contains(spec.input));
+      ? _DPad(pressed: pressed, editing: editing)
+      : _Button(
+          spec: spec,
+          down: pressed.contains(spec.input),
+          editing: editing,
+        );
 }
 
 class _Button extends StatelessWidget {
-  const _Button({required this.spec, required this.down});
+  const _Button({required this.spec, required this.down, this.editing = false});
   final ControlSpec spec;
   final bool down;
+  final bool editing;
 
   @override
   Widget build(BuildContext context) {
@@ -325,39 +337,52 @@ class _Button extends StatelessWidget {
           child: Semantics(
             button: true,
             label: spec.label ?? spec.input,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 60),
-              width: box.width,
-              height: box.height,
+            child: Stack(
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: down ? const Color(0xCC007BFF) : const Color(0x5517263A),
-                borderRadius: BorderRadius.circular(radius),
-                border: Border.all(
-                  color: down
-                      ? const Color(0xFF3B8BFF)
-                      : const Color(0x66DDE6F4),
-                  width: 1.5,
-                ),
-              ),
-              child: _sonySymbols.contains(spec.label)
-                  ? CustomPaint(
-                      size: Size.square(side * 0.42),
-                      painter: _SymbolPainter(spec.label!),
-                    )
-                  : FittedBox(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: Text(
-                          spec.label ?? spec.input ?? '',
-                          style: Tokens.display(
-                            size: round ? side * 0.36 : box.height * 0.42,
-                            weight: FontWeight.w600,
-                            ls: 0,
+              children: [
+                if (down)
+                  CustomPaint(
+                    size: box,
+                    painter: _ControlGlowPainter(radius: radius),
+                  ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 60),
+                  width: box.width,
+                  height: box.height,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: down
+                        ? Tokens.controlPressed
+                        : editing
+                        ? Tokens.controlEditFill
+                        : Tokens.controlFill,
+                    borderRadius: BorderRadius.circular(radius),
+                    border: Border.all(
+                      color: down ? Tokens.accent : Tokens.lineStrong,
+                      width: down ? 1.5 : 1,
+                    ),
+                  ),
+                  child: _sonySymbols.contains(spec.label)
+                      ? CustomPaint(
+                          size: Size.square(side * 0.42),
+                          painter: _SymbolPainter(spec.label!),
+                        )
+                      : FittedBox(
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Text(
+                              spec.label ?? spec.input ?? '',
+                              style: Tokens.display(
+                                size: round ? side * 0.36 : box.height * 0.42,
+                                weight: FontWeight.w600,
+                                ls: 0,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                ),
+              ],
             ),
           ),
         );
@@ -366,9 +391,36 @@ class _Button extends StatelessWidget {
   }
 }
 
+/// A blurred accent ring just outside a pressed button. Drawn with a painter
+/// so it is not clipped to the control's own box.
+class _ControlGlowPainter extends CustomPainter {
+  const _ControlGlowPainter({required this.radius});
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final ring = RRect.fromRectAndRadius(
+      Rect.fromLTWH(-1, -1, size.width + 2, size.height + 2),
+      Radius.circular(radius + 1),
+    );
+    canvas.drawRRect(
+      ring,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..color = Tokens.controlGlow
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ControlGlowPainter old) => old.radius != radius;
+}
+
 class _DPad extends StatelessWidget {
-  const _DPad({required this.pressed});
+  const _DPad({required this.pressed, this.editing = false});
   final Set<String> pressed;
+  final bool editing;
 
   @override
   Widget build(BuildContext context) {
@@ -377,7 +429,7 @@ class _DPad extends StatelessWidget {
         aspectRatio: 1,
         child: Semantics(
           label: 'Directional pad',
-          child: CustomPaint(painter: _DPadPainter(pressed)),
+          child: CustomPaint(painter: _DPadPainter(pressed, editing)),
         ),
       ),
     );
@@ -385,19 +437,28 @@ class _DPad extends StatelessWidget {
 }
 
 class _DPadPainter extends CustomPainter {
-  _DPadPainter(this.pressed);
+  _DPadPainter(this.pressed, this.editing);
   final Set<String> pressed;
+  final bool editing;
 
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width;
     final arm = s / 3;
-    final idle = Paint()..color = const Color(0x5517263A);
-    final down = Paint()..color = const Color(0xCC007BFF);
+    final idle = Paint()
+      ..color = editing ? Tokens.controlEditFill : Tokens.controlFill;
+    final down = Paint()..color = Tokens.controlPressed;
+    // The active press lights in accent and carries a soft glow (2a). A
+    // blurred ring keeps the halo outside the arm instead of tinting its fill.
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..color = Tokens.controlGlow
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     final edge = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = const Color(0x66DDE6F4);
+      ..strokeWidth = 1
+      ..color = Tokens.lineStrong;
     final arms = {
       'up': Rect.fromLTWH(arm, 0, arm, arm),
       'down': Rect.fromLTWH(arm, arm * 2, arm, arm),
@@ -421,10 +482,9 @@ class _DPadPainter extends CustomPainter {
     canvas.drawPath(cross, idle);
     for (final e in arms.entries) {
       if (pressed.contains(e.key)) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(e.value, const Radius.circular(8)),
-          down,
-        );
+        final arm = RRect.fromRectAndRadius(e.value, const Radius.circular(8));
+        canvas.drawRRect(arm, glow);
+        canvas.drawRRect(arm, down);
       }
     }
     canvas.drawRect(centre, idle);
@@ -433,7 +493,9 @@ class _DPadPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DPadPainter old) =>
-      old.pressed.length != pressed.length || !old.pressed.containsAll(pressed);
+      old.editing != editing ||
+      old.pressed.length != pressed.length ||
+      !old.pressed.containsAll(pressed);
 }
 
 /// PlayStation face symbols, drawn rather than typeset: the app's fonts do

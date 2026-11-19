@@ -166,6 +166,7 @@ ControlLayout _portrait(_Family f) {
       hinge: f.dual ? 0.35 : null, // between the two screens
     ),
     controls: controls,
+    opacity: 1,
   );
 }
 
@@ -204,7 +205,7 @@ ControlLayout _landscape(_Family f) {
     screen: screen,
     shell: ShellSpec(color: f.shell, radius: 0),
     controls: controls,
-    opacity: 0.7,
+    opacity: 1,
   );
 }
 
