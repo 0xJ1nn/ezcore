@@ -833,7 +833,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       OrbitLayout.phoneLandscape => _PauseKind.compact,
       _ => _PauseKind.panel,
     };
-    final metrics = _PauseMetrics.of(kind, size);
+    final modifier = Layout.modifierOf(context);
+    final tv = Layout.isTv(modifier);
+    final metrics = _PauseMetrics.of(kind, size, tv: tv);
     final reduce = _reduceMotion;
     final phone = Layout.isPhone(family);
     final hasMenuControl = controlsLayout.controls.any((c) => c.id == 'menu');
@@ -988,7 +990,15 @@ class _PlayerScreenState extends State<PlayerScreen>
                   ),
                 ),
               if (t > 0)
-                _pauseLayer(game, size, place.box, metrics, t, reduce: reduce),
+                _pauseLayer(
+                  game,
+                  size,
+                  place.box,
+                  metrics,
+                  t,
+                  reduce: reduce,
+                  tv: tv,
+                ),
               if (!_menuOpen)
                 Positioned(
                   top: family == OrbitLayout.phonePortrait ? 56 : 28,
@@ -1187,6 +1197,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _PauseMetrics metrics,
     double t, {
     required bool reduce,
+    required bool tv,
   }) {
     final entries = _menuEntries(game);
     final system = systemLabels[game.system] ?? game.system;
@@ -1201,7 +1212,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         'Session $minute min${autosave == null ? '' : ' · $autosave'}';
     final slide = reduce ? 0.0 : 14 * (1 - t);
     final opacity = reduce ? 1.0 : t.clamp(0.0, 1.0);
-    final pad = GamepadService.shared.connectedPad != null;
+    final pad = GamepadService.shared.connectedPad != null || tv;
     final hint = _HintRow(
       hints: pad
           ? const [('A', 'Select'), ('B', 'Resume')]
@@ -1209,7 +1220,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
 
     final strip = _SnapshotStrip(
-      slots: _slots,
+      slots: tv ? _slots.take(3).toList() : _slots,
       style: switch (metrics.kind) {
         _PauseKind.panel => _SnapStyle.wide,
         _PauseKind.compact => _SnapStyle.compact,
@@ -1252,18 +1263,25 @@ class _PlayerScreenState extends State<PlayerScreen>
       ),
     };
 
-    final snapshotHeading = metrics.kind == _PauseKind.panel
+    final snapshotHeading = metrics.kind == _PauseKind.panel && !tv
         ? Positioned(
             left: metrics.panelWidth + 50,
             top: metrics.stripTop - 3,
             right: 48,
             child: strip.heading(),
           )
-        : const SizedBox.shrink();
+        : const Positioned(
+            left: 0,
+            top: 0,
+            width: 0,
+            height: 0,
+            child: SizedBox.shrink(),
+          );
     final snapshotCards = metrics.kind == _PauseKind.panel
         ? Positioned(
-            left: metrics.panelWidth + 50,
-            top: metrics.stripTop + 30,
+            left: tv ? null : metrics.panelWidth + 50,
+            width: tv ? 3 * metrics.cardWidth + 2 * 16 : null,
+            top: metrics.stripTop + (tv ? 0 : 30),
             right: 48,
             child: strip.cards(),
           )
@@ -1549,6 +1567,7 @@ class _PauseMetrics {
     required this.stripTop,
     required this.cardWidth,
     required this.cardHeight,
+    this.tv = false,
   });
 
   final _PauseKind kind;
@@ -1557,15 +1576,18 @@ class _PauseMetrics {
   final double stripTop;
   final double cardWidth;
   final double cardHeight;
+  final bool tv;
 
-  static _PauseMetrics of(_PauseKind kind, Size size) => switch (kind) {
+  static _PauseMetrics of(_PauseKind kind, Size size, {bool tv = false}) =>
+      switch (kind) {
     _PauseKind.panel => _PauseMetrics(
       kind: kind,
       panelWidth: math.min(470, size.width * 0.5),
       sheetTop: 0,
-      stripTop: size.height * 0.7133,
+      stripTop: size.height * (tv ? 0.80 : 0.7133),
       cardWidth: 198,
-      cardHeight: 112,
+      cardHeight: tv ? 90 : 112,
+      tv: tv,
     ),
     _PauseKind.compact => _PauseMetrics(
       kind: kind,
@@ -1607,12 +1629,16 @@ class _PauseMetrics {
   }) {
     switch (kind) {
       case _PauseKind.panel:
-        final scale = reduce ? 0.6 : 0.56;
-        final center = Offset(stage.width * 0.7292, stage.height * 0.333);
+        // The TV frame sits immediately to the right of the menu and lower in
+        // the room-facing layout, with three snapshot cards under it.
+        final scale = tv ? 0.7 : (reduce ? 0.6 : 0.56);
+        final center = tv
+            ? Offset(stage.width * 0.683, stage.height * 0.48)
+            : Offset(stage.width * 0.7292, stage.height * 0.333);
         return (
           center: Offset.lerp(base.center, center, t)!,
           scale: 1 + (scale - 1) * t,
-          tilt: reduce ? 0 : 8 * math.pi / 180 * t,
+          tilt: reduce || tv ? 0 : 8 * math.pi / 180 * t,
         );
       case _PauseKind.compact:
         final scale = math.min(

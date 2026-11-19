@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/state/app_state.dart';
+import 'package:ezcore/state/input_mode.dart';
 import 'package:ezcore/theme/tokens.dart';
 
 /// Cover titles are balanced across lines in the measured looks, so match the
@@ -36,9 +37,14 @@ void main() {
   Future<void> pump(WidgetTester tester, AppState state) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
+    // These are desktop-library behaviours (chips, filters, search field).
+    // A seen mouse keeps the window in the plain desktop family; without one
+    // a 1280x800 window is the handheld modifier and hides those tools.
+    InputMode.shared.notePointer();
     addTearDown(() {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
+      InputMode.shared.reset();
     });
     await state.setSetting(libraryViewKey, CollectionView.grid.value);
     await tester.pumpWidget(

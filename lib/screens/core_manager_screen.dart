@@ -63,6 +63,7 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   @override
   Widget build(BuildContext context) {
     final layout = Layout.of(context);
+    final tv = Layout.isTv(Layout.modifierOf(context));
     final phone = layout == OrbitLayout.phonePortrait;
     return ListenableBuilder(
       listenable: state,
@@ -79,6 +80,21 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
               ? 84.0
               : (Layout.isPhone(layout) ? 16.0 : 32.0);
           final list = _visible;
+          if (tv) {
+            // The 10-foot frame opens on Nintendo DS and walks the systems in
+            // the order the room-facing grid was drawn in, not catalog order.
+            const systems = [
+              'nds', 'snes', 'gba', 'gb', 'n64', 'psx', 'psp', 'nes',
+            ];
+            int rank(CoreManifest m) {
+              final ranks = m.systems
+                  .map(systems.indexOf)
+                  .where((r) => r >= 0)
+                  .toList()..sort();
+              return ranks.isEmpty ? systems.length : ranks.first;
+            }
+            list.sort((a, b) => rank(a).compareTo(rank(b)));
+          }
           final selected = showPanel && list.isNotEmpty
               ? list.where((m) => m.id == _selectedId).firstOrNull ?? list.first
               : null;
@@ -776,7 +792,9 @@ class _CoreCardState extends State<_CoreCard> {
 
   @override
   Widget build(BuildContext context) {
-    final lit = widget.selected || _hover || _focus;
+    final tv = Layout.isTv(Layout.modifierOf(context));
+    // A 10-foot screen has no pointer: hover must never light a second card.
+    final lit = widget.selected || (!tv && _hover) || _focus;
     return Semantics(
       button: true,
       selected: widget.selected,
@@ -809,7 +827,7 @@ class _CoreCardState extends State<_CoreCard> {
                 stops: [0.0, 0.65],
               ),
               border: lit ? null : Border.all(color: const Color(0x24DDE6F4)),
-              boxShadow: lit ? Tokens.halo : null,
+              boxShadow: lit ? (tv ? Tokens.halo3 : Tokens.halo) : null,
             ),
             child: Stack(
               children: [

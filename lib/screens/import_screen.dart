@@ -840,6 +840,7 @@ class _ImportScreenState extends State<ImportScreen>
   Widget _scanBody(double width, double viewportBody) {
     final layout = Layout.ofSize(MediaQuery.sizeOf(context),
         MediaQuery.orientationOf(context));
+    final tv = Layout.isTv(Layout.modifierOf(context));
     final phonePortrait = layout == OrbitLayout.phonePortrait;
     final phoneLandscape = layout == OrbitLayout.phoneLandscape;
     return AnimatedBuilder(
@@ -860,6 +861,7 @@ class _ImportScreenState extends State<ImportScreen>
           pct: pct,
           spin: _sweep.value,
           found: found,
+          tv: tv,
         );
         final progress = _ScanProgress(
           root: _scanRoot,
@@ -915,7 +917,7 @@ class _ImportScreenState extends State<ImportScreen>
             ],
           );
         }
-        return Row(
+        final scanRow = Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
@@ -930,6 +932,26 @@ class _ImportScreenState extends State<ImportScreen>
               ),
             ),
           ],
+        );
+        if (!tv) return scanRow;
+        // The room-facing scan keeps Stop scan on screen: there is no pointer
+        // to discover an Esc shortcut with from the sofa.
+        return SizedBox(
+          height: math.max(viewportBody, radarSize + 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              scanRow,
+              const Spacer(),
+              Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: 140,
+                  child: _StopScanButton(onTap: _stopScan),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -1336,6 +1358,7 @@ class _Radar extends StatelessWidget {
     required this.pct,
     required this.spin,
     required this.found,
+    this.tv = false,
   });
 
   final double size;
@@ -1343,6 +1366,7 @@ class _Radar extends StatelessWidget {
   final double pct;
   final double spin;
   final int found;
+  final bool tv;
 
   /// The design's blips: (x, y, colour, threshold in percent).
   static const _blips = [
@@ -1429,9 +1453,9 @@ class _Radar extends StatelessWidget {
                 Text(
                   '$found',
                   style: Tokens.display(
-                    size: phone ? 60 : 72,
+                    size: phone ? 60 : (tv ? 82 : 72),
                     weight: FontWeight.w700,
-                    ls: -0.04 * 72,
+                    ls: -0.04 * (phone ? 60 : (tv ? 82 : 72)),
                     height: 1,
                     color: Colors.white,
                   ),
