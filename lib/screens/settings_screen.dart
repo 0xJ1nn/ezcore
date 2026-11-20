@@ -5,8 +5,11 @@ import 'package:flutter/material.dart';
 import '../brand/brand_mark.dart';
 import '../emu/pcm_output.dart';
 import '../services/gamepad.dart';
+import '../services/haptics.dart';
 import '../services/pad_mapping.dart';
+import '../services/ui_sounds.dart';
 import '../state/app_state.dart';
+import '../theme/accessibility.dart';
 import '../theme/layout.dart';
 import '../theme/symbols.dart';
 import '../theme/tokens.dart';
@@ -56,8 +59,6 @@ const _looks = <(String, String)>[
   ('list', 'List'),
 ];
 
-const _textSizes = <int>[100, 115, 130];
-
 // Host bindings (not RetroPad inputs) have their own persisted keys.
 const _quickSaveKey = 'quickSaveButton';
 const _fastForwardKey = 'fastForwardButton';
@@ -88,9 +89,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     tab = widget.initialTab ?? 'Appearance';
     _phoneSection = widget.initialTab;
     _focusId = _firstRowId(tab);
+    // The app root owns the cue bridge and reconciles the preference gates;
+    // this row is only a writer. Keep the local sync for screens built on
+    // their own (tests and deep links) so their toggles still reflect the
+    // persisted values immediately.
+    _syncPreferences();
     _cancelPadConn = _gamepads.onConnection((connected, name) {
       if (mounted) setState(() => _padName = connected ? name : null);
     });
+  }
+
+  /// One reconciliation point for all three local preference gates.
+  void _syncPreferences() {
+    UiSounds.shared.sync(_state.settings);
+    Haptics.shared.sync(_state.settings);
+    MotionPreference.shared.sync(_state.settings);
+  }
+
+  /// Every cue has one call site: the sound service fans the same event out
+  /// to the rumble and phone haptics services.
+  void _cue(UiCue cue, {bool reverse = false}) {
+    unawaited(UiSounds.shared.play(cue, reverse: reverse));
   }
 
   @override
@@ -107,6 +126,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _set(String key, Object? value) => _state.setSetting(key, value);
+
+  /// A switch write always carries the toggle cue; `reverse` is the off half.
+  Future<void> _toggleSetting(String key, bool value) async {
+    _cue(UiCue.toggle, reverse: !value);
+    await _set(key, value);
+  }
 
   // ---- Appearance values -------------------------------------------------
 
@@ -125,19 +150,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return _looks.first.$2;
   }
 
-  int get _textSize {
-    final raw = _state.settings['textScale'];
-    final n = raw is num ? raw.toInt() : 100;
-    return _textSizes.contains(n) ? n : 100;
-  }
+  int get _textSize => normalizeTextScale(_state.settings['textScale']);
 
   double get _textScale => _textSize / 100;
 
+  ReducedMotion get _motionPreference =>
+      normalizeReducedMotion(_state.settings['reduceMotion']);
+
   /// Follows the system until the person sets it here, as the copy promises.
-  bool _reducedMotion(BuildContext context) {
-    final raw = _state.settings['reduceMotion'];
-    if (raw is bool) return raw;
-    return MediaQuery.disableAnimationsOf(context);
+  bool _reducedMotion(BuildContext context) =>
+      _motionPreference.resolve(MediaQuery.disableAnimationsOf(context));
+
+  /// The row keeps the design's switch, but the value behind it has the three
+  /// states the spec names: Follow system → On → Off.
+  String _motionDescription(bool compact) {
+    final base = compact
+        ? 'Quick fades instead of 3D turns and zooms.'
+        : 'Swaps 3D turns, zooms and parallax for quick fades.';
+    return switch (_motionPreference) {
+      ReducedMotion.system =>
+        '$base Follows your system setting until you change it here.',
+      ReducedMotion.on => '$base Reduced motion is on.',
+      ReducedMotion.off => '$base Reduced motion is off.',
+    };
+  }
+
+  void _cycleReduceMotion() {
+    final next = reducedMotionToken(_motionPreference.next);
+    if (next == null) {
+      unawaited(_state.removeSetting('reduceMotion'));
+    } else {
+      unawaited(_set('reduceMotion', next));
+    }
+    _cue(UiCue.toggle, reverse: _motionPreference == ReducedMotion.on);
   }
 
   // ---- Focus -------------------------------------------------------------
@@ -146,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Appearance' => 'ap.look',
     'Play' => 'play.autosave',
     'Controls' => 'ctl.a',
-    'Audio' => 'audio.mute',
+    'Audio' => 'audio.sounds',
     'Storage' => 'store.games',
     _ => 'about.version',
   };
@@ -156,6 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       forTab == 'Appearance' ? 'ap.text' : _firstRowId(forTab);
 
   void _selectTab(String next) {
+    if (next != tab) _cue(UiCue.move);
     setState(() {
       tab = next;
       _phoneSection = next;
@@ -237,11 +283,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListenableBuilder(
       listenable: _state,
       builder: (context, _) {
-        final scale = _textScale;
-        return MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: TextScaler.linear(scale)),
+        _syncPreferences();
+        return AccessibilityScope(
+          reducedMotion: _motionPreference,
+          textScale: _textScale,
           child: _content(context),
         );
       },
@@ -548,17 +593,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final motionRow = _row(
           id: 'ap.motion',
           label: 'Reduce motion',
-          description: compact
-              ? 'Quick fades instead of 3D turns and zooms.'
-              : 'Swaps 3D turns, zooms and parallax for quick fades. Follows '
-                    'your system setting until you change it here.',
+          description: _motionDescription(compact),
           trailing: _Toggle(
             value: _reducedMotion(context),
-            label: 'Reduce motion',
+            label: 'Reduce motion, ${_motionPreference.label}',
             reduceMotion: reduceMotion,
-            onChanged: (v) => _set('reduceMotion', v),
+            onChanged: (_) => _cycleReduceMotion(),
           ),
-          onTap: () => _set('reduceMotion', !_reducedMotion(context)),
+          onTap: _cycleReduceMotion,
         );
         final ambientRow = _row(
           id: 'ap.ambient',
@@ -571,9 +613,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _pref('motion', true),
             label: 'Ambient motion',
             reduceMotion: reduceMotion,
-            onChanged: (v) => _set('motion', v),
+            onChanged: (v) => _toggleSetting('motion', v),
           ),
-          onTap: () => _set('motion', !_pref('motion', true)),
+          onTap: () => _toggleSetting('motion', !_pref('motion', true)),
         );
         if (compact) {
           add(textRow);
@@ -599,9 +641,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _pref('autosave', true),
               label: 'Automatic snapshots',
               reduceMotion: reduceMotion,
-              onChanged: (v) => _set('autosave', v),
+              onChanged: (v) => _toggleSetting('autosave', v),
             ),
-            onTap: () => _set('autosave', !_pref('autosave', true)),
+            onTap: () => _toggleSetting('autosave', !_pref('autosave', true)),
           ),
         );
         add(
@@ -615,10 +657,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _pref('crashContainment', false),
               label: 'Crash protection',
               reduceMotion: reduceMotion,
-              onChanged: (v) => _set('crashContainment', v),
+              onChanged: (v) => _toggleSetting('crashContainment', v),
             ),
-            onTap: () =>
-                _set('crashContainment', !_pref('crashContainment', false)),
+            onTap: () => _toggleSetting(
+              'crashContainment',
+              !_pref('crashContainment', false),
+            ),
           ),
         );
         add(
@@ -691,9 +735,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _pref('touchOverlay', true),
                 label: 'On-screen controls',
                 reduceMotion: reduceMotion,
-                onChanged: (v) => _set('touchOverlay', v),
+                onChanged: (v) => _toggleSetting('touchOverlay', v),
               ),
-              onTap: () => _set('touchOverlay', !_pref('touchOverlay', true)),
+              onTap: () =>
+                  _toggleSetting('touchOverlay', !_pref('touchOverlay', true)),
             ),
           );
         }
@@ -707,25 +752,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _pref('haptics', true),
               label: 'Haptics',
               reduceMotion: reduceMotion,
-              onChanged: (v) => _set('haptics', v),
+              onChanged: (v) => _toggleSetting('haptics', v),
             ),
-            onTap: () => _set('haptics', !_pref('haptics', true)),
+            onTap: () => _toggleSetting('haptics', !_pref('haptics', true)),
           ),
         );
         break;
       case 'Audio':
         add(
           _row(
+            id: 'audio.sounds',
+            label: 'UI sounds',
+            description:
+                'Soft cues for moving, selecting, saving and errors. Never '
+                'plays over a game.',
+            trailing: _Toggle(
+              value: _pref('uiSounds', true),
+              label: 'UI sounds',
+              reduceMotion: reduceMotion,
+              onChanged: (v) => _toggleSetting('uiSounds', v),
+            ),
+            onTap: () => _toggleSetting('uiSounds', !_pref('uiSounds', true)),
+          ),
+        );
+        add(
+          _row(
             id: 'audio.mute',
-            label: 'Mute all audio',
-            description: 'Silences every game.',
+            label: 'Mute',
+            description: 'Silences every game and every interface cue.',
             trailing: _Toggle(
               value: _pref('muted', false),
-              label: 'Mute all audio',
+              label: 'Mute',
               reduceMotion: reduceMotion,
-              onChanged: (v) => _set('muted', v),
+              onChanged: (v) => _toggleSetting('muted', v),
             ),
-            onTap: () => _set('muted', !_pref('muted', false)),
+            onTap: () => _toggleSetting('muted', !_pref('muted', false)),
           ),
         );
         add(
@@ -923,11 +984,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final i = _looks.indexWhere((l) => l.$1 == _lookValue);
     final next = _looks[(i + 1) % _looks.length].$1;
     _set(libraryViewKey, next);
+    _cue(UiCue.select);
   }
 
   void _cycleTextSize() {
-    final i = _textSizes.indexOf(_textSize);
-    _set('textScale', _textSizes[(i + 1) % _textSizes.length]);
+    final i = textScaleOptions.indexOf(_textSize);
+    _set('textScale', textScaleOptions[(i + 1) % textScaleOptions.length]);
+    _cue(UiCue.select);
   }
 
   void _cycleFastForward() {
@@ -935,6 +998,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final current = _pref('ffFrames', '4');
     final i = speeds.indexOf(current);
     _set('ffFrames', speeds[(i + 1) % speeds.length]);
+    _cue(UiCue.select);
   }
 
   void _cycleVolume() {
@@ -942,6 +1006,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final current = _pref('volume', '80');
     final i = levels.indexOf(current);
     _set('volume', levels[(i + 1) % levels.length]);
+    _cue(UiCue.select);
   }
 
   Future<void> _resetAppearance() async {
@@ -949,6 +1014,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _state.removeSetting('textScale');
     await _state.removeSetting(libraryViewKey);
     await _set('motion', true);
+    _cue(UiCue.toast);
     if (mounted) orbitToast(context, 'Appearance reset');
   }
 

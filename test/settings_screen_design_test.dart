@@ -145,7 +145,7 @@ void main() {
     }
 
     await openTab(tester, 'Audio');
-    for (final label in ['Mute all audio', 'Game volume', 'Output']) {
+    for (final label in ['UI sounds', 'Mute', 'Game volume', 'Output']) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
 
@@ -238,5 +238,96 @@ void main() {
     await pump(tester, state, size: const Size(844, 390));
     expect(tester.takeException(), isNull);
     expect(find.text('Settings'), findsOneWidget);
+  });
+
+  testWidgets('Audio keeps UI sounds and Mute as separate toggles', (
+    tester,
+  ) async {
+    final state = AppState.ephemeral();
+    await pump(tester, state);
+    await openTab(tester, 'Audio');
+
+    expect(
+      find.text(
+        'Soft cues for moving, selecting, saving and errors. Never plays over a game.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('UI sounds'));
+    await tester.pumpAndSettle();
+    expect(state.settings['uiSounds'], isFalse);
+
+    await tester.tap(find.text('Mute'));
+    await tester.pumpAndSettle();
+    expect(state.settings['muted'], isTrue);
+  });
+
+  testWidgets('Reduce motion cycles Follow system, On and Off', (
+    tester,
+  ) async {
+    final state = AppState.ephemeral();
+    await pump(tester, state);
+
+    MediaQueryData mediaAt(WidgetTester t) =>
+        MediaQuery.of(t.element(find.text('Text size')));
+    expect(state.settings.containsKey('reduceMotion'), isFalse);
+    expect(
+      find.text(
+        'Swaps 3D turns, zooms and parallax for quick fades. Follows your system setting until you change it here.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Reduce motion'));
+    await tester.pumpAndSettle();
+    expect(state.settings['reduceMotion'], isTrue);
+    expect(
+      find.text(
+        'Swaps 3D turns, zooms and parallax for quick fades. Reduced motion is on.',
+      ),
+      findsOneWidget,
+    );
+    expect(mediaAt(tester).disableAnimations, isTrue);
+
+    await tester.tap(find.text('Reduce motion'));
+    await tester.pumpAndSettle();
+    expect(state.settings['reduceMotion'], isFalse);
+    expect(mediaAt(tester).disableAnimations, isFalse);
+
+    // A third press returns to Follow system: the absence of an override,
+    // not a fourth state.
+    await tester.tap(find.text('Reduce motion'));
+    await tester.pumpAndSettle();
+    expect(state.settings.containsKey('reduceMotion'), isFalse);
+    expect(
+      find.text(
+        'Swaps 3D turns, zooms and parallax for quick fades. Follows your system setting until you change it here.',
+      ),
+      findsOneWidget,
+    );
+    expect(mediaAt(tester).disableAnimations, isFalse);
+  });
+
+  testWidgets('text size 130 reflows every appearance row', (tester) async {
+    final state = AppState.ephemeral();
+    await pump(tester, state);
+    final smallY = tester.getTopLeft(find.text('Text size')).dy;
+
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('Text size'));
+      await tester.pumpAndSettle();
+    }
+    expect(state.settings['textScale'], 130);
+    expect(find.text('130%'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Text size')).dy, greaterThan(smallY));
+    for (final label in [
+      'Library look',
+      'Reduce motion',
+      'Ambient motion',
+      'Text size',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
+    expect(tester.takeException(), isNull);
   });
 }
