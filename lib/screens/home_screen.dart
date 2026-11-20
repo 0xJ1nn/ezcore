@@ -30,6 +30,7 @@ import '../widgets/library_skeleton.dart';
 import '../widgets/orbit_chrome.dart' show OrbitKeyHints;
 import '../widgets/orbit_overlays.dart';
 import '../widgets/orbit_widgets.dart';
+import '../widgets/pad_navigator.dart' show FocusOwner;
 import '../widgets/search_overlay.dart';
 import 'cheats_screen.dart';
 import 'game_detail_screen.dart';
@@ -81,6 +82,10 @@ enum _Sort {
 /// Filter ids that are not a system id.
 const _favoritesTab = 'favorites';
 const _allTab = 'all';
+
+/// The id the shelf registers with the single focus owner. A row-end bump and
+/// the dock's "back up to the selected cover" both aim at this node.
+const _shelfFocusId = 'library-shelf';
 
 /// Letters that open search with that character pre-filled (§4.2). Q, E, P and
 /// V keep their own library actions; 1–4 stay with the shell's destinations.
@@ -202,6 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late LibraryLook _lastLook;
   final _viewChipKey = GlobalKey();
   final _screenFocus = FocusNode(debugLabel: 'library screen');
+  final _shelfFocus = FocusNode(debugLabel: 'library shelf');
 
   AppState get state => widget.state;
 
@@ -229,6 +235,10 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.filterRequests?.addListener(_applyRequest);
     _search.addListener(_onSearchChanged);
     state.addListener(_onLookChanged);
+    // The 3D shelf is one focusable, owned by the same owner as every other
+    // control. Up from the dock comes back here, and a row end bumps it.
+    FocusOwner.shared.register(_shelfFocusId, _shelfFocus);
+    FocusOwner.shared.setSelectedCover(_shelfFocus);
   }
 
   /// Every path to a new look — V, the header switch, the phone picker,
@@ -271,9 +281,11 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.filterRequests?.removeListener(_applyRequest);
     _search.removeListener(_onSearchChanged);
     state.removeListener(_onLookChanged);
+    FocusOwner.shared.unregister(_shelfFocusId, _shelfFocus);
     _search.dispose();
     _searchFocus.dispose();
     _screenFocus.dispose();
+    _shelfFocus.dispose();
     super.dispose();
   }
 
@@ -1402,6 +1414,7 @@ class _HomeScreenState extends State<HomeScreen> {
             count: games.length,
             index: index,
             itemSize: size,
+            focusNode: _shelfFocus,
             reflection: true,
             autofocus: true,
             semanticLabel: 'Games',
@@ -1473,6 +1486,7 @@ class _HomeScreenState extends State<HomeScreen> {
           count: visible.length,
           index: index,
           itemSize: size,
+          focusNode: _shelfFocus,
           frontScale: 1.02,
           angle: 34,
           spread: 104 / 270,

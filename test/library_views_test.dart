@@ -196,7 +196,10 @@ void main() {
   ) async {
     await pump(t, view: CollectionView.flow);
     await focusShelf(t);
+    // A tap: press and release. Holding the direction would now repeat after
+    // 380 ms (§4.1), which would walk more than one cover.
     pad!(const GamepadEvent('right', true));
+    pad!(const GamepadEvent('right', false));
     await t.pumpAndSettle();
     expect(barTitle(t), 'Alpha Quest');
     pad!(const GamepadEvent('a', true));
