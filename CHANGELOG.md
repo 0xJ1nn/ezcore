@@ -35,6 +35,43 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- **One host interface for every engine.** ezCORE can now launch a core through a
+  selectable engine instead of only libretro, which stays the default. An original
+  synthetic engine proves another engine can be driven, saved and restored through
+  the same interface, with crash containment covered. Evidence: static analysis
+  clean and the full test suite passed on the current main build. (#68)
+- **Two more systems are playable on desktop.** SpritePocket, a 65C02 handheld,
+  and PocketTick, an LCD handheld, join the downloadable cores, each built from a
+  pinned upstream commit with its licence and provenance recorded. SpritePocket
+  boots a generated public-domain fixture with frames, audio and a save round
+  trip. Evidence: static analysis clean and the full test suite passed on the
+  current main build. (#69)
+- **iOS builds carry a core bundle, and every core names its source.** The release
+  workflow now stages the iOS cores the manifests promise, wraps each in a signed
+  framework so the App Store accepts it, and finds them at launch. The core
+  catalogue, README and install guide list each core's upstream project, licence
+  and download link. Evidence: static analysis clean and the full test suite
+  passed on the current main build. (#83)
+- **A wider set of interpreter cores ships on iOS.** mGBA, SwanStation, melonDS
+  and Mupen64Plus-Next are bundled, with fixes for the upstream build breakages
+  their interpreter flags exposed. Evidence: static analysis clean and the full
+  test suite passed on the current main build. (#85)
+- **Every licence-compatible core is bundled on iOS.** The remaining interpreter
+  builds are wired up with per-core SDK fixes, and all licence-compatible cores
+  are declared as bundled in the iOS delivery tier. Evidence: static analysis
+  clean and the full test suite passed on the current main build. (#87)
+- **Search from the Library.** Press `/`, a letter or a digit to open a full-screen
+  search field with that text already entered; results filter by title or system,
+  and Escape returns focus to where it was. A wide screen shows an on-screen key
+  grid and recently played games, while a phone uses the system keyboard and
+  suggests systems when nothing matches. Evidence: static analysis clean and the
+  full test suite passed on the current main build. (#90)
+- **Clear states for empty, loading and failed launches.** The Library explains
+  when it has no games and offers to add some or open Systems; a missing BIOS
+  file opens a sheet naming the file and offering core details; a crash offers a
+  snapshot resume or a return to the Library; and a search with no results
+  suggests systems. Evidence: static analysis clean and the full test suite
+  passed on the current main build. (#95)
 - **A PlayStation 2 that boots without a BIOS.** DualVU is a second PS2 core built from
   Play! (BSD-2-Clause) and its built-in HLE kernel. It boots PS2 ELFs with no firmware file
   present; LRPS2 remains the accuracy option when you supply your own dump. Linux x64 is
@@ -126,9 +163,42 @@ All notable changes to ezCORE are documented here. The format follows
   not wired yet; iOS cannot support it (Apple forbids helper processes).
 ### Changed
 
+- **Player and pause screens match the design.** The pause menu uses plain snapshot
+  labels on phones and the controls icon for its Controls action, the game preview
+  recedes with the measured margin and shadow, and the on-screen controls sit at
+  the specified positions on desktop, phone portrait and phone landscape. Evidence:
+  static analysis clean and the full test suite passed on the current main build. (#79)
+- **The approved screens ship, and bundled cores install on iOS.** The Library,
+  game detail, Capsule and player screens carry the agreed designs. ezCORE also
+  hashes a bundled core's signed framework at startup so it installs after the
+  store re-signs it; downloaded and user-supplied cores keep their published
+  hashes. Evidence: static analysis clean and the full test suite passed on the
+  current main build. (#84)
+- **The Library looks match the design.** The shelf, wall, grid and list views
+  follow the specified cover order and badges, the list reads Last week for recent
+  saves, and the phone look picker shows five rows. Evidence: static analysis
+  clean and the full test suite passed on the current main build. (#86)
+- **Phone controls match the design.** Portrait and landscape layouts keep the
+  centred Menu pill, shoulders, D-pad, face buttons and system-key row at the
+  measured positions. The layout editor labels its selected face group at the
+  design's light colour and draws a clean accent outline, and saved layouts keep
+  their positions. Evidence: static analysis clean and the full test suite passed
+  on the current main build. (#92)
+- **TV, handheld and ultrawide layouts match the design.** TV shows a centred cover
+  fan and a full-width detail bar, handheld reduces the rail to icons and keeps
+  pad hints visible, and ultrawide widens the fan and caps the detail bar. The
+  layouts are derived from the existing layout and input state. Evidence: static
+  analysis clean and the full test suite passed on the current main build. (#94)
+- **Accessibility and feedback settings take effect everywhere.** Chosen text size
+  reflows every screen, reduce-motion applies app-wide, Follow system can be
+  selected again after the switch changes, and interface sounds and controller
+  rumble are generated at runtime from the shared input hooks. Sounds stay silent
+  while a game runs. Evidence: static analysis clean and the full test suite passed
+  on the current main build. (#97)
 - **Library and Capsule use plain titles.** Both screens now show just their names,
   with no eyebrow above either one, and a played game's dock no longer ends its
-  last-played line with a tagline.
+  last-played line with a tagline. Evidence: static analysis clean and the full
+  test suite passed on the current main build. (#82)
 - **A simpler home.** Three destinations — Library, Cores, Settings — on every
   screen size. Library opens on **Resume**: one tap back into the game you
   played last, from where you left off, whatever system it is. Below it,
@@ -153,6 +223,28 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- **iOS builds embed cores again.** A Library design change had dropped the Xcode
+  build phase, the framework lookup and the runtime pin override, leaving new
+  builds without cores; all bundled cores are installable again. Evidence: static
+  analysis clean and the full test suite passed on the current main build. (#88)
+- **The iOS core bundle phase no longer fails with many cores.** A count command
+  closed its pipe early once more than forty core files were staged, which failed
+  the Xcode step under strict shell error handling; the phase now reports the
+  wrapped core count directly. Evidence: static analysis clean and the full test
+  suite passed on the current main build. (#89)
+- **Three CMake cores build for iOS.** Flycast, Play! and Dolphin were configured
+  with the host SDK and produced libraries the App Store rejects; they now use the
+  iOS SDK with the right platform and graphics flags. Evidence: static analysis
+  clean and the full test suite passed on the current main build. (#91)
+- **The iOS core bundle passes App Store validation.** Build scripts are excluded
+  from core system data and executable bits are cleared, so the store no longer
+  treats them as unsigned code. Evidence: static analysis clean and the full test
+  suite passed on the current main build. (#93)
+- **Only one item is focused at a time.** The Library, game detail and Settings
+  now share a focus owner, so a pointer, the arrow keys and the D-pad no longer
+  highlight two elements at once. Focus is remembered per screen and restored on
+  return, and the cover shelf nudges at the end of a row. Evidence: static analysis
+  clean and the full test suite passed on the current main build. (#96)
 - **The app now names itself ezCORE and ships cleanly to TestFlight.** The home-screen
   label on Android and iOS reads ezCORE, and the iOS app declares that it uses only
   exempt encryption, so an internal build no longer waits for a manual export-compliance
@@ -317,6 +409,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Verification
 
+- Current main build re-checked for this changelog: `flutter analyze` reported no
+  issues and the full `flutter test` run passed with no failures. Every line above
+  was checked on that build. On-device and simulator review of the changed screens
+  is outstanding before the next upload.
 - Replacement-stack checks: `flutter analyze` clean; `flutter test --no-pub`
   **441 passed / 15 skipped / 0 failed**; Linux CTest **3/3**; Linux debug and
   Android debug builds passed.
