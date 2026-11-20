@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
+import 'pad_navigator.dart' show EdgeSignal, FocusOwner;
 
 /// Balances a generated cover title the way CSS `text-wrap: balance` does
 /// (handoff §11): pick the split with the narrowest longest line, so
@@ -139,6 +141,9 @@ class _CoverFlowState extends State<CoverFlow> {
   double _fraction = 0;
   FocusNode? _ownFocus;
   bool _focused = false;
+  double _edge = 0;
+  Offset _edgeDirection = Offset.zero;
+  Timer? _edgeTimer;
 
   FocusNode get _focus =>
       widget.focusNode ?? (_ownFocus ??= FocusNode(debugLabel: 'cover flow'));
@@ -157,6 +162,7 @@ class _CoverFlowState extends State<CoverFlow> {
   @override
   void initState() {
     super.initState();
+    FocusOwner.shared.edge.addListener(_onEdge);
     if (widget.autofocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -203,9 +209,33 @@ class _CoverFlowState extends State<CoverFlow> {
 
   @override
   void dispose() {
+    FocusOwner.shared.edge.removeListener(_onEdge);
+    _edgeTimer?.cancel();
     _controller?.dispose();
     _ownFocus?.dispose();
     super.dispose();
+  }
+
+  /// Only the shelf the signal names nudges; the rest of the app keeps still.
+  void _onEdge() {
+    final EdgeSignal? signal = FocusOwner.shared.edge.value;
+    if (signal == null ||
+        !mounted ||
+        signal.id != FocusOwner.shared.idOf(_focus)) {
+      return;
+    }
+    _edgeDirection = switch (signal.direction) {
+      TraversalDirection.left => const Offset(-1, 0),
+      TraversalDirection.right => const Offset(1, 0),
+      TraversalDirection.up => const Offset(0, -1),
+      TraversalDirection.down => const Offset(0, 1),
+    };
+    _edgeTimer?.cancel();
+    setState(() => _edge = FocusOwner.edgeNudge);
+    _edgeTimer = Timer(FocusOwner.edgeDuration, () {
+      if (!mounted) return;
+      setState(() => _edge = 0);
+    });
   }
 
   void _go(int i) {
@@ -232,9 +262,19 @@ class _CoverFlowState extends State<CoverFlow> {
   Object? _direction(DirectionalFocusIntent intent) {
     switch (intent.direction) {
       case TraversalDirection.left:
-        _go(_current - 1);
+        if (_current <= 0) {
+          // This intent is always "handled", so FocusOwner.move never sees a
+          // failed traversal to bump us. Do it here at the end of the row.
+          FocusOwner.shared.edgeBump(TraversalDirection.left, _focus);
+        } else {
+          _go(_current - 1);
+        }
       case TraversalDirection.right:
-        _go(_current + 1);
+        if (_current >= widget.count - 1) {
+          FocusOwner.shared.edgeBump(TraversalDirection.right, _focus);
+        } else {
+          _go(_current + 1);
+        }
       case TraversalDirection.up:
       case TraversalDirection.down:
         // Up and down leave the shelf, to the filters or the action bar.
@@ -271,7 +311,8 @@ class _CoverFlowState extends State<CoverFlow> {
 
   @override
   Widget build(BuildContext context) {
-    return Actions(
+    final reduce = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final shelf = Actions(
       actions: {
         DirectionalFocusIntent: CallbackAction<DirectionalFocusIntent>(
           onInvoke: _direction,
@@ -285,7 +326,10 @@ class _CoverFlowState extends State<CoverFlow> {
       },
       child: Focus(
         focusNode: _focus,
-        onFocusChange: (f) => setState(() => _focused = f),
+        onFocusChange: (f) {
+          setState(() => _focused = f);
+          if (f) FocusOwner.shared.remember(_focus);
+        },
         child: Semantics(
           label: widget.semanticLabel,
           hint:
@@ -353,6 +397,14 @@ class _CoverFlowState extends State<CoverFlow> {
           ),
         ),
       ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: reduce ? 0 : _edge),
+      duration: FocusOwner.edgeDuration,
+      curve: Tokens.ease,
+      builder: (context, offset, child) =>
+          Transform.translate(offset: _edgeDirection * offset, child: child),
+      child: shelf,
     );
   }
 

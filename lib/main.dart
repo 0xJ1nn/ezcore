@@ -85,15 +85,21 @@ class _EmuAppState extends State<EmuApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
+      navigatorObservers: [focusRouteObserver],
       // A controller drives every menu (d-pad focus, A select, B back).
       // Esc goes back anywhere; a running game handles Esc itself (its
-      // pause menu) before this sees it.
-      builder: (context, child) => CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              _navigatorKey.currentState?.maybePop(),
-        },
-        child: PadNavigator(navigatorKey: _navigatorKey, child: child!),
+      // pause menu) before this sees it. The Focus bridge makes arrow keys
+      // go through the one focus owner, including its held-repeat timing.
+      builder: (context, child) => Focus(
+        canRequestFocus: false,
+        onKeyEvent: (node, event) => FocusOwner.shared.onKey(event),
+        child: CallbackShortcuts(
+          bindings: {
+            const SingleActivator(LogicalKeyboardKey.escape): () =>
+                _navigatorKey.currentState?.maybePop(),
+          },
+          child: PadNavigator(navigatorKey: _navigatorKey, child: child!),
+        ),
       ),
       title: 'ezCORE',
       debugShowCheckedModeBanner: false,
@@ -154,8 +160,22 @@ class Shell extends StatefulWidget {
 class _ShellState extends State<Shell> {
   String page = 'library';
   final _libraryFilter = ValueNotifier<String?>(null);
+  final _railFocus = FocusNode(debugLabel: 'command rail');
 
-  void _go(String p) => setState(() => page = p);
+  @override
+  void initState() {
+    super.initState();
+    FocusOwner.shared.attachRail(_railFocus);
+  }
+
+  /// Changing destination restores that destination's remembered focus on
+  /// the frame after the new page is on screen.
+  void _go(String p) {
+    setState(() => page = p);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) FocusOwner.shared.setScreen(p);
+    });
+  }
 
   /// Cores → Show games: the library filtered to that core's system (the
   /// first of its systems that has games, else its first system).
@@ -176,6 +196,8 @@ class _ShellState extends State<Shell> {
 
   @override
   void dispose() {
+    FocusOwner.shared.detachRail(_railFocus);
+    _railFocus.dispose();
     _libraryFilter.dispose();
     super.dispose();
   }
@@ -238,14 +260,17 @@ class _ShellState extends State<Shell> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OrbitRail(
-                page: page,
-                onGo: _go,
-                short: short,
-                modifier: modifier,
-                onAddGames: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ImportScreen(state: widget.state),
+              Focus(
+                focusNode: _railFocus,
+                child: OrbitRail(
+                  page: page,
+                  onGo: _go,
+                  short: short,
+                  modifier: modifier,
+                  onAddGames: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ImportScreen(state: widget.state),
+                    ),
                   ),
                 ),
               ),
