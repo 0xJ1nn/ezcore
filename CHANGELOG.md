@@ -195,6 +195,12 @@ All notable changes to ezCORE are documented here. The format follows
   rumble are generated at runtime from the shared input hooks. Sounds stay silent
   while a game runs. Evidence: static analysis clean and the full test suite passed
   on the current main build. (#97)
+- **Hardware artwork comes from the project's vector designs.** Nineteen
+  system-family images were rendered from their design SVGs in a browser engine
+  and saved as transparent 1024×683 WebP files under the names the app already
+  uses; the unknown-system fallback is unchanged. Evidence: static analysis clean
+  and the full test suite passed, with each file compared pixel by pixel against
+  its render.
 - **Library and Capsule use plain titles.** Both screens now show just their names,
   with no eyebrow above either one, and a played game's dock no longer ends its
   last-played line with a tagline. Evidence: static analysis clean and the full

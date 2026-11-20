@@ -96,6 +96,52 @@ void main() {
     }
   });
 
+  /// Family artwork rendered from the 3:2 vector designs at the catalog's
+  /// native width, with a transparent field around the hardware. The
+  /// unknown-system fallback predates that set, so it is not listed here.
+  const renderedFromDesign = <String>{
+    'advancebit',
+    'blastproc',
+    'cardcon',
+    'coinbox',
+    'dreamarc',
+    'dualscreen',
+    'gambatte',
+    'geometry1',
+    'joystick',
+    'lrps2',
+    'nesbyte',
+    'pocketbit',
+    'pointclick',
+    'portcomp',
+    'powercube',
+    'rcp64',
+    'realmode',
+    'superfx',
+    'twinsh',
+  };
+
+  test('rendered artwork keeps the design render size and WebP format', () async {
+    for (final name in renderedFromDesign) {
+      final asset = 'assets/core_art/$name.webp';
+      final header = File(asset).readAsBytesSync().sublist(0, 12);
+      expect(String.fromCharCodes(header.sublist(0, 4)), 'RIFF', reason: asset);
+      expect(String.fromCharCodes(header.sublist(8, 12)), 'WEBP', reason: asset);
+
+      final bytes = await rootBundle.load(asset);
+      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      expect(frame.image.width, 1024, reason: asset);
+      expect(frame.image.height, 683, reason: asset);
+      final pixels = await frame.image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      expect(pixels!.getUint8(3), 0, reason: '$asset has a transparent corner');
+      frame.image.dispose();
+      codec.dispose();
+    }
+  });
+
   testWidgets('artwork decoding is capped for catalog-sized images', (
     tester,
   ) async {
