@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'accessibility.dart';
+
 /// Visual states shared by the primary and secondary button tokens.
 ///
 /// The screen layer only picks the state; the fill, shadow and transform
@@ -125,32 +127,55 @@ abstract final class Tokens {
   static const pad = s4;
 
   // ---- Motion ----
+  // The full-speed curves and durations stay available as constants so tests
+  // and callers that need the design's unmodified numbers can ask for them.
+  // The public names below resolve against the one motion preference: with
+  // reduced motion, transforms collapse to a short linear fade and ambient
+  // movement stops. That is how screens outside Settings get their listed
+  // reduced variant without each owning a second preference.
+  static const Cubic fullEase = Cubic(0.22, 1, 0.36, 1);
+  static const Cubic fullEaseInOut = Cubic(0.65, 0, 0.35, 1);
+  static const Cubic _linear = Cubic(0, 0, 1, 1);
+
+  static const Duration fullInstantDur = Duration(milliseconds: 120);
+  static const Duration fullFastDur = Duration(milliseconds: 200);
+  static const Duration fullBaseDur = Duration(milliseconds: 320);
+  static const Duration fullMoveDur = Duration(milliseconds: 540);
+  static const Duration fullAmbientDur = Duration(milliseconds: 650);
+  static const Duration fullSceneDur = Duration(milliseconds: 1100);
+
+  /// The reduced variant of a fade: 160 ms, linear, no transform.
+  static const Duration reducedFadeDur = Duration(milliseconds: 160);
+
+  static bool get _reduced => MotionPreference.shared.reduced;
+
   /// Orbit out — everything that enters, focuses, turns or grows.
-  static const ease = Cubic(0.22, 1, 0.36, 1);
+  static Cubic get ease => _reduced ? _linear : fullEase;
 
   /// Orbit in-out — **NEW**. Only for things leaving the screen.
-  static const easeInOut = Cubic(0.65, 0, 0.35, 1);
+  static Cubic get easeInOut => _reduced ? _linear : fullEaseInOut;
 
   /// Press feedback (90–130 ms).
-  static const instantDur = Duration(milliseconds: 120);
+  static Duration get instantDur => _reduced ? Duration.zero : fullInstantDur;
 
-  /// Focus / hover / toggle.
-  static const fastDur = Duration(milliseconds: 200);
+  /// Focus / hover / toggle. Reduced motion keeps the halo, drops the lift.
+  static Duration get fastDur => _reduced ? Duration.zero : fullFastDur;
 
-  /// Sheets, toasts, dialogs.
-  static const baseDur = Duration(milliseconds: 320);
+  /// Sheets, toasts, dialogs. Reduced motion fades in 160 ms.
+  static Duration get baseDur => _reduced ? reducedFadeDur : fullBaseDur;
 
   /// Pause recede, launch grow (520–560 ms).
-  static const moveDur = Duration(milliseconds: 540);
+  static Duration get moveDur => _reduced ? reducedFadeDur : fullMoveDur;
 
   /// Page enter, shelf camera (650 ms).
-  static const ambientDur = Duration(milliseconds: 650);
+  static Duration get ambientDur =>
+      _reduced ? reducedFadeDur : fullAmbientDur;
 
-  /// Room tint, parallax (900–1200 ms).
-  static const sceneDur = Duration(milliseconds: 1100);
+  /// Room tint, parallax (900–1200 ms): stops entirely when reduced.
+  static Duration get sceneDur => _reduced ? Duration.zero : fullSceneDur;
 
   /// Legacy name for [ambientDur].
-  static const easeDur = ambientDur;
+  static Duration get easeDur => ambientDur;
 
   /// Primary button focus lift.
   static const buttonHoverLift = -2.0;

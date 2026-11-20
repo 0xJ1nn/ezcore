@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'brand/brand_mark.dart';
 import 'services/gamepad.dart';
+import 'services/haptics.dart';
 import 'services/local_data_dir.dart';
+import 'services/ui_sounds.dart';
 import 'state/app_state.dart';
 import 'state/input_mode.dart';
 import 'screens/core_manager_screen.dart';
@@ -12,6 +16,7 @@ import 'screens/home_screen.dart';
 import 'screens/import_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
+import 'theme/accessibility.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
 import 'widgets/fade_indexed_stack.dart';
@@ -24,6 +29,53 @@ Future<void> main() async {
   // Pins the mobile app-support dir before anything resolves paths.
   final dirProvider = await PlatformLocalDataDirProvider.resolve();
   runApp(EmuApp(dirProvider: dirProvider));
+}
+
+/// The shell's one keyboard hook. [FocusOwner] keeps ownership of arrows and
+/// held repeat; Enter/Space and Esc/Backspace are the keyboard's select and
+/// back cues (§6). [UiSounds] applies the "never over a game" gate, so this can
+/// sit above every screen without a per-screen call site.
+KeyEventResult shellKeyEvent(KeyEvent event, [UiSounds? sounds]) {
+  final result = FocusOwner.shared.onKey(event);
+  if (event is KeyDownEvent) {
+    final key = event.logicalKey;
+    final feedback = sounds ?? UiSounds.shared;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.space) {
+      unawaited(feedback.play(UiCue.select));
+    } else if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.backspace) {
+      unawaited(feedback.play(UiCue.back));
+    }
+  }
+  return result;
+}
+
+/// Carries the persisted accessibility preferences from [AppState] into the
+/// [MediaQuery] every screen below [MaterialApp] already reads. Settings is
+/// the only writer; this is the one place that applies the values app-wide.
+class AccessibilityBridge extends StatelessWidget {
+  const AccessibilityBridge({
+    super.key,
+    required this.state,
+    required this.child,
+  });
+
+  final AppState state;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) => AccessibilityScope(
+        reducedMotion: normalizeReducedMotion(state.settings['reduceMotion']),
+        textScale: normalizeTextScale(state.settings['textScale']) / 100,
+        child: child,
+      ),
+    );
+  }
 }
 
 /// ezCORE — Orbit console shell (final-01).
@@ -48,12 +100,20 @@ class _EmuAppState extends State<EmuApp> {
     super.initState();
     state = AppState(dirProvider: widget.dirProvider);
     state.addListener(_syncInputMode);
+    state.addListener(_syncAccessibility);
+    _syncAccessibility();
+    // The cue bridge belongs to the app, not to whichever screen happens to
+    // be mounted: move/edge come from FocusOwner, select/back from the pad,
+    // and keyboard select/back from [shellKeyEvent] below.
+    UiSounds.shared.attachGlobalBridge();
+    Haptics.shared.attachTo(UiSounds.shared);
     _cancelPad = GamepadService.shared.onConnection((connected, name) {
       InputMode.shared.notePad(connected ? name : null);
     });
     InputMode.shared.notePad(GamepadService.shared.connectedPad);
     state.load().then((_) {
       _syncInputMode();
+      _syncAccessibility();
       _rescanWatchedFolders();
     });
   }
@@ -64,9 +124,21 @@ class _EmuAppState extends State<EmuApp> {
     InputMode.shared.syncFromSettings(state.settings);
   }
 
+  /// Reconciles the gates that live outside a screen. Settings is the only
+  /// writer of these preferences; the root owns the readers so the bridge is
+  /// correct before Settings has ever been visited.
+  void _syncAccessibility() {
+    UiSounds.shared.sync(state.settings);
+    Haptics.shared.sync(state.settings);
+    MotionPreference.shared.sync(state.settings);
+  }
+
   @override
   void dispose() {
     state.removeListener(_syncInputMode);
+    state.removeListener(_syncAccessibility);
+    Haptics.shared.detach();
+    UiSounds.shared.detachGlobalBridge();
     _cancelPad?.call();
     super.dispose();
   }
@@ -90,15 +162,18 @@ class _EmuAppState extends State<EmuApp> {
       // Esc goes back anywhere; a running game handles Esc itself (its
       // pause menu) before this sees it. The Focus bridge makes arrow keys
       // go through the one focus owner, including its held-repeat timing.
-      builder: (context, child) => Focus(
-        canRequestFocus: false,
-        onKeyEvent: (node, event) => FocusOwner.shared.onKey(event),
-        child: CallbackShortcuts(
-          bindings: {
-            const SingleActivator(LogicalKeyboardKey.escape): () =>
-                _navigatorKey.currentState?.maybePop(),
-          },
-          child: PadNavigator(navigatorKey: _navigatorKey, child: child!),
+      builder: (context, child) => AccessibilityBridge(
+        state: state,
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (node, event) => shellKeyEvent(event),
+          child: CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.escape): () =>
+                  _navigatorKey.currentState?.maybePop(),
+            },
+            child: PadNavigator(navigatorKey: _navigatorKey, child: child!),
+          ),
         ),
       ),
       title: 'ezCORE',
