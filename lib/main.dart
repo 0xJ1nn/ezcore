@@ -252,6 +252,14 @@ class _ShellState extends State<Shell> {
     });
   }
 
+  /// The fifth destination, shared by the phone bar, the pad-first rail and
+  /// digit 5: Add games is a route, not another page of the shell.
+  void _openAddGames() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ImportScreen(state: widget.state)),
+    );
+  }
+
   /// Cores → Show games: the library filtered to that core's system (the
   /// first of its systems that has games, else its first system).
   void _browseCore(String coreId) {
@@ -342,11 +350,7 @@ class _ShellState extends State<Shell> {
                   onGo: _go,
                   short: short,
                   modifier: modifier,
-                  onAddGames: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ImportScreen(state: widget.state),
-                    ),
-                  ),
+                  onAddGames: _openAddGames,
                 ),
               ),
               Expanded(child: content),
@@ -356,7 +360,21 @@ class _ShellState extends State<Shell> {
           Column(
             children: [
               Expanded(child: content),
-              OrbitBottomNav(page: page, onGo: _go),
+              // The inset sits below the measured 64 px row, so the gesture
+              // area stays clear without shrinking the row's touch targets.
+              SafeArea(
+                top: false,
+                left: false,
+                right: false,
+                // The plate draws a 26 px inset under the 64 px row; a device
+                // with a deeper gesture area can only add more room.
+                minimum: const EdgeInsets.only(bottom: 26),
+                child: OrbitBottomNav(
+                  page: page,
+                  onGo: _go,
+                  onAddGames: _openAddGames,
+                ),
+              ),
             ],
           ),
       ],
@@ -386,6 +404,7 @@ class _ShellState extends State<Shell> {
         const SingleActivator(LogicalKeyboardKey.digit2): () => _go('cores'),
         const SingleActivator(LogicalKeyboardKey.digit3): () => _go('capsule'),
         const SingleActivator(LogicalKeyboardKey.digit4): () => _go('settings'),
+        const SingleActivator(LogicalKeyboardKey.digit5): _openAddGames,
       },
       child: Focus(
         autofocus: true,
