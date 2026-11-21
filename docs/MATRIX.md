@@ -1,5 +1,12 @@
 # ezCORE Core × Platform Matrix
 
+> **Handhelds verified 2026-11-22.** `potator` was promoted to RENDERS on Linux x64
+> against two different licence-clean Supervision programs whose recorded frames
+> differ, and `gw` gained its first real content run: it draws, refuses foreign
+> files, and stays at IDENTIFIES because its core reports no save states — the
+> level definition below requires a serialize round trip, and the claim stops
+> where the harness stops.
+>
 > **Verified again 2026-11-21.** The boot harness now records the frame it drew:
 > `EZCORE_FRAME_PPM=<path>` writes the last frame as a binary PPM and prints its
 > SHA-256. Four Linux cells were promoted to RENDERS against a captured frame
@@ -116,6 +123,16 @@ which is what happened to `geometry1`. Four Linux cells were promoted on
 2026-11-21 against a captured frame; the rest stay BUILT until someone captures
 one, because what is missing for them is the frame, not the build.
 
+**Cores without save states (2026-11-22).** The ladder assumes every core can
+serialize. Some cannot: `gw` returns 0 from `retro_serialize_size`, so the
+harness stops at exit 4 by definition and the core can never reach BOOTS no
+matter how correctly it draws. That is a limit of the measurement, not a
+verdict on the core, so such a row stays at IDENTIFIES and its note carries the
+recorded frames and the refusals itself. Do not invent a level between
+IDENTIFIES and BOOTS for it: a level that only one core can hold is not a
+ladder, and calling it RENDERS would claim the state round trip the harness
+never made.
+
 **Harness limits on IDENTIFIES and RENDERS** (corrected 2026-09-29 — both
 levels previously claimed more than the harness asserts):
 
@@ -160,6 +177,8 @@ levels previously claimed more than the harness asserts):
 | twinsh | IDENTIFIES | — | — | BUILT | — | SH-2 interpreter; slow by nature, frames unverified |
 | lrps2 | — | — | — | BOOTS | — | Linux x64: a recorded LRPS2 boot used a user-supplied BIOS and stayed within the 2% restore tolerance (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02). BIOS and content are local-only, never in the repository. No frame was recorded, so RENDERS is not established (frame rule above). Catalog entry: `cores/lrps2/manifest.json` (delivery `linux: bundled`; BIOS gated at `pcsx2/bios`) |
 | dualvu | — | — | — | BOOTS | — | Linux x64: a recorded BIOS-free Play! `ui_libretro` boot (pinned d44bfa1) stayed within the 2% restore tolerance (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02); the `boot_dualvu` ctest is fixture-gated and the ELF is absent from the tree. No frame was recorded, so RENDERS is not established (frame rule above). Fixture is local-only, never committed. Catalog entry: `cores/dualvu/manifest.json` (delivery `linux: absent` — `cores/dualvu/manifest.json:30`, `cores/catalog.json:371`; artifact pinned) |
+| potator | — | — | — | RENDERS | — | Linux x64: captured 160x160 frames at a 300-frame budget (`EZCORE_BOOT_FRAMES=300`) from two different Supervision homebrew programs; the two frames differ, so the picture follows the content, and each hash reproduced on a second run — sums 410876588538 and 358826035828, sha256 `7e40afa3f962344bd4c4a435b1e41b630834bca97d54e90a5221fdb0ca2a2237` and `1d0a6cae15d8568633e8a2d0d4fbe98993a8f7334360cc29a8d5f71dcaf92091`. Restore exact both times. The controls are refusals: an NES file exited 2, and a file from another handheld system drew a zero pixel sum (exit 3). Both runs used the published `v0.2.0` `linux-x64` artifact, byte-identical to the manifest pin. Content is MIT-licensed homebrew, local-only, never in the repository |
+| gw | — | — | — | IDENTIFIES | — | Linux x64: loads, inits and draws a full handheld panel from two different packs, but `retro_serialize_size` returns 0 — the core has no save states — so it cannot reach BOOTS as defined above, which requires a serialize round trip. The frames are recorded as evidence of drawing, not as a level claim: 562x374 with 1779 colours (sha256 `9c37a52386d7e6a47a99c4f70e9859ae44db65d75084bb88be0a564594d3d3d8`) and 612x377 with 3992 colours (sha256 `7ec620897c06a08a54d07ef78684a68c7086a20ed0e7b84e141fe09eb0eb3811`), each reproduced twice; it refused a file from another handheld system and a Game Boy file, both exit 2. Because the cell stays IDENTIFIES, nothing here claims the panel is correct. Content is CC BY-NC-SA packs used locally, never shipped |
 | citra/switch | holds | holds | holds | holds | holds | Holds, never built |
 
 ## Platform shells & app builds
@@ -193,4 +212,6 @@ copyrighted), `test.gba` (4 KB OBJTEST homebrew — **no declared licence**),
 see the provenance table above. RENDERS-level coverage beyond
 GB/GBC/GBA needs sourced public-domain homebrew per system + per-file
 LICENSE (the `test/fixtures/` allowlist in `banned_content_scan.sh`
-exists for exactly this) — open item.
+exists for exactly this). Two such sources now exist and are used
+locally, never committed: MIT-licensed CROSS-LIB builds for Watara
+Supervision, and CC BY-NC-SA `.mgw` packs for the LCD handhelds.
