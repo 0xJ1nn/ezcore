@@ -115,7 +115,8 @@ ezCORE hosts the best open-source emulators through the [libretro](https://www.l
 | PC Engine · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Verification in progress |
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Verification in progress |
 | PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Boots and saves on Linux; no frame recorded yet, and DreamArc's earlier capture was black. Other platforms in progress |
-| Watara Supervision · LCD handheld | SpritePocket (Potator) · PocketTick (GW) | Desktop on-demand download; render verification not yet recorded |
+| Watara Supervision | SpritePocket (Potator) | Boots, saves and renders · Linux (recorded frame). Desktop on-demand download |
+| LCD handheld | PocketTick (GW) | Loads and draws real content on Linux, and refuses other systems' files; its core has no save states, so it stops short of the full check above. Desktop on-demand download |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own: their licences forbid redistribution |
 | 3DS · Switch | — | Held by project policy |
 
