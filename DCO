@@ -1,0 +1,164 @@
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+
+Developer's Certificate of Origin 1.1
+
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license (unless I am
+    permitted to submit under a different license), as indicated
+    in the file; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+
+
+--------------------------------------------------------------------------------
+
+HOW EZCORE APPLIES THE CERTIFICATE
+
+The certificate above is reproduced without alteration, because its own terms
+forbid changing it. Everything below this line states how it applies to this
+repository. It amends nothing above, and it grants no rights beyond those in
+LICENSE and LICENSE-EXCEPTION.md.
+
+Who "I" is. The GitHub account 0xJ1nn controls this repository. The person who
+controls that account is the maintainer, and the "I" below is that person. The
+same person is named in CLA.md as the Maintainer.
+
+1. THE RULE FOR EVERY FUTURE COMMIT
+
+Every ordinary commit added to the main branch after the attested commit named
+in section 3 carries a Signed-off-by: trailer naming the human who submits it.
+Write it with:
+
+    git commit -s
+
+The sign-off names the human who certifies, not a tool. For the maintainer it is
+one of these two addresses:
+
+    0xJ1nn <92670540+0xJ1nn@users.noreply.github.com>
+    The ezCORE maintainers <maintainers@ezcore.dev>
+
+The second is a project address for the maintainer and for nobody else. Every
+other contributor signs off under the address that identifies them.
+
+Only the person named may add a trailer. Tools and automated assistants cannot
+certify, because they hold no rights to license, so they never sign off. Where a
+commit was produced with automated assistance, the human who submits it is the
+certifier, has reviewed the work, and discloses the assistance as described in
+CONTRIBUTING.md.
+
+Merge commits carry no trailer. A merge adds no content of its own, since every
+commit it brings in is already in the history.
+
+2. ASSISTED-BY IS A DISCLOSURE, NOT A RIGHTS CLAIM
+
+An Assisted-by: trailer, and any Co-Authored-By: trailer naming a tool or an
+automated assistant, records how a commit was produced. Neither is a signature
+or an attestation, and neither claims authorship or copyright on anyone's
+behalf. Only Signed-off-by: carries the certificate above. Disclosing
+assistance neither weakens the certifier's statements nor adds a rights holder.
+
+3. RETROACTIVE COVERAGE OF THE HISTORY TO 22 NOVEMBER 2026
+
+This repository's history begins on 11 September 2026. For most of it the
+sign-off requirement was written down but not applied to every commit, so
+trailers appear on some commits and not others. Of the 260 commits reachable
+from the main branch at the newest commit named below, 193 carry no
+Signed-off-by: trailer. Of those 193, 141 are ordinary commits and 52 are merge
+commits, which add no content of their own.
+
+I certify as of 22 November 2026 that statements (a) to (d) above are true of
+every commit in the following inclusive range, and I give this certificate as
+covering each of them, whenever it was made:
+
+    oldest commit   0da3826568faff2075f303c6b207808d27bf5de0
+    newest commit   16a6100fef20f24e0992cab49b6819ea65f4f90d
+    attested on     22 November 2026
+
+The signature on this certificate is the Signed-off-by: trailer on the commit
+that adds this file to the repository. That commit is the dated act; the text
+of this file records what it covers. Neither can be altered afterwards without
+changing the commit, which is what makes the pair checkable.
+
+That range is the main branch as it stood. Commits reachable from the main
+branch after the newest commit named above are governed by section 1 rather than
+by this statement. The repository therefore holds both a dated certification
+that reaches back over the whole main history and a forward requirement that can
+be checked, commit by commit, from that date onward.
+
+The author address on the main branch, and on every commit in the range, is
+always the same:
+
+    0xJ1nn <92670540+0xJ1nn@users.noreply.github.com>
+
+Only the display name varies: 0xJ1nn, and Formerly JinUltimate after the
+account was renamed. The committer field varies as well, because commits made
+through the GitHub web interface record GitHub as committer on my instruction;
+that is the platform applying a commit I wrote and asked it to make, not a
+second author.
+
+Five identities appear in the Signed-off-by: trailers in this history, and every
+one of them is mine:
+
+    0xJ1nn <92670540+0xJ1nn@users.noreply.github.com>
+    JinUltimate1995 <JinUltimate1995@users.noreply.github.com>
+    0xJ1nn <jinultimate1995@gmail.com>
+    JinUltimate <jinultimate@JinUltimates-MacBook-Air.local>
+    The ezCORE maintainers <maintainers@ezcore.dev>
+
+The first is my current account, the second an earlier account name, the third
+an earlier mailbox, the fourth my own laptop, and the fifth the project address
+in section 1. Commits on branches that have never been merged into the main
+branch fall outside the range above; they are mine as well, and appear under
+the first, third or fifth of those. Each is signed as it reaches the main
+branch.
+
+Because that rests on my word for the older identities, the repository shows
+what it can: one author address on the main branch, no address of any other
+person on any branch, and co-author trailers that name either my earlier
+account or an automated assistant. No one else has authored a commit in this
+repository.
+
+Third-party emulator cores, fonts and artwork carried in this repository are
+not covered. They remain under their own upstream licences, recorded in
+THIRD_PARTY_NOTICES.md, cores/<id>/ and docs/CORE_ART_PROVENANCE.md. This
+certificate covers original work in this repository, and nothing else.
+
+4. WHY THE HISTORY WAS NOT REWRITTEN
+
+A commit that lacks a trailer could be given one by rewriting it. I considered
+that and rejected it. Rewriting changes the hash of that commit and of every
+commit after it: it breaks the release tags v0.1.0, v0.1.1 and v0.2.0,
+invalidates every open pull request and every outside reference to a commit, and
+restates work that was really done. It would also place a certification into
+commit messages in a form I never wrote at the time, which defeats the purpose
+of a certificate.
+
+A dated statement covers the same ground, says plainly when it was made, and
+leaves the public history exactly as it happened. It is the ordinary way a
+project formalises the DCO after the fact. The evidence is in
+docs/DCO-ATTESTATION.md, with the command anyone can run to confirm that the
+rule has held since this date.
