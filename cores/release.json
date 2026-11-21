@@ -14,5 +14,19 @@
     }
   },
   "repo": "0xJ1nn/ezcore",
-  "tag": "v0.2.0"
+  "tag": "v0.2.0",
+  "unavailablePlatforms": {
+    "android-arm64": {
+      "message": "Cores are bundled with the Android app; no on-demand downloads are published.",
+      "reason": "bundledElsewhere"
+    },
+    "ios-arm64": {
+      "message": "On-demand core downloads are not offered on iOS.",
+      "reason": "policy"
+    },
+    "windows-x64": {
+      "message": "No on-demand core assets are published for Windows yet. Install a core from a file instead.",
+      "reason": "assetsNotPublished"
+    }
+  }
 }

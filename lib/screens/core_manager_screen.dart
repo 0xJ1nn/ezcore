@@ -6,13 +6,18 @@ import 'package:flutter/material.dart';
 
 import '../cores/core_registry.dart';
 import '../models/core_manifest.dart';
+import '../services/core_downloader.dart';
 import '../services/core_package_installer.dart';
+import '../services/core_path_resolver.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
 import '../theme/layout.dart';
 import '../theme/tokens.dart';
 import '../widgets/hardware_art.dart';
 import '../widgets/orbit_widgets.dart';
+
+/// Platform-arch key of this device, resolved once for the whole screen.
+final String _hostPlatformKey = CorePathResolver.currentPlatformKey();
 
 /// Systems — the cores that play them (Orbit §8.4).
 ///
@@ -41,6 +46,10 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   /// install progress while it is open: the sheet lives in its own route and
   /// does not rebuild with this screen.
   final ValueNotifier<String?> _busy = ValueNotifier<String?>(null);
+
+  /// Last refused download per core. Its plain sentence becomes the card's
+  /// status line and the text of the install dialog until the next attempt.
+  final Map<String, CoreDownloadFailure> _downloadFailures = {};
 
   String? get _busyId => _busy.value;
 
@@ -395,11 +404,30 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
 
   // ---- status and trust, in plain words ----
 
+  /// Why [m] cannot be installed here, or null when it can.
+  ///
+  /// A manifest that says `download` on a platform with no published asset is
+  /// not installable: the Core Manager says so instead of offering a button
+  /// that would fail. The sentence comes from the generated release map, so
+  /// the message and the assets never disagree.
+  String? _deliveryBlockedReason(CoreManifest m) {
+    final delivery = m.delivery[Platform.operatingSystem];
+    if (delivery == null || delivery == 'absent') {
+      return 'Not available on this device';
+    }
+    if (delivery != 'download') return null;
+    final release = state.coreRelease;
+    if (release == null || release.assetName(_hostPlatformKey, m.id) == null) {
+      return release?.unavailableMessage(_hostPlatformKey) ??
+          'Not available on this device';
+    }
+    return null;
+  }
+
   /// One honest line about whether this core can be used here.
   ({String text, Color color}) coreStatus(CoreManifest m, {bool busy = false}) {
     if (busy) return (text: 'Installing…', color: Tokens.systemLabelFg);
     if (m.blocked) return (text: 'On hold', color: Tokens.muted);
-    final delivery = m.delivery[Platform.operatingSystem];
     if (registry.isInstalled(m.id)) {
       if (registry.statusOf(m) == CoreStatus.updateAvailable) {
         return (text: 'Update available', color: Tokens.systemLabelFg);
@@ -409,9 +437,12 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
       }
       return (text: 'Ready', color: Tokens.ok);
     }
-    if (delivery == null || delivery == 'absent') {
-      return (text: 'Not available on this device', color: Tokens.muted);
+    final failure = _downloadFailures[m.id];
+    if (failure != null) {
+      return (text: failure.sentence, color: Tokens.warn);
     }
+    final blocked = _deliveryBlockedReason(m);
+    if (blocked != null) return (text: blocked, color: Tokens.muted);
     if (m.biosRequired) {
       return (text: 'Not installed · needs BIOS', color: Tokens.muted);
     }
@@ -421,10 +452,8 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   String trustLabel(CoreManifest m) =>
       registry.isUserPackage(m.id) ? 'Unverified' : 'Verified';
 
-  bool canAdd(CoreManifest m) {
-    final d = m.delivery[Platform.operatingSystem];
-    return !m.blocked && d != null && d != 'absent';
-  }
+  bool canAdd(CoreManifest m) =>
+      !m.blocked && _deliveryBlockedReason(m) == null;
 
   // ---- actions ----
 
@@ -491,10 +520,37 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
     }
   }
 
+  /// The install dialog shows the same plain sentence as the status line,
+  /// with no raw HTTP or filesystem detail.
+  Future<void> showInstallFailure(CoreManifest m, CoreDownloadFailure failure) {
+    final navigator = Navigator.of(context);
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Tokens.panel,
+        title: Text('Could not install ${coreTitle(m)}',
+            style: Tokens.display(size: 20)),
+        content: Text(
+          failure.sentence,
+          style: Tokens.body(size: 13, color: Tokens.muted, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => navigator.pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> install(CoreManifest m) async {
     if (_busyId != null) return;
     final downloads = state.needsDownload(m);
-    setState(() => _busyId = m.id);
+    setState(() {
+      _busyId = m.id;
+      _downloadFailures.remove(m.id);
+    });
     try {
       await state.addCore(m);
       if (mounted) {
@@ -506,7 +562,14 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (e is CoreDownloadException) {
+        if (!mounted) return;
+        setState(() {
+          _busyId = null;
+          _downloadFailures[m.id] = e.failure;
+        });
+        await showInstallFailure(m, e.failure);
+      } else if (mounted) {
         orbitToast(context, e.toString().replaceFirst('StateError: ', ''));
       }
     } finally {
@@ -1138,10 +1201,14 @@ class _CoreDetail extends StatelessWidget {
             ),
           ] else ...[
             _PanelButton(
-              label: busy ? 'Installing…' : 'Install',
-              icon: Icons.download,
+              label: busy
+                  ? (state.needsDownload(m) ? 'Cancel download' : 'Installing…')
+                  : 'Install',
+              icon: busy && state.needsDownload(m) ? Icons.close : Icons.download,
               primary: true,
-              onPressed: busy || !canAdd ? null : () => actions.install(m),
+              onPressed: busy
+                  ? (state.needsDownload(m) ? state.cancelCoreDownload : null)
+                  : (!canAdd ? null : () => actions.install(m)),
             ),
             const SizedBox(height: 8),
             _PanelButton(
