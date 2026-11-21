@@ -896,6 +896,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: _state.backupFolder.needsPicker ? _chooseBackupFolder : null,
           ),
         );
+        if (_state.mirrorOnlySaveCount > 0) {
+          add(
+            _row(
+              id: 'store.restore',
+              label: 'Restore from backup',
+              description:
+                  'Copy saves found only in the backup back to this device.',
+              trailing: _ValuePill(value: 'Restore'),
+              onTap: _restoreFromBackup,
+            ),
+          );
+        }
         add(
           _row(
             id: 'store.policy',
@@ -1212,9 +1224,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ? status.path
         : '…${status.path.substring(status.path.length - 35)}';
     final note = status.survivesReinstall
-        ? 'Kept if the app is removed.'
-        : 'This folder is removed when the app is deleted.';
-    return '${status.provider} · $path $note';
+        ? 'Saves are mirrored here and kept if the app is removed.'
+        : 'Saves are mirrored here, but this folder is removed when the app is '
+            'deleted.';
+    final only = _state.mirrorOnlySaveCount;
+    final found = only == 0
+        ? ''
+        : ' $only save${only == 1 ? '' : 's'} found only in the backup.';
+    return '${status.provider} · $path $note$found';
+  }
+
+  Future<void> _restoreFromBackup() async {
+    final restored = await _state.restoreFromBackup();
+    if (!mounted) return;
+    orbitToast(
+      context,
+      restored > 0
+          ? 'Restored $restored save${restored == 1 ? '' : 's'} from backup'
+          : 'No saves to restore',
+    );
   }
 
   Future<void> _chooseBackupFolder() async {
