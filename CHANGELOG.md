@@ -13,9 +13,8 @@ All notable changes to ezCORE are documented here. The format follows
   leaving it are the store's purchase check and the optional daily update
   check in desktop downloads. The terms describe Diamond, renewal and
   cancellation, tips and the warranty terms.
-- Rewrote the README as a plain product page with installation links, a
-  factual feature list and short sections on Diamond and tips. Removed the
-  old slogans and store plans that are no longer accurate.
+- Added sections on Diamond, tips and privacy to the README, so the product
+  page states the terms the app and the store listings are held to.
 - Updated the licensing policy, support guide, roadmap, trademark policy and
   funding notes so they match the current product: free on every platform, an
   optional Diamond membership that supports the project and unlocks nothing,
