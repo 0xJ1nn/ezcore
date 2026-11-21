@@ -150,7 +150,14 @@ void main() {
     }
 
     await openTab(tester, 'Storage');
-    for (final label in ['Games folder', 'Core directory', 'Content policy']) {
+    for (final label in [
+      'Games folder',
+      'Core directory',
+      'Game art folder',
+      'Look up missing art',
+      'Find cover art now',
+      'Content policy',
+    ]) {
       expect(find.text(label), findsOneWidget, reason: label);
     }
 

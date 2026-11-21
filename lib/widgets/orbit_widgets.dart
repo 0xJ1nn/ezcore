@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/cover_art.dart';
+import '../services/game_art.dart';
 import '../services/system_labels.dart';
 import '../state/input_mode.dart';
 import '../theme/layout.dart';
@@ -645,7 +646,20 @@ class GameCover extends StatelessWidget {
     final art = ValueListenableBuilder<int>(
       valueListenable: coverRevision,
       builder: (context, revision, _) {
-        final file = coverFileFor(gameId);
+        Widget procedural() => OrbitCover(
+              title: title,
+              systemId: systemId,
+              sysShort: sysShort ?? systemCode(systemId),
+              year: year,
+              favorite: favorite,
+              isNew: isNew,
+              badgeText: badgeText,
+              badgeColor: badgeColor,
+              radius: radius,
+            );
+        final file = GameArtResolver.shared.resolve(
+          GameArtRequest(id: gameId, title: title, system: systemId),
+        );
         if (file != null) {
           return Image.file(
             file,
@@ -653,19 +667,11 @@ class GameCover extends StatelessWidget {
             // same-path screenshot replacements reload.
             key: ValueKey<String>('game-cover:$gameId:$revision'),
             fit: BoxFit.cover,
+            // A file that fails to decode must never leave a broken box.
+            errorBuilder: (_, _, _) => procedural(),
           );
         }
-        return OrbitCover(
-          title: title,
-          systemId: systemId,
-          sysShort: sysShort ?? systemCode(systemId),
-          year: year,
-          favorite: favorite,
-          isNew: isNew,
-          badgeText: badgeText,
-          badgeColor: badgeColor,
-          radius: radius,
-        );
+        return procedural();
       },
     );
     return SizedBox(

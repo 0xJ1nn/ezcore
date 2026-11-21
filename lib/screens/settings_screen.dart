@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../brand/brand_mark.dart';
 import '../emu/pcm_output.dart';
+import '../services/art_backfill.dart';
+import '../services/game_art.dart';
 import '../services/gamepad.dart';
 import '../services/haptics.dart';
 import '../services/pad_mapping.dart';
@@ -104,6 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     UiSounds.shared.sync(_state.settings);
     Haptics.shared.sync(_state.settings);
     MotionPreference.shared.sync(_state.settings);
+    GameArtResolver.shared.sync(_state.settings);
   }
 
   /// Every cue has one call site: the sound service fans the same event out
@@ -840,6 +844,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
         add(
           _row(
+            id: 'store.art',
+            label: 'Game art folder',
+            description:
+                'A folder of your own cover images, one sub-folder per system. '
+                'Without one, each game shows a generated cover.',
+            trailing: _ValuePill(value: _artFolderLabel(), quiet: true),
+            onTap: _editArtFolder,
+          ),
+        );
+        add(
+          _row(
+            id: 'store.artLookup',
+            label: 'Look up missing art',
+            description:
+                'When this device has no cover for a game, ask a public '
+                'thumbnail library once and keep the result in a local cache. '
+                'Off by default; nothing is uploaded.',
+            trailing: _Toggle(
+              value: _pref(artLookupKey, false),
+              label: 'Look up missing art',
+              reduceMotion: reduceMotion,
+              onChanged: (v) => _toggleSetting(artLookupKey, v),
+            ),
+            onTap: () => _toggleSetting(
+              artLookupKey,
+              !_pref(artLookupKey, false),
+            ),
+          ),
+        );
+        add(
+          _row(
+            id: 'store.artFind',
+            label: 'Find cover art now',
+            description:
+                'Checks every game that has no cover yet. Games that already '
+                'have one are left alone.',
+            trailing: _ValuePill(value: 'Find'),
+            onTap: _lookUpMissingArt,
+          ),
+        );
+        add(
+          _row(
             id: 'store.policy',
             label: 'Content policy',
             description:
@@ -1033,6 +1079,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (raw is! String || raw.trim().isEmpty) return 'Auto';
     final path = raw.trim();
     return path.length <= 22 ? path : '…${path.substring(path.length - 21)}';
+  }
+
+  String _artFolderLabel() {
+    final raw = _state.settings[artFolderKey];
+    if (raw is! String || raw.trim().isEmpty) return 'Not set';
+    final path = raw.trim();
+    return path.length <= 22 ? path : '…${path.substring(path.length - 21)}';
+  }
+
+  Future<void> _editArtFolder() async {
+    String? path;
+    try {
+      path = await getDirectoryPath();
+    } catch (_) {
+      path = null;
+    }
+    if (!mounted) return;
+    if (path == null || path.trim().isEmpty) {
+      final current = _state.settings[artFolderKey];
+      if (current is String && current.trim().isNotEmpty) {
+        final clear = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            backgroundColor: Tokens.dockTop,
+            title: Text(
+              'Remove the art folder?',
+              style: Tokens.display(size: 22, weight: FontWeight.w600, ls: -0.6),
+            ),
+            content: Text(
+              'Games go back to their generated covers. Nothing is deleted '
+              'from the folder.',
+              style: Tokens.body(size: 13, color: Tokens.muted, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: Tokens.body(size: 14, color: Tokens.muted),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text('Remove', style: Tokens.body(size: 14)),
+              ),
+            ],
+          ),
+        );
+        if (clear == true) {
+          await _state.removeSetting(artFolderKey);
+          if (mounted) orbitToast(context, 'Cover art folder removed');
+        }
+      }
+      return;
+    }
+    await _set(artFolderKey, path);
+    if (!mounted) return;
+    orbitToast(
+      context,
+      artFolderHasImages(path)
+          ? 'Cover art folder set'
+          : 'Cover art folder set. No images found in its system sub-folders '
+                'yet.',
+    );
+  }
+
+  Future<void> _lookUpMissingArt() async {
+    if (!_pref(artLookupKey, false)) {
+      orbitToast(context, 'Turn on Look up missing art first');
+      return;
+    }
+    final result = await backfillMissingArt(_state.games);
+    if (!mounted) return;
+    if (!result.ran) {
+      orbitToast(context, 'Every game already has art');
+      return;
+    }
+    orbitToast(
+      context,
+      result.saved == 0
+          ? 'No art found for ${result.attempted} '
+                'game${result.attempted == 1 ? '' : 's'}'
+          : 'Added art for ${result.saved} '
+                'game${result.saved == 1 ? '' : 's'}',
+    );
   }
 
   Future<void> _editCoreDirectory() async {
