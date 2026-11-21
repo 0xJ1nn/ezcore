@@ -167,6 +167,7 @@ class _VaultScreenState extends State<VaultScreen> {
                 groups: groups,
                 selected: _selected,
                 scale: scale,
+                romFolders: state.romFolders,
                 leftPad: railBodyInset,
                 bottomPad: desktop
                     ? 70
@@ -591,6 +592,7 @@ class _RailsTimeline extends StatelessWidget {
     required this.groups,
     required this.selected,
     required this.scale,
+    required this.romFolders,
     required this.leftPad,
     required this.bottomPad,
     required this.onSelect,
@@ -601,6 +603,7 @@ class _RailsTimeline extends StatelessWidget {
   final List<_GameSaves> groups;
   final String? selected;
   final double scale;
+  final List<String> romFolders;
   final double leftPad;
   final double bottomPad;
   final ValueChanged<String> onSelect;
@@ -639,7 +642,12 @@ class _RailsTimeline extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: m.metaWidth,
-                      child: _GameMeta(group: g, metrics: m, scale: scale),
+                      child: _GameMeta(
+                        group: g,
+                        metrics: m,
+                        scale: scale,
+                        romFolders: romFolders,
+                      ),
                     ),
                     SizedBox(width: m.metaGap),
                     Expanded(
@@ -683,11 +691,13 @@ class _GameMeta extends StatelessWidget {
     required this.group,
     required this.metrics,
     required this.scale,
+    required this.romFolders,
   });
 
   final _GameSaves group;
   final _RailsMetrics metrics;
   final double scale;
+  final List<String> romFolders;
 
   @override
   Widget build(BuildContext context) {
@@ -704,6 +714,7 @@ class _GameMeta extends StatelessWidget {
             systemId: group.game.system,
             radius: 5,
             dimmed: true,
+            contentPresent: contentPresentFor(group.game, romFolders),
           ),
         ),
         SizedBox(width: metrics.coverGap),
