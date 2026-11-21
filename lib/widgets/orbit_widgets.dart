@@ -84,26 +84,25 @@ class OrbitRail extends StatelessWidget {
   final ValueChanged<String> onGo;
   final bool short;
 
-  /// Pad-first families keep every destination, including Add games, in the
-  /// rail: there is no mouse to reveal a hidden action from across the room.
+  /// Pad-first families hide the rail labels; the fifth stop stays visible on
+  /// every modifier because it is the only pointer-discoverable import route.
   final LayoutModifier modifier;
   final VoidCallback? onAddGames;
 
   @override
   Widget build(BuildContext context) {
     final handheld = Layout.isHandheld(modifier);
-    // The full rail has five destinations, Add games last, as the desktop
-    // reference draws it. The compact handheld rail keeps the four spaces;
-    // ultrawide keeps its centred content without a fifth stop.
+    // Five stops on every family: a pointer-only window with games already on
+    // the shelf has no empty-state button to fall back on, so Add games lives
+    // here as a route even on short and ultrawide rails.
     final items = [
       ...orbitNavItems,
-      if (!short && modifier != LayoutModifier.ultrawide)
-        const OrbitNavItem(
-          'import',
-          'Add games',
-          Icons.add_circle_outline,
-          Icons.add_circle,
-        ),
+      const OrbitNavItem(
+        'import',
+        'Add games',
+        Icons.add_circle_outline,
+        Icons.add_circle,
+      ),
     ];
     return Container(
       // TV gets its width from the viewport's 1.33 scale, so the logical

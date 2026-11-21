@@ -107,6 +107,14 @@ class GameDock extends StatelessWidget {
     return 'Last played ${lastPlayedLabel(game.lastPlayedMs).toLowerCase()}';
   }
 
+  /// The mini dock's second line names the system and reuses the shared
+  /// last-played wording, so recency reads the same in every dock size.
+  String get _miniMeta {
+    final system = systemLabel(game.system);
+    if (!_played) return '$system · not played yet';
+    return '$system · ${_status.toLowerCase()}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final height =
@@ -160,38 +168,59 @@ class GameDock extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: Text(
-              game.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Tokens.body(
-                size: 13,
-                weight: FontWeight.w600,
-                height: null,
-              ),
-            ),
-          ),
-          _DockAction(
-            size: 38,
-            primary: true,
-            tooltip: resumeLabel,
-            semanticLabel: resumeLabel,
-            onPressed: onResume,
-            child: const Icon(
-              Symbols.playArrow,
-              size: 17,
-              color: Colors.white,
-              fill: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  game.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    height: null,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _miniMeta,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Tokens.body(
+                    size: 12.5,
+                    weight: FontWeight.w500,
+                    color: Tokens.muted,
+                    height: null,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
-          _DockAction(
-            size: 38,
-            tooltip: 'More options',
-            semanticLabel: 'More options',
-            onPressed: onMore,
-            child: const Icon(Symbols.moreHoriz, size: 18, color: Tokens.text),
+          // The frame's one labelled CTA uses the same primary fill as the
+          // larger docks; the trailing More still opens the actions sheet,
+          // where Details stays available without a second button here.
+          _DockPrimary(
+            label: resumeLabel,
+            glyph: null,
+            onPressed: onResume,
+            size: 52,
           ),
+          if (showMore) ...[
+            const SizedBox(width: 8),
+            _DockAction(
+              size: 38,
+              tooltip: 'More options',
+              semanticLabel: 'More options',
+              onPressed: onMore,
+              child: const Icon(
+                Symbols.moreHoriz,
+                size: 18,
+                color: Tokens.text,
+              ),
+            ),
+          ],
         ],
       );
     }
