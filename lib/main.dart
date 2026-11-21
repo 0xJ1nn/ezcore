@@ -12,6 +12,8 @@ import 'services/local_data_dir.dart';
 import 'services/ui_sounds.dart';
 import 'state/app_state.dart';
 import 'state/input_mode.dart';
+import 'support/entitlement.dart';
+import 'support/purchase_store.dart';
 import 'screens/core_manager_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/import_screen.dart';
@@ -127,6 +129,7 @@ class EmuApp extends StatefulWidget {
 
 class _EmuAppState extends State<EmuApp> {
   late final AppState state;
+  late final Entitlement entitlement;
   final _navigatorKey = GlobalKey<NavigatorState>();
   void Function()? _cancelPad;
 
@@ -146,7 +149,12 @@ class _EmuAppState extends State<EmuApp> {
       InputMode.shared.notePad(connected ? name : null);
     });
     InputMode.shared.notePad(GamepadService.shared.connectedPad);
-    state.load().then((_) {
+    entitlement = Entitlement(
+      store: InAppPurchaseStore(),
+      storage: AppStateSupportStorage(state),
+    );
+    state.load().then((_) async {
+      await entitlement.start();
       _syncInputMode();
       _syncAccessibility();
       _rescanWatchedFolders();
@@ -176,6 +184,7 @@ class _EmuAppState extends State<EmuApp> {
     Haptics.shared.detach();
     UiSounds.shared.detachGlobalBridge();
     _cancelPad?.call();
+    entitlement.dispose();
     super.dispose();
   }
 
@@ -241,7 +250,8 @@ class _EmuAppState extends State<EmuApp> {
               state: state,
               shell: (_) => ListenableBuilder(
                 listenable: InputMode.shared,
-                builder: (context, _) => Shell(state: state),
+                builder: (context, _) =>
+                    Shell(state: state, entitlement: entitlement),
               ),
             );
           },
@@ -252,8 +262,9 @@ class _EmuAppState extends State<EmuApp> {
 }
 
 class Shell extends StatefulWidget {
-  const Shell({super.key, required this.state});
+  const Shell({super.key, required this.state, this.entitlement});
   final AppState state;
+  final Entitlement? entitlement;
 
   @override
   State<Shell> createState() => _ShellState();
@@ -461,7 +472,7 @@ class _ShellState extends State<Shell> {
         ),
         CoreManagerScreen(state: widget.state, onBrowseCore: _browseCore),
         VaultScreen(state: widget.state),
-        SettingsScreen(state: widget.state),
+        SettingsScreen(state: widget.state, entitlement: widget.entitlement),
       ],
     );
   }
