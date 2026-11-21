@@ -8,7 +8,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DESIGN="${DESIGN:-/Users/0xj1n/Projects/ezcore-ws-taglines/design/claude-design/src/assets/branding}"
+DESIGN="${DESIGN:-$ROOT/../design/claude-design/src/assets/branding}"
 HS="${HS:-$(ls "$HOME"/Library/Caches/ms-playwright/chromium_headless_shell-1223/*/chrome-headless-shell 2>/dev/null | head -1)}"
 PORT="${PORT:-8941}"
 
