@@ -94,17 +94,24 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "pickTree" -> {
-                        pendingBackupPick = result
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-                                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
-                        }
-                        try {
-                            startActivityForResult(intent, backupPickRequestCode)
-                        } catch (e: Exception) {
-                            pendingBackupPick = null
+                        if (pendingBackupPick != null) {
+                            // One picker owns the request code at a time. A
+                            // second launch would answer the first call with
+                            // the wrong tree and strand its own reply.
                             result.success(null)
+                        } else {
+                            pendingBackupPick = result
+                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                            }
+                            try {
+                                startActivityForResult(intent, backupPickRequestCode)
+                            } catch (e: Exception) {
+                                pendingBackupPick = null
+                                result.success(null)
+                            }
                         }
                     }
                     "probeFolder" -> {
@@ -299,13 +306,19 @@ class MainActivity : FlutterActivity() {
             pendingBackupPick = null
             if (resultCode == Activity.RESULT_OK && data?.data != null) {
                 val uri = data.data!!
-                try {
+                // A grant the platform refuses to persist dies on reboot.
+                // Answering with it would claim a durable folder the app
+                // cannot write after a restart or reinstall.
+                val persisted = try {
                     contentResolver.takePersistableUriPermission(
                         uri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION or
                             Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                } catch (_: Exception) {}
-                pending?.success(uri.toString())
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                pending?.success(if (persisted) uri.toString() else null)
             } else {
                 pending?.success(null)
             }
