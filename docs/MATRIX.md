@@ -1,5 +1,12 @@
 # ezCORE Core × Platform Matrix
 
+> **Verified again 2026-11-21.** The boot harness now records the frame it drew:
+> `EZCORE_FRAME_PPM=<path>` writes the last frame as a binary PPM and prints its
+> SHA-256. Four Linux cells were promoted to RENDERS against a captured frame
+> with a differing negative control — `pocketbit`, `advancebit`, `nesbyte`,
+> `rcp64` — and each hash reproduced on a second run. The dated note below is
+> kept as the record of what was true on 2026-09-28.
+>
 > **Last verified:** 2026-09-28 — P1b capability surface merged: `env_cb` answers
 > **17 of the 93** environment requests (core options v2 + intl, input
 > descriptors, controller info, memory maps), with the Dart bindings, the
@@ -95,11 +102,18 @@ against a stored frame. Where the destination cannot be opened the harness now
 fails with exit 7 rather than skipping, so a claimed frame cannot turn out to
 be a file that was never written.
 
+The frame budget changes the frame, so a recorded hash is comparable only at
+the budget it was taken at. The default is 30 frames; where a note names a
+larger budget, the hash was taken with `EZCORE_BOOT_FRAMES` set to that value.
+The same build on the same content at the same budget reproduces the same
+hash, which was checked by running each promoted case twice.
+
 A stored frame is evidence for its core build and its content. A hash that
 repeats across two different inputs is decoration, not rendering — a core that
 paints one picture for an NES file and a GBA cartridge earns no RENDERS claim,
-which is what happened to `geometry1`. This change sets the rule only; no cell
-is promoted to RENDERS here, because the claims wait for captured frames.
+which is what happened to `geometry1`. Four Linux cells were promoted on
+2026-11-21 against a captured frame; the rest stay BUILT until someone captures
+one, because what is missing for them is the frame, not the build.
 
 **Harness limits on IDENTIFIES and RENDERS** (corrected 2026-09-29 — both
 levels previously claimed more than the harness asserts):
@@ -125,19 +139,19 @@ levels previously claimed more than the harness asserts):
 
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Notes |
 |---|---|---|---|---|---|---|
-| pocketbit | BUILT | BUILT | BUILT | BUILT | — | iOS needed `ios-arm64` + gmake4 + serial (pb12 race). The recorded boot ran on Linux, not macOS; no frame was recorded, so RENDERS is not established for either cell (frame rule above) |
+| pocketbit | BUILT | BUILT | BUILT | RENDERS | — | Linux: captured 160x144 frame, sum 381089848954, sha256 `34cd921e4812f6b61e632efe0132b7663ce3ad995fa814fbb8d0c48eadcde96e` at the default 30-frame budget; restore exact; reproduced twice. The same build drew a different frame (`5f5b4058…`) for an NES file, so the frame follows the content. The boot ROM was absent and the core fell back to its own startup image, which is what the frame shows. The recorded boot ran on Linux, not macOS, and no frame exists for any other platform, so only this cell is RENDERS. iOS needed `ios-arm64` + gmake4 + serial (pb12 race) |
 | gambatte | BUILT | BUILT | BUILT | — | — | ⚠ Catalog contradiction: `cores/catalog.json` records `delivery: absent` on all five platforms while artifact pins exist for macOS/Linux/Android; licence is GPL-2.0-only. The macOS cell has no `boot_gambatte` ctest and no in-tree fixture, so the recorded boot is not reproducible here; no frame was recorded, so RENDERS is not established (frame rule above). Resolving the distribution conflict is a maintainer decision. Android via `unix` (no android branch upstream) |
-| advancebit | BUILT | — | BUILT | BUILT | — | iOS excluded: dynarec default unverified. The `boot_advancebit` ctest is fixture-gated in `runtime/CMakeLists.txt` and the fixture is absent from the tree, so the recorded boot is not reproducible here; no frame was recorded, so RENDERS is not established (frame rule above). Android needed `-Wno-error=int-conversion` (NDK r27) |
-| nesbyte | IDENTIFIES | BUILT | BUILT | BUILT | — | Linux: the recorded `ctest -R boot_nesbyte` run used the generated CC0 ROM, which is local-only and absent from the tree; its restore stayed within 2% (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02), a smoke gate, not pixel equality. No frame was recorded, so RENDERS is not established (frame rule above). iOS needed `ios-arm64` (TLS requires minos 9+) |
+| advancebit | BUILT | — | BUILT | RENDERS | — | Linux: captured 240x160 frame, sum 639944581886, sha256 `15992d2a7b0bdd8c8cf96d50f76d4b49c2ceb6299eb991750823cf02f56f62ec`; restore exact; reproduced twice. The same build drew a different frame (`c44d0f4f…`) for a Game Boy file. The `boot_advancebit` ctest is fixture-gated in `runtime/CMakeLists.txt` and the fixture is absent from the tree, so this run is not the ctest. iOS excluded: dynarec default unverified. Android needed `-Wno-error=int-conversion` (NDK r27) |
+| nesbyte | IDENTIFIES | BUILT | BUILT | RENDERS | — | Linux: captured 256x240 frame, sum 263508456624048, sha256 `ce915ccefd866e98d08bd59dc9659a1169107ef66d8508a59a6bef84c0ed2c42`; restore exact; reproduced twice. The control is a refusal rather than a foreign frame: fed a Game Boy file, the core failed to load it and exited 2. The recorded `ctest -R boot_nesbyte` used a generated ROM that is local-only and absent from the tree; the captured frame is the evidence here, not the ctest. iOS needed `ios-arm64` (TLS requires minos 9+) |
 | superfx | IDENTIFIES | BUILT | BUILT | — | — | Non-commercial licence — no binaries shipped; recipe only (delivery absent on all five platforms, `cores/catalog.json`). Android via `unix` (no android branch upstream) |
 | blastproc | IDENTIFIES | BUILT | BUILT | BUILT | — | Linux: no `boot_blastproc` ctest and no in-tree fixture, so the recorded boot is not reproducible here; no frame was recorded, so RENDERS is not established (frame rule above). Non-commercial licence — no binaries shipped; recipe only (delivery absent on all five platforms, `cores/catalog.json`). Android via `unix` |
 | joystick | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `PTHREAD_FLAGS=` (no libpthread in NDK) |
-| cardcon | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `-lrt` wrapper (NDK has no librt) |
+| cardcon | IDENTIFIES | BUILT | BUILT | BUILT | — | Android needed `-lrt` wrapper (NDK has no librt). A negative control fed the Linux build a NES archive and a Game Boy file: it accepted both and drew the **same** frame (256x243, identical pixel sum), so the gate cannot tell a PC Engine boot from decoration here. This row stays BUILT: a frame from this core proves nothing until it differs by content |
 | realmode | IDENTIFIES | BUILT | BUILT | BUILT | — | Linux: the recorded boot opened the DOS start menu, but serialize was refused until a program runs, so this is not RENDERS; no frame was recorded (frame rule above). Needs a self-running DOS fixture. Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
 | coinbox | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
 | pointclick | IDENTIFIES | — | BUILT | BUILT | — | Linux: a recorded run crashed on a bare `sky.dsk`; the exit-9 crash classification is proven in `runtime/test/test_core_boot.c` and `runtime/test/test_crash_signal.c`, but the event has no in-tree log and is not asserted here. macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
 | geometry1 | IDENTIFIES | — | — | BUILT | — | Linux: a recorded negative control fed a NES file and a GBA cartridge; the core accepted both and produced the same picture it draws for its own content, so video output cannot evidence PlayStation rendering. Loading, init and save-restore stand; the earlier RENDERS row is withdrawn. No frame was recorded (frame rule above). Restoring the row needs one real PSX image whose frame differs from a negative control |
-| rcp64 | IDENTIFIES | — | — | BUILT | — | Linux: a recorded run used GLideN64 via `EZCORE_BOOT_OPTIONS`; the committed default RDP plugin is `angrylion` (`cores/rcp64/manifest.json:49`), so GLideN64 was an override, not the default. The recorded restore stayed within 2% (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02). No frame was recorded, so RENDERS is not established (frame rule above) |
+| rcp64 | IDENTIFIES | — | — | RENDERS | — | Linux: captured 640x480 frame, sum 1314321213910097, sha256 `92578030330267ec89e3c79047fb29b87472417bb81c9936b9a39ce74d9c5f32`; restore exact; reproduced twice. Taken with the committed default RDP plugin, `angrylion` (`default_options` in `cores/rcp64/manifest.json`); the earlier GLideN64 run in this row was an `EZCORE_BOOT_OPTIONS` override and is not what this cell records. The core refused NES and Game Boy files (exit 2). An unrelated N64 fixture that exercises compression hung for over three minutes and was killed; that is a property of the fixture, and it is not evidence either way |
 | dualscreen | IDENTIFIES | — | — | BUILT | — | Linux: a recorded boot on defaults reached save-restore within 2% (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02). No frame was recorded, so RENDERS is not established (frame rule above) |
 | portcomp | IDENTIFIES | — | — | BUILT | — | Linux: a recorded PPSSPP boot used `EZCORE_BOOT_FRAMES=300 EZCORE_BOOT_PACE=1` because PPSSPP draws on its own thread, and reached save-restore within 2% (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02). No frame was recorded, so RENDERS is not established (frame rule above) |
 | dreamarc | IDENTIFIES | — | — | BUILT | — | Linux: a recorded Flycast boot on OpenGL reached save-restore within 2% (the `RESTORE_PIXEL_SUM_TOLERANCE_REL` macro in `runtime/test/test_core_boot.c`, 0.02), but the harness frame was black, so it does not evidence content rendering. No frame was recorded, so RENDERS is not established (frame rule above) |
