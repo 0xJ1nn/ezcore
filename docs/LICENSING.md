@@ -30,9 +30,10 @@ ship cores without their core becoming GPL.
 You are welcome to build cores for ezCORE and to publish them under your own
 name and licence. Say that your core "works with ezCORE"; do not call it
 ezCORE or use the logo ([`TRADEMARKS.md`](../TRADEMARKS.md)). The authoring
-guide is [`CORE_AUTHORING.md`](CORE_AUTHORING.md). A core that includes
-third-party emulator code must also follow that code's licence: a GPL
-emulator stays GPL.
+guides are [`CUSTOM-CORES.md`](CUSTOM-CORES.md) for a core you build and install
+yourself, and [`CORE_AUTHORING.md`](CORE_AUTHORING.md) for a core added to the
+repository and shipped in official builds. A core that includes third-party
+emulator code must also follow that code's licence: a GPL emulator stays GPL.
 
 ### Official builds
 

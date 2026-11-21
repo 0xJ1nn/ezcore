@@ -4,8 +4,10 @@ From clone to a catalog-verified, pinned core in ezCORE. A core that compiles
 is not a core that plays — every step below is tied to a gate that CI runs.
 
 > **Scope.** This guide covers one path: adding or rebuilding a libretro core
-> package and getting it shippable. It assumes the app shell builds (see
-> `docs/BUILDING.md` for the full bootstrap). Cores implement the libretro API v1
+> package in this repository and getting it shippable. To build a core of your
+> own and install it from a folder, see [`CUSTOM-CORES.md`](CUSTOM-CORES.md).
+> It assumes the app shell builds (see `docs/BUILDING.md` for the full
+> bootstrap). Cores implement the libretro API v1
 > (see the [libretro core reference][libretro-api]); ezCORE does not extend it.
 > The host-side ABI lives in `runtime/include/ezcore_runtime.h` and belongs to
 > the application, not to cores.

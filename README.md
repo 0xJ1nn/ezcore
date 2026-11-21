@@ -55,7 +55,7 @@ The same library and the same experience on Linux, macOS, Windows, Android and i
 <td valign="top">
 
 ### Emulators install like apps
-Each system is a **core** you add or remove like an app. Official cores are built, fingerprinted and labelled **Verified**. Your own cores install from a file, and crash protection keeps a bad one from taking the app down.
+Each system is a **core** you add or remove like an app. Official cores are built, fingerprinted and labelled **Verified**. Your own cores install from a file. An opt-in setting on desktop runs a core in a separate helper process so a crash ends only the game; it is experimental and off by default.
 
 </td>
 </tr>
@@ -69,7 +69,7 @@ Local-first. No account and no telemetry; the network is used only when you choo
 <td valign="top">
 
 ### Build your own cores
-Any emulator that speaks libretro can become an ezCORE core: package it, share it under your own name, and pick any licence you like. The [Core Module Exception](LICENSE-EXCEPTION.md) keeps the core ecosystem open to everyone.
+Any emulator that speaks libretro can become an ezCORE core: package it, share it under your own name, and pick any licence you like. The [writing-your-own-core guide](docs/CUSTOM-CORES.md) covers the package, the build and the install; the [Core Module Exception](LICENSE-EXCEPTION.md) keeps the core ecosystem open to everyone.
 
 </td>
 </tr>
@@ -101,20 +101,21 @@ Remap any button by pressing it. Hold **Select + Start** for a pause menu with s
 
 ## The lineup
 
-ezCORE hosts the best open-source emulators through the [libretro](https://www.libretro.com/) standard and polishes everything around them. Every status below is **verified, not aspirational**: "Boots and saves" means the core loaded real content, drew frames and survived a save-state round trip on the named platform. Evidence: [`docs/MATRIX.md`](docs/MATRIX.md).
+ezCORE hosts the best open-source emulators through the [libretro](https://www.libretro.com/) standard and polishes everything around them. Each row states what has been checked: "Boots and saves" means the core loaded real content, drew frames and survived a save-state round trip on the named platform. Other stages are labelled as in progress or held. Evidence: [`docs/MATRIX.md`](docs/MATRIX.md).
 
 | System | Core | Status |
 |---|---|---|
 | Game Boy / Game Boy Color | PocketBit (SameBoy) | Boots and saves · Linux, macOS |
-| Game Boy Advance | AdvanceBit (mGBA) | Boots and saves · Linux, macOS |
+| Game Boy Advance | AdvanceBit (mGBA) | Boots and saves · macOS; build verified on Linux |
 | NES / Famicom | NesByte (Mesen) | Boots and saves · Linux |
 | PlayStation | Geometry1 (SwanStation) | Boots and saves · Linux |
 | PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves · Linux. DualVU needs no BIOS; LRPS2 uses your own dump |
 | Nintendo DS | DualScreen (melonDS) | Boots and saves · Linux |
-| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots and saves, software renderer · Linux |
+| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots and renders · Linux (GPU or software renderer) |
 | PC Engine · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Verification in progress |
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Verification in progress |
-| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | GPU rendering in progress |
+| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Boots and renders on Linux (GPU); other platforms in progress |
+| Watara Supervision · LCD handheld | SpritePocket (Potator) · PocketTick (GW) | Desktop on-demand download; render verification not yet recorded |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own: their licences forbid redistribution |
 | 3DS · Switch | — | Held by project policy |
 
@@ -124,13 +125,13 @@ ezCORE hosts the best open-source emulators through the [libretro](https://www.l
 
 | Platform | Get it | Status |
 |---|---|---|
-| **Linux x64** | [Build from source](docs/BUILDING.md) · release archive with the next release | Runs and is tested here |
-| **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | Builds; on-device testing continues |
-| **macOS arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.zip` | Ran at v0.1.1; the current build is not yet re-verified |
+| **Linux x64** | [Build from source](docs/BUILDING.md) · [latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.tar.gz` | Runs and is tested here |
+| **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | App artifact in v0.2.0; on-device boot not verified |
+| **macOS arm64** | [Build from source](docs/BUILDING.md) | No artifact in v0.2.0; last run-verified at v0.1.1 |
 | **Windows x64** | [Build from source](docs/BUILDING.md) | Not yet verified |
 | **iOS** | [Build guide](docs/BUILDING.md) | Not yet verified (Apple only allows cores built into the app) |
 
-Official builds come from this repository's [Releases](https://github.com/0xJ1nn/ezcore/releases) only. First launch, folders and BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md).
+Official builds come from this repository's [Releases](https://github.com/0xJ1nn/ezcore/releases) and the official store listings only. First launch, folders and BIOS placement: [`docs/INSTALL.md`](docs/INSTALL.md).
 
 <details>
 <summary><b>macOS first launch</b></summary>
@@ -144,7 +145,7 @@ xattr -cr /Applications/ezCore.app
 
 ## What's next
 
-Analog sticks, keyboard and mouse for every core · GPU rendering for PSP, Dreamcast, GameCube and faster N64 · crash protection on every platform · single-file shareable core packages · verified builds on every platform. Full plan: [`ROADMAP.md`](ROADMAP.md) · changes: [`CHANGELOG.md`](CHANGELOG.md).
+Analog sticks, keyboard and mouse for every core · GPU rendering on the remaining platforms · crash protection on every platform · single-file shareable core packages · verified builds on every platform. Full plan: [`ROADMAP.md`](ROADMAP.md) · changes: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Support ezCORE
 
@@ -152,7 +153,7 @@ Analog sticks, keyboard and mouse for every core · GPU rendering for PSP, Dream
   <a href="https://github.com/sponsors/0xJ1nn"><img alt="Sponsor ezCORE on GitHub" src="https://img.shields.io/badge/Sponsor%20ezCORE-%E2%99%A5%20on%20GitHub%20Sponsors-007BFF?labelColor=0F1825&style=for-the-badge"></a>
 </p>
 
-ezCORE is free and open source, with no ads, no paywalled features and no data collection, ever. It is built by people, in the open, and sponsorship is what keeps it moving:
+ezCORE is free and open source, with no ads and no data collection. It is built by people, in the open, and sponsorship is what keeps it moving:
 
 - **Hardware for testing:** every platform in the Download table becomes *Verified* on real devices.
 - **Time:** GPU rendering, new cores, and verified builds on every platform.
@@ -189,7 +190,7 @@ python3 scripts/build_catalog.py
 flutter pub get
 flutter analyze
 flutter test
-ctest --test-dir runtime/build-linux --output-on-failure
+(cd runtime/build-linux && ctest --output-on-failure)
 
 flutter run -d linux                  # or macos
 ```
@@ -205,7 +206,7 @@ Prerequisites and every platform: [`docs/BUILDING.md`](docs/BUILDING.md).
 │ Library · Systems · Settings · Player        │
 │ controls engine · saves · controller input   │
 └───────────────┬──────────────────────────────┘
-                │ C ABI (in-process, or a helper process with crash protection)
+                │ C ABI (in-process, or an opt-in helper process on desktop)
 ┌───────────────▼──────────────────────────────┐
 │ ezCORE runtime (C11): sessions, video,       │
 │ audio, input, options, save states           │
@@ -216,7 +217,7 @@ Prerequisites and every platform: [`docs/BUILDING.md`](docs/BUILDING.md).
 └──────────────────────────────────────────────┘
 ```
 
-Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · core authoring: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md) · package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md) · platform rules: [`docs/PLATFORM.md`](docs/PLATFORM.md).
+Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · write your own core: [`docs/CUSTOM-CORES.md`](docs/CUSTOM-CORES.md) · core authoring: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md) · package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md) · platform rules: [`docs/PLATFORM.md`](docs/PLATFORM.md).
 </details>
 
 ## License and credits
