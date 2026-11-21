@@ -65,7 +65,12 @@ compatibility rules whatever a person has bought.
 
 ## Contributions (inbound licence)
 
-- Every contributor signs the [CLA](../CLA.md) and signs off commits (DCO).
+- Every contributor signs the [CLA](../CLA.md) and signs off commits with
+  `git commit -s`; the certificate and its project rules are in
+  [`DCO`](../DCO). Commits before 22 November 2026 were not all signed off, so
+  the maintainer's dated statement in
+  [`docs/DCO-ATTESTATION.md`](DCO-ATTESTATION.md) covers that history and names
+  the range.
 - The CLA is a **licence, not a copyright assignment**. It lets the
   maintainer ship official builds under the terms the stores require and keep
   the Core Module Exception consistent. In return it **promises** that the
