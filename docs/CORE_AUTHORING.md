@@ -1,15 +1,15 @@
 # Core Authoring Guide
 
 From clone to a catalog-verified, pinned core in ezCORE. A core that compiles
-is not a core that plays — every step below is tied to a gate that CI runs.
+is not a core that plays — every step below is tied to a gate that `CI` runs.
 
 > **Scope.** This guide covers one path: adding or rebuilding a libretro core
 > package in this repository and getting it shippable. To build a core of your
 > own and install it from a folder, see [`CUSTOM-CORES.md`](CUSTOM-CORES.md).
 > It assumes the app shell builds (see `docs/BUILDING.md` for the full
-> bootstrap). Cores implement the libretro API v1
+> bootstrap). Cores implement the libretro `API` v1
 > (see the [libretro core reference][libretro-api]); ezCORE does not extend it.
-> The host-side ABI lives in `runtime/include/ezcore_runtime.h` and belongs to
+> The host-side `ABI` lives in `runtime/include/ezcore_runtime.h` and belongs to
 > the application, not to cores.
 
 [libretro-api]: https://docs.libretro.com/development/guidelines/core/
@@ -41,14 +41,15 @@ This clones `libretro-common` shallow and confirms
 `runtime/external/libretro-common/include/libretro.h` exists.
 `build_runtime.sh` refuses to run without it.
 
-**Verified:** `scripts/build_core.sh` L37–42 (`fetch_headers`), L443 (case dispatch).
+**Verified:** `scripts/build_core.sh` `fetch_headers()` and the `--fetch-headers`
+case arm.
 
 ### 1.3 Set the platform
 
 `build_core.sh` defaults to macOS arm64:
 
 ```bash
-PLATFORM="${EZCORE_PLATFORM:-macos}"   # core_platform.sh L16
+PLATFORM="${EZCORE_PLATFORM:-macos}"   # core_platform.sh, PLATFORM
 ```
 
 Linux (and Windows, Android, iOS) builds **must** set `EZCORE_PLATFORM`:
@@ -57,8 +58,8 @@ Linux (and Windows, Android, iOS) builds **must** set `EZCORE_PLATFORM`:
 EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop
 ```
 
-Platform variables resolved by `scripts/core_platform.sh` (sourced at `build_core.sh`
-L26):
+Platform variables resolved by `scripts/core_platform.sh` (sourced by
+`build_core.sh`):
 
 | `EZCORE_PLATFORM` | lib suffix | make platform | artifact key | staging dir |
 |---|---|---|---|---|
@@ -68,7 +69,8 @@ L26):
 | `android` | `.so` | `platform=unix` | `android-arm64` | `native/cores-android-arm64-v8a` |
 | `ios` | `.dylib` | `platform=ios-arm64` | `ios-arm64` | `native/cores-ios-arm64` |
 
-Override env vars (verified: `core_platform.sh` L4–13, `build_core.sh` L11–13):
+Override env vars (documented in the header comments of `core_platform.sh` and
+`build_core.sh`):
 
 | Var | Default | Effect |
 |---|---|---|
@@ -78,8 +80,9 @@ Override env vars (verified: `core_platform.sh` L4–13, `build_core.sh` L11–1
 | `JOBS_OVERRIDE` | CPU count | Parallel make jobs |
 | `EZCORE_NO_RESET` | `0` | Skip `core_reset` (iteration only; never for pins) |
 
-Android requires `ANDROID_NDK_HOME` (enforced: `core_platform.sh` L90); iOS
-requires `xcrun` / the iOS SDK (`ios_toolchain`, `core_platform.sh` L107–114).
+Android requires `ANDROID_NDK_HOME` (enforced by `android_toolchain()` in
+`core_platform.sh`); iOS requires `xcrun` / the iOS SDK (`ios_toolchain()` in
+`core_platform.sh`).
 
 ### 1.4 Build a single core
 
@@ -87,12 +90,11 @@ requires `xcrun` / the iOS SDK (`ios_toolchain`, `core_platform.sh` L107–114).
 scripts/build_core.sh nesbyte
 ```
 
-This dispatches to `build_nesbyte()` (verified: `build_core.sh` L448–449 — the
-`*` case maps `<id>` to `build_<id>()`). The recipe clones upstream, runs
-`core_make` (flock-serialized per source tree; verified: `build_core.sh`
-L77–97), and calls `stage()`.
+This dispatches to `build_nesbyte()` (the `*` case maps `<id>` to
+`build_<id>()`). The recipe clones upstream, runs `core_make` (flock-serialized
+per source tree), and calls `stage()`.
 
-`stage()` (verified: L44–67) creates:
+`stage()` creates:
 
 ```
 native/cores/<id>/<id>_libretro.<ext>   # stripped, macOS ad-hoc signed
@@ -102,8 +104,8 @@ native/cores/<id>/SHA256SUMS             # sha256 of the staged bytes
 Strip policy preserves `dlopen` symbols — debug info is removed but dynamic
 symbols are kept (`-x` on macOS, `-g` on Linux, `llvm-strip -g` on Android).
 macOS ad-hoc signs at stage time; **pins describe the signed bytes, not
-pre-sign bytes. Never re-sign a pinned artifact** (verified: L52–65, comment
-L59–62).
+pre-sign bytes. Never re-sign a pinned artifact** (the signing comment in
+`stage()`).
 
 ### 1.5 Build a tier
 
@@ -112,28 +114,29 @@ Pre-defined tiers match the platform matrix in `build_core.sh`:
 | Flag | Cores (count) | Platforms |
 |---|---|---|
 | `--tier1` | pocketbit, advancebit, superfx, blastproc, realmode (5) | macOS (run-verified) |
-| `--tier-desktop` | 18 cores | macOS, Linux, Windows |
-| `--tier-android` | 11 cores | Android |
-| `--tier-ios` | 10 cores | iOS (interpreter-only) |
+| `--tier-desktop` | 17 cores | macOS, Linux, Windows |
+| `--tier-android` | 10 cores | Android |
+| `--tier-ios` | 9 cores | iOS (interpreter-only) |
 
-**Verified:** `build_core.sh` L426–435 (tier lists), L444–447 (case dispatch).
+**Verified:** `build_core.sh` `TIER1`, `TIER_ANDROID`, `TIER_IOS`,
+`TIER_DESKTOP`, and the `case "$cmd"` dispatch.
 
-`core_reset()` (verified: L109–125) cleans stale objects on platform switches.
-A `.ezcore-build-ok` marker records the last successful platform; a mismatch
-triggers `git reset --hard` + `git clean -fdx`. Same-platform rebuilds stay
-incremental. Set `EZCORE_NO_RESET=1` for single-core iteration only — never
-for pins or releases (verified: L108, L110).
+`core_reset()` cleans stale objects on platform switches. A `.ezcore-build-ok`
+marker records the last successful platform; a mismatch triggers
+`git reset --hard` + `git clean -fdx`. Same-platform rebuilds stay incremental.
+Set `EZCORE_NO_RESET=1` for single-core iteration only — never for pins or
+releases (the `EZCORE_NO_RESET` guard in `core_reset()`).
 
 Hold cores (`citra_hold`, `switch_hold`) refuse to build via
-`hold()` which exits 4 (verified: L421–424).
+`hold()` which exits 4.
 
 ## 2. Package
 
 ### 2.1 Manifest schema
 
 The reference shape is `cores/nesbyte/manifest.json`. The complete set of
-recognized top-level fields is defined in `lib/services/core_package_validator.dart`
-L25–44 (`kKnownManifestFields`):
+recognized top-level fields is defined by `kKnownManifestFields` in
+`lib/services/core_package_validator.dart`:
 
 | Field | Type | Enforcer |
 |---|---|---|
@@ -171,47 +174,46 @@ Field structure in practice (verified: `cores/nesbyte/manifest.json`):
 
 `lib/services/core_package_validator.dart` enforces (all verified against source):
 
-- **id**: must match `^[a-z0-9_]+$` (L150) and match the package directory name
-  (L175–183).
+- **id**: must match `^[a-z0-9_]+$` (`_idRegex`) and match the package directory
+  name (both in `_validateManifest()`).
 - **artifacts**: every pin must be a 64-char lowercase hex string matching
-  `^[0-9a-f]{64}$` (L151, L191–198).
+  `^[0-9a-f]{64}$` (`_pinRegex`, checked in `_validateManifest()`).
 - **delivery**: each per-OS value must be one of `bundled`, `download`,
-  `absent` (L152–156, L209–217) — the same vocabulary the app's manifest
+  `absent` (`_allowedDelivery`, checked in `_validateManifest()`) — the same vocabulary the app's manifest
   model and every real manifest use.
-- **bios_required**: `true` without `bios_files` → non-fatal warning (L222–227).
+- **bios_required**: `true` without `bios_files` → non-fatal warning
+  (`_validateManifest()`).
 - **Unknown fields**: any top-level key not in `kKnownManifestFields` → error
-  (L164–167). Callers may extend via the `allowedFields` parameter (L23–24).
+  (`_validateManifest()`). Callers may extend via the `allowedFields` parameter
+  of `validate()`.
 - **Package size**: total bytes ≤ 512 MiB by default (`defaultMaxPackageBytes`,
-  L70); oversize → error (L253–258).
-- **Manifest size**: `manifest.json` ≤ 1 MiB (`defaultMaxManifestBytes`, L73);
-  over cap → error (L121–125).
-- **Symlinks**: any `Link` in the package tree → error (L241–243).
+  enforced in `_scanPackage()`); oversize → error there.
+- **Manifest size**: `manifest.json` ≤ 1 MiB (`defaultMaxManifestBytes`,
+  enforced in `validate()`); over cap → error there.
+- **Symlinks**: any `Link` in the package tree → error (`_scanPackage()`).
 
 Validation never throws for policy failures — problems are collected in
 `errors` (hard fails; `ok == false`) and `warnings` (soft) on the returned
-`PackageValidationReport` (L60–67).
+`PackageValidationReport`.
 
-> ⚠️ **Verified gap: delivery vocabulary.** *(Resolved in the same PR as this
-> document.)* The Dart validator originally allowed `{bundled, on-demand,
-> absent}` — `on-demand` was a brief invention no consumer uses: the app's
-> manifest model, `fill_manifest_data.py` (L124), every real manifest, and
-> `build_catalog.py` (L68) all use `download`. The validator now accepts
-> `bundled | download | absent` and rejects `on-demand` by design.
+> ⚠️ **Delivery vocabulary.** The Dart validator accepts `bundled | download |
+> absent` (`_allowedDelivery`) and rejects `on-demand` by design. The app's
+> manifest model, `fill_manifest_data.py` `_delivery()`, every real manifest, and
+> `build_catalog.py` `build_release()` all use `download`.
 >
-> ⚠️ **Verified gap: extra manifest fields.** *(Resolved in the same PR as
-> this document.)* Real manifests carry `blocked_reason` (holds: citra_hold,
-> switch_hold), `gated_reason` (license-gated: coinbox, superfx, blastproc,
-> gambatte), and `notes` (powercube). These are now in
-> `kKnownManifestFields`, so the validator accepts every manifest in this
-> repository.
+> ⚠️ **Extra manifest fields.** Real manifests carry `blocked_reason` (holds:
+> citra_hold, switch_hold), `gated_reason` (license-gated: coinbox, superfx,
+> blastproc, gambatte), `notes` (ten cores), `default_options` (rcp64), and
+> `system_data` (portcomp, powercube). All are in `kKnownManifestFields`, so the
+> validator accepts every manifest in this repository.
 
 ### 2.3 What a core must implement
 
-The libretro API v1 — `retro_*` entry points, `RETRO_API_VERSION == 1`. A core
-does not implement or call the `ezcore_*` host API in
+The libretro `API` v1 — `retro_*` entry points, `RETRO_API_VERSION == 1`. A core
+does not implement or call the `ezcore_*` host `API` in
 `runtime/include/ezcore_runtime.h` (that is the application's surface). Using
 the existing libretro contract is what makes a core usable by ezCORE,
-RetroArch, and others. Verified: `CONTRIBUTING.md` L39–42.
+RetroArch, and others. See `CONTRIBUTING.md`, "What a core must implement".
 
 ## 3. Declare
 
@@ -225,23 +227,23 @@ python3 scripts/fill_manifest_data.py          # write policy fields
 python3 scripts/fill_manifest_data.py --check  # CI: fail on drift
 ```
 
-**Verified:** `fill_manifest_data.py` L1–12, L133–134.
+**Verified:** the `fill_manifest_data.py` module docstring and `main()`.
 
-| Dimension | Map (file:line) | Values |
+| Dimension | Map | Values |
 |---|---|---|
-| `execution` | `EXECUTION` (L32–54) | `interpreter` \| `dynarec` per OS |
-| `cheats_supported` / `cheat_families` | `CHEATS` (L58–60) | bool / string[] per core |
-| `delivery` | `_delivery()` (L98–125) | per-OS: `bundled` \| `download` \| `absent` |
+| `execution` | `EXECUTION` | `interpreter` \| `dynarec` per OS |
+| `cheats_supported` / `cheat_families` | `CHEATS` | bool / string[] per core |
+| `delivery` | `_delivery()` | per-OS: `bundled` \| `download` \| `absent` |
 
 iOS interpreter enforcement: JIT-capable cores (dynarec) must not appear in the
 iOS tier unless the recipe passes an explicit flag. `core_platform.sh`'s
-`require_interpreter_ios()` refuses iOS builds without it (verified: L57–63).
-Several build functions call it before `core_make` (e.g. `build_advancebit`
-L167, `build_dreamarc` L329, `build_powercube` L406).
+`require_interpreter_ios()` refuses iOS builds without it. Several build
+functions call it before `core_make` (e.g. `build_advancebit()`,
+`build_dreamarc()`, `build_powercube()`).
 
 ### 3.2 Delivery vocabulary for distribution
 
-Three values ship (verified: `fill_manifest_data.py` L62–64):
+Three values ship (the delivery comment in `fill_manifest_data.py`):
 
 | Value | Meaning | ADR |
 |---|---|---|
@@ -249,22 +251,21 @@ Three values ship (verified: `fill_manifest_data.py` L62–64):
 | `download` | Fetched on-demand from GitHub Releases; sha256-verified against the manifest pin before staging | hybrid core delivery |
 | `absent` | Not distributed by ezCORE | — |
 
-Desktop giants (pointclick ~170 MB, dreamarc ~39 MB, powercube ~27 MB on
-linux-x64) ship as `download` on macOS/Windows/Linux to keep the base package
-lightweight (verified: `_DOWNLOAD_DESKTOP` L95, `_delivery()` L119–124).
-Android bundles even the giants (no download assets published yet; L88).
-iOS is never `download` — `build_catalog.py` hard-fails if any iOS delivery is
-`download` (verified: L97–98).
+Cores in `_DOWNLOAD_DESKTOP` — the giants pointclick (~170 MB), dreamarc
+(~39 MB) and powercube (~27 MB on linux-x64), plus potator and gw — ship as
+`download` on macOS/Windows/Linux to keep the base package lightweight
+(`_delivery()`). Android bundles its tier cores, pointclick included (no
+download assets are published yet). iOS is never `download` — `build_catalog.py`
+`main()` hard-fails if any iOS delivery is `download`.
 
-`release.sh` ships only `bundled` cores into the app bundle; `download` cores
-are fetched at first use by the Core Manager and verified against the pin
-before staging (verified: `release.sh` `bundled_ids()` L43–51,
-`stage_bundled()` L54–61).
+`release.sh` ships only `bundled` cores into the app bundle (`bundled_ids()` and
+`stage_bundled()`); `download` cores are fetched at first use by the Core Manager
+and verified against the pin before staging.
 
 The iOS rule is enforced in three places (belt-and-suspenders):
-1. `build_core.sh` --tier-ios only includes interpreter-safe cores (L433)
-2. `fill_manifest_data.py` never sets iOS to `download` (L89–90)
-3. `build_catalog.py` L98 rejects any manifest with `ios: download`
+1. `build_core.sh` `TIER_IOS` includes only interpreter-safe cores
+2. `fill_manifest_data.py` `_delivery()` never sets iOS to `download`
+3. `build_catalog.py` `main()` rejects any manifest with `delivery.ios: download`
 
 Only a core listed in `cores/published-sha256.txt` and pinned to the same
 digest is offered as a download. Everything else in the `download` set is
@@ -275,23 +276,23 @@ works today: install a core from a file.
 
 | Status | Manifest field | build_core.sh | Distribution |
 |---|---|---|---|
-| Hold (never built) | `blocked_reason` | `hold()` → exit 4 (L421) | Recipe retained as architecture slot only |
+| Hold (never built) | `blocked_reason` | `hold()` → exit 4 | Recipe retained as architecture slot only |
 | Gated (license) | `gated_reason` | Builds; delivery=`absent` everywhere | Not shipped in any binary |
 | Recipe-only | — | Built locally, not pinned | User-built only |
 
 Hold cores (citra_hold, switch_hold) declare `blocked_reason`
-explaining the IP/legal block. `pin_artifacts.py` refuses to pin any core with
-`blocked_reason` (verified: L89–90).
+explaining the IP/legal block. `pin_artifacts.py` `main()` refuses to pin any
+core with `blocked_reason`.
 
 Recipe-only cores (coinbox, superfx, blastproc — non-commercial upstream
 licenses; gambatte — GPL-2.0-only incompatible with the GPL-3.0-only app
 shell) have `delivery: absent` on every OS. They build but never ship
-(verified: `fill_manifest_data.py` L101–111).
+(`_delivery()` in `fill_manifest_data.py`).
 
 > **License gate.** A GPL-2.0-only core cannot be `dlopen`'d into the
 > GPL-3.0-only app bundle — a bundled plugin counts as a combined work. This is
-> why gambatte is gated despite being functional (verified: gambatte manifest
-> `gated_reason`, `fill_manifest_data.py` comment L91–94).
+> why gambatte is gated despite being functional (see gambatte's manifest
+> `gated_reason`).
 
 ### 3.4 Catalog merge: build_catalog.py
 
@@ -311,16 +312,16 @@ download that verifies and is then discarded on every device. Refresh the
 file by copying the `SHA256SUMS.txt` attached to the release the build
 downloads from.
 
-**Verified:** `build_catalog.py` L27–28, L103–106.
+**Verified:** the `build_catalog.py` module docstring and `build_release()`.
 
-It enforces (verified: L34, L90–100):
+It enforces in `main()`:
 
 - `REQUIRED = ("id", "name", "version", "license", "systems", "delivery")` —
-  all must be present (L90–92).
-- id must match directory name, unless suffix is `_hold` (L93–94).
-- No duplicate ids (L95–96).
-- iOS delivery must never be `download` (L97–98).
-- Blocked cores (`blocked_reason`) must not carry artifacts (L99–100).
+  all must be present.
+- id must match directory name, unless suffix is `_hold`.
+- No duplicate ids.
+- `delivery.ios` must never be `download`.
+- Blocked cores (`blocked_reason`) must not carry artifacts.
 
 Run after any manifest change — fresh checkouts regenerate the catalog from
 manifests:
@@ -331,8 +332,9 @@ python3 scripts/build_catalog.py
 
 ## 4. Verify
 
-Every command here is a gate in both `.githooks/pre-commit` and
-`scripts/release.sh`.
+The checks below run in `CI`. `scripts/release.sh` runs the data, native and
+pin gates; `.githooks/pre-commit` runs the policy, license and banned-content
+gates.
 
 ### 4.1 Pin check: pin_artifacts.py --check
 
@@ -342,20 +344,20 @@ python3 scripts/pin_artifacts.py macos-arm64 --out native/cores --check
 
 For macOS, `--out` must be `native/cores` — the staging dir has no platform
 suffix, but the script's default is `native/cores-{plat}`. For other platforms
-the default matches the staging dir (verified: `core_platform.sh` L47–53 vs
-`pin_artifacts.py` L68–72).
+the default matches the staging dir (the `OUT_DIR` default in
+`core_platform.sh` and the `--out` default in `pin_artifacts.py` `main()`).
 
 `--check` verifies staged bytes against committed pins — **both directions**
-(verified: `pin_artifacts.py` L57–155):
+(the `--check` branch of `pin_artifacts.py` `main()`):
 
 1. Every staged artifact's SHA-256 must match the pin in
-   `manifest.json` `artifacts.<plat>` (L92–98).
-2. Every pinned manifest must have a staged artifact (L111–123).
-3. Every `delivery: bundled` core must be staged (L124–142).
+   `manifest.json` `artifacts.<plat>`.
+2. Every pinned manifest must have a staged artifact.
+3. Every `delivery: bundled` core must be staged.
 
 The SHA256SUMS sidecar is **regenerated from real bytes on every write** and
 never trusted — a stale sidecar once hid signed cores whose bytes no longer
-matched their pins (verified: L8–9 comment, L100).
+matched their pins (see the `pin_artifacts.py` module docstring and `main()`).
 
 Write mode (after a successful build):
 
@@ -364,11 +366,13 @@ python3 scripts/pin_artifacts.py macos-arm64 --out native/cores
 ```
 
 Pins the staged bytes into `manifest.json`, refreshes SHA256SUMS, and
-regenerates `catalog.json` (verified: L100–107, L147–153).
+regenerates `catalog.json` via `build_catalog.py` (`pin_artifacts.py` `main()`
+write mode).
 
 **Waivers:** cores listed in `native/pin-waivers/<plat>.txt` are exempted from
 check #3 (e.g., a missing toolchain dep on a build host). Waiver files are
-plain text, one id per line, `#` comments allowed (verified: L130–139).
+plain text, one id per line, `#` comments allowed (the waiver file read in
+`pin_artifacts.py` `main()`).
 
 ### 4.2 Pre-commit gate
 
@@ -378,18 +382,18 @@ Install once per clone:
 scripts/install-hooks.sh
 ```
 
-This sets `git config core.hooksPath .githooks` (verified: `install-hooks.sh`
-L6). Every `git commit` then runs `.githooks/pre-commit`:
+This sets `git config core.hooksPath .githooks` (`install-hooks.sh`). Every
+`git commit` then runs `.githooks/pre-commit`:
 
 | Gate | File | What it checks |
 |---|---|---|
-| §79 scratch tooling | `.githooks/pre-commit` L12–28 | rejects `_probe.*`, `screenshot_*`, `inject_*`, `capture_*`, `xdotool`, `ydotool`, `wtype` in staged files |
+| §79 scratch tooling | `.githooks/pre-commit` `scratch_hits` gate | rejects `_probe.*`, `screenshot_*`, `inject_*`, `capture_*`, `xdotool`, `ydotool`, `wtype` in staged files |
 | Banned content | `scripts/banned_content_scan.sh` | ROM/BIOS/key extensions + exact filename match; `test/fixtures/` allowlist |
 | License/delivery | `scripts/license_audit.py` | license compliance, delivery map consistency |
 | Manifest policy | `scripts/fill_manifest_data.py --check` | execution/cheats/delivery drift (same gate `release.sh` runs) |
 
 All gates are read-only — no git rewrites in the hook body. **Verified:**
-`.githooks/pre-commit` L1–92.
+`.githooks/pre-commit`.
 
 ### 4.3 ctest (runtime)
 
@@ -404,9 +408,10 @@ macOS/Linux hosts:
 (cd runtime/build-macos && ctest --output-on-failure)
 ```
 
-Verified: `build_runtime.sh` L59–69. Requires `--fetch-headers` first (L19–21).
-iOS/Android cross builds produce a library but skip host-side ctest (CI runners
-handle those legs; L62–68).
+Verified: the `build_runtime.sh` CMake build and ctest `case`. Requires
+`--fetch-headers` first (the vendored-header check).
+iOS/Android cross builds produce a library but skip host-side ctest (`CI` runners
+handle those legs; the ctest `case` in `build_runtime.sh`).
 
 ### 4.4 Core matrix (Dart FFI)
 
@@ -415,17 +420,15 @@ flutter test test/core_matrix_test.dart
 ```
 
 A Dart-driven, fork-isolated harness that `dlopen`s each staged core and
-verifies it at least **IDENTIFIES** to the libretro ABI — a core that compiles
+verifies it at least **IDENTIFIES** to the libretro `ABI` — a core that compiles
 but fails `dlopen` or `ident` is a fail. Staged `.dylib`/`.so`/`.dll` files in
 `native/cores/` are required.
 
-Verified: `docs/CORE_SYSTEM.md` L212, `docs/BUILDING.md` L135,
-`docs/MATRIX.md` L13.
+Verified: `docs/CORE_SYSTEM.md`, "Adding a core (contributors)";
+`docs/BUILDING.md`, "Verification Gates (`CI` Equivalent)"; `docs/MATRIX.md`.
 
-> **Checked and false:** an earlier draft reported
-> `test/core_matrix_test.dart` as missing. It exists (2 tests) and is tracked
-> on main; the draft's file search simply failed. The docs' reference to it
-> is correct.
+> `test/core_matrix_test.dart` exists (2 tests) and is tracked on main; the
+> docs' reference to it is correct.
 
 ### 4.5 API-doc gate
 
@@ -437,7 +440,7 @@ Verifies `docs/API.md` documents every function/macro in
 `runtime/include/ezcore_runtime.h` — both directions (header→doc and
 doc→header). Wired into the ctest suite.
 
-Verified: `scripts/check_api_docs.py` L1–30.
+Verified: the `check_api_docs.py` `check()` function and its module docstring.
 
 ### 4.6 Dart gates
 
@@ -446,7 +449,7 @@ flutter analyze lib/ test/
 flutter test
 ```
 
-Verified: `docs/BUILDING.md` L128–129.
+Verified: `docs/BUILDING.md`, "Verification Gates (`CI` Equivalent)".
 
 ## 5. Submit
 
@@ -456,13 +459,13 @@ Verified: `docs/BUILDING.md` L128–129.
 git commit -s    # DCO sign-off
 ```
 
-DCO sign-off required (verified: `CONTRIBUTING.md` L80). The pre-commit gate
-runs automatically — resolve all failures before opening a PR.
+DCO sign-off required (`CONTRIBUTING.md`, "Licensing of contributions"). The
+pre-commit gate runs automatically — resolve all failures before opening a PR.
 
 ### 5.2 Pull request
 
-A core PR must include (verified: `docs/CORE_SYSTEM.md` L205–216,
-`docs/BUILDING.md` L138–149):
+A core PR must include (`docs/CORE_SYSTEM.md`, "Adding a core (contributors)";
+`docs/BUILDING.md`, "Adding a New Core"):
 
 1. **Manifest** — `cores/<id>/manifest.json` with valid id, pins, delivery,
    execution, provenance.
@@ -475,10 +478,11 @@ A core PR must include (verified: `docs/CORE_SYSTEM.md` L205–216,
    at least IDENTIFIES.
 7. **License audit** — `python3 scripts/license_audit.py` clean.
 
-> **Note:** `docs/CORE_SYSTEM.md` L210 and `docs/BUILDING.md` L3 say to add
-> `build_<id>()` to `scripts/core_platform.sh`, but all build functions live in
-> `scripts/build_core.sh` (verified: L127–418). `core_platform.sh` is sourced
-> for platform variables and helpers only. Add your recipe to `build_core.sh`.
+> **Note:** `docs/CORE_SYSTEM.md`, "Adding a core (contributors)", and
+> `docs/BUILDING.md`, "Adding a New Core", both place `build_<id>()` in
+> `scripts/build_core.sh`; all build functions live there. `core_platform.sh`
+> is sourced for platform variables and helpers only. Add your recipe to
+> `build_core.sh`.
 
 ### 5.3 Reviewer checklist
 
@@ -494,59 +498,57 @@ A core PR must include (verified: `docs/CORE_SYSTEM.md` L205–216,
 
 ---
 
-## Verified against this checkout
+## Command and rule index
 
-Branch `docs/p1c-core-authoring`.
+### Commands
 
-### Commands verified to exist in source
-
-| Command | Source file | Line(s) |
+| Command | Source file | Symbol |
 |---|---|---|
-| `scripts/build_core.sh --fetch-headers` | `scripts/build_core.sh` | L443 |
-| `scripts/build_core.sh <id>` | `scripts/build_core.sh` | L448–449 |
-| `scripts/build_core.sh --tier1` | `scripts/build_core.sh` | L444 |
-| `scripts/build_core.sh --tier-desktop` | `scripts/build_core.sh` | L447 |
-| `scripts/build_core.sh --tier-android` | `scripts/build_core.sh` | L445 |
-| `scripts/build_core.sh --tier-ios` | `scripts/build_core.sh` | L446 |
-| `EZCORE_PLATFORM=linux` | `scripts/core_platform.sh` | L4, L16 |
-| `EZCORE_PLATFORM=android` | `scripts/core_platform.sh` | L4, L39 |
-| `EZCORE_PLATFORM=ios` | `scripts/core_platform.sh` | L4, L43 |
-| `scripts/build_runtime.sh <platform>` | `scripts/build_runtime.sh` | L2, L15 |
-| `ctest --output-on-failure` | `scripts/build_runtime.sh` | L64 |
-| `python3 scripts/pin_artifacts.py <plat> --out <dir>` | `scripts/pin_artifacts.py` | L56, L68–72 |
-| `python3 scripts/pin_artifacts.py ... --check` | `scripts/pin_artifacts.py` | L58 |
-| `python3 scripts/build_catalog.py` | `scripts/build_catalog.py` | L114 |
-| `python3 scripts/fill_manifest_data.py` | `scripts/fill_manifest_data.py` | L133 |
-| `python3 scripts/fill_manifest_data.py --check` | `scripts/fill_manifest_data.py` | L134 |
-| `python3 scripts/check_api_docs.py` | `scripts/check_api_docs.py` | L30 |
-| `bash scripts/banned_content_scan.sh` | `scripts/banned_content_scan.sh` | L1 |
-| `python3 scripts/license_audit.py` | `scripts/release.sh` + `.githooks/pre-commit` | L68 / L42 |
-| `scripts/install-hooks.sh` | `scripts/install-hooks.sh` | L6 |
-| `git commit -s` (DCO) | `CONTRIBUTING.md` | L80 |
-| `flutter test test/core_matrix_test.dart` | `docs/BUILDING.md` | L135 |
-| `flutter analyze lib/ test/` | `docs/BUILDING.md` | L128 |
-| `flutter test` | `docs/BUILDING.md` | L129 |
-| `scripts/release.sh <platform> --out dist/` | `scripts/release.sh` | L2 |
+| `scripts/build_core.sh --fetch-headers` | `scripts/build_core.sh` | `fetch_headers()` |
+| `scripts/build_core.sh <id>` | `scripts/build_core.sh` | `*` dispatch case |
+| `scripts/build_core.sh --tier1` | `scripts/build_core.sh` | `TIER1` |
+| `scripts/build_core.sh --tier-desktop` | `scripts/build_core.sh` | `TIER_DESKTOP` |
+| `scripts/build_core.sh --tier-android` | `scripts/build_core.sh` | `TIER_ANDROID` |
+| `scripts/build_core.sh --tier-ios` | `scripts/build_core.sh` | `TIER_IOS` |
+| `EZCORE_PLATFORM=linux` | `scripts/core_platform.sh` | `PLATFORM` assignment |
+| `EZCORE_PLATFORM=android` | `scripts/core_platform.sh` | `case "$PLATFORM"` (android) |
+| `EZCORE_PLATFORM=ios` | `scripts/core_platform.sh` | `case "$PLATFORM"` (ios) |
+| `scripts/build_runtime.sh <platform>` | `scripts/build_runtime.sh` | `PLATFORM` assignment |
+| `ctest --output-on-failure` | `scripts/build_runtime.sh` | ctest `case` |
+| `python3 scripts/pin_artifacts.py <plat> --out <dir>` | `scripts/pin_artifacts.py` | `main()` (`--out` default) |
+| `python3 scripts/pin_artifacts.py ... --check` | `scripts/pin_artifacts.py` | `main()` (`--check`) |
+| `python3 scripts/build_catalog.py` | `scripts/build_catalog.py` | `main()` |
+| `python3 scripts/fill_manifest_data.py` | `scripts/fill_manifest_data.py` | `main()` |
+| `python3 scripts/fill_manifest_data.py --check` | `scripts/fill_manifest_data.py` | `main()` (`--check`) |
+| `python3 scripts/check_api_docs.py` | `scripts/check_api_docs.py` | `check()` |
+| `bash scripts/banned_content_scan.sh` | `scripts/banned_content_scan.sh` | `PATTERN` / `BIOS_FILENAMES` |
+| `python3 scripts/license_audit.py` | `scripts/release.sh` + `.githooks/pre-commit` | `license_audit.py` gate |
+| `scripts/install-hooks.sh` | `scripts/install-hooks.sh` | `core.hooksPath` config |
+| `git commit -s` (DCO) | `CONTRIBUTING.md` | "Licensing of contributions" |
+| `flutter test test/core_matrix_test.dart` | `docs/BUILDING.md` | "Verification Gates (`CI` Equivalent)" |
+| `flutter analyze lib/ test/` | `docs/BUILDING.md` | "Verification Gates (`CI` Equivalent)" |
+| `flutter test` | `docs/BUILDING.md` | "Verification Gates (`CI` Equivalent)" |
+| `scripts/release.sh <platform> --out dist/` | `scripts/release.sh` | usage header |
 
-### Validator rules verified
+### Validator rules
 
-| Rule | Enforcer file | Line(s) |
+| Rule | Enforcer file | Symbol |
 |---|---|---|
-| id regex `^[a-z0-9_]+$` | `lib/services/core_package_validator.dart` | L150 |
-| id must match directory | `lib/services/core_package_validator.dart` | L175–183 |
-| id must match directory (catalog) | `scripts/build_catalog.py` | L93–94 |
-| artifact pin regex `^[0-9a-f]{64}$` | `lib/services/core_package_validator.dart` | L151, L191–198 |
-| delivery ∈ `{bundled, download, absent}` | `lib/services/core_package_validator.dart` | L152–156 |
-| delivery ios ≠ `download` (catalog) | `scripts/build_catalog.py` | L97–98 |
-| bios_required without bios_files → warning | `lib/services/core_package_validator.dart` | L222–227 |
-| unknown top-level field → error | `lib/services/core_package_validator.dart` | L164–167 |
-| package size ≤ 512 MiB | `lib/services/core_package_validator.dart` | L70, L253–258 |
-| manifest.json ≤ 1 MiB | `lib/services/core_package_validator.dart` | L73, L121–125 |
-| symlinks rejected | `lib/services/core_package_validator.dart` | L241–243 |
-| iOS must never be dynarec | `scripts/core_platform.sh` | L57–63 (`require_interpreter_ios`) |
-| blocked cores refuse to pin | `scripts/pin_artifacts.py` | L89–90 |
+| id regex `^[a-z0-9_]+$` | `lib/services/core_package_validator.dart` | `_idRegex` in `_validateManifest()` |
+| id must match directory | `lib/services/core_package_validator.dart` | `_validateManifest()` |
+| id must match directory (catalog) | `scripts/build_catalog.py` | `main()` |
+| artifact pin regex `^[0-9a-f]{64}$` | `lib/services/core_package_validator.dart` | `_pinRegex` in `_validateManifest()` |
+| delivery ∈ `{bundled, download, absent}` | `lib/services/core_package_validator.dart` | `_allowedDelivery` in `_validateManifest()` |
+| delivery ios ≠ `download` (catalog) | `scripts/build_catalog.py` | `main()` |
+| bios_required without bios_files → warning | `lib/services/core_package_validator.dart` | `_validateManifest()` |
+| unknown top-level field → error | `lib/services/core_package_validator.dart` | `kKnownManifestFields` / `allowedFields` |
+| package size ≤ 512 MiB | `lib/services/core_package_validator.dart` | `defaultMaxPackageBytes` / `_scanPackage()` |
+| manifest.json ≤ 1 MiB | `lib/services/core_package_validator.dart` | `defaultMaxManifestBytes` / `validate()` |
+| symlinks rejected | `lib/services/core_package_validator.dart` | `_scanPackage()` |
+| iOS must never be dynarec | `scripts/core_platform.sh` | `require_interpreter_ios()` |
+| blocked cores refuse to pin | `scripts/pin_artifacts.py` | `main()` (`blocked_reason` guard) |
 
-### Files read
+### Files referenced
 
 - `scripts/build_core.sh`, `scripts/core_platform.sh`, `scripts/build_runtime.sh`
 - `scripts/pin_artifacts.py`, `scripts/build_catalog.py`, `scripts/fill_manifest_data.py`
@@ -559,18 +561,17 @@ Branch `docs/p1c-core-authoring`.
 - `docs/CORE_SYSTEM.md`, `docs/BUILDING.md`, `docs/MATRIX.md` (searched)
 - `CONTRIBUTING.md`
 
-### Verified gaps (discrepancies in the source, not guesses)
+### Source notes
 
-1. **Delivery vocabulary mismatch.** *(Resolved in this PR.)* The Dart
-   validator originally allowed `on-demand`; the rest of the codebase uses
-   `download`. The validator now enforces `bundled | download | absent`.
-2. **Extra manifest fields not in `kKnownManifestFields`.** *(Resolved in
-   this PR.)* `blocked_reason`, `gated_reason`, and `notes` are now known
-   fields; the validator accepts every manifest in this repository.
-3. **`test/core_matrix_test.dart` "missing".** *(Withdrawn — false.)* The
-   file exists and is tracked; the draft's search failed, not the repo.
-4. **Build recipe location.** `docs/CORE_SYSTEM.md` L210 and `docs/BUILDING.md`
-   L3 said to add `build_<id>()` to `scripts/core_platform.sh`, but all build
-   functions are defined in `scripts/build_core.sh` (L127–418);
-   `core_platform.sh` only provides platform variables and helpers. Both old
-   docs are corrected in the same PR as this document.
+1. **Delivery vocabulary.** The validator enforces `bundled | download | absent`
+   via `_allowedDelivery`; `on-demand` is rejected. The rest of the codebase
+   uses `download`.
+2. **Extra manifest fields.** `kKnownManifestFields` includes `blocked_reason`,
+   `gated_reason`, `notes`, `default_options` and `system_data`; the validator
+   accepts every manifest in this repository.
+3. **`test/core_matrix_test.dart` reference.** The file exists and is tracked;
+   the docs' reference to it is correct.
+4. **Build recipe location.** `docs/CORE_SYSTEM.md`, "Adding a core
+   (contributors)", and `docs/BUILDING.md`, "Adding a New Core", place
+   `build_<id>()` in `scripts/build_core.sh`; all build functions are defined
+   there. `core_platform.sh` only provides platform variables and helpers.
