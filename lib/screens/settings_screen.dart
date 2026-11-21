@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../brand/brand_mark.dart';
 import '../emu/pcm_output.dart';
+import '../services/game_art.dart';
 import '../services/gamepad.dart';
 import '../services/haptics.dart';
 import '../services/pad_mapping.dart';
@@ -104,6 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     UiSounds.shared.sync(_state.settings);
     Haptics.shared.sync(_state.settings);
     MotionPreference.shared.sync(_state.settings);
+    GameArtResolver.shared.sync(_state.settings);
   }
 
   /// Every cue has one call site: the sound service fans the same event out

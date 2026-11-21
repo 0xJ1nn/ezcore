@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'brand/brand_mark.dart';
+import 'services/game_art.dart';
 import 'services/gamepad.dart';
 import 'services/haptics.dart';
 import 'services/local_data_dir.dart';
@@ -131,6 +132,7 @@ class _EmuAppState extends State<EmuApp> {
     UiSounds.shared.sync(state.settings);
     Haptics.shared.sync(state.settings);
     MotionPreference.shared.sync(state.settings);
+    GameArtResolver.shared.sync(state.settings);
   }
 
   @override
