@@ -333,7 +333,9 @@ EZCORE_PLATFORM=android scripts/build_core.sh <core-id>
 the NDK compiler wrappers and uses `llvm-strip` for staging. Outputs land in
 `native/cores-android-arm64-v8a/<core-id>/`. The recipes use half the host's
 CPU count by default because cross-compilation is memory-bound. The `rgbds`
-host package is needed to generate the SameBoy boot ROMs.
+host package is needed to generate the SameBoy boot ROMs. mGBA is built through
+the NDK CMake toolchain file; its `platform=android` make branch is not used
+for this target.
 
 ### What was produced
 
@@ -351,6 +353,19 @@ substitution that consumes everything up to that include, so the generated
 file begins with an orphaned `endif` and make aborts while parsing, before any
 compilation starts. The recipe needs a fix for this upstream drift before the
 core can be built again.
+
+### Self-containment is a separate check
+
+`nesbyte`, `cardcon` and `realmode` declare `libc++_shared.so`, a runtime that
+is neither part of Android's own library set nor shipped anywhere in this
+repository, so as built they are not self-contained and would fail to load if
+offered as on-demand downloads. `joystick` avoided the same dependency by
+linking the C++ runtime statically; applying that treatment to the other three,
+or shipping the runtime alongside them, is a prerequisite before they can be
+published. The other five cores need only libraries Android provides and are
+self-contained by that measure. The digests record what was built, not a claim
+of loadability on a device, and no device run has established it for any of the
+eight.
 
 None of these assets is published. `cores/release.json` still marks
 `android-arm64` as bundled-elsewhere, no download pin was added for these
