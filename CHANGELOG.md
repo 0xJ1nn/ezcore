@@ -6,6 +6,33 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation and release preparation
+
+- Added a privacy policy and terms of use. The policy records that the library,
+  saves, settings and tip tally stay on the device, and that the only requests
+  leaving it are the store's purchase check and the optional daily update
+  check in desktop downloads. The terms describe Diamond, renewal and
+  cancellation, tips and the warranty terms.
+- Added sections on Diamond, tips and privacy to the README, so the product
+  page states the terms the app and the store listings are held to.
+- Updated the licensing policy, support guide, roadmap, trademark policy and
+  funding notes so they match the current product: free on every platform, an
+  optional Diamond membership that supports the project and unlocks nothing,
+  one-time tips, a Google Play and App Store listing in preparation, and no
+  other store listing.
+- Added a release workflow that builds signed and notarised macOS downloads
+  when credentials are configured, Windows installers and portable archives,
+  and Linux archives and AppImages. It publishes checksums and creates a draft
+  release with notes taken from this changelog; nothing is published without a
+  person approving it.
+- Added an update checker for download builds. Settings › About can check for
+  a newer release once a day, show its notes, verify the downloaded file
+  against the published checksum and start the install. Store builds never
+  check, and the check can be turned off.
+- Release Android builds now accept signing settings from either the
+  environment or a local Gradle properties file, while keeping the debug
+  fallback used for test builds.
+
 ### Added
 
 - **A PlayStation 2 that boots without a BIOS.** DualVU is a second PS2 core built from
@@ -24,8 +51,8 @@ All notable changes to ezCORE are documented here. The format follows
   only and never includes BIOS, firmware or keys; a folder you made yourself
   is never touched. (ADR-021, proposed.)
 - **ezCORE looks like the OS it is.** One top bar on every space carries the
-  ezCORE lockup, "Emulation shouldn't be hard." and a status corner that only
-  shows what is true: the time, and P1 while a controller is connected. The
+  ezCORE lockup and a status corner that only shows what is true: the time,
+  and P1 while a controller is connected. The
   rail holds four spaces — Library, Systems, Capsule (every save, now one tap
   away instead of inside Settings) and Settings — switched with keys 1–4; Esc
   goes back. The library opens on "Library": system tabs, a sort menu,

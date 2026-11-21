@@ -43,13 +43,23 @@ proprietary first-party core packages. Those packages are not covered by the
 GPL, are not part of this repository, and may not be extracted or
 redistributed. The GPL source of the app itself remains available here.
 
+### Free app and optional membership
+
+ezCORE is free on every platform, with every feature and every core available
+to everyone. The optional Diamond membership in the App Store and Google Play
+builds supports the project: it adds a badge and accent in the app and the
+option to be named in the credits, and it unlocks nothing.
+Membership does not change the licences in this document: the app stays under
+the GPL with the Core Module Exception, and official builds keep the same
+compatibility rules whatever a person has bought.
+
 ## Compatibility rules (enforced by `scripts/license_audit.py`)
 
 - A **GPL-2.0-only** core is never bundled with the GPL-3.0-only app.
 - A **non-commercial** core (Snes9x, Genesis Plus GX, FBNeo) is never
   bundled or downloaded by any build. Users may build it themselves.
-- A paid build bundles only cores whose licences permit commercial
-  distribution.
+- A store build bundles only cores whose licences permit distribution through
+  that store.
 - A proprietary core is never linked with, or built from, third-party GPL
   code.
 

@@ -1,8 +1,10 @@
 # ezCORE Living Roadmap
 
 > **Status:** authoritative long-term roadmap for ezCORE.
-> **Last audited:** 2026-09-25.
-> **Current release:** `v0.2.0` (public, experimental).
+> **Last audited:** 18 November 2026.
+> **Current release:** `v0.2.0` on GitHub Releases. Desktop downloads are
+> published there; the App Store and Google Play listings are being prepared,
+> and there is no Microsoft Store listing.
 > **Current repository state:** the responsive replacement stack is merged into
 > `main`: PR [#29](https://github.com/0xJ1nn/ezcore/pull/29) carried the
 > artwork/compact-shell evidence repair, PR
@@ -24,6 +26,12 @@
 > program* below is the authoritative delivery order for making ezCORE a
 > platform; the phase list that follows it remains the long-range product
 > surface.
+>
+> **Product terms:** ezCORE is free on every platform, with every feature and
+> every core available to everyone. The optional Diamond membership in the two
+> store builds supports the project: a badge and accent in the app plus an
+> opt-in credit, and nothing else. Tips are voluntary one-time purchases that
+> unlock nothing. See [`docs/TERMS.md`](docs/TERMS.md).
 
 
 

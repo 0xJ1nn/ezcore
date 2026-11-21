@@ -106,6 +106,17 @@ scripts/release.sh android --out dist/
 EZCORE_IOS_SIGNING_IDENTITY="..." scripts/release.sh ios --out dist/
 ```
 
+### Android release signing
+
+Android release builds read four values: `EZCORE_KEYSTORE_FILE`,
+`EZCORE_KEYSTORE_PASSWORD`, `EZCORE_KEY_ALIAS` and `EZCORE_KEY_PASSWORD`. Each
+may be set in the environment or as a Gradle property of the same name in
+`~/.gradle/gradle.properties`. When none are set the build falls back to the
+debug keys, which is enough for a local check but not for distribution. Never
+commit the keystore or its passwords. For Play releases, Google Play App
+Signing holds the app signing key; the key used to sign the uploaded bundle is
+the upload key.
+
 Outputs:
 - macOS: `dist/ezcore-<version>-macos-arm64.zip`
 - Windows: `dist/ezcore-<version>-windows-x64.zip`

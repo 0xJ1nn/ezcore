@@ -21,6 +21,7 @@ import 'screens/vault_screen.dart';
 import 'theme/accessibility.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
+import 'update/update_service.dart';
 import 'widgets/fade_indexed_stack.dart';
 import 'widgets/orbit_chrome.dart';
 import 'widgets/orbit_widgets.dart';
@@ -30,6 +31,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Pins the mobile app-support dir before anything resolves paths.
   final dirProvider = await PlatformLocalDataDirProvider.resolve();
+  // Best-effort daily check for download builds. Store builds do nothing.
+  UpdateService.instance.maybeCheckAtStartup();
   runApp(EmuApp(dirProvider: dirProvider));
 }
 
