@@ -7,6 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('clock, and P1 only while a controller is connected', (t) async {
+    // The full status corner is a desktop affordance; narrow windows keep the
+    // clock only, so pin the desktop surface this test describes.
+    t.view.physicalSize = const Size(1440, 900);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.reset);
     void Function(bool, String)? connection;
     await t.pumpWidget(
       MaterialApp(

@@ -288,7 +288,7 @@ class _GameDetailScreenState extends State<GameDetailScreen> {
               ),
               if (desktopChrome) ...[
                 const Positioned(
-                  left: 64,
+                  left: 152,
                   right: 44,
                   top: 24,
                   child: OrbitTopBar(compact: false),
@@ -2164,11 +2164,16 @@ class _CoverArtState extends State<_CoverArt> {
 // Save-slot naming (display only)
 // ---------------------------------------------------------------------------
 
+/// Crash recovery writes `recovered`, `crash-safe` or a `crash-*` id. All
+/// three read as "Recovered" with a "Crash-safe" badge.
+bool _isCrashSlot(String id) =>
+    id == 'recovered' || id == 'crash-safe' || id.startsWith('crash-');
+
 /// How a save slot is named to people.
 String saveName(String slot) {
   if (slot == autoSlot) return 'Autosave';
   if (slot == 'slot0') return 'Quick save';
-  if (slot == 'recovered') return 'Recovered';
+  if (_isCrashSlot(slot)) return 'Recovered';
   final stamped = RegExp(r'^slot-(\d{2})(\d{2})(\d{2})$').firstMatch(slot);
   if (stamped != null) {
     return 'Saved ${stamped[1]}:${stamped[2]}:${stamped[3]}';
@@ -2178,6 +2183,12 @@ String saveName(String slot) {
     final n = int.tryParse(numbered[1]!);
     if (n != null) return 'Slot $n';
   }
+  // Numbered slots may be stored as "slot 1" or "slot1".
+  final spaced = RegExp(r'^slot (\d+)$').firstMatch(slot);
+  if (spaced != null) {
+    final n = int.tryParse(spaced[1]!);
+    if (n != null) return 'Slot $n';
+  }
   return slot;
 }
 
@@ -2185,14 +2196,14 @@ String saveName(String slot) {
 String? snapshotTag(String slot) {
   if (slot == autoSlot) return 'Auto';
   if (slot == 'slot0') return 'Quick';
-  if (slot == 'recovered') return 'Crash-safe';
+  if (_isCrashSlot(slot)) return 'Crash-safe';
   return null;
 }
 
 /// The tag's ink: Auto blue, Crash-safe amber, everything else text.
 Color snapshotTagColor(String slot) {
   if (slot == autoSlot) return Tokens.systemLabelFg;
-  if (slot == 'recovered') return Tokens.warn;
+  if (_isCrashSlot(slot)) return Tokens.warn;
   return Tokens.text;
 }
 

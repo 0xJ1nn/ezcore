@@ -930,7 +930,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _ => 82.0,
     };
     final gapAfterChips = mini ? 6.0 : (desktop ? 30.0 : 16.0);
-    final gapAfterHeader = mini ? 6.0 : (desktop ? 15.0 : 14.0);
+    // The measured desktop puts the chip row at y=168: 13 px lower than the
+    // old shell, with the content band still starting at y=236 (§8.1).
+    final gapAfterHeader = mini ? 6.0 : (desktop ? 28.0 : 14.0);
 
     final title = LibraryTitle(
       count: state.games.length,

@@ -133,12 +133,45 @@ void main() {
     expect(saveName('custom'), 'custom');
   });
 
+  test('the Capsule spellings of slots read as the design names', () {
+    expect(saveName('slot 1'), 'Slot 1');
+    expect(saveName('slot 2'), 'Slot 2');
+    expect(saveName('crash-safe'), 'Recovered');
+    expect(saveName('crash-1'), 'Recovered');
+    expect(snapshotTag('crash-safe'), 'Crash-safe');
+    expect(snapshotTagColor('crash-safe'), Tokens.warn);
+  });
+
   test('snapshot tags mark the automatic and crash-safe saves', () {
     expect(snapshotTag('auto'), 'Auto');
     expect(snapshotTag('slot1'), isNull);
     expect(snapshotTag('recovered'), 'Crash-safe');
     expect(snapshotTagColor('auto'), Tokens.systemLabelFg);
     expect(snapshotTagColor('recovered'), Tokens.warn);
+  });
+
+  testWidgets('desktop cards name the Capsule slot ids as the design does', (
+    t,
+  ) async {
+    final then = DateTime.now().subtract(const Duration(days: 8));
+    await pump(
+      t,
+      saves: _TimedSaves({
+        'auto': DateTime.now().subtract(const Duration(minutes: 5)),
+        'slot 1': then,
+        'slot 2': then,
+        'crash-safe': then,
+      }),
+      size: const Size(1440, 900),
+    );
+    expect(find.text('Autosave'), findsOneWidget);
+    expect(find.text('Slot 1'), findsOneWidget);
+    expect(find.text('Slot 2'), findsOneWidget);
+    expect(find.text('Recovered'), findsOneWidget);
+    expect(find.text('Auto'), findsOneWidget);
+    expect(find.text('Crash-safe'), findsOneWidget);
+    final crashTag = t.widget<Text>(find.text('Crash-safe'));
+    expect(crashTag.style?.color, Tokens.warn);
   });
 
   testWidgets('no saves: Play, and an explanation', (t) async {

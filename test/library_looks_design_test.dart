@@ -206,8 +206,10 @@ void main() {
     await pump(t, look: 'wall');
     expect(find.byType(WallLook), findsOneWidget);
     final cover = t.widget<LibraryCover>(find.byType(LibraryCover).first);
-    expect(cover.width, 174);
-    expect(cover.height, 214);
+    // The measured PNG (the source of truth) shows 158×208 cards; the old
+    // written spec's 174×214 was superseded in T21's pixel sweep.
+    expect(cover.width, 158);
+    expect(cover.height, 208);
 
     await pump(t, look: 'grid');
     expect(find.byType(GridLook), findsOneWidget);
