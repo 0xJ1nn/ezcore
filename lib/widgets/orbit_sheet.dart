@@ -70,7 +70,7 @@ class OrbitOptionsSheet extends StatelessWidget {
       type: MaterialType.transparency,
       child: Container(
         width: sheetWidth,
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 78),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 76),
         decoration: Tokens.sheetDecor,
         child: Column(
           mainAxisSize: MainAxisSize.min,

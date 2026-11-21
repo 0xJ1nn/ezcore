@@ -31,7 +31,7 @@ class OrbitTopBar extends StatelessWidget {
     if (compact) return const BrandLockup(height: 22);
     return Row(
       children: [
-        const BrandLockup(height: 30),
+        const BrandLockup(height: 34),
         const Spacer(),
         OrbitStatus(subscribeConnection: subscribeConnection),
       ],

@@ -140,9 +140,9 @@ abstract final class Tokens {
   static const Duration fullInstantDur = Duration(milliseconds: 120);
   static const Duration fullFastDur = Duration(milliseconds: 200);
   static const Duration fullBaseDur = Duration(milliseconds: 320);
-  static const Duration fullMoveDur = Duration(milliseconds: 540);
+  static const Duration fullMoveDur = Duration(milliseconds: 520);
   static const Duration fullAmbientDur = Duration(milliseconds: 650);
-  static const Duration fullSceneDur = Duration(milliseconds: 1100);
+  static const Duration fullSceneDur = Duration(milliseconds: 900);
 
   /// The reduced variant of a fade: 160 ms, linear, no transform.
   static const Duration reducedFadeDur = Duration(milliseconds: 160);

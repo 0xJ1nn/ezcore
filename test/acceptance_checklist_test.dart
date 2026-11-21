@@ -125,7 +125,7 @@ void main() {
     t,
   ) async {
     MotionPreference.shared.set(ReducedMotion.off);
-    expect(Tokens.sceneDur, const Duration(milliseconds: 1100));
+    expect(Tokens.sceneDur, const Duration(milliseconds: 900));
     MotionPreference.shared.set(ReducedMotion.on);
     expect(Tokens.baseDur, const Duration(milliseconds: 160));
     expect(Tokens.sceneDur, Duration.zero);

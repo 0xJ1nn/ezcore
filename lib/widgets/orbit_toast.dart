@@ -87,7 +87,7 @@ class OrbitToast extends StatelessWidget {
                 ),
               ),
               if (_hasUndo) ...[
-                const SizedBox(width: 20),
+                const SizedBox(width: 12),
                 _UndoPill(label: undoLabel, glyph: undoGlyph, onTap: onUndo!),
               ],
             ],

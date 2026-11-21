@@ -123,7 +123,7 @@ class GameDock extends StatelessWidget {
           GameDockMode.full => 132.0,
           GameDockMode.oneLine => 76.0,
           GameDockMode.stacked => 154.0,
-          GameDockMode.mini => 52.0,
+          GameDockMode.mini => 68.0,
         };
     final buttonSize = mode == GameDockMode.full ? 56.0 : 48.0;
     final pad =
@@ -132,7 +132,7 @@ class GameDock extends StatelessWidget {
           GameDockMode.full => const EdgeInsets.fromLTRB(32, 18, 28, 18),
           GameDockMode.oneLine => const EdgeInsets.fromLTRB(24, 12, 20, 12),
           GameDockMode.stacked => const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          GameDockMode.mini => const EdgeInsets.symmetric(horizontal: 10),
+          GameDockMode.mini => const EdgeInsets.fromLTRB(16, 0, 8, 0),
         };
     return Container(
       height: height,
@@ -177,12 +177,12 @@ class GameDock extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Tokens.body(
-                    size: 13,
+                    size: 17,
                     weight: FontWeight.w600,
                     height: null,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 5),
                 Text(
                   _miniMeta,
                   maxLines: 1,

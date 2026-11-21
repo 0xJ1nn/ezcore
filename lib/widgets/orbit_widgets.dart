@@ -112,11 +112,14 @@ class OrbitRail extends StatelessWidget {
         color: Color(0xE608101C),
         border: Border(right: BorderSide(color: Color(0x16DDE6F4))),
       ),
+      // The 96/28 band is the wide rail's measured inset. A sideways phone
+      // keeps its compact vertical inset: four 52 px buttons would not fit
+      // below a 96 px top pad on a 320 px-tall viewport.
       padding: EdgeInsets.fromLTRB(
         short ? 8 : 10,
-        short ? 14 : 95,
+        short ? 14 : 96,
         short ? 8 : 10,
-        14,
+        short ? 14 : 28,
       ),
       child: Column(
         children: [
@@ -126,7 +129,7 @@ class OrbitRail extends StatelessWidget {
               active: page == it.id,
               short: short,
               hideLabel: handheld,
-              height: short ? 50.0 : 78.0,
+              height: short ? 52.0 : 76.0,
               onTap: () => it.id == 'import' ? onAddGames?.call() : onGo(it.id),
             ),
             SizedBox(height: short ? 4 : 10),
@@ -156,7 +159,7 @@ class _RailButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = active ? Colors.white : Tokens.muted;
-    final radius = BorderRadius.circular(short ? 10 : 14);
+    final radius = BorderRadius.circular(short ? 14 : 16);
     return Semantics(
       button: true,
       selected: active,
@@ -198,11 +201,11 @@ class _RailButton extends StatelessWidget {
                 children: [
                   Icon(
                     active ? item.filled : item.icon,
-                    size: short ? 18 : 26,
+                    size: short ? 24 : 26,
                     color: foreground,
                   ),
                   if (!hideLabel) ...[
-                    SizedBox(height: short ? 2 : 8),
+                    SizedBox(height: short ? 2 : 7),
                     ExcludeSemantics(
                       child: Text(
                         item.label,
@@ -211,7 +214,7 @@ class _RailButton extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Tokens.body(
                           size: short ? 10 : 12.5,
-                          weight: active ? FontWeight.w600 : FontWeight.w500,
+                          weight: FontWeight.w600,
                           color: foreground,
                         ),
                       ),
@@ -236,7 +239,7 @@ class OrbitPrimary extends StatelessWidget {
     required this.onPressed,
     this.icon = Icons.play_arrow,
     this.expanded = false,
-    this.minHeight = 52,
+    this.minHeight = 56,
   });
   final String label;
   final VoidCallback? onPressed;
@@ -248,7 +251,7 @@ class OrbitPrimary extends StatelessWidget {
   Widget build(BuildContext context) {
     final btn = Container(
       constraints: BoxConstraints(minHeight: minHeight),
-      padding: const EdgeInsets.symmetric(horizontal: 25),
+      padding: const EdgeInsets.fromLTRB(18, 0, 24, 0),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
@@ -279,13 +282,13 @@ class OrbitPrimary extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18, color: Colors.white),
+          Icon(icon, size: 22, color: Colors.white),
           const SizedBox(width: 10),
           Text(
             label,
             style: Tokens.display(
-              size: 12,
-              weight: FontWeight.w800,
+              size: 17,
+              weight: FontWeight.w700,
               ls: 0,
               color: Colors.white,
             ),
@@ -320,17 +323,17 @@ class OrbitPrimary extends StatelessWidget {
                           ),
                   ),
                   alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
+                  padding: const EdgeInsets.fromLTRB(18, 0, 24, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: 18, color: Colors.white),
+                      Icon(icon, size: 22, color: Colors.white),
                       const SizedBox(width: 10),
                       Text(
                         label,
                         style: Tokens.display(
-                          size: 12,
-                          weight: FontWeight.w800,
+                          size: 17,
+                          weight: FontWeight.w700,
                           ls: 0,
                           color: Colors.white,
                         ),
@@ -781,6 +784,7 @@ class OrbitBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: Tokens.bottomBarHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: Tokens.bottomBarDecor,
       child: Row(
         children: [
@@ -824,7 +828,7 @@ class _BottomNavButton extends StatelessWidget {
               size: 24,
               color: active ? Tokens.accent : Tokens.muted,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
               label,
               style: Tokens.body(
