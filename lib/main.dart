@@ -65,11 +65,7 @@ KeyEventResult shellKeyEvent(KeyEvent event, [UiSounds? sounds]) {
 /// the walkthrough. Finishing first run saves its answer in [AppState], which
 /// rebuilds this gate straight into the shell.
 class FirstRunGate extends StatelessWidget {
-  const FirstRunGate({
-    super.key,
-    required this.state,
-    required this.shell,
-  });
+  const FirstRunGate({super.key, required this.state, required this.shell});
 
   final AppState state;
   final WidgetBuilder shell;
@@ -349,9 +345,9 @@ class _ShellState extends State<Shell> {
           if ((!short || portrait) && !tv)
             Padding(
               padding: EdgeInsets.fromLTRB(
-                portrait ? 16 : 40,
-                portrait ? 12 : 22,
-                portrait ? 16 : 32,
+                portrait ? 16 : 44,
+                portrait ? 12 : 24,
+                portrait ? 16 : 44,
                 0,
               ),
               child: OrbitTopBar(compact: portrait),

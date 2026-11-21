@@ -11,13 +11,13 @@ import '../../theme/tokens.dart';
 /// The numbers here are the measured desktop reference. Each look scales the
 /// covers it lays out; none of them invents a colour outside the token palette.
 abstract final class LookTheme {
-  /// Covers in the Wall are 174×214. The measured design render (§11 of the
-  /// wall spec) fans cards of this size with a 164 px pitch, so neighbours
-  /// overlap by about 10 px instead of sitting in an evenly spaced grid.
-  static const wallCover = Size(174, 214);
+  /// Covers in the Wall. The measured render fans cards with a 164 px pitch,
+  /// so neighbours overlap instead of sitting in an evenly spaced grid.
+  static const wallCover = Size(158, 208);
 
-  /// Grid covers are 132×176, eight columns, 24 px between rows (§8.1).
-  static const gridCover = Size(132, 176);
+  /// Grid covers are 132×186, eight columns, 24 px between rows. The measured
+  /// render is taller than the 176 px written in the handoff; the picture wins.
+  static const gridCover = Size(132, 186);
   static const gridColumns = 8;
   static const gridRowGap = 24.0;
 

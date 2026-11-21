@@ -92,10 +92,12 @@ class OrbitRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final handheld = Layout.isHandheld(modifier);
-    final padFirst = handheld || Layout.isTv(modifier);
+    // The full rail has five destinations, Add games last, as the desktop
+    // reference draws it. The compact handheld rail keeps the four spaces;
+    // ultrawide keeps its centred content without a fifth stop.
     final items = [
       ...orbitNavItems,
-      if (padFirst)
+      if (!short && modifier != LayoutModifier.ultrawide)
         const OrbitNavItem(
           'import',
           'Add games',
@@ -111,7 +113,12 @@ class OrbitRail extends StatelessWidget {
         color: Color(0xE608101C),
         border: Border(right: BorderSide(color: Color(0x16DDE6F4))),
       ),
-      padding: EdgeInsets.symmetric(horizontal: short ? 8 : 10, vertical: 14),
+      padding: EdgeInsets.fromLTRB(
+        short ? 8 : 10,
+        short ? 14 : 95,
+        short ? 8 : 10,
+        14,
+      ),
       child: Column(
         children: [
           for (final it in items) ...[
@@ -120,11 +127,10 @@ class OrbitRail extends StatelessWidget {
               active: page == it.id,
               short: short,
               hideLabel: handheld,
-              height: short ? 50.0 : 84.0,
-              onTap: () =>
-                  it.id == 'import' ? onAddGames?.call() : onGo(it.id),
+              height: short ? 50.0 : 78.0,
+              onTap: () => it.id == 'import' ? onAddGames?.call() : onGo(it.id),
             ),
-            SizedBox(height: short ? 4 : 12),
+            SizedBox(height: short ? 4 : 10),
           ],
         ],
       ),
@@ -647,16 +653,16 @@ class GameCover extends StatelessWidget {
       valueListenable: coverRevision,
       builder: (context, revision, _) {
         Widget procedural() => OrbitCover(
-              title: title,
-              systemId: systemId,
-              sysShort: sysShort ?? systemCode(systemId),
-              year: year,
-              favorite: favorite,
-              isNew: isNew,
-              badgeText: badgeText,
-              badgeColor: badgeColor,
-              radius: radius,
-            );
+          title: title,
+          systemId: systemId,
+          sysShort: sysShort ?? systemCode(systemId),
+          year: year,
+          favorite: favorite,
+          isNew: isNew,
+          badgeText: badgeText,
+          badgeColor: badgeColor,
+          radius: radius,
+        );
         final file = GameArtResolver.shared.resolve(
           GameArtRequest(id: gameId, title: title, system: systemId),
         );

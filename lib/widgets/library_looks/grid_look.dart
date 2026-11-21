@@ -28,7 +28,7 @@ class GridLook extends StatelessWidget {
             : ((c.maxWidth - pad * 2) - columns * cover.width) /
                 (columns - 1);
         return GridView.builder(
-          padding: EdgeInsets.fromLTRB(pad, compact ? 8 : 12, pad, 24),
+          padding: EdgeInsets.fromLTRB(pad, compact ? 8 : 0, pad, 24),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: compact ? 12 : LookTheme.gridRowGap + 6,

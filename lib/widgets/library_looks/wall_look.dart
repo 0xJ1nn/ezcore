@@ -19,7 +19,7 @@ class WallLook extends StatelessWidget {
   static const _columns = 6;
   static const _step = 164.0;
   static const _rowStep = 237.0;
-  static const _left = 582.0; // x686 in the 1440 px reference, inside the rail
+  static const _left = 592.0; // x691 in the 1440 px reference, inside the rail
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +47,7 @@ class WallLook extends StatelessWidget {
               left: left + (col - focusedCol) * step,
               top: compact
                   ? (i ~/ 3) * 158.0
-                  : 6.0 + (row - focusedRow) * _rowStep,
+                  : -6.0 + (row - focusedRow) * _rowStep,
               dimmed: row != focusedRow,
             ),
           );

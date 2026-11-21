@@ -21,7 +21,11 @@ class ListLook extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (compact) return _PhoneList(actions: actions);
-    return Column(
+    // The measured list puts its column header at y=232, 18 px above where
+    // the shared content band would otherwise start it.
+    return Transform.translate(
+      offset: const Offset(0, -18),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
@@ -54,6 +58,7 @@ class ListLook extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }

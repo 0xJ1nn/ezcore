@@ -6,6 +6,7 @@ import '../brand/brand_mark.dart';
 import '../services/gamepad.dart';
 import '../state/input_mode.dart';
 import '../theme/layout.dart';
+import '../theme/symbols.dart';
 import '../theme/tokens.dart';
 
 /// The OS bar across the top of every destination: the ezCORE lockup, the
@@ -70,7 +71,14 @@ class _OrbitStatusState extends State<OrbitStatus> {
         ) {
           if (mounted) setState(() => _pad = connected ? name : null);
         });
+    InputMode.shared.addListener(_onInputChanged);
     _schedule();
+  }
+
+  /// The status corner follows the last input on the very event that moves
+  /// focus, so it never disagrees with the hint row (§4.1, §7.2).
+  void _onInputChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Wake at the next minute boundary, not every second.
@@ -94,23 +102,59 @@ class _OrbitStatusState extends State<OrbitStatus> {
   void dispose() {
     _tick?.cancel();
     _cancelPad?.call();
+    InputMode.shared.removeListener(_onInputChanged);
     super.dispose();
   }
+
+  String get _inputLabel => switch (InputMode.shared.lastSource) {
+    OrbitInputSource.keyboard => 'Keyboard',
+    OrbitInputSource.pointer => 'Mouse',
+    OrbitInputSource.pad => InputMode.shared.padName ?? 'Controller',
+  };
+
+  IconData get _inputIcon => switch (InputMode.shared.lastSource) {
+    OrbitInputSource.keyboard => Symbols.keyboard,
+    OrbitInputSource.pointer => Symbols.mouse,
+    OrbitInputSource.pad => Symbols.gamepad,
+  };
 
   @override
   Widget build(BuildContext context) {
     final t = _now();
     final time =
         '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    // Narrow windows give the title and its tools the room they need; only
+    // the clock stays in the status corner there, as the device frames show.
+    final showLabels = MediaQuery.sizeOf(context).width >= Tokens.bpDesktop;
+    if (!showLabels) {
+      return Text(
+        time,
+        style: Tokens.display(
+          size: 16,
+          weight: FontWeight.w600,
+          color: Tokens.text,
+          height: 1,
+        ),
+      );
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        const _StatusChip(
+          icon: Symbols.lock,
+          label: 'On this device',
+          boxed: true,
+        ),
+        const SizedBox(width: 28),
+        _StatusChip(icon: _inputIcon, label: _inputLabel),
+        const SizedBox(width: 28),
         Text(
           time,
-          style: Tokens.body(
-            size: 13,
+          style: Tokens.display(
+            size: 16,
             weight: FontWeight.w600,
             color: Tokens.text,
+            height: 1,
           ),
         ),
         if (_pad != null) ...[
@@ -148,6 +192,53 @@ class _OrbitStatusState extends State<OrbitStatus> {
   }
 }
 
+/// One item of the OS bar's status corner: an icon and a short, honest label.
+/// "On this device" is the only boxed one; the input label sits on the scene,
+/// exactly as the desktop reference draws it (§7.2).
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    this.boxed = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool boxed;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Tokens.muted),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: Tokens.body(
+            size: 13,
+            weight: FontWeight.w500,
+            color: Tokens.muted,
+            height: 1,
+          ),
+        ),
+      ],
+    );
+    if (!boxed) return child;
+    return Container(
+      height: 30,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF16222F),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Tokens.lineStrong),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// Keyboard hints along the foot of a screen: what each key does here.
 class OrbitKeyHints extends StatelessWidget {
   const OrbitKeyHints({super.key, required this.hints, this.padHints});
@@ -163,12 +254,17 @@ class OrbitKeyHints extends StatelessWidget {
   Widget build(BuildContext context) {
     final modifier = Layout.modifierOf(context);
     if (Layout.showHintRow(modifier)) {
-      return OrbitHintRow(modifier: modifier, hints: padHints ?? const [
-        (glyph: 'A', label: 'Resume'),
-        (glyph: 'Y', label: 'Details'),
-        (glyph: 'X', label: 'Options'),
-        (glyph: 'CTRL', label: 'System'),
-      ]);
+      return OrbitHintRow(
+        modifier: modifier,
+        hints:
+            padHints ??
+            const [
+              (glyph: 'A', label: 'Resume'),
+              (glyph: 'Y', label: 'Details'),
+              (glyph: 'X', label: 'Options'),
+              (glyph: 'CTRL', label: 'System'),
+            ],
+      );
     }
     Widget key(String k) => Container(
       constraints: const BoxConstraints(minWidth: 30),

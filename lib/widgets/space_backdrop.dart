@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/tokens.dart';
 
-/// The studio-plate backdrop: a planet limb at the bottom edge, layered
-/// mountain silhouettes, drifting nebula wash, twinkling stars and an
-/// occasional meteor.
+/// The studio-plate backdrop: a planet limb low on the right, a drifting
+/// nebula wash and twinkling stars — exactly the reference plate's scene.
 ///
 /// Two layers, on purpose:
 ///
@@ -168,21 +167,7 @@ Path _orbitArc(
   return path;
 }
 
-Offset _orbitPoint(
-  Offset center,
-  double radius,
-  double progress,
-  double start,
-  double end,
-) {
-  final angle = start + (end - start) * progress;
-  return Offset(
-    center.dx + radius * math.cos(angle),
-    center.dy + radius * math.sin(angle),
-  );
-}
-
-/// Static half of the scene: sky, nebula, planet limb, ridges, vignette.
+/// Static half of the scene: sky, nebula, planet limb, vignette.
 class SpaceScenePainter extends CustomPainter {
   const SpaceScenePainter();
 
@@ -221,19 +206,9 @@ class SpaceScenePainter extends CustomPainter {
       color: const Color(0xFF0B1B33).withValues(alpha: 0.72),
     );
 
-    // --- Two quiet diagonal light beams echo the ORBIT edge language.
-    _diagonalBeam(canvas, size, x: 0.77, width: 0.16, alpha: 0.10);
-    _diagonalBeam(canvas, size, x: 0.91, width: 0.07, alpha: 0.06);
-
-    // --- Ringed companion planet, top right (the plate's second body).
-    _companionPlanet(canvas, size);
-
-    // --- Main planet limb and orbital tracks across the lower edge.
+    // --- The one planet limb, low on the right, as the reference plate draws
+    // it. No beams, companion body or ridges: they are not in the design.
     _planet(canvas, size);
-
-    // --- Two mountain silhouettes anchor the frame bottom.
-    _ridge(canvas, size, far: true);
-    _ridge(canvas, size, far: false);
 
     // --- Vignette keeps the UI legible over the scene.
     canvas.drawRect(
@@ -244,38 +219,6 @@ class SpaceScenePainter extends CustomPainter {
           radius: 0.95,
           colors: [Colors.transparent, Tokens.bg.withValues(alpha: 0.55)],
           stops: const [0.55, 1.0],
-        ).createShader(Offset.zero & size),
-    );
-  }
-
-  void _diagonalBeam(
-    Canvas canvas,
-    Size size, {
-    required double x,
-    required double width,
-    required double alpha,
-  }) {
-    final top = Offset(size.width * x, -size.height * 0.12);
-    final bottom = Offset(size.width * (x - 0.22), size.height * 1.08);
-    final half = size.width * width * 0.5;
-    final path = Path()
-      ..moveTo(top.dx - half, top.dy)
-      ..lineTo(top.dx + half, top.dy)
-      ..lineTo(bottom.dx + half * 1.5, bottom.dy)
-      ..lineTo(bottom.dx - half * 1.5, bottom.dy)
-      ..close();
-    canvas.drawPath(
-      path,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: [
-            Colors.transparent,
-            Tokens.accent.withValues(alpha: alpha),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.52, 1.0],
         ).createShader(Offset.zero & size),
     );
   }
@@ -301,74 +244,10 @@ class SpaceScenePainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, paint);
   }
 
-  void _companionPlanet(Canvas canvas, Size size) {
-    // Small and dim on purpose: it is a distant body, not a UI element.
-    // Anything larger competes with the search field in the top corner.
-    final unit = math.min(size.width, size.height);
-    final c = Offset(size.width * 0.90, size.height * 0.07);
-    final r = unit * 0.085;
-    const fade = 0.55;
-
-    // Body: dark disc with a lit upper-left edge.
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.0)
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF17345C).withValues(alpha: fade),
-            const Color(0xFF060A12).withValues(alpha: fade),
-          ],
-        ).createShader(Rect.fromCircle(center: c, radius: r)),
-    );
-    // Atmosphere rim.
-    canvas.drawCircle(
-      c,
-      r,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
-        ..color = Tokens.planetRim.withValues(alpha: 0.30)
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Tokens.planetRimHi.withValues(alpha: 0.45),
-            Tokens.planetRim.withValues(alpha: 0.25),
-            Colors.transparent,
-          ],
-        ).createShader(Rect.fromCircle(center: c, radius: r * 1.2)),
-    );
-    // Rings: two thin ellipses give the distant body a clear orbital read.
-    canvas.save();
-    canvas.translate(c.dx, c.dy);
-    canvas.rotate(-0.32);
-    canvas.translate(-c.dx, -c.dy);
-    for (final scale in const [2.9, 3.35]) {
-      canvas.drawOval(
-        Rect.fromCenter(center: c, width: r * scale, height: r * 0.72),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = scale > 3 ? 0.7 : 1.0
-          ..color = Tokens.planetRim.withValues(alpha: scale > 3 ? 0.14 : 0.28),
-      );
-    }
-    final moon = Offset(c.dx + r * 1.45, c.dy - r * 0.18);
-    canvas.drawCircle(
-      moon,
-      2.2,
-      Paint()..color = Tokens.planetRimHi.withValues(alpha: 0.72),
-    );
-    canvas.restore();
-  }
-
   void _planet(Canvas canvas, Size size) {
     // Keep the horizon in the lower quarter so it frames the library instead
     // of running through covers, labels, and the selected-game panel.
-    final c = Offset(size.width * 0.42, size.height * 1.85);
+    final c = Offset(size.width * 0.75, size.height * 2.0);
     final r = size.height * 1.10;
     final bodyTop = math.max(0.0, c.dy - r);
     final bodyRect = Rect.fromLTWH(
@@ -444,62 +323,12 @@ class SpaceScenePainter extends CustomPainter {
     }
   }
 
-  void _ridge(Canvas canvas, Size size, {required bool far}) {
-    final h = size.height;
-    final baseY = far ? h * 0.94 : h * 1.02;
-    final amp = far ? h * 0.10 : h * 0.14;
-    // Fixed phases: far ridge peaks are higher and wider, near ridge jagged.
-    final peaks = far
-        ? const [0.0, 0.14, 0.23, 0.36, 0.5, 0.63, 0.78, 0.9, 1.0]
-        : const [0.0, 0.08, 0.17, 0.28, 0.41, 0.52, 0.66, 0.8, 0.92, 1.0];
-    final heights = far
-        ? const [0.0, 0.55, 0.32, 0.78, 0.45, 0.68, 0.35, 0.6, 0.0]
-        : const [0.0, 0.7, 0.42, 0.95, 0.5, 0.8, 0.38, 0.72, 0.55, 0.0];
-
-    final path = Path()..moveTo(0, size.height);
-    for (var i = 0; i < peaks.length; i++) {
-      final x = peaks[i] * size.width;
-      final y = baseY - heights[i] * amp;
-      if (i == 0) {
-        path.lineTo(x, y);
-      } else {
-        final prevX = peaks[i - 1] * size.width;
-        final prevY = baseY - heights[i - 1] * amp;
-        // Control point above the midpoint: soft mountain shoulders.
-        final midX = (prevX + x) / 2;
-        final midY = math.min(prevY, y) - amp * 0.12;
-        path.quadraticBezierTo(midX, midY, x, y);
-      }
-    }
-    path
-      ..lineTo(size.width, size.height)
-      ..close();
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..color = far ? Tokens.ridgeFar : Tokens.ridgeNear
-        ..style = PaintingStyle.fill,
-    );
-
-    // Moonlit edge along the crest of the near ridge.
-    if (!far) {
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0
-          ..color = Tokens.planetRim.withValues(alpha: 0.22),
-      );
-    }
-  }
-
   @override
   bool shouldRepaint(SpaceScenePainter oldDelegate) => false;
 }
 
-/// Animated half of the scene: edge-light breathing, orbital signals,
-/// star twinkle, parallax drift, and a periodic meteor.
+/// Animated half of the scene: star twinkle and parallax drift only. The
+/// reference plate has no beams, orbital signals or meteors.
 class StarfieldPainter extends CustomPainter {
   const StarfieldPainter({required this.t});
 
@@ -509,7 +338,6 @@ class StarfieldPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    _edgeLights(canvas, size);
 
     // Minimum scale factor: a 0-width window would otherwise draw stars
     // stacked on the same pixel.
@@ -532,115 +360,6 @@ class StarfieldPainter extends CustomPainter {
         paint,
       );
     }
-    _orbitalSignals(canvas, size);
-    _meteor(canvas, size);
-  }
-
-  void _edgeLights(Canvas canvas, Size size) {
-    final phase = t * math.pi * 2;
-    for (var i = 0; i < 2; i++) {
-      final baseX = i == 0 ? 0.77 : 0.91;
-      final drift = math.sin(phase + i * 1.7) * 0.012;
-      final x = baseX + drift;
-      final alpha =
-          0.035 + 0.035 * (0.5 + 0.5 * math.sin(phase + i * math.pi * 0.8));
-      final top = Offset(size.width * x, -size.height * 0.12);
-      final bottom = Offset(size.width * (x - 0.22), size.height * 1.08);
-      final half = size.width * (i == 0 ? 0.075 : 0.035);
-      final path = Path()
-        ..moveTo(top.dx - half, top.dy)
-        ..lineTo(top.dx + half, top.dy)
-        ..lineTo(bottom.dx + half * 1.5, bottom.dy)
-        ..lineTo(bottom.dx - half * 1.5, bottom.dy)
-        ..close();
-      canvas.drawPath(
-        path,
-        Paint()..color = Tokens.accent.withValues(alpha: alpha),
-      );
-      canvas.drawLine(
-        top,
-        bottom,
-        Paint()
-          ..strokeWidth = i == 0 ? 1.1 : 0.7
-          ..color = Tokens.planetRimHi.withValues(alpha: alpha * 1.8),
-      );
-    }
-  }
-
-  void _orbitalSignals(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.42, size.height * 1.85);
-    final radius = size.height * 1.10;
-    const start = -2.35;
-    const end = -0.79;
-
-    // Three small signals travel around the visible limb at different phases.
-    for (var i = 0; i < 3; i++) {
-      final progress = (t * 0.72 + i / 3) % 1.0;
-      final point = _orbitPoint(center, radius * 1.035, progress, start, end);
-      final tail = _orbitPoint(
-        center,
-        radius * 1.035,
-        (progress - 0.035) % 1.0,
-        start,
-        end,
-      );
-      canvas.drawLine(
-        tail,
-        point,
-        Paint()
-          ..strokeWidth = 1.2
-          ..color = Tokens.planetRimHi.withValues(alpha: 0.30),
-      );
-      canvas.drawCircle(
-        point,
-        i == 0 ? 2.4 : 1.7,
-        Paint()..color = Tokens.planetRimHi.withValues(alpha: 0.72),
-      );
-    }
-
-    // A second, smaller signal loops around the companion body.
-    final companion = Offset(size.width * 0.90, size.height * 0.07);
-    final orbit = (t * 0.9 + 0.15) * math.pi * 2;
-    final companionPoint = Offset(
-      companion.dx + math.cos(orbit) * size.width * 0.018,
-      companion.dy + math.sin(orbit) * size.height * 0.018,
-    );
-    canvas.drawCircle(
-      companionPoint,
-      1.8,
-      Paint()..color = Tokens.starHi.withValues(alpha: 0.80),
-    );
-  }
-
-  /// A single streak early in each 12s cycle, so the sky is never static
-  /// but never busy.
-  void _meteor(Canvas canvas, Size size) {
-    const flight = 0.055; // fraction of each 12s cycle the streak is visible
-    final phase = (t * 2) % 1.0;
-    if (phase >= flight) return;
-    final k = phase / flight;
-    // Ease-out travel from the upper right toward the lower left.
-    final start = Offset(size.width * 0.78, size.height * 0.04);
-    final travel = Offset(-size.width * 0.34, size.height * 0.30);
-    final pos = start + travel * (1 - math.pow(1 - k, 3).toDouble());
-    final fade = (1 - k) * (k < 0.12 ? k / 0.12 : 1);
-
-    canvas.drawLine(
-      pos,
-      pos + const Offset(54, 42),
-      Paint()
-        ..strokeWidth = 1.6
-        ..strokeCap = StrokeCap.round
-        ..color = Tokens.planetRimHi.withValues(alpha: 0.55 * fade),
-    );
-    canvas.drawLine(
-      pos,
-      pos + const Offset(18, 14),
-      Paint()
-        ..strokeWidth = 2.4
-        ..strokeCap = StrokeCap.round
-        ..color = Colors.white.withValues(alpha: 0.75 * fade),
-    );
   }
 
   @override

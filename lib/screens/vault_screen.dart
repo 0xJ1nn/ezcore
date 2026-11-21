@@ -192,7 +192,7 @@ class _VaultScreenState extends State<VaultScreen> {
                       : Layout.isShort(layout)
                       ? 14
                       : desktop
-                      ? 31
+                      ? 40
                       : 22,
                 ),
                 Expanded(child: body),

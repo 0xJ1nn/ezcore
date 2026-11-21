@@ -54,7 +54,7 @@ class ShelfLook extends StatelessWidget {
 
     return ClipRect(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 20, bottom: 12),
+        padding: EdgeInsets.only(top: compact ? 20 : 8, bottom: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
