@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/game_entry.dart';
+import '../../state/app_state.dart' show contentPresentFor;
 import '../../theme/tokens.dart';
 import 'library_cover.dart';
 import 'look_theme.dart';
@@ -125,6 +126,10 @@ class _ShelfRow extends StatelessWidget {
               height: height,
               radius: 8,
               selected: selected,
+              contentPresent: contentPresentFor(
+                game,
+                actions.state.romFolders,
+              ),
             ),
           );
         },

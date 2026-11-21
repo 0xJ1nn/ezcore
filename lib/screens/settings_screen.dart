@@ -86,6 +86,12 @@ const _looks = <(String, String)>[
 const _quickSaveKey = 'quickSaveButton';
 const _fastForwardKey = 'fastForwardButton';
 
+/// Message for a Find cover art run that had nothing to do. With no games
+/// there is no art to find; with games, every one already has a cover.
+String artLookupNoWorkMessage(int gameCount) => gameCount == 0
+    ? 'No games in the library yet'
+    : 'Every game already has art';
+
 class _SettingsScreenState extends State<SettingsScreen> {
   late String tab;
 
@@ -1309,7 +1315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final result = await backfillMissingArt(_state.games);
     if (!mounted) return;
     if (!result.ran) {
-      orbitToast(context, 'Every game already has art');
+      orbitToast(context, artLookupNoWorkMessage(_state.games.length));
       return;
     }
     orbitToast(

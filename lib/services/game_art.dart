@@ -16,26 +16,33 @@ const List<String> artExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
 /// [id] is the stable library id; [title] is the game's own title (not a
 /// display-wrapped one) and [system] is its system folder/id. No file path,
 /// hash or any other datum leaves the device during resolution.
+///
+/// [contentPresent] records what the caller already knows about the entry's
+/// file. A game whose file is gone keeps its generated cover; an entry kept
+/// because its folder is unplugged is still reported as present.
 class GameArtRequest {
   const GameArtRequest({
     required this.id,
     required this.title,
     required this.system,
+    this.contentPresent = true,
   });
 
   final String id;
   final String title;
   final String system;
+  final bool contentPresent;
 
   @override
   bool operator ==(Object other) =>
       other is GameArtRequest &&
       other.id == id &&
       other.title == title &&
-      other.system == system;
+      other.system == system &&
+      other.contentPresent == contentPresent;
 
   @override
-  int get hashCode => Object.hash(id, title, system);
+  int get hashCode => Object.hash(id, title, system, contentPresent);
 }
 
 /// Normalises a ROM title for case-insensitive art matching.
@@ -139,10 +146,13 @@ String sha1Hex(String input) {
 
 /// Stable, opaque key for a game's cached art. Never contains the title.
 String artCacheKey(GameArtRequest request) =>
-    artCacheKeyFor(request.system, request.title);
+    artCacheKeyFor(request.id, request.system, request.title);
 
-String artCacheKeyFor(String system, String title) =>
-    sha1Hex('${system.toLowerCase()}/${normaliseArtTitle(title)}');
+/// The id separates two dumps that share a title and system; the title keeps
+/// a re-scrape of the same game on its own cache entry.
+String artCacheKeyFor(String id, String system, String title) => sha1Hex(
+      '$id\u0000${system.toLowerCase()}\u0000${normaliseArtTitle(title)}',
+    );
 
 /// Checks whether [bytes] is a complete PNG, JPEG or WebP image rather than
 /// a text file, an empty file or a truncated/corrupt image. Structural checks
@@ -274,6 +284,9 @@ class GameArtResolver {
   File? resolve(GameArtRequest request) {
     // No library identity: never show art for a placeholder or unknown game.
     if (request.id.isEmpty || request.title.trim().isEmpty) return null;
+    // The entry's file is gone: its art no longer belongs to a tile. An
+    // unplugged folder keeps its entries, and those still count as present.
+    if (!request.contentPresent) return null;
 
     final pinned = _pinned(request.id);
     if (pinned != null) return pinned;

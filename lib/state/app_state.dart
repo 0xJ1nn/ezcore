@@ -27,6 +27,20 @@ import '../services/native_dirs.dart';
 import '../version.dart';
 import 'save_sync.dart';
 
+/// Whether [game]'s file is still here, using the same rule the rescan prune
+/// applies: a file on disk is present; an entry whose file is gone still counts
+/// as present when its folder was unplugged (i.e. it is not a registered ROM
+/// folder that is still on disk). Pure — no widgets, no global state — so the
+/// render path can decide art visibility from the entry alone.
+bool contentPresentFor(GameEntry game, List<String> romFolders) {
+  if (File(game.filePath).existsSync()) return true;
+  final parent = Directory(game.filePath).parent.path;
+  if (romFolders.contains(parent) && Directory(parent).existsSync()) {
+    return false; // file gone and its folder is still here: pruned
+  }
+  return true; // unplugged drive: deliberately kept, still "present"
+}
+
 /// Summary of a [AppState.rescanRomFolders] pass.
 class RescanReport {
   const RescanReport({
@@ -690,12 +704,8 @@ class AppState extends ChangeNotifier {
     final before = games.length;
     games = games.where((g) {
       if (livePaths.contains(g.filePath)) return true;
-      // File gone — only prune if its folder still exists
-      final parent = Directory(g.filePath).parent.path;
-      if (romFolders.contains(parent) && Directory(parent).existsSync()) {
-        return false; // prune
-      }
-      return true; // keep (unplugged drive)
+      // File gone — keep only when contentPresentFor says the folder is gone.
+      return contentPresentFor(g, romFolders);
     }).toList();
     pruned += before - games.length;
 

@@ -715,6 +715,7 @@ class _HomeScreenState extends State<HomeScreen> {
             year: game.year,
             favorite: game.favorite,
             radius: Tokens.radiusCover,
+            contentPresent: contentPresentFor(game, state.romFolders),
           ),
           if (game.id == _selectedId)
             IgnorePointer(
@@ -766,6 +767,7 @@ class _HomeScreenState extends State<HomeScreen> {
               year: game.year,
               favorite: game.favorite,
               radius: 8,
+              contentPresent: contentPresentFor(game, state.romFolders),
             ),
           ),
         ),
@@ -1450,6 +1452,7 @@ class _HomeScreenState extends State<HomeScreen> {
               year: games[i].year,
               favorite: games[i].favorite,
               radius: 7,
+              contentPresent: contentPresentFor(games[i], state.romFolders),
             ),
           ),
         );
@@ -1506,6 +1509,7 @@ class _HomeScreenState extends State<HomeScreen> {
             year: visible[i].year,
             favorite: visible[i].favorite,
             radius: 7,
+            contentPresent: contentPresentFor(visible[i], state.romFolders),
           ),
         );
       },
@@ -1593,6 +1597,10 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, i) => _ContinueCard(
                 game: continueGames[i],
                 selected: continueGames[i].id == _selectedId,
+                contentPresent: contentPresentFor(
+                  continueGames[i],
+                  state.romFolders,
+                ),
                 onTap: () {
                   _select(continueGames[i]);
                   _play(continueGames[i]);
@@ -1616,6 +1624,10 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, i) => _ShelfTile(
                 game: handheldGames[i],
                 selected: handheldGames[i].id == _selectedId,
+                contentPresent: contentPresentFor(
+                  handheldGames[i],
+                  state.romFolders,
+                ),
                 onTap: () => _onShelfTap(handheldGames[i]),
               ),
             ),
@@ -1639,6 +1651,10 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, i) => _ShelfTile(
                 game: consoleGames[i],
                 selected: consoleGames[i].id == _selectedId,
+                contentPresent: contentPresentFor(
+                  consoleGames[i],
+                  state.romFolders,
+                ),
                 onTap: () => _onShelfTap(consoleGames[i]),
               ),
             ),
@@ -1715,6 +1731,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: _Tile(
                     game: recent[i],
                     footnote: lastPlayedLabel(recent[i].lastPlayedMs),
+                    contentPresent: contentPresentFor(
+                      recent[i],
+                      state.romFolders,
+                    ),
                     onTap: () => _play(recent[i]),
                     semanticsHint: 'Resume',
                   ),
@@ -1767,6 +1787,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, i) => _ListRow(
           game: games[i],
           selected: games[i].id == _selectedId,
+          contentPresent: contentPresentFor(games[i], state.romFolders),
           onTap: () => _onShelfTap(games[i]),
         ),
       ),
@@ -1792,6 +1813,7 @@ class _HomeScreenState extends State<HomeScreen> {
         itemBuilder: (context, i) => _Tile(
           game: games[i],
           footnote: shortSystemLabel(games[i].system),
+          contentPresent: contentPresentFor(games[i], state.romFolders),
           onTap: () => _onShelfTap(games[i]),
           semanticsHint: 'Open details',
           selected: games[i].id == _selectedId,
@@ -1988,11 +2010,13 @@ class _ContinueCard extends StatelessWidget {
   const _ContinueCard({
     required this.game,
     required this.selected,
+    required this.contentPresent,
     required this.onTap,
   });
 
   final GameEntry game;
   final bool selected;
+  final bool contentPresent;
   final VoidCallback onTap;
 
   @override
@@ -2013,6 +2037,7 @@ class _ContinueCard extends StatelessWidget {
             year: game.year,
             favorite: game.favorite,
             radius: 7,
+            contentPresent: contentPresent,
           ),
           if (selected)
             IgnorePointer(
@@ -2034,11 +2059,13 @@ class _ShelfTile extends StatelessWidget {
   const _ShelfTile({
     required this.game,
     required this.selected,
+    required this.contentPresent,
     required this.onTap,
   });
 
   final GameEntry game;
   final bool selected;
+  final bool contentPresent;
   final VoidCallback onTap;
 
   @override
@@ -2063,6 +2090,7 @@ class _ShelfTile extends StatelessWidget {
                   year: game.year,
                   favorite: game.favorite,
                   radius: 7,
+                  contentPresent: contentPresent,
                 ),
                 if (selected)
                   IgnorePointer(
@@ -2114,6 +2142,7 @@ class _ResumeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final present = contentPresentFor(game, state.romFolders);
     final cover = GameCover(
       gameId: game.id,
       title: balanceCoverTitle(game.title),
@@ -2122,6 +2151,7 @@ class _ResumeCard extends StatelessWidget {
       favorite: game.favorite,
       width: compact || short ? 60 : 112,
       height: compact || short ? 80 : 150,
+      contentPresent: present,
     );
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2205,6 +2235,7 @@ class _ResumeCard extends StatelessWidget {
                   systemId: game.system,
                   year: game.year,
                   radius: 0,
+                  contentPresent: present,
                 ),
               ),
             ),
@@ -2238,6 +2269,7 @@ class _Tile extends StatelessWidget {
   const _Tile({
     required this.game,
     required this.footnote,
+    required this.contentPresent,
     required this.onTap,
     required this.semanticsHint,
     this.selected = false,
@@ -2245,6 +2277,7 @@ class _Tile extends StatelessWidget {
 
   final GameEntry game;
   final String footnote;
+  final bool contentPresent;
   final VoidCallback onTap;
   final String semanticsHint;
   final bool selected;
@@ -2271,6 +2304,7 @@ class _Tile extends StatelessWidget {
                     systemId: game.system,
                     year: game.year,
                     favorite: game.favorite,
+                    contentPresent: contentPresent,
                   ),
                   if (selected)
                     IgnorePointer(
@@ -2312,11 +2346,13 @@ class _ListRow extends StatelessWidget {
   const _ListRow({
     required this.game,
     required this.selected,
+    required this.contentPresent,
     required this.onTap,
   });
 
   final GameEntry game;
   final bool selected;
+  final bool contentPresent;
   final VoidCallback onTap;
 
   @override
@@ -2344,6 +2380,7 @@ class _ListRow extends StatelessWidget {
               year: game.year,
               width: 38,
               height: 50,
+              contentPresent: contentPresent,
             ),
             const SizedBox(width: 14),
             Expanded(

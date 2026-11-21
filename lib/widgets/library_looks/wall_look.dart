@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../models/game_entry.dart';
+import '../../state/app_state.dart' show contentPresentFor;
 import 'library_cover.dart';
 import 'look_theme.dart';
 
@@ -130,6 +131,10 @@ class _WallCard extends StatelessWidget {
                 height: size.height,
                 radius: 7,
                 selected: selected,
+                contentPresent: contentPresentFor(
+                  game,
+                  actions.state.romFolders,
+                ),
               ),
             ),
           ),

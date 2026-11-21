@@ -28,6 +28,7 @@ class LibraryCover extends StatelessWidget {
     this.radius = Tokens.radiusCover,
     this.selected = false,
     this.dimmed = false,
+    this.contentPresent = true,
   });
 
   final String gameId;
@@ -42,6 +43,10 @@ class LibraryCover extends StatelessWidget {
   final double radius;
   final bool selected;
   final bool dimmed;
+
+  /// False for an entry whose file is gone and whose folder is still here;
+  /// forwarded to [GameCover] so its stored art is withheld.
+  final bool contentPresent;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +66,7 @@ class LibraryCover extends StatelessWidget {
             badgeColor: badgeColor,
             radius: radius,
             dimmed: dimmed,
+            contentPresent: contentPresent,
           ),
           if (selected)
             Positioned.fill(

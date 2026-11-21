@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../state/app_state.dart' show contentPresentFor;
 import '../../theme/tokens.dart';
 import 'library_cover.dart';
 import 'look_theme.dart';
@@ -62,6 +63,10 @@ class GridLook extends StatelessWidget {
                 height: height,
                 radius: Tokens.radiusCover,
                 selected: actions.selected(game),
+                contentPresent: contentPresentFor(
+                  game,
+                  actions.state.romFolders,
+                ),
               ),
             );
           },

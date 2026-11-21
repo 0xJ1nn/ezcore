@@ -623,10 +623,15 @@ class GameCover extends StatelessWidget {
     this.height,
     this.radius = Tokens.radiusCover,
     this.dimmed = false,
+    this.contentPresent = true,
   });
 
   final String gameId;
   final String title;
+
+  /// False for an entry whose file is gone and whose folder is still here;
+  /// its generated cover stays in place instead of its stored art.
+  final bool contentPresent;
 
   /// System id ('nds', 'psx', …) — the cover's hue and default names derive
   /// from it.
@@ -666,7 +671,12 @@ class GameCover extends StatelessWidget {
           radius: radius,
         );
         final file = GameArtResolver.shared.resolve(
-          GameArtRequest(id: gameId, title: title, system: systemId),
+          GameArtRequest(
+            id: gameId,
+            title: title,
+            system: systemId,
+            contentPresent: contentPresent,
+          ),
         );
         if (file != null) {
           return Image.file(

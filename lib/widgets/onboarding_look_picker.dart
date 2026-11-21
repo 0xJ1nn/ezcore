@@ -127,6 +127,8 @@ class _LookPreview extends StatelessWidget {
       child: ColoredBox(
         color: const Color(0xFF080D15),
         child: Center(
+          // Preview covers are sample art, not real entries with a file on
+          // disk — leave contentPresent at its default of true.
           child: LibraryCover(
             gameId: 'onboarding-${look.value}',
             title: preview.title,

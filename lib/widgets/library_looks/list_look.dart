@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/game_entry.dart';
 import '../../services/system_labels.dart';
+import '../../state/app_state.dart' show contentPresentFor;
 import '../../theme/tokens.dart';
 import 'library_cover.dart';
 import 'look_theme.dart';
@@ -139,6 +140,10 @@ class _ListRow extends StatelessWidget {
                 width: LookTheme.listThumb.width,
                 height: LookTheme.listThumb.height,
                 radius: 4,
+                contentPresent: contentPresentFor(
+                  game,
+                  actions.state.romFolders,
+                ),
               ),
             ),
             Row(
@@ -231,6 +236,10 @@ class _PhoneList extends StatelessWidget {
                   width: 36,
                   height: 48,
                   radius: 4,
+                  contentPresent: contentPresentFor(
+                    game,
+                    actions.state.romFolders,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

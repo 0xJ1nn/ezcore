@@ -52,7 +52,7 @@ void main() {
     final key = artCacheKey(request);
     expect(key, matches(RegExp(r'^[0-9a-f]{40}$')));
     expect(key.toLowerCase().contains('lanterns'), isFalse);
-    expect(key, artCacheKeyFor('NES', 'Lanterns of Vell (USA).zip'));
+    expect(key, artCacheKeyFor(request.id, 'NES', 'Lanterns of Vell (USA).zip'));
   });
 
   test('precedence: pinned screenshot wins over media folder and cache', () {
