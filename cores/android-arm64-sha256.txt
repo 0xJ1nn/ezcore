@@ -1,0 +1,13 @@
+# Android arm64 (arm64-v8a) core assets, built with NDK 28.2.13676358 at API 21.
+# Built on Linux x86_64 from origin/main; NOT published yet. These bytes are not
+# attached to any release and must not be offered as on-demand downloads until a
+# maintainer publishes the assets and updates release.json/catalog.json.
+# One SHA-256 per asset, in the style of published-sha256.txt.
+cc25d61ba747b52a80584d6d81f010f44400e92d84ef7a7a482ea4b2065397f3  potator_libretro-android-arm64.so
+8338d506aedf1616f97bfdfb8f02cfdf14d8a7b9bba20ae4c75ed164caf176be  gw_libretro-android-arm64.so
+1ac4bb931d68eaed8842f01fa2e8c8fd6d13d2a6489011b20bf4815a3e7616c7  joystick_libretro-android-arm64.so
+ac598d1c50e51533cc24b20ef0fab4d880ba01318c51548c707face31144fc8d  pocketbit_libretro-android-arm64.so
+ba1541ebf520e8e7eef84280a84d84e7915f56a92b0a8b5c9754adaa25ef8136  advancebit_libretro-android-arm64.so
+d508c944b72a77cb3bd21c9cf7cb72009f9254f65a307924f3b9f32b52ee61d7  nesbyte_libretro-android-arm64.so
+25e28968e5c2d28906d0cf78e1892f5f094b373aef9b421a75cb415016a11663  cardcon_libretro-android-arm64.so
+14777ef50fa9bc81f92391c57eec6ae95e31354fe1d420312d54a372dec005e7  realmode_libretro-android-arm64.so

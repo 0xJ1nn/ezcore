@@ -311,3 +311,54 @@ mechanical; it should be caught mechanically, not by a human noticing.
   documentation are the authority.
 - Changing anything in §6 requires a recorded maintainer decision and
   explicit maintainer approval, per the maintainer-approval rule.
+
+---
+
+## 10. Android on-demand core assets
+
+Android core libraries are ordinary cross-compiled artifacts: they are built
+from the same libretro recipes as the desktop cores, with the Android NDK, on
+a Linux host. No macOS machine is required. This section records how the
+`arm64-v8a` assets are produced and their current publication status.
+
+### Building
+
+```bash
+export ANDROID_NDK_HOME=/path/to/ndk/28.2.13676358
+scripts/build_core.sh --fetch-headers                 # once per checkout
+EZCORE_PLATFORM=android scripts/build_core.sh <core-id>
+```
+
+`EZCORE_PLATFORM=android` selects `arm64-v8a` and API 21 by default, installs
+the NDK compiler wrappers and uses `llvm-strip` for staging. Outputs land in
+`native/cores-android-arm64-v8a/<core-id>/`. The recipes use half the host's
+CPU count by default because cross-compilation is memory-bound. The `rgbds`
+host package is needed to generate the SameBoy boot ROMs.
+
+### What was produced
+
+Eight cores built and were verified as AArch64 ELF shared objects with the
+libretro `retro_init` / `retro_run` / `retro_load_game` /
+`retro_serialize_size` entry points exported: potator, gw, joystick,
+pocketbit, advancebit, nesbyte, cardcon and realmode. Their SHA-256 digests
+are recorded in
+[`../cores/android-arm64-sha256.txt`](../cores/android-arm64-sha256.txt).
+
+`pointclick` (ScummVM) did not build. Current upstream ScummVM wraps the
+`-include engines/engines.mk` line in its top-level `Makefile.common` with an
+`ifeq` guard. The libretro port derives `shared_modules.mk` using a greedy
+substitution that consumes everything up to that include, so the generated
+file begins with an orphaned `endif` and make aborts while parsing, before any
+compilation starts. The recipe needs a fix for this upstream drift before the
+core can be built again.
+
+None of these assets is published. `cores/release.json` still marks
+`android-arm64` as bundled-elsewhere, no download pin was added for these
+bytes, and no release was created or modified. Publishing the assets and
+adding pins are separate maintainer steps with their own confirmation.
+
+Build, boot, identify and render are distinct claims. These artifacts were
+built and statically verified (ELF class and machine, dynamic dependencies,
+exported symbols); they were not executed. The build host and the emulator
+image are x86_64, the APK is arm64-only, and no arm64 user-mode emulator is
+available here, so no boot or frame is claimed for these binaries.
