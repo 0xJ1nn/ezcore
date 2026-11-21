@@ -80,14 +80,26 @@ blocked cores). iOS entries must be interpreter (manifest validation
 enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 
 **What a RENDERS row must also carry (2026-11-21).** A nonzero pixel sum and a
-successful save/restore are not enough on their own. `test_core_boot` writes
-the frame with `EZCORE_FRAME_PPM=<path>`; the row must name that frame, and the
-frame must differ from the one the same core draws when it is fed a file from
-another system. A core that accepts an NES file and a GBA cartridge and paints
-the same picture for both is painting decoration, and its RENDERS claim is
-withdrawn — that is what happened to `geometry1`. Where a core cannot be given
-a foreign file (it refuses it, which is correct), the frame hash alone is the
-record.
+successful save/restore are not enough on their own — a row that names no
+stored frame has no frame evidence. Set `EZCORE_FRAME_PPM=<path>` when running
+`test_core_boot <rom>`: after the frame budget the harness writes the last
+frame as a binary PPM (P6, 8-bit RGB) and prints exactly one line,
+`frame: <width>x<height> sum=<pixelsum> sha256=<hex> file=<path>`, where the
+hash is SHA-256 over the RGB bytes and the sum is the pixel sum printed above
+it. A frame is evidence only for the RENDERS row of that exact core build fed
+that exact content, and only when it differs from the frame the same build
+draws for a file from another system (or when that core correctly refuses the
+foreign file). It is not evidence for BUILT, PINNED, IDENTIFIES or SHIPPED, for
+a different core build, or for a row whose cell has not actually been upgraded
+against a stored frame. Where the destination cannot be opened the harness now
+fails with exit 7 rather than skipping, so a claimed frame cannot turn out to
+be a file that was never written.
+
+A stored frame is evidence for its core build and its content. A hash that
+repeats across two different inputs is decoration, not rendering — a core that
+paints one picture for an NES file and a GBA cartridge earns no RENDERS claim,
+which is what happened to `geometry1`. This change sets the rule only; no cell
+is promoted to RENDERS here, because the claims wait for captured frames.
 
 **Harness limits on IDENTIFIES and RENDERS** (corrected 2026-09-29 — both
 levels previously claimed more than the harness asserts):

@@ -4,9 +4,13 @@
  *        EZCORE_BOOT_OPTIONS="key=value;..." optionally sets core options
  *        before the game loads (see apply_boot_options).
  *        EZCORE_FRAME_PPM=/path/frame.ppm optionally saves the frame used for
- *        the pre-restore pixel sum as a binary PPM (P6, maxval 255, RGB), so
- *        the rendered frame can be hashed and inspected. A write failure
- *        prints a warning and never changes the boot result.
+ *        the pre-restore pixel sum as a binary PPM (P6, maxval 255, RGB) and
+ *        prints one "frame:" line with its size, pixel sum and SHA-256 over
+ *        the RGB bytes. The hash is the evidence: it lets a stored frame be
+ *        compared across runs without keeping the pixels in someone's head.
+ *        With the variable set, a frame that cannot be written is a failure
+ *        of the evidence, not a warning (exit 7); with it unset this line and
+ *        this verdict do not exist.
  * Exit codes:
  *   0 = pass
  *   1 = load/init failed
@@ -15,6 +19,7 @@
  *   4 = save_state failed
  *   5 = load_state failed
  *   6 = restore did not reproduce the saved frame (state-fidelity gate)
+ *   7 = frame capture could not be written (only when requested)
  *   9 = crash (should not happen; we fork a child)
  *
  * What the RENDERS level of docs/MATRIX.md therefore means, as enforced
@@ -38,6 +43,12 @@
  * true, so overloading 5 would make the header document a contract the
  * code no longer keeps. 6 is a new, distinct meaning rather than a
  * silent repurposing of an existing one.
+ *
+ * Exit 7 is likewise new: a missing or unwritable frame destination is a
+ * failure to record evidence, not a verdict on the core. Folding it into 3 or
+ * 6 would report "no rendering" or "broken restore" for a core that did
+ * neither, so the capture failure gets its own code and only exists when the
+ * destination was asked for.
  *
  * Still NOT enforced here (printed only, deliberately out of scope for the
  * state-fidelity gate): the drained audio frame count and the
@@ -147,38 +158,121 @@ static void run_frames(ezcore_session *s, int n) {
   }
 }
 
+/* SHA-256 over the RGB payload only. Local and self-contained: the harness
+ * must produce the same digest on a machine with no crypto library installed,
+ * and the digest must be reproducible by hashing the stored PPM's pixel bytes
+ * with any standard tool. The PPM header is excluded because the dimensions
+ * already appear on the frame line. */
+static uint32_t sha_rotr32(uint32_t x, unsigned n) {
+  return (x >> n) | (x << (32 - n));
+}
+
+static void sha256_block(uint32_t h[8], const unsigned char block[64]) {
+  static const uint32_t k[64] = {
+      0x428a2f98u, 0x71374491u, 0xb5c0fbcfu, 0xe9b5dba5u,
+      0x3956c25bu, 0x59f111f1u, 0x923f82a4u, 0xab1c5ed5u,
+      0xd807aa98u, 0x12835b01u, 0x243185beu, 0x550c7dc3u,
+      0x72be5d74u, 0x80deb1feu, 0x9bdc06a7u, 0xc19bf174u,
+      0xe49b69c1u, 0xefbe4786u, 0x0fc19dc6u, 0x240ca1ccu,
+      0x2de92c6fu, 0x4a7484aau, 0x5cb0a9dcu, 0x76f988dau,
+      0x983e5152u, 0xa831c66du, 0xb00327c8u, 0xbf597fc7u,
+      0xc6e00bf3u, 0xd5a79147u, 0x06ca6351u, 0x14292967u,
+      0x27b70a85u, 0x2e1b2138u, 0x4d2c6dfcu, 0x53380d13u,
+      0x650a7354u, 0x766a0abbu, 0x81c2c92eu, 0x92722c85u,
+      0xa2bfe8a1u, 0xa81a664bu, 0xc24b8b70u, 0xc76c51a3u,
+      0xd192e819u, 0xd6990624u, 0xf40e3585u, 0x106aa070u,
+      0x19a4c116u, 0x1e376c08u, 0x2748774cu, 0x34b0bcb5u,
+      0x391c0cb3u, 0x4ed8aa4au, 0x5b9cca4fu, 0x682e6ff3u,
+      0x748f82eeu, 0x78a5636fu, 0x84c87814u, 0x8cc70208u,
+      0x90befffau, 0xa4506cebu, 0xbef9a3f7u, 0xc67178f2u};
+  uint32_t w[64];
+  for (unsigned i = 0; i < 16; i++) {
+    w[i] = ((uint32_t)block[i * 4] << 24) |
+           ((uint32_t)block[i * 4 + 1] << 16) |
+           ((uint32_t)block[i * 4 + 2] << 8) | (uint32_t)block[i * 4 + 3];
+  }
+  for (unsigned i = 16; i < 64; i++) {
+    uint32_t s0 = sha_rotr32(w[i - 15], 7) ^ sha_rotr32(w[i - 15], 18) ^
+                  (w[i - 15] >> 3);
+    uint32_t s1 = sha_rotr32(w[i - 2], 17) ^ sha_rotr32(w[i - 2], 19) ^
+                  (w[i - 2] >> 10);
+    w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+  }
+  uint32_t a = h[0], b = h[1], c = h[2], d = h[3];
+  uint32_t e = h[4], f = h[5], g = h[6], hh = h[7];
+  for (unsigned i = 0; i < 64; i++) {
+    uint32_t s1 = sha_rotr32(e, 6) ^ sha_rotr32(e, 11) ^ sha_rotr32(e, 25);
+    uint32_t ch = (e & f) ^ ((~e) & g);
+    uint32_t t1 = hh + s1 + ch + k[i] + w[i];
+    uint32_t s0 = sha_rotr32(a, 2) ^ sha_rotr32(a, 13) ^ sha_rotr32(a, 22);
+    uint32_t maj = (a & b) ^ (a & c) ^ (b & c);
+    uint32_t t2 = s0 + maj;
+    hh = g; g = f; f = e; e = d + t1;
+    d = c; c = b; b = a; a = t1 + t2;
+  }
+  h[0] += a; h[1] += b; h[2] += c; h[3] += d;
+  h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+}
+
+static void sha256_rgb(const unsigned char* data, size_t len, char out[65]) {
+  uint32_t h[8] = {0x6a09e667u, 0xbb67ae85u, 0x3c6ef372u, 0xa54ff53au,
+                   0x510e527fu, 0x9b05688cu, 0x1f83d9abu, 0x5be0cd19u};
+  uint64_t bits = (uint64_t)len * 8;
+  size_t pos = 0;
+  while (len - pos >= 64) {
+    sha256_block(h, data + pos);
+    pos += 64;
+  }
+  unsigned char block[64] = {0};
+  size_t rem = len - pos;
+  memcpy(block, data + pos, rem);
+  block[rem] = 0x80;
+  if (rem >= 56) {
+    sha256_block(h, block);
+    memset(block, 0, sizeof(block));
+  }
+  for (unsigned i = 0; i < 8; i++)
+    block[56 + i] = (unsigned char)(bits >> (56 - 8 * i));
+  sha256_block(h, block);
+  for (unsigned i = 0; i < 8; i++)
+    snprintf(out + i * 8, 9, "%08x", h[i]);
+  out[64] = '\0';
+}
+
 /* Optionally record the frame just measured by the pre-restore pixel sum as a
  * binary PPM (P6, maxval 255). The frame is XRGB8888, so red lives in bits
  * 16-23 and blue in bits 0-7; each pixel becomes R,G,B bytes in that order.
- * This is a recording aid for frame hashing and inspection, never a gate: a
- * missing or unwritable path is warned about and the boot carries on. */
-static void write_frame_ppm(const uint32_t* px, unsigned w, unsigned h) {
+ * Returns 0 when nothing was requested or the write succeeded, nonzero when a
+ * requested frame could not be captured. A silent skip would let a render
+ * claim cite a frame that was never stored, so failure is loud and fatal. */
+static int write_frame_ppm(const uint32_t* px, unsigned w, unsigned h,
+                           int64_t sum) {
   const char* path = getenv("EZCORE_FRAME_PPM");
-  if (!path || !*path) return;
+  if (!path || !*path) return 0;
 
   FILE* out = fopen(path, "wb");
   if (!out) {
-    fprintf(stderr, "  warning: cannot open EZCORE_FRAME_PPM '%s': %s\n",
+    fprintf(stderr, "  error: cannot open EZCORE_FRAME_PPM '%s': %s\n",
             path, strerror(errno));
-    return;
+    return 1;
   }
 
   if (w == 0 || h == 0 || (size_t)w > SIZE_MAX / (size_t)h ||
       (size_t)w * (size_t)h > SIZE_MAX / 3) {
     fprintf(stderr,
-            "  warning: frame %ux%u is empty or too large to write as PPM\n",
+            "  error: frame %ux%u is empty or too large to write as PPM\n",
             w, h);
     fclose(out);
-    return;
+    return 1;
   }
 
   size_t count = (size_t)w * (size_t)h;
   unsigned char* rgb = malloc(count * 3);
   if (!rgb) {
-    fprintf(stderr, "  warning: out of memory writing EZCORE_FRAME_PPM '%s'\n",
+    fprintf(stderr, "  error: out of memory writing EZCORE_FRAME_PPM '%s'\n",
             path);
     fclose(out);
-    return;
+    return 1;
   }
   for (size_t i = 0; i < count; i++) {
     rgb[i * 3] = (unsigned char)((px[i] >> 16) & 0xFF);
@@ -186,16 +280,19 @@ static void write_frame_ppm(const uint32_t* px, unsigned w, unsigned h) {
     rgb[i * 3 + 2] = (unsigned char)(px[i] & 0xFF);
   }
 
+  char digest[65];
+  sha256_rgb(rgb, count * 3, digest);
   int header = fprintf(out, "P6\n%u %u\n255\n", w, h);
   size_t written = fwrite(rgb, 3, count, out);
   int closed = fclose(out);
   free(rgb);
   if (header < 0 || written != count || closed != 0) {
-    fprintf(stderr, "  warning: failed to write EZCORE_FRAME_PPM '%s'\n", path);
-    return;
+    fprintf(stderr, "  error: failed to write EZCORE_FRAME_PPM '%s'\n", path);
+    return 1;
   }
-  printf("  frame PPM: %s (%ux%u, %zu bytes)\n", path, w, h,
-         (size_t)header + count * 3);
+  printf("frame: %ux%u sum=%lld sha256=%s file=%s\n", w, h,
+         (long long)sum, digest, path);
+  return 0;
 }
 
 static int run_boot_test(const char* core_path, const char* rom_path) {
@@ -280,10 +377,16 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
     return 3;
   }
 
-  /* Record this same frame for the suite's frame hashes. It is a side effect
-   * only: the warning-on-failure contract above keeps the gate's verdict
-   * independent of the output path. */
-  write_frame_ppm(px, rw, rh);
+  /* The runtime's video callback keeps only the latest frame and reallocates
+   * it whenever a core presents a different size, so (px, rw, rh) is one
+   * consistent snapshot even for cores that resize mid-boot. Failure to store
+   * a requested frame is fatal (exit 7), but only when a path was requested:
+   * with EZCORE_FRAME_PPM unset neither the write nor this branch exists. */
+  if (write_frame_ppm(px, rw, rh, sum) != 0) {
+    free(rom_data);
+    ezcore_unload(s);
+    return 7;
+  }
 
   /* Save state */
   size_t snap_size = ezcore_serialize_size(s);
