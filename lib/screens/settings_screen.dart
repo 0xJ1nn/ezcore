@@ -886,6 +886,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
         add(
           _row(
+            id: 'store.backup',
+            label: 'Save backup folder',
+            description: _backupDescription,
+            trailing: _ValuePill(
+              value: _backupPill,
+              quiet: !_state.backupFolder.needsPicker,
+            ),
+            onTap: _state.backupFolder.needsPicker ? _chooseBackupFolder : null,
+          ),
+        );
+        add(
+          _row(
             id: 'store.policy',
             label: 'Content policy',
             description:
@@ -1179,6 +1191,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _set('coreDirectory', value.trim());
     }
     if (mounted) orbitToast(context, 'Core directory updated');
+  }
+
+  String get _backupPill {
+    final service = _state.backupFolder;
+    if (service.needsPicker) {
+      return service.status.available ? 'Change folder' : 'Choose folder';
+    }
+    return service.status.available ? service.status.provider : 'Not set';
+  }
+
+  String get _backupDescription {
+    final status = _state.backupFolder.status;
+    if (!status.available) {
+      return status.reason.isNotEmpty
+          ? status.reason
+          : 'No backup folder is set for saves yet.';
+    }
+    final path = status.path.length <= 36
+        ? status.path
+        : '…${status.path.substring(status.path.length - 35)}';
+    final note = status.survivesReinstall
+        ? 'Kept if the app is removed.'
+        : 'This folder is removed when the app is deleted.';
+    return '${status.provider} · $path $note';
+  }
+
+  Future<void> _chooseBackupFolder() async {
+    final status = await _state.chooseBackupFolder();
+    if (!mounted) return;
+    orbitToast(
+      context,
+      status == null
+          ? 'No folder chosen'
+          : 'Saves back up to ${status.provider}',
+    );
   }
 
   Future<void> _openButtonEditor() async {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,7 @@ import '../models/cheat.dart';
 import '../models/core_manifest.dart';
 import '../models/game_entry.dart';
 import '../services/local_data_dir.dart';
+import '../services/backup_folder.dart';
 import '../services/core_discovery.dart';
 import '../services/core_downloader.dart';
 import '../services/core_options_resolver.dart';
@@ -56,12 +58,19 @@ class AppState extends ChangeNotifier {
   /// [PersistenceService] backed by the platform data directory.
   /// Pass the startup-resolved provider from `main()` on mobile; desktop
   /// resolves synchronously when omitted.
-  factory AppState({LocalDataDirProvider? dirProvider}) {
+  factory AppState({
+    LocalDataDirProvider? dirProvider,
+    BackupFolderService? backupFolder,
+  }) {
     final resolved = dirProvider ?? PlatformLocalDataDirProvider();
     final dir = Directory(resolved.localDataDirPath());
     final saves = LocalSaveSyncProvider(dir);
     final persistence = PersistenceService(resolved);
-    return AppState.internal(persistence: persistence, saves: saves);
+    return AppState.internal(
+      persistence: persistence,
+      saves: saves,
+      backupFolder: backupFolder,
+    );
   }
 
   /// Creates an in-memory state with no persistence — used by tests.
@@ -69,11 +78,13 @@ class AppState extends ChangeNotifier {
   /// caller-chosen directory (tests point it at a temp dir).
   factory AppState.ephemeral({
     Future<Directory> Function()? documentsProvider,
+    BackupFolderService? backupFolder,
   }) {
     return AppState.internal(
       persistence: null,
       saves: MemorySaveSyncProvider(),
       documentsProvider: documentsProvider,
+      backupFolder: backupFolder,
     );
   }
 
@@ -84,9 +95,11 @@ class AppState extends ChangeNotifier {
     required this.persistence,
     required this.saves,
     this.documentsProvider,
+    BackupFolderService? backupFolder,
     CoreDownloader? downloader,
   }) : _downloader =
-           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider());
+           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider()),
+       backupFolder = backupFolder ?? BackupFolderService.disabled();
 
   final CoreDownloader _downloader;
 
@@ -121,6 +134,11 @@ class AppState extends ChangeNotifier {
   /// Save/sync seam: local vault by default; swap in a cloud provider
   /// (or memory provider for tests) without touching callers.
   final SaveSyncProvider saves;
+
+  /// Per-device save backup location, resolved once in the background at
+  /// boot. A failure here never blocks the app: saves keep using the local
+  /// vault.
+  final BackupFolderService backupFolder;
 
   bool loaded = false;
   String? loadError;
@@ -240,6 +258,34 @@ class AppState extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+    // Backup discovery must never hold up the first frame or the library.
+    unawaited(resolveBackupFolder());
+  }
+
+  /// Setting key for the Android folder grant, restored on each launch.
+  static const backupFolderGrantKey = 'backupFolderGrant';
+
+  /// Resolves the backup folder without blocking boot. A restored Android
+  /// grant is applied first so the right locator is used.
+  Future<void> resolveBackupFolder() async {
+    final grant = _settings[backupFolderGrantKey];
+    if (grant is String && grant.isNotEmpty) {
+      await backupFolder.applyAndroidGrant(grant);
+    } else {
+      await backupFolder.resolveOnce();
+    }
+    notifyListeners();
+  }
+
+  /// Opens the system folder picker where one is needed and remembers the
+  /// choice. Returns null when the person cancels or no picker exists.
+  Future<BackupFolderStatus?> chooseBackupFolder() async {
+    final grant = await backupFolder.pickTree();
+    if (grant == null || grant.isEmpty) return null;
+    await setSetting(backupFolderGrantKey, grant);
+    final status = await backupFolder.applyAndroidGrant(grant);
+    notifyListeners();
+    return status;
   }
 
   /// Re-runs discovery over the core root resolved during [load]: registers
