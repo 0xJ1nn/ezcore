@@ -1347,7 +1347,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (service.needsPicker) {
       return service.status.available ? 'Change folder' : 'Choose folder';
     }
-    return service.status.available ? service.status.provider : 'Not set';
+    if (service.status.available) return service.status.provider;
+    // Only a session that looks for a folder can report it as unavailable.
+    // With no backup source at all there was never a folder to lose, so the
+    // row keeps saying "Not set" and the description carries the reason.
+    if (!service.hasBackupSource) return 'Not set';
+    final reason = service.status.reason;
+    return reason.isNotEmpty && reason != 'Not checked yet'
+        ? 'Unavailable'
+        : 'Not set';
   }
 
   String get _backupDescription {

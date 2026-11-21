@@ -308,10 +308,35 @@ class AppState extends ChangeNotifier {
   /// Setting key for the Android folder grant, restored on each launch.
   static const backupFolderGrantKey = 'backupFolderGrant';
 
+  /// Stable per-install id in a possibly shared backup folder. A reinstall
+  /// gets a new id, so its saves can still be restored from the old copy.
+  static const backupDeviceIdKey = 'backupDeviceId';
+  static int _installCounter = 0;
+
+  String _mirrorDeviceId = '';
+  Future<void>? _deviceIdFuture;
+
+  Future<void> _ensureMirrorDeviceId() =>
+      _deviceIdFuture ??= _loadOrCreateMirrorDeviceId();
+
+  Future<void> _loadOrCreateMirrorDeviceId() async {
+    final raw = _settings[backupDeviceIdKey];
+    if (raw is String && raw.isNotEmpty) {
+      _mirrorDeviceId = raw;
+      return;
+    }
+    _mirrorDeviceId =
+        'install-${DateTime.now().microsecondsSinceEpoch}-${_installCounter++}';
+    if (persistence != null) {
+      await setSetting(backupDeviceIdKey, _mirrorDeviceId);
+    }
+  }
+
   /// Resolves the backup folder without blocking boot. A restored Android
   /// grant is applied first so the right locator is used. Every failure stays
   /// local: this method never throws and the first frame is never held up.
   Future<void> resolveBackupFolder() async {
+    await _ensureMirrorDeviceId();
     final grant = _settings[backupFolderGrantKey];
     try {
       if (grant is String && grant.isNotEmpty) {
@@ -336,6 +361,12 @@ class AppState extends ChangeNotifier {
             _baseSaves,
             Directory(status.path),
             appVersion: appVersion,
+            deviceId: _mirrorDeviceId,
+            onMirrorFailure: (reason) {
+              if (_disposed) return;
+              backupFolder.reportMirrorFailure(reason);
+              notifyListeners();
+            },
           )
         : _baseSaves;
   }
@@ -369,6 +400,7 @@ class AppState extends ChangeNotifier {
   /// Opens the system folder picker where one is needed and remembers the
   /// choice. Returns null when the person cancels or no picker exists.
   Future<BackupFolderStatus?> chooseBackupFolder() async {
+    await _ensureMirrorDeviceId();
     final grant = await backupFolder.pickTree();
     if (grant == null || grant.isEmpty) return null;
     await setSetting(backupFolderGrantKey, grant);
@@ -802,7 +834,10 @@ class AppState extends ChangeNotifier {
         continue; // exact duplicate (same sha -> same id)
       }
       seenIds.add(game.id);
-      final identity = await importer.identifyFile(game.filePath, game.extension);
+      final identity = await importer.identifyFile(
+        game.filePath,
+        game.extension,
+      );
       if (identity.rejected) {
         removed++;
         continue; // no core can play this file

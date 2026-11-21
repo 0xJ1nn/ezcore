@@ -20,7 +20,15 @@ not by ezCORE.
 Every candidate is probed before use: the app creates it when missing, writes
 a throwaway file, and deletes that file again. A folder that cannot take the
 probe is never presented as a backup location; the app keeps using local saves
-and shows the reason in Storage.
+and shows the reason in Storage. The probe is only a check at the moment the
+folder is chosen: if the folder is later deleted or becomes unwritable, the
+next save reports that failure and Storage changes to Unavailable with the
+reason. The app never continues to claim a working backup after such a failure.
+
+Only saves are mirrored. Settings, the game library and core choices are kept
+in the app's own data and are not copied to the backup folder; deleting the app
+removes them. Saving a game again after reinstalling restores the save bytes,
+not those preferences.
 
 ## Why a phone asks for a folder once
 
@@ -49,11 +57,25 @@ same write-and-delete probe.
 **Best effort** means a writable folder was found, but it lives inside the
 app's own data and is deleted when the app is deleted. On iOS and macOS this
 is the `ezCORE Backup` folder under the app's Documents directory, used when
-no iCloud container is available. The app still writes saves there, but the
-badge makes the missing durability visible instead of promising it.
+no iCloud container is available; Storage labels the provider `Documents`.
+The app still writes saves there, but the badge makes the missing durability
+visible instead of promising it. When the iCloud check itself fails, the
+reason says so rather than claiming iCloud is simply not set up.
 
 **Unavailable** means no usable folder was found. Saves stay in the local
 vault. The text under the badge states why.
+
+## What counts as a save in the backup folder
+
+Saves are listed from the backup's own index, not from every file that happens
+to sit in the chosen folder. Notes, ROMs and other apps' files in the same
+folder are never offered for restore. A file without an index entry is not a
+save ezCORE can vouch for.
+
+When two devices use one folder, each install keeps its own index entry for a
+slot. Deleting a save on one device does not hide the other device's copy. The
+bytes of one file are still last-writer-wins: ezCORE does not merge or compare
+versions from different machines.
 
 ## When the app is removed
 
