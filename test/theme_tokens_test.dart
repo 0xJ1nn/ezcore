@@ -66,9 +66,9 @@ void main() {
       expect(Tokens.instantDur.inMilliseconds, 120);
       expect(Tokens.fastDur.inMilliseconds, 200);
       expect(Tokens.baseDur.inMilliseconds, 320);
-      expect(Tokens.moveDur.inMilliseconds, 540);
+      expect(Tokens.moveDur.inMilliseconds, 520);
       expect(Tokens.ambientDur.inMilliseconds, 650);
-      expect(Tokens.sceneDur.inMilliseconds, 1100);
+      expect(Tokens.sceneDur.inMilliseconds, 900);
       expect(Tokens.easeDur, Tokens.ambientDur);
     });
 

@@ -216,7 +216,7 @@ void main() {
     final grid = t.widget<GridView>(find.byType(GridView).first);
     final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
     expect(delegate.crossAxisCount, 8);
-    expect(delegate.mainAxisSpacing, 30);
+    expect(delegate.mainAxisSpacing, 24);
 
     await pump(t, look: 'list');
     expect(find.byType(ListLook), findsOneWidget);

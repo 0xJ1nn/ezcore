@@ -214,7 +214,7 @@ class _PhoneList extends StatelessWidget {
           semanticHint: selected ? 'Resume' : 'Show details',
           child: Container(
             height: 64,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: selected ? const Color(0x14007BFF) : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
@@ -228,8 +228,8 @@ class _PhoneList extends StatelessWidget {
                   gameId: game.id,
                   title: libraryCoverTitle(game.title, coverWidth: 38),
                   systemId: game.system,
-                  width: 38,
-                  height: 50,
+                  width: 36,
+                  height: 48,
                   radius: 4,
                 ),
                 const SizedBox(width: 12),
@@ -243,7 +243,7 @@ class _PhoneList extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Tokens.body(
-                          size: 14,
+                          size: 15,
                           weight: FontWeight.w700,
                           color: selected ? Tokens.text : Tokens.muted,
                           height: 1,

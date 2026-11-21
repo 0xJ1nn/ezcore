@@ -349,7 +349,9 @@ void main() {
       expect(flow.itemSize.width, 360);
       final dock = t.widget<GameDock>(find.byType(GameDock));
       expect(dock.showDetails, isFalse);
-      expect(find.text('Add games'), findsNothing);
+      // The centred content keeps the same fifth rail stop: a pointer-only
+      // ultrawide window needs the visible import route too.
+      expect(find.text('Add games'), findsOneWidget);
     });
 
     testWidgets('TV systems keeps the detail panel open on the first card', (

@@ -887,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final top = mini ? 6.0 : (desktop ? 36.0 : 18.0);
     final titleSize = mini
         ? 22.0
-        : (phone ? Tokens.screenTitle * 0.72 : Tokens.screenTitle);
+        : (phone ? Tokens.screenTitle * (28 / 44) : Tokens.screenTitle);
     // The short rhythm (tablet landscape) and the sideways phone drop the
     // chips and tools entirely; only the desktop and upright phone keep the
     // chip row, and only the desktop shows the counts inside it (§10).

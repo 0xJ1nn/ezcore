@@ -28,11 +28,13 @@ class GridLook extends StatelessWidget {
             : ((c.maxWidth - pad * 2) - columns * cover.width) /
                 (columns - 1);
         return GridView.builder(
-          padding: EdgeInsets.fromLTRB(pad, compact ? 8 : 0, pad, 24),
+          padding: EdgeInsets.fromLTRB(pad, compact ? 8 : 20, pad, 24),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: compact ? 12 : LookTheme.gridRowGap + 6,
-            crossAxisSpacing: crossSpacing < 8 ? 8 : crossSpacing - 2,
+            mainAxisSpacing: compact ? 12 : LookTheme.gridRowGap,
+            crossAxisSpacing: compact
+                ? 12
+                : (crossSpacing < 8 ? 8 : crossSpacing - 2),
             mainAxisExtent: height,
           ),
           itemCount: games.length,
