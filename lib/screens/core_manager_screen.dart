@@ -412,14 +412,32 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
   /// the message and the assets never disagree.
   String? _deliveryBlockedReason(CoreManifest m) {
     final delivery = m.delivery[Platform.operatingSystem];
+    String plainAbsence() =>
+        state.coreRelease?.unavailableMessage(_hostPlatformKey) ??
+        'Not available on this device';
     if (delivery == null || delivery == 'absent') {
-      return 'Not available on this device';
+      return plainAbsence();
     }
-    if (delivery != 'download') return null;
+    // A download core needs a published asset for this exact platform-arch.
+    // The generator never lists an asset without a pin, so the asset map is
+    // the single source of truth for what can actually be installed.
+    if (delivery == 'download') {
+      final release = state.coreRelease;
+      if (release == null ||
+          release.assetName(_hostPlatformKey, m.id) == null) {
+        return plainAbsence();
+      }
+      return null;
+    }
+    // Bundled cores install offline — except on a platform that publishes
+    // no binaries at all (today: Windows). There is no verified build to
+    // install there, so offering the button would be a lie.
     final release = state.coreRelease;
-    if (release == null || release.assetName(_hostPlatformKey, m.id) == null) {
-      return release?.unavailableMessage(_hostPlatformKey) ??
-          'Not available on this device';
+    if (m.artifacts[_hostPlatformKey] == null &&
+        release != null &&
+        !release.hasAssetsFor(_hostPlatformKey) &&
+        release.unavailableMessage(_hostPlatformKey) != null) {
+      return plainAbsence();
     }
     return null;
   }
@@ -602,7 +620,9 @@ class _CoreManagerScreenState extends State<CoreManagerScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    registry.remove(m.id);
+    await state.removeCore(m);
+    if (!mounted) return;
+    setState(() => _downloadFailures.remove(m.id));
     orbitToast(context, '${m.name} removed — games and saves kept');
   }
 
@@ -1238,7 +1258,9 @@ class _CoreDetail extends StatelessWidget {
                   'Source',
                   installed
                       ? 'Installed from the app bundle'
-                      : 'Bundled with ezCORE · installs offline',
+                      : state.needsDownload(m)
+                          ? 'Downloaded on demand and SHA-256 verified'
+                          : 'Bundled with ezCORE · installs offline',
                 ),
                 fact(
                   'Trust',

@@ -46,8 +46,8 @@ Future<void> launchGame(
     final route = await showLaunchError<String>(
       context,
       title: '$system isn’t installed',
-      body: '${game.title} needs the $coreName core. It’s bundled with '
-          'ezCORE and installs offline in a few seconds.',
+      body: '${game.title} needs the $coreName core. Install it from Systems '
+          'to play this game.',
       icon: Symbols.extensionOff,
       actions: const [
         LaunchErrorAction(label: 'Open Systems', value: 'systems', primary: true),

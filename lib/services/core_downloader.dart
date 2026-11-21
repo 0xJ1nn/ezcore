@@ -11,6 +11,7 @@ import 'local_data_dir.dart';
 /// screen, with no raw exception text.
 enum CoreDownloadFailure {
   noAssetForPlatform,
+  notSupportedOnDevice,
   unreachable,
   checksumMismatch,
   tooLarge,
@@ -18,6 +19,8 @@ enum CoreDownloadFailure {
 
   String get sentence => switch (this) {
     noAssetForPlatform => 'This core is not published for this device.',
+    notSupportedOnDevice =>
+      'On-demand core installs are not offered on this device.',
     unreachable =>
       'The download could not be reached. Check your connection and try again.',
     checksumMismatch =>
@@ -270,6 +273,19 @@ class CoreDownloader {
     } catch (_) {}
   }
 
+  /// Leaves no half-installed directory behind after a refusal. An existing
+  /// verified core in the same folder is never touched: the folder is only
+  /// removed when it is empty.
+  static void _cleanupFailed(Directory coreDir, File part) {
+    _deleteIfExists(part);
+    _deleteIfExists(File('${part.path}.ezpin'));
+    try {
+      if (coreDir.existsSync() && coreDir.listSync().isEmpty) {
+        coreDir.deleteSync();
+      }
+    } catch (_) {}
+  }
+
   /// Fetches, verifies, stages, and installs one core.
   /// Returns the verified pin on success; throws [CoreDownloadException]
   /// otherwise.
@@ -280,7 +296,9 @@ class CoreDownloader {
     required CoreRegistry registry,
   }) async {
     if (_isIOS()) {
-      throw StateError('iOS never downloads cores (App Review 2.5.2/4.7)');
+      // A plain sentence, not review-policy jargon, and never a URL: iOS
+      // bundles its cores and there is nothing to fetch on this device.
+      throw CoreDownloadException(CoreDownloadFailure.notSupportedOnDevice);
     }
     if (manifest.blocked) {
       throw StateError(
@@ -324,12 +342,14 @@ class CoreDownloader {
       final url = urls[attempt];
       final lastAttempt = attempt == urls.length - 1;
       if (_isCancelled) {
-        _deleteIfExists(part);
+        _cleanupFailed(coreDir, part);
         throw CoreDownloadException(
           CoreDownloadFailure.cancelled,
           'Stopped before fetching $url',
         );
       }
+      // A prior attempt may have removed an empty directory during cleanup.
+      await coreDir.create(recursive: true);
       var received = 0;
       var sink = part.openWrite();
       try {
@@ -358,7 +378,7 @@ class CoreDownloader {
         try {
           await sink.close();
         } catch (_) {}
-        _deleteIfExists(part);
+        _cleanupFailed(coreDir, part);
         if (e is CoreDownloadException) rethrow;
         final status = e is CoreAssetHttpException ? e.statusCode : null;
         final missing =
@@ -385,8 +405,7 @@ class CoreDownloader {
     }
 
     if (!await verifyPinnedFile(part.path, pin, hashes: _hashes)) {
-      _deleteIfExists(part);
-      _deleteIfExists(File('${part.path}.ezpin'));
+      _cleanupFailed(coreDir, part);
       throw CoreDownloadException(
         CoreDownloadFailure.checksumMismatch,
         'SHA-256 mismatch for ${manifest.id} — download discarded',

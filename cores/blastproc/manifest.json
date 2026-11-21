@@ -49,11 +49,7 @@
     "android": "absent",
     "ios": "absent"
   },
-  "artifacts": {
-    "macos-arm64": "a6d550ac7d1fed1262c632e910389b8a48b7f033c369fe8e8ca759e0b9e92b79",
-    "android-arm64": "a5ae4abe2ab6da97e6eaf5021e84ffadf10ab10eab7301244350a1986b247e10",
-    "linux-x64": "9f6af0beed1ec13e617d642911226b7fcc072af7b615ff4782ce37e3d1809f90"
-  },
+  "artifacts": {},
   "execution": {
     "macos": "interpreter",
     "windows": "interpreter",

@@ -53,11 +53,7 @@
     "version": "0.11-dev"
   },
   "blastproc": {
-    "artifacts": {
-      "android-arm64": "a5ae4abe2ab6da97e6eaf5021e84ffadf10ab10eab7301244350a1986b247e10",
-      "linux-x64": "9f6af0beed1ec13e617d642911226b7fcc072af7b615ff4782ce37e3d1809f90",
-      "macos-arm64": "a6d550ac7d1fed1262c632e910389b8a48b7f033c369fe8e8ca759e0b9e92b79"
-    },
+    "artifacts": {},
     "bios_files": [
       "bios_MD.bin",
       "bios.gg",
@@ -201,11 +197,7 @@
     "version": "0.0.0-blocked"
   },
   "coinbox": {
-    "artifacts": {
-      "android-arm64": "00d4762fb1142daf18191fcfacff931d3c8bb7f8e4dee157ff33ec14a25c7134",
-      "linux-x64": "8ee31e64c0669c83229251c4b66d8f330d4fcdd5a9f226e8fed2d076861ff527",
-      "macos-arm64": "f262cb0e2613ef0f5627fed89c4387656a6b829bd97136014ddbbee70d9860af"
-    },
+    "artifacts": {},
     "bios_files": [
       "neogeo.zip"
     ],
@@ -250,8 +242,7 @@
   },
   "dreamarc": {
     "artifacts": {
-      "linux-x64": "0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51",
-      "macos-arm64": "33635e6499bb352214eace841d5c2bc74f709a7518ad93a9aa86e66eec6bb327"
+      "linux-x64": "0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51"
     },
     "bios_files": [
       "dc_boot.bin",
@@ -407,11 +398,7 @@
     "version": "0.30+git.d44bfa1"
   },
   "gambatte": {
-    "artifacts": {
-      "android-arm64": "104d5e1b0c7c0186ca465b18da1e83c5ae924376f83f05387bbfb3f7c1a06a69",
-      "linux-x64": "878211cfd84dec3011436d381aa26c634b1fe9e44ff0aec1959c9c669d63771c",
-      "macos-arm64": "58ebd5cb81845f499188abb45c42d4a111f93a81994fc8fc0f64d84059faadde"
-    },
+    "artifacts": {},
     "bios_files": [],
     "bios_required": false,
     "cheat_families": [
@@ -764,8 +751,7 @@
   "pointclick": {
     "artifacts": {
       "android-arm64": "c23d31ab19d927e812befa12ed2ae521ada87f760d45d20c8ad026e74af97f36",
-      "linux-x64": "105aa4fefdc98b5875274f44aafa3a068ebdc27bef7a6ef3b24a0721baff03a1",
-      "macos-arm64": "20027dbdfcea9f00aca8baeb4bf3a6f4f00cdc3a531cd3ae61239a753f299dc6"
+      "linux-x64": "105aa4fefdc98b5875274f44aafa3a068ebdc27bef7a6ef3b24a0721baff03a1"
     },
     "bios_files": [],
     "bios_required": false,
@@ -905,8 +891,7 @@
   },
   "powercube": {
     "artifacts": {
-      "linux-x64": "932183e20d222d914850fa3c081dcd34c6d2acbde4a418a3dc1455545646c81e",
-      "macos-arm64": "ff830c91ffa2e863416e4ea6614b3406d3dab0533a912faa43ff41d4607ba327"
+      "linux-x64": "932183e20d222d914850fa3c081dcd34c6d2acbde4a418a3dc1455545646c81e"
     },
     "bios_files": [
       "IPL.bin"
@@ -1064,11 +1049,7 @@
     "version": "1.0-preview6"
   },
   "superfx": {
-    "artifacts": {
-      "android-arm64": "01c6f19d976f4fb7fa9083455c29d7c0cce6dea1b1ff2e3d9e50df40a082d26d",
-      "linux-x64": "642c43d9cc911bbfb1c80ffe419f8b1848c46906b16c3a3003e1e86234cbc65e",
-      "macos-arm64": "465b0613a6b03ebb570b10711a8681af45744a2e6a1111b07d07ec481f03b7d5"
-    },
+    "artifacts": {},
     "bios_files": [],
     "bios_required": false,
     "cheat_families": [

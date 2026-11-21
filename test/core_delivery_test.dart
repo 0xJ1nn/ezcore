@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ezcore/cores/core_registry.dart';
 import 'package:ezcore/models/core_manifest.dart';
+import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
 import 'package:ezcore/services/core_downloader.dart';
 import 'package:ezcore/services/hash_verifier.dart';
@@ -54,10 +55,11 @@ CoreManifest _giant(
   cheatFamilies: const [],
   cheatsSupported: false,
   delivery: {
-    os: 'download',
-    if (os != 'linux') 'linux': 'absent',
-    'android': 'absent',
-    'ios': 'absent',
+    'android': os == 'android' ? 'download' : 'absent',
+    'ios': os == 'ios' ? 'download' : 'absent',
+    'linux': os == 'linux' ? 'download' : 'absent',
+    'macos': os == 'macos' ? 'download' : 'absent',
+    'windows': os == 'windows' ? 'download' : 'absent',
   },
   artifacts: {platformKey: pin},
 );
@@ -325,7 +327,7 @@ void main() {
     });
 
     test('each failure has exactly one plain sentence for the UI', () {
-      expect(CoreDownloadFailure.values, hasLength(5));
+      expect(CoreDownloadFailure.values, hasLength(6));
       for (final failure in CoreDownloadFailure.values) {
         expect(failure.sentence, endsWith('.'), reason: failure.name);
         expect(failure.sentence, isNot(contains('\n')), reason: failure.name);
@@ -492,5 +494,413 @@ void main() {
       expect(find.text(CoreDownloadFailure.checksumMismatch.sentence),
           findsWidgets);
     }, timeout: const Timeout(Duration(seconds: 90)));
+  });
+
+  group('every platform says plainly when nothing is published', () {
+    Map<String, dynamic> shippedRelease() =>
+        json.decode(File('cores/release.json').readAsStringSync())
+            as Map<String, dynamic>;
+
+    test('iOS: no downloads by policy, not a network error', () {
+      final r = CoreRelease.fromJson(shippedRelease());
+      expect(r.hasAssetsFor('ios-arm64'), isFalse);
+      expect(r.unavailableMessage('ios-arm64'),
+          'On-demand core downloads are not offered on iOS.');
+      expect(r.assetName('ios-arm64', 'dreamarc'), isNull);
+      expect(
+        () => r.downloadUri('ios-arm64', 'dreamarc'),
+        throwsA(isA<CoreDownloadException>().having(
+          (e) => e.failure,
+          'failure',
+          CoreDownloadFailure.noAssetForPlatform,
+        )),
+      );
+    });
+
+    test('Android: cores are bundled elsewhere, not downloadable', () {
+      final r = CoreRelease.fromJson(shippedRelease());
+      expect(r.hasAssetsFor('android-arm64'), isFalse);
+      expect(r.unavailableMessage('android-arm64'),
+          contains('bundled with the Android app'));
+      expect(r.assetName('android-arm64', 'dreamarc'), isNull);
+      expect(
+        () => r.downloadUri('android-arm64', 'dreamarc'),
+        throwsA(isA<CoreDownloadException>().having(
+          (e) => e.failure,
+          'failure',
+          CoreDownloadFailure.noAssetForPlatform,
+        )),
+      );
+    });
+
+    test('macOS: no on-demand assets are published', () {
+      final r = CoreRelease.fromJson(shippedRelease());
+      expect(r.hasAssetsFor('macos-arm64'), isFalse);
+      expect(r.unavailableMessage('macos-arm64'),
+          contains('Install a core from a file instead'));
+      expect(r.assetName('macos-arm64', 'dreamarc'), isNull);
+      expect(
+        () => r.downloadUri('macos-arm64', 'dreamarc'),
+        throwsA(isA<CoreDownloadException>().having(
+          (e) => e.failure,
+          'failure',
+          CoreDownloadFailure.noAssetForPlatform,
+        )),
+      );
+    });
+
+    test('Windows: no on-demand assets are published', () {
+      final r = CoreRelease.fromJson(shippedRelease());
+      expect(r.hasAssetsFor('windows-x64'), isFalse);
+      expect(r.unavailableMessage('windows-x64'),
+          contains('Install a core from a file instead'));
+      expect(r.assetName('windows-x64', 'dreamarc'), isNull);
+      expect(
+        () => r.downloadUri('windows-x64', 'dreamarc'),
+        throwsA(isA<CoreDownloadException>().having(
+          (e) => e.failure,
+          'failure',
+          CoreDownloadFailure.noAssetForPlatform,
+        )),
+      );
+    });
+
+    test('Linux: the pinned assets the release serves are offered', () {
+      final r = CoreRelease.fromJson(shippedRelease());
+      expect(r.hasAssetsFor('linux-x64'), isTrue);
+      expect(r.assetName('linux-x64', 'dreamarc'),
+          'dreamarc_libretro-linux-x64.so');
+      expect(
+        r.downloadUri('linux-x64', 'dreamarc').toString(),
+        'https://github.com/0xJ1nn/ezcore/releases/download/v0.2.0/'
+        'dreamarc_libretro-linux-x64.so',
+      );
+    });
+
+    // The downloader never touches the network for a platform with no asset.
+    for (final platform in [
+      ('android-arm64', 'android'),
+      ('macos-arm64', 'macos'),
+      ('windows-x64', 'windows'),
+    ]) {
+      test('download on ${platform.$1} refuses before fetching', () async {
+        final key = platform.$1;
+        final pin = await pinOf(utf8.encode('x'));
+        final fetcher = _RoutingFetcher(
+          (_) => Stream.fromIterable([utf8.encode('x')]),
+        );
+        await expectLater(
+          run(
+            downloader(fetcher),
+            _giant(pin, platformKey: key, os: platform.$2),
+            CoreRelease.fromJson(_release(asset: null)),
+            platformKey: key,
+          ),
+          throwsA(isA<CoreDownloadException>().having(
+            (e) => e.failure,
+            'failure',
+            CoreDownloadFailure.noAssetForPlatform,
+          )),
+        );
+        expect(fetcher.seen, isEmpty);
+        expect(Directory('${tmpDir.path}/cores/giant').existsSync(), isFalse);
+      });
+    }
+
+    test('download on iOS gives a plain sentence and leaves no files',
+        () async {
+      final pin = await pinOf(utf8.encode('x'));
+      final fetcher = _RoutingFetcher(
+        (_) => Stream.fromIterable([utf8.encode('x')]),
+      );
+      final dl = CoreDownloader(
+        dirs: dirs,
+        fetcher: fetcher,
+        hashes: const DartHashVerifier(),
+        isIOS: () => true,
+      );
+      await expectLater(
+        run(dl, _giant(pin), CoreRelease.fromJson(_release())),
+        throwsA(isA<CoreDownloadException>()
+            .having((e) => e.failure, 'failure',
+                CoreDownloadFailure.notSupportedOnDevice)
+            .having((e) => e.message, 'message',
+                CoreDownloadFailure.notSupportedOnDevice.sentence)),
+      );
+      expect(fetcher.seen, isEmpty);
+      expect(Directory('${tmpDir.path}/cores/giant').existsSync(), isFalse);
+    });
+
+    test('download on Linux verifies and installs a published asset',
+        () async {
+      final bytes = utf8.encode('published linux bytes');
+      final pin = await pinOf(bytes);
+      final registry = CoreRegistry();
+      await run(
+        downloader(_RoutingFetcher((_) => Stream.fromIterable([bytes]))),
+        _giant(pin),
+        CoreRelease.fromJson(_release()),
+        registry: registry,
+      );
+      expect(registry.isInstalled('giant'), isTrue);
+      expect(File('${tmpDir.path}/cores/giant/giant.so').readAsBytesSync(),
+          bytes);
+    });
+
+    // The manager must use the same plain words, on whichever host the
+    // widget test runs: inject that host's key with each platform's message.
+    Future<void> pumpAbsent(WidgetTester tester, String message) async {
+      final state = AppState.ephemeral();
+      final key = CorePathResolver.currentPlatformKey();
+      final os = key.split('-').first;
+      final m = _giant('pin', platformKey: key, os: os);
+      state.registry.loadCatalog({m.id: json.encode(m.toJson())});
+      state.coreRelease = CoreRelease.fromJson(<String, dynamic>{
+        'repo': '0xJ1nn/ezcore',
+        'tag': 'v0.2.0',
+        'assets': <String, dynamic>{},
+        'unavailablePlatforms': <String, dynamic>{
+          key: <String, dynamic>{'reason': 'test', 'message': message},
+        },
+      });
+      await tester.pumpWidget(MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(body: CoreManagerScreen(state: state)),
+      ));
+      await tester.tap(find.text('Available'));
+      await tester.pump();
+    }
+
+    for (final platformKey in [
+      'ios-arm64',
+      'android-arm64',
+      'macos-arm64',
+      'windows-x64',
+    ]) {
+      testWidgets('manager on $platformKey explains the absence', (tester) async {
+        final message =
+            CoreRelease.fromJson(shippedRelease()).unavailableMessage(platformKey)!;
+        await pumpAbsent(tester, message);
+        expect(find.text(message), findsWidgets);
+        expect(find.text('Not installed · ready to install'), findsNothing);
+        expect(
+          find.byWidgetPredicate(
+            (w) => w is Semantics &&
+                w.properties.label == 'Install' &&
+                w.properties.enabled == false,
+          ),
+          findsOneWidget,
+          reason: 'no install button for a platform with no assets',
+        );
+      });
+    }
+
+    testWidgets('manager offers a Linux core that has a published asset',
+        (tester) async {
+      final state = AppState.ephemeral();
+      final key = CorePathResolver.currentPlatformKey();
+      final os = key.split('-').first;
+      final m = _giant('pin', platformKey: key, os: os);
+      state.registry.loadCatalog({m.id: json.encode(m.toJson())});
+      state.coreRelease = CoreRelease.fromJson(_release(platformKey: key));
+      await tester.pumpWidget(MaterialApp(
+        theme: Tokens.theme(),
+        home: Scaffold(body: CoreManagerScreen(state: state)),
+      ));
+      await tester.tap(find.text('Available'));
+      await tester.pump();
+      expect(find.text('Not installed · ready to install'), findsWidgets);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Semantics &&
+              w.properties.label == 'Install' &&
+              w.properties.enabled == true,
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('uninstall leaves no orphan and keeps games playable', () {
+    test('vault files, pin state and half-downloads are removed', () async {
+      final bytes = utf8.encode('installed core');
+      final pin = await pinOf(bytes);
+      final state = AppState.internal(
+        persistence: null,
+        saves: MemorySaveSyncProvider(),
+        coreDirProvider: dirs,
+        downloader: downloader(
+          _RoutingFetcher((_) => Stream.fromIterable([bytes])),
+        ),
+      );
+      final m = _giant(pin);
+      final fallback = CoreManifest(
+        id: 'fallback',
+        name: 'Fallback Core',
+        version: '1',
+        license: 'MIT',
+        systems: ['testsystem'],
+        extensions: ['gt'],
+        cheatFamilies: const [],
+        cheatsSupported: false,
+        delivery: {'linux': 'bundled', 'android': 'absent', 'ios': 'absent'},
+        artifacts: {'linux-x64': pin},
+      );
+      state.registry.loadCatalog({
+        m.id: json.encode(m.toJson()),
+        fallback.id: json.encode(fallback.toJson()),
+      });
+      state.registry.install(m, expectedSha256: pin);
+      state.registry.install(fallback, expectedSha256: pin);
+
+      final coreDir = Directory('${tmpDir.path}/cores/giant')
+        ..createSync(recursive: true);
+      File('${coreDir.path}/giant.so').writeAsBytesSync(bytes);
+      File('${coreDir.path}/giant.so.ezpin').writeAsStringSync('{}');
+      File('${coreDir.path}/giant.so.part').writeAsBytesSync([1, 2]);
+
+      state.games = [
+        GameEntry(
+          id: 'g1',
+          title: 'With fallback',
+          system: 'testsystem',
+          filePath: '/g1.gt',
+          extension: 'gt',
+          coreId: 'giant',
+        ),
+        GameEntry(
+          id: 'g2',
+          title: 'Without fallback',
+          system: 'other',
+          filePath: '/g2.zz',
+          extension: 'zz',
+          coreId: 'giant',
+        ),
+      ];
+
+      await state.removeCore(m);
+
+      expect(coreDir.existsSync(), isFalse, reason: 'no orphan core directory');
+      expect(state.registry.isInstalled('giant'), isFalse);
+      expect(state.registry.isInstalled('fallback'), isTrue);
+      expect(state.games, hasLength(2), reason: 'games and saves stay');
+      expect(state.games.firstWhere((g) => g.id == 'g1').coreId, 'fallback');
+      expect(state.games.firstWhere((g) => g.id == 'g2').coreId, isEmpty,
+          reason: 'no compatible core left — launch shows a clear message');
+    });
+
+    test('a failed download leaves no half-installed directory', () async {
+      final pin = await pinOf(utf8.encode('x'));
+      final fetcher = _RoutingFetcher(
+        (_) => Stream<List<int>>.error(const SocketException('offline')),
+      );
+      await expectLater(
+        run(downloader(fetcher), _giant(pin), CoreRelease.fromJson(_release())),
+        throwsA(isA<CoreDownloadException>()),
+      );
+      final coreDir = Directory('${tmpDir.path}/cores/giant');
+      expect(coreDir.existsSync(), isFalse,
+          reason: 'an empty core directory is not left behind');
+    });
+  });
+
+  group('legacy fallback cannot be pointed at unverified bytes', () {
+    test('the retry changes only the owner, never tag or asset name', () {
+      final r = CoreRelease.fromJson(
+        _release(repo: 'JinUltimate1995/ezcore'),
+      );
+      final first = r.downloadUri('linux-x64', 'giant');
+      final retry = r.fallbackUri('linux-x64', 'giant')!;
+      expect(retry.host, first.host);
+      expect(retry.pathSegments.skip(1), first.pathSegments.skip(1));
+      expect(retry.query, first.query);
+      expect(retry.fragment, first.fragment);
+    });
+
+    test('a platform with no asset has no fallback URL either', () {
+      final r = CoreRelease.fromJson(
+        _release(repo: 'JinUltimate1995/ezcore', asset: null),
+      );
+      expect(
+        () => r.fallbackUri('linux-x64', 'giant'),
+        throwsA(isA<CoreDownloadException>().having(
+          (e) => e.failure,
+          'failure',
+          CoreDownloadFailure.noAssetForPlatform,
+        )),
+      );
+    });
+
+    test('a 404 on both owners is reported once with both URLs', () async {
+      final pin = await pinOf(utf8.encode('x'));
+      final fetcher = _RoutingFetcher(
+        (url) => Stream<List<int>>.error(CoreAssetHttpException(404, url)),
+      );
+      await expectLater(
+        run(
+          downloader(fetcher),
+          _giant(pin),
+          CoreRelease.fromJson(_release(repo: 'JinUltimate1995/ezcore')),
+        ),
+        throwsA(isA<CoreDownloadException>()
+            .having((e) => e.failure, 'failure',
+                CoreDownloadFailure.unreachable)
+            .having((e) => e.message, 'message',
+                allOf(contains('/JinUltimate1995/ezcore/'),
+                    contains('/0xJ1nn/ezcore/')))),
+      );
+      expect(fetcher.seen, hasLength(2));
+      expect(File('${tmpDir.path}/cores/giant/giant.so').existsSync(), isFalse);
+    });
+  });
+
+  group('the shipped catalog and release map cannot disagree', () {
+    test('no download core is impossible, unpinned or absent-with-pins', () {
+      final catalog =
+          json.decode(File('cores/catalog.json').readAsStringSync())
+              as Map<String, dynamic>;
+      final release =
+          json.decode(File('cores/release.json').readAsStringSync())
+              as Map<String, dynamic>;
+      final offered = (release['assets'] as Map<String, dynamic>).values
+          .expand((v) => (v as Map<String, dynamic>).keys)
+          .toSet();
+      final published = <String, String>{};
+      for (final line in File('cores/published-sha256.txt')
+          .readAsLinesSync()) {
+        final parts = line.trim().split(RegExp(r'\s+'));
+        if (parts.length == 2 && !line.trimLeft().startsWith('#')) {
+          published[parts[1]] = parts[0].toLowerCase();
+        }
+      }
+
+      for (final entry in catalog.entries) {
+        final m = entry.value as Map<String, dynamic>;
+        final delivery = (m['delivery'] as Map<String, dynamic>?) ?? const {};
+        final artifacts =
+            (m['artifacts'] as Map<String, dynamic>?) ?? const {};
+        if (delivery.values.contains('download')) {
+          expect(offered, contains(entry.key),
+              reason: '${entry.key} declares download but no asset exists');
+        }
+        if (!delivery.values
+            .any((v) => v == 'bundled' || v == 'download')) {
+          expect(artifacts, isEmpty,
+              reason: '${entry.key} is absent everywhere but keeps pins');
+        }
+        for (final artifact in artifacts.entries) {
+          final os = artifact.key.split('-').first;
+          if (delivery[os] != 'download') continue;
+          final ext = os == 'windows'
+              ? 'dll'
+              : (os == 'macos' || os == 'ios') ? 'dylib' : 'so';
+          final name = '${entry.key}_libretro-${artifact.key}.$ext';
+          expect(published[name], isNotNull,
+              reason: '$name has a pin but no published asset');
+          expect((artifact.value as String).toLowerCase(), published[name],
+              reason: '$name pin must be the published bytes');
+        }
+      }
+    });
   });
 }
