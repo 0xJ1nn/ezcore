@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../models/core_manifest.dart';
 import '../models/game_entry.dart';
+import '../services/cover_art.dart';
 import '../services/human_time.dart';
 import '../services/system_labels.dart';
 import '../state/app_state.dart';
@@ -97,6 +99,17 @@ class _GameDetailScreenState extends State<GameDetailScreen> {
           value: 'cheats',
         ),
         const OrbitSheetItem(
+          label: 'Change cover',
+          icon: Symbols.photoCamera,
+          value: 'cover',
+        ),
+        if (hasPinnedCover(g.id))
+          const OrbitSheetItem(
+            label: 'Reset cover',
+            icon: Symbols.restartAlt,
+            value: 'reset-cover',
+          ),
+        const OrbitSheetItem(
           label: 'Remove from library',
           icon: Symbols.delete,
           value: 'remove',
@@ -112,9 +125,45 @@ class _GameDetailScreenState extends State<GameDetailScreen> {
         await _chooseCore(g, cores);
       case 'cheats':
         await _openCheats(g);
+      case 'cover':
+        await _changeCover(g);
+      case 'reset-cover':
+        await _resetCover(g);
       case 'remove':
         await _remove(g);
     }
+  }
+
+  /// Picks one image for this game. The service validates the bytes, so a
+  /// mislabelled or broken file is reported plainly rather than pinned.
+  Future<void> _changeCover(GameEntry g) async {
+    XFile? picked;
+    try {
+      picked = await openFile(
+        acceptedTypeGroups: const [
+          XTypeGroup(
+            label: 'Images',
+            extensions: ['png', 'jpg', 'jpeg', 'webp'],
+            mimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+            uniformTypeIdentifiers: ['public.png', 'public.jpeg', 'public.webp'],
+          ),
+        ],
+      );
+    } catch (_) {
+      picked = null;
+    }
+    if (picked == null) return;
+    final written = await setCoverFromFile(g.id, picked.path);
+    if (!mounted) return;
+    orbitToast(
+      context,
+      written == null ? 'That file is not an image' : 'Cover changed',
+    );
+  }
+
+  Future<void> _resetCover(GameEntry g) async {
+    await resetCover(g.id);
+    if (mounted) orbitToast(context, 'Cover back to generated');
   }
 
   Future<void> _chooseCore(GameEntry g, List<CoreManifest> cores) async {
