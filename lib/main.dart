@@ -15,6 +15,7 @@ import 'state/input_mode.dart';
 import 'screens/core_manager_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/import_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
 import 'theme/accessibility.dart';
@@ -51,6 +52,36 @@ KeyEventResult shellKeyEvent(KeyEvent event, [UiSounds? sounds]) {
     }
   }
   return result;
+}
+
+/// Shows first run in place of the shell on a new library.
+///
+/// The gate waits for loading so a library restored from disk never flashes
+/// the walkthrough. Finishing first run saves its answer in [AppState], which
+/// rebuilds this gate straight into the shell.
+class FirstRunGate extends StatelessWidget {
+  const FirstRunGate({
+    super.key,
+    required this.state,
+    required this.shell,
+  });
+
+  final AppState state;
+  final WidgetBuilder shell;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!state.loaded) {
+      return const Scaffold(
+        backgroundColor: Tokens.bg,
+        body: Center(child: CircularProgressIndicator(color: Tokens.accent)),
+      );
+    }
+    if (OnboardingScreen.shouldShow(state)) {
+      return OnboardingScreen(state: state);
+    }
+    return shell(context);
+  }
 }
 
 /// Carries the persisted accessibility preferences from [AppState] into the
@@ -187,14 +218,6 @@ class _EmuAppState extends State<EmuApp> {
         child: ListenableBuilder(
           listenable: state,
           builder: (context, _) {
-            if (!state.loaded) {
-              return const Scaffold(
-                backgroundColor: Tokens.bg,
-                body: Center(
-                  child: CircularProgressIndicator(color: Tokens.accent),
-                ),
-              );
-            }
             if (state.loadError != null && kReleaseMode == false) {
               if (state.registry.catalog.isEmpty) {
                 return Scaffold(
@@ -211,9 +234,12 @@ class _EmuAppState extends State<EmuApp> {
                 );
               }
             }
-            return ListenableBuilder(
-              listenable: InputMode.shared,
-              builder: (context, _) => Shell(state: state),
+            return FirstRunGate(
+              state: state,
+              shell: (_) => ListenableBuilder(
+                listenable: InputMode.shared,
+                builder: (context, _) => Shell(state: state),
+              ),
             );
           },
         ),
