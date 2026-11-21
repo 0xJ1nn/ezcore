@@ -101,20 +101,20 @@ Remap any button by pressing it. Hold **Select + Start** for a pause menu with s
 
 ## The lineup
 
-ezCORE hosts the best open-source emulators through the [libretro](https://www.libretro.com/) standard and polishes everything around them. Each row states what has been checked: "Boots and saves" means the core loaded real content, drew frames and survived a save-state round trip on the named platform. Other stages are labelled as in progress or held. Evidence: [`docs/MATRIX.md`](docs/MATRIX.md).
+ezCORE hosts the best open-source emulators through the [libretro](https://www.libretro.com/) standard and polishes everything around them. Each row states what has been checked: **boots** means the core loaded real content, drew frames and survived a save-state round trip on the named platform, and **renders** adds that a frame was recorded and differs from the same core fed a file from another system. "Boots" without "renders" means the run happened but no frame was kept, so the picture itself is unverified. Anything less is labelled. Evidence: [`docs/MATRIX.md`](docs/MATRIX.md).
 
 | System | Core | Status |
 |---|---|---|
-| Game Boy / Game Boy Color | PocketBit (SameBoy) | Boots and saves · Linux, macOS |
-| Game Boy Advance | AdvanceBit (mGBA) | Boots and saves · macOS; build verified on Linux |
-| NES / Famicom | NesByte (Mesen) | Boots and saves · Linux |
-| PlayStation | Geometry1 (SwanStation) | Boots and saves · Linux |
-| PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves · Linux. DualVU needs no BIOS; LRPS2 uses your own dump |
-| Nintendo DS | DualScreen (melonDS) | Boots and saves · Linux |
-| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots and renders · Linux (GPU or software renderer) |
+| Game Boy / Game Boy Color | PocketBit (SameBoy) | Boots, saves and renders · Linux (recorded frame). Builds on macOS |
+| Game Boy Advance | AdvanceBit (mGBA) | Boots, saves and renders · Linux (recorded frame). Builds on macOS |
+| NES / Famicom | NesByte (Mesen) | Boots, saves and renders · Linux (recorded frame) |
+| PlayStation | Geometry1 (SwanStation) | Loads and survives a state round trip on Linux; its video output is not yet evidence, so rendering is unclaimed |
+| PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves on Linux; no frame recorded yet. DualVU needs no BIOS; LRPS2 uses your own dump |
+| Nintendo DS | DualScreen (melonDS) | Boots and saves on Linux; no frame recorded yet |
+| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots, saves and renders · Linux, GPU or software renderer (recorded frame) |
 | PC Engine · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Verification in progress |
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Verification in progress |
-| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Boots and renders on Linux (GPU); other platforms in progress |
+| PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Boots and saves on Linux; no frame recorded yet, and DreamArc's earlier capture was black. Other platforms in progress |
 | Watara Supervision · LCD handheld | SpritePocket (Potator) · PocketTick (GW) | Desktop on-demand download; render verification not yet recorded |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own: their licences forbid redistribution |
 | 3DS · Switch | — | Held by project policy |
