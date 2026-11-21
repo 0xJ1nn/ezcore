@@ -11,13 +11,15 @@ The directory name MUST equal the core's `id` field (see §2). The on-disk shape
 ```
 <core-id>/
   manifest.json               # validated, versioned source of truth
-  <core-id>.so|.dylib|.dll    # the core library (platform-specific suffix)
+  <core-id>_libretro.<ext>    # the core library (.so, .dylib or .dll)
   info/
     <core-id>.info             # libretro metadata — parsed, never executed
   options/                     # RESERVED for future use — not parsed by v1
   layouts/                     # on-screen layouts, ezcore.controls/1 (§9)
   cheats/                      # RESERVED for future use — not parsed by v1
 ```
+
+The library file is `<core-id>_libretro.<ext>`; `<core-id>.<ext>` is accepted as a fallback, but the app looks for the `_libretro` name first.
 
 The `<core-id>.info` file is a libretro core-info file: plain-text, line-oriented metadata parsed by `lib/services/retro_info_parser.dart`. It is never executed as code. Its grammar is `key = "value"` per line; lines beginning with `#` are comments; a trailing backslash (`\`) joins a logical line across the next physical line; and inside a quoted value, `\"` and `\\` are the only escapes. Unknown keys are preserved for callers.
 

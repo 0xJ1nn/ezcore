@@ -167,20 +167,25 @@ the app will refuse them. A core with `blocked_reason` cannot be pinned.
 
 ## Building the library for each platform
 
-The repository builds its bundled cores with `scripts/build_core.sh`. Its
-naming is the convention the app recognises, so an independently built library
-should use the same filename.
+The repository builds its bundled cores with `scripts/build_core.sh`, which
+dispatches `<core-id>` to a `build_<core-id>()` recipe defined in that script.
+That command cannot build a core of your own: an id without a recipe fails with
+`build_<core-id>: command not found`. Compile your source directly instead,
+keeping the `<core-id>_libretro.<ext>` name the app recognises.
 
-Fetch the libretro header once, then build with the target platform selected:
+Fetch the libretro header from a repository checkout, then compile from that
+checkout root:
 
 ```bash
 scripts/build_core.sh --fetch-headers
-scripts/build_core.sh <core-id>                       # macOS arm64 by default
-EZCORE_PLATFORM=linux scripts/build_core.sh <core-id>
-EZCORE_PLATFORM=windows scripts/build_core.sh <core-id>
-EZCORE_PLATFORM=android scripts/build_core.sh <core-id>
-EZCORE_PLATFORM=ios scripts/build_core.sh <core-id>
+cc -shared -fPIC -O2 -I runtime/external/libretro-common/include \
+   -o <core-id>_libretro.so <core-id>.c
 ```
+
+The fetch step places `libretro.h` under `runtime/external/libretro-common/include`.
+Use `clang -dynamiclib` and `.dylib` instead of `.so` on macOS, and `.dll` on
+Windows. On Android and iOS, pass the target sysroot and architecture to the
+NDK or Xcode compiler in the same shape.
 
 The platform layer resolves the architecture, the library suffix, the manifest
 pin key and the staging directory:
@@ -277,6 +282,19 @@ python3 scripts/build_catalog.py
 python3 scripts/license_audit.py
 bash scripts/banned_content_scan.sh
 ```
+
+Those gates inspect the repository, not a package built outside it. To check
+that your own library loads, build the native boot harness from a checkout and
+point it at the library in your package:
+
+```bash
+cmake -S runtime -B runtime/build-core-boot -DCMAKE_BUILD_TYPE=Release
+cmake --build runtime/build-core-boot --target test_core_boot -j4
+runtime/build-core-boot/test_core_boot <package-dir>/<core-id>_libretro.so --identify-only
+```
+
+It prints the name the core reports through `retro_get_system_info` and exits
+non-zero if the library cannot be loaded or identified.
 
 The catalog check rejects an iOS `download` delivery, duplicate identifiers and
 a blocked core that carries artifacts. The license and content gates refuse
