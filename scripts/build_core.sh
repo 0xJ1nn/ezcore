@@ -491,6 +491,62 @@ build_coinbox() {
 build_pointclick() {
   clone https://github.com/scummvm/scummvm.git "$SRC_DIR/scummvm"
   core_reset "$SRC_DIR/scummvm"
+  # Linux libretro build: Makefile.common:344 generates shared_modules.mk by
+  # sed-blanking the `-include engines/engines.mk` line, but that line is
+  # wrapped in ifeq/endif — the blanking orphans the `endif`, so make fails
+  # with "extraneous 'endif'". Drop the wrapper, keep the include: the sed
+  # then produces a valid file. Idempotent; restored by core_reset.
+  scumm_common="$SRC_DIR/scummvm/Makefile.common"
+  if grep -q 'ifeq (,$(filter updatepot,$(MAKECMDGOALS)))' "$scumm_common" 2>/dev/null; then
+    python3 - "$scumm_common" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+s = s.replace('ifeq (,$(filter updatepot,$(MAKECMDGOALS)))\n-include engines/engines.mk\nendif',
+              '-include engines/engines.mk')
+p.write_text(s)
+PY
+  fi
+  # configure_engines.sh generates config.h.engines/config.mk.engines with the
+  # enabled engine components, but the libretro port does NOT merge the header
+  # into its static include/config.h — instead it curates its own -DUSE_* list
+  # in backends/platform/libretro/Makefile.common. That list drifted behind
+  # config.h.engines: components like sjis and coktel_decoder are enabled on
+  # the make side (their .o files build) but never defined for C++, so engine
+  # code that uses their classes unconditionally fails with "incomplete type"
+  # (e.g. Graphics::FontSJIS in scumm/charset.cpp, Video::CoktelDecoder in
+  # gob/videoplayer.cpp). Enable every component from config.h.engines that
+  # the curated list omits, the same way the existing ones are enabled.
+  # Idempotent; restored by core_reset.
+  lrc_common="$SRC_DIR/scummvm/backends/platform/libretro/Makefile.common"
+  if grep -q '^USE_FAAD          = 1' "$lrc_common" 2>/dev/null && ! grep -q '^USE_SJIS' "$lrc_common" 2>/dev/null; then
+    python3 - "$lrc_common" <<'PY'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+anchor = 'USE_FAAD          = 1\n'
+assert s.count(anchor) == 1, "unexpected USE_FAAD anchor count"
+add = anchor + '''
+# ezCORE: components enabled by configure_engines.sh (config.h.engines) but
+# missing from the libretro curated -DUSE_* list. Engine code uses their
+# classes unconditionally; without these defines the headers gate them out.
+USE_SJIS             = 1
+USE_COKTEL_DECODER   = 1
+USE_HMI_AUDIO        = 1
+USE_MACTOOLBOX       = 1
+USE_MFC              = 1
+USE_MSMPEG4          = 1
+USE_QDM2             = 1
+USE_SVQ1             = 1
+USE_UNIVERSALTRACKER = 1
+USE_UNP64            = 1
+DEFINES += -DUSE_SJIS -DUSE_COKTEL_DECODER -DUSE_HMI_AUDIO -DUSE_MACTOOLBOX \\
+           -DUSE_MFC -DUSE_MSMPEG4 -DUSE_QDM2 -DUSE_SVQ1 \\
+           -DUSE_UNIVERSALTRACKER -DUSE_UNP64
+'''
+p.write_text(s.replace(anchor, add))
+PY
+  fi
   # USE_SYSTEM_mad=1: vendored libmad ships an extensionless `version` stamp
   # file that hijacks libc++'s <version> header (Xcode 27 libc++ includes it
   # from <limits>). USE_SYSTEM_png=1: vendored libpng hits the
