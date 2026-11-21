@@ -166,6 +166,47 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    // Save backups use the app's iCloud Documents folder so saves survive
+    // deleting the app. Without a container the locator reports the fallback
+    // as best effort instead of promising a path that will not be kept.
+    let backup = FlutterMethodChannel(name: "ezcore/backup", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    backup.setMethodCallHandler { call, result in
+      switch call.method {
+      case "icloudContainer":
+        // Returns nil until the iCloud capability is enabled for the bundle id.
+        guard let container = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
+          result(nil); return
+        }
+        let folder = container.appendingPathComponent("Documents/ezCORE Backup")
+        do {
+          try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+          result(folder.path)
+        } catch {
+          result(nil)
+        }
+      case "probeFolder":
+        guard let args = call.arguments as? [String: Any],
+              let folder = args["folder"] as? String else {
+          result(false); return
+        }
+        let probe = URL(fileURLWithPath: folder).appendingPathComponent(".ezcore_backup_probe")
+        do {
+          try "ok".write(to: probe, atomically: true, encoding: .utf8)
+          let bytes = try String(contentsOf: probe, encoding: .utf8)
+          try FileManager.default.removeItem(at: probe)
+          result(!bytes.isEmpty)
+        } catch {
+          // Clear a probe left behind by a partial failure before answering.
+          try? FileManager.default.removeItem(at: probe)
+          result(false)
+        }
+      case "pickTree":
+        result(nil) // macOS has no Storage Access Framework folder picker.
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     let padChannel = FlutterMethodChannel(name: "ezcore/gamepad", binaryMessenger: flutterViewController.engine.binaryMessenger)
     gamepad = GamepadBridge(channel: padChannel)
 

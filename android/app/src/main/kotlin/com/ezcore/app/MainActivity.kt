@@ -1,11 +1,15 @@
 package com.ezcore.app
 
+import android.app.Activity
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import android.hardware.input.InputManager
+import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -19,6 +23,10 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var track: AudioTrack? = null
     private var gamepadChannel: MethodChannel? = null
+    // Save-backup picker: at most one launched tree owns the pending result,
+    // so a cancel and a success each answer Dart exactly once.
+    private var pendingBackupPick: MethodChannel.Result? = null
+    private val backupPickRequestCode = 0x4255434B // 'BUCK'
     private var padConnected: Boolean = false
     // Stick-as-dpad latch state so held sticks don't spam releases wrongly.
     private val stickHeld = mutableSetOf<String>()
@@ -76,6 +84,41 @@ class MainActivity : FlutterActivity() {
                         "kind" to "path",
                         "path" to applicationInfo.nativeLibraryDir +
                             "/libezcore_runtime.so"))
+                    else -> result.notImplemented()
+                }
+            }
+        // Save backups live in a durable SAF tree the person picks once; that
+        // grant outlives the app. The other two methods answer honestly where
+        // Android has no iCloud or system-equivalent folder picker contract.
+        MethodChannel(engine.dartExecutor.binaryMessenger, "ezcore/backup")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "pickTree" -> {
+                        if (pendingBackupPick != null) {
+                            // One picker owns the request code at a time. A
+                            // second launch would answer the first call with
+                            // the wrong tree and strand its own reply.
+                            result.success(null)
+                        } else {
+                            pendingBackupPick = result
+                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                            }
+                            try {
+                                startActivityForResult(intent, backupPickRequestCode)
+                            } catch (e: Exception) {
+                                pendingBackupPick = null
+                                result.success(null)
+                            }
+                        }
+                    }
+                    "probeFolder" -> {
+                        val folder = call.argument<String>("folder")
+                        result.success(folder != null && probeFolder(folder))
+                    }
+                    "icloudContainer" -> result.success(null)
                     else -> result.notImplemented()
                 }
             }
@@ -227,6 +270,61 @@ class MainActivity : FlutterActivity() {
     private fun stop() {
         track?.release()
         track = null
+    }
+
+    /// Writes and removes a throwaway file inside a granted SAF tree so the
+    /// locator knows the folder will still take saves after a reinstall. A
+    /// tree grant has no plain filesystem path, so DocumentsContract works
+    /// against the grant directly without pulling in a documentfile library.
+    private fun probeFolder(folder: String): Boolean {
+        val resolver = contentResolver
+        return try {
+            val treeUri = Uri.parse(folder)
+            val parent = DocumentsContract.buildDocumentUriUsingTree(
+                treeUri, DocumentsContract.getTreeDocumentId(treeUri))
+            val probe = DocumentsContract.createDocument(
+                resolver, parent, "application/octet-stream", ".ezcore_backup_probe")
+                ?: return false
+            try {
+                val out = resolver.openOutputStream(probe) ?: return false
+                out.use { it.write("ok".toByteArray()); it.flush() }
+                val input = resolver.openInputStream(probe) ?: return false
+                input.use { it.readBytes().isNotEmpty() }
+            } finally {
+                try {
+                    DocumentsContract.deleteDocument(resolver, probe)
+                } catch (_: Exception) {}
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == backupPickRequestCode) {
+            val pending = pendingBackupPick
+            pendingBackupPick = null
+            if (resultCode == Activity.RESULT_OK && data?.data != null) {
+                val uri = data.data!!
+                // A grant the platform refuses to persist dies on reboot.
+                // Answering with it would claim a durable folder the app
+                // cannot write after a restart or reinstall.
+                val persisted = try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                pending?.success(if (persisted) uri.toString() else null)
+            } else {
+                pending?.success(null)
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
