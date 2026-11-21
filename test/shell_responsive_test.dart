@@ -5,6 +5,7 @@ import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/screens/home_screen.dart';
+import 'package:ezcore/screens/import_screen.dart';
 import 'package:ezcore/screens/vault_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
@@ -162,31 +163,90 @@ void main() {
     });
   }
 
-  testWidgets('four spaces, every size', (tester) async {
+  testWidgets('every destination is present at every size', (tester) async {
     for (final size in viewports.values) {
       await pumpShell(tester, size);
-      final nav = find.byType(
-        find.byType(OrbitRail).evaluate().isNotEmpty ? OrbitRail : OrbitBottomNav,
-      );
+      final phone = find.byType(OrbitRail).evaluate().isEmpty;
+      final nav = find.byType(phone ? OrbitBottomNav : OrbitRail);
       for (final label in ['Library', 'Systems', 'Capsule', 'Settings']) {
         expect(find.descendant(of: nav, matching: find.text(label)),
             findsOneWidget, reason: '$label at $size');
       }
+      if (phone) {
+        expect(find.descendant(of: nav, matching: find.text('Add')),
+            findsOneWidget, reason: 'Add at $size');
+      }
       for (final gone in ['Cores', 'Continue', 'Favorites']) {
         expect(
-          find.descendant(
-            of: find.byType(
-              find.byType(OrbitRail).evaluate().isNotEmpty
-                  ? OrbitRail
-                  : OrbitBottomNav,
-            ),
-            matching: find.text(gone),
-          ),
+          find.descendant(of: nav, matching: find.text(gone)),
           findsNothing,
           reason: '$gone is no longer a destination ($size)',
         );
       }
     }
+  });
+
+  testWidgets('the phone bar has five destinations and Add opens import', (
+    tester,
+  ) async {
+    await pumpShell(tester, const Size(390, 844));
+    final nav = find.byType(OrbitBottomNav);
+    expect(nav, findsOneWidget);
+    final box = tester.renderObject<RenderBox>(nav);
+    expect(box.size.height, Tokens.bottomBarHeight);
+    // The plate's 26 px inset is added below the measured row, not carved
+    // out of it, so the row keeps its full touch targets and gesture room.
+    final inset = tester.renderObject<RenderBox>(
+      find.ancestor(of: nav, matching: find.byType(SafeArea)).first,
+    );
+    expect(inset.size.height, Tokens.bottomBarHeight + 26);
+    for (final label in ['Library', 'Systems', 'Capsule', 'Settings', 'Add']) {
+      expect(find.descendant(of: nav, matching: find.text(label)),
+          findsOneWidget, reason: label);
+    }
+    final addIcon = find.descendant(
+      of: nav,
+      matching: find.byIcon(Icons.add_circle_outline),
+    );
+    expect(addIcon, findsOneWidget);
+    expect(tester.widget<Icon>(addIcon).size, 24);
+    final addLabel = find.descendant(of: nav, matching: find.text('Add'));
+    final style = tester.widget<Text>(addLabel).style!;
+    expect(style.fontSize, 12);
+    expect(style.fontWeight, FontWeight.w600);
+    expect(find.byType(ImportScreen), findsNothing);
+    await tester.tap(find.descendant(of: nav, matching: find.text('Add')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ImportScreen), findsOneWidget);
+  });
+
+  testWidgets('a deeper gesture inset is added below the measured bar', (
+    tester,
+  ) async {
+    tester.view.viewPadding = const FakeViewPadding(bottom: 34);
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    addTearDown(() {
+      tester.view.resetViewPadding();
+      tester.view.resetPadding();
+    });
+    await pumpShell(tester, const Size(390, 844));
+    final nav = find.byType(OrbitBottomNav);
+    expect(tester.renderObject<RenderBox>(nav).size.height,
+        Tokens.bottomBarHeight);
+    final inset = tester.renderObject<RenderBox>(
+      find.ancestor(of: nav, matching: find.byType(SafeArea)).first,
+    );
+    expect(inset.size.height, Tokens.bottomBarHeight + 34);
+  });
+
+  testWidgets('digit 5 opens Add games', (tester) async {
+    await pumpShell(tester, const Size(1280, 720));
+    expect(find.byType(ImportScreen), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit5);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(ImportScreen), findsOneWidget);
   });
 
   testWidgets('wide screens use the rail, phones in portrait the bottom bar',

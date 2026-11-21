@@ -44,8 +44,8 @@ class OrbitNavItem {
   final IconData filled;
 }
 
-/// The four spaces of the OS, in order (keys 1–4): your games, the systems
-/// that play them (cores), the time capsule of saves, and settings.
+/// The four switching spaces of the OS, in order (keys 1–4): your games, the
+/// systems that play them (cores), the time capsule of saves, and settings.
 const orbitNavItems = [
   OrbitNavItem('library', 'Library', Icons.grid_view_outlined, Icons.grid_view),
   OrbitNavItem(
@@ -57,6 +57,17 @@ const orbitNavItems = [
   OrbitNavItem('capsule', 'Capsule', Icons.history_outlined, Icons.history),
   OrbitNavItem('settings', 'Settings', Icons.settings_outlined, Icons.settings),
 ];
+
+/// The phone bar's fifth destination: a direct route to Add games (key 5).
+///
+/// The rail spells the same action "Add games"; on a phone the design's tab
+/// label is simply "Add".
+const orbitAddNavItem = OrbitNavItem(
+  'import',
+  'Add',
+  Icons.add_circle_outline,
+  Icons.add_circle,
+);
 
 /// Landscape left command rail (84px, 72px short).
 class OrbitRail extends StatelessWidget {
@@ -738,30 +749,39 @@ class OrbitIconButton extends StatelessWidget {
 }
 
 /// Phone-portrait command bar — the plate's bottom navigation.
+///
+/// The content row stays exactly [Tokens.bottomBarHeight] tall; the shell
+/// places the bottom safe-area inset below this widget so the gesture area is
+/// never clipped by the measured bar.
 class OrbitBottomNav extends StatelessWidget {
-  const OrbitBottomNav({super.key, required this.page, required this.onGo});
+  const OrbitBottomNav({
+    super.key,
+    required this.page,
+    required this.onGo,
+    required this.onAddGames,
+  });
   final String page;
   final ValueChanged<String> onGo;
+
+  /// The fifth cell opens the import flow instead of switching a page.
+  final VoidCallback onAddGames;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: Tokens.bottomBarHeight,
       decoration: Tokens.bottomBarDecor,
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            for (final it in orbitNavItems)
-              Expanded(
-                child: _BottomNavButton(
-                  item: it,
-                  active: page == it.id,
-                  onTap: () => onGo(it.id),
-                ),
+      child: Row(
+        children: [
+          for (final it in [...orbitNavItems, orbitAddNavItem])
+            Expanded(
+              child: _BottomNavButton(
+                item: it,
+                active: page == it.id,
+                onTap: () => it.id == 'import' ? onAddGames() : onGo(it.id),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -790,14 +810,16 @@ class _BottomNavButton extends StatelessWidget {
           children: [
             Icon(
               active ? item.filled : item.icon,
-              size: 20,
+              size: 24,
               color: active ? Tokens.accent : Tokens.muted,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: Tokens.body(
-                size: 9,
+                size: 12,
+                weight: FontWeight.w600,
+                height: 1,
                 color: active ? Tokens.text : Tokens.muted,
               ),
             ),
