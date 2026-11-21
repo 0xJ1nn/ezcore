@@ -39,7 +39,10 @@ Future<void> pumpMeasured(
   addTearDown(t.view.resetPhysicalSize);
   addTearDown(t.view.resetDevicePixelRatio);
   await t.pumpWidget(
-    MaterialApp(theme: Tokens.theme(), home: Scaffold(body: body)),
+    MaterialApp(
+      theme: Tokens.theme(),
+      home: Scaffold(body: body),
+    ),
   );
   await t.pump();
 }
@@ -48,7 +51,9 @@ void main() {
   testWidgets('primary CTA renders the measured button', (t) async {
     await pumpMeasured(
       t,
-      Center(child: OrbitPrimary(label: 'Resume', onPressed: () {})),
+      Center(
+        child: OrbitPrimary(label: 'Resume', onPressed: () {}),
+      ),
     );
     final buttonFinder = find
         .descendant(
@@ -70,6 +75,26 @@ void main() {
     );
     expect(label.style?.fontSize, 17);
     expect(label.style?.fontWeight, FontWeight.w700);
+    expect(
+      label.style?.fontFamily,
+      Tokens.bodyFamily,
+      reason: 'button body face',
+    );
+
+    await pumpMeasured(
+      t,
+      Center(
+        child: OrbitSecondary(label: 'Open Systems', onPressed: () {}),
+      ),
+    );
+    final secondary = t.widget<OutlinedButton>(find.byType(OutlinedButton));
+    expect(
+      secondary.style?.minimumSize?.resolve(<WidgetState>{}),
+      const Size(0, Tokens.ctaHeight),
+    );
+    final secondaryLabel = t.widget<Text>(find.text('Open Systems'));
+    expect(secondaryLabel.style?.fontSize, 16);
+    expect(secondaryLabel.style?.fontWeight, FontWeight.w700);
   });
 
   testWidgets('phone bar insets tabs and keeps the measured label gap', (
@@ -78,11 +103,7 @@ void main() {
     await pumpMeasured(
       t,
       SizedBox.expand(
-        child: OrbitBottomNav(
-          page: 'library',
-          onGo: (_) {},
-          onAddGames: () {},
-        ),
+        child: OrbitBottomNav(page: 'library', onGo: (_) {}, onAddGames: () {}),
       ),
       size: const Size(390, 844),
     );
@@ -98,7 +119,9 @@ void main() {
           .first,
     );
     expect(barBox.padding, const EdgeInsets.symmetric(horizontal: 8));
-    final firstTab = find.descendant(of: bar, matching: find.byType(InkWell)).first;
+    final firstTab = find
+        .descendant(of: bar, matching: find.byType(InkWell))
+        .first;
     expect(
       t.getRect(firstTab).left - t.getRect(bar).left,
       8,
@@ -146,7 +169,10 @@ void main() {
     );
     expect(panel.padding, const EdgeInsets.fromLTRB(16, 0, 8, 0));
     final title = t.widget<Text>(
-      find.descendant(of: find.byType(GameDock), matching: find.text('Deep Orbit')),
+      find.descendant(
+        of: find.byType(GameDock),
+        matching: find.text('Deep Orbit'),
+      ),
     );
     expect(title.style?.fontSize, 17, reason: 'mini title size');
   });
@@ -154,12 +180,13 @@ void main() {
   testWidgets('toast keeps the measured Undo gap', (t) async {
     await pumpMeasured(
       t,
-      Center(child: OrbitToast(message: 'Saved', onUndo: () {})),
+      Center(
+        child: OrbitToast(message: 'Saved', onUndo: () {}),
+      ),
     );
-    final undoRow = find.ancestor(
-      of: find.text('Undo'),
-      matching: find.byType(Row),
-    ).last;
+    final undoRow = find
+        .ancestor(of: find.text('Undo'), matching: find.byType(Row))
+        .last;
     final children = t.widget<Row>(undoRow).children;
     final gap = children[children.length - 2];
     expect(gap, isA<SizedBox>());
@@ -203,25 +230,57 @@ void main() {
     );
     final rail = t.widget<Container>(
       find
-          .descendant(of: find.byType(OrbitRail), matching: find.byType(Container))
+          .descendant(
+            of: find.byType(OrbitRail),
+            matching: find.byType(Container),
+          )
           .first,
     );
-    expect(rail.padding, const EdgeInsets.fromLTRB(10, 96, 10, 28));
+    // The prototype's rail pads `96px 0 28px` (no horizontal inset): its
+    // 80 px items are centred in the 104 px rail by the column. Add games sits
+    // 18 px below the four destinations (`margin-top:18px` on the fifth stop).
+    expect(rail.padding, const EdgeInsets.fromLTRB(0, 96, 0, 28));
+    expect(
+      find.descendant(
+        of: find.byType(OrbitRail),
+        matching: find.byWidgetPredicate(
+          (w) => w is SizedBox && w.height == Tokens.railAddGap,
+        ),
+      ),
+      findsOneWidget,
+      reason: 'gap before Add games',
+    );
     final button = find.byType(AnimatedContainer).first;
     final box = t.widget<AnimatedContainer>(button);
+    expect(
+      t.getRect(button).width,
+      Tokens.railItemWidth,
+      reason: 'rail item width',
+    );
+    // Pick the stop's own box by its measured min-height: the focus border
+    // also builds a Container with tight width constraints inside the rail
+    // button's AnimatedContainer.
     final inner = t.widget<Container>(
       find
           .descendant(
             of: button,
             matching: find.byWidgetPredicate(
-              (w) => w is Container && w.constraints != null,
+              (w) =>
+                  w is Container &&
+                  w.constraints?.minHeight == Tokens.railItemHeight,
             ),
           )
           .first,
     );
-    expect(inner.constraints!.minHeight, 76, reason: 'rail button height');
-    expect((box.decoration! as BoxDecoration).borderRadius,
-        BorderRadius.circular(16));
+    expect(
+      inner.constraints!.minHeight,
+      Tokens.railItemHeight,
+      reason: 'rail button height',
+    );
+    expect(
+      (box.decoration! as BoxDecoration).borderRadius,
+      BorderRadius.circular(16),
+    );
     final gap = t.widget<SizedBox>(
       find
           .descendant(
@@ -236,8 +295,11 @@ void main() {
     final label = t.widget<Text>(
       find.descendant(of: button, matching: find.text('Library')),
     );
-    expect(label.style?.fontWeight, FontWeight.w600,
-        reason: 'inactive rail label weight');
+    expect(
+      label.style?.fontWeight,
+      FontWeight.w600,
+      reason: 'inactive rail label weight',
+    );
   });
 
   testWidgets('short rail uses the measured compact button', (t) async {
@@ -268,9 +330,15 @@ void main() {
           )
           .first,
     );
-    expect(inner.constraints!.minHeight, 52, reason: 'short rail button height');
-    expect((box.decoration! as BoxDecoration).borderRadius,
-        BorderRadius.circular(14));
+    expect(
+      inner.constraints!.minHeight,
+      52,
+      reason: 'short rail button height',
+    );
+    expect(
+      (box.decoration! as BoxDecoration).borderRadius,
+      BorderRadius.circular(14),
+    );
     final icon = t.widget<Icon>(
       find.descendant(of: button, matching: find.byType(Icon)).first,
     );
@@ -293,6 +361,14 @@ void main() {
       reason: 'grid row gap',
     );
     expect(grid.padding, const EdgeInsets.fromLTRB(47, 20, 47, 24));
+    expect(LookTheme.gridCover, const Size(132, 176), reason: 'prototype CSS');
+    expect(LookTheme.wallCover, const Size(156, 208), reason: 'prototype CSS');
+    expect(
+      const Size(LookTheme.shelfCoverWidth, LookTheme.shelfCoverHeight),
+      const Size(150, 200),
+      reason: 'prototype CSS',
+    );
+    expect(LookTheme.shelfGap, 22, reason: 'prototype CSS');
     await pumpMeasured(
       t,
       SizedBox(
@@ -362,6 +438,172 @@ void main() {
     );
     await t.pump();
     expect(t.widget<LibraryTitle>(find.byType(LibraryTitle)).titleSize, 28);
+  });
+
+  testWidgets('switch renders the measured 56×32 toggle and 24 px knob', (
+    t,
+  ) async {
+    await pumpMeasured(
+      t,
+      Center(
+        child: OrbitToggle(value: true, onChanged: (_) {}, label: 'Motion'),
+      ),
+    );
+    final trackFinder = find.byType(AnimatedContainer).first;
+    final track = t.widget<AnimatedContainer>(trackFinder);
+    expect(
+      t.getSize(trackFinder),
+      const Size(Tokens.toggleWidth, Tokens.toggleHeight),
+    );
+    expect(track.padding, const EdgeInsets.all(Tokens.togglePad));
+    expect(
+      (track.decoration! as BoxDecoration).borderRadius,
+      BorderRadius.circular(Tokens.toggleRadius),
+    );
+    // An AnimatedContainer builds its own Container, so a plain
+    // `find.byType(Container).first` finds the 56×32 track, not the knob.
+    // Select the child pinned to the measured 24 px knob size instead.
+    final knobFinder = find.descendant(
+      of: trackFinder,
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.constraints ==
+                BoxConstraints.tightFor(
+                  width: Tokens.toggleKnob,
+                  height: Tokens.toggleKnob,
+                ),
+      ),
+    );
+    expect(knobFinder, findsOneWidget, reason: 'toggle knob');
+    expect(
+      t.getSize(knobFinder),
+      const Size(Tokens.toggleKnob, Tokens.toggleKnob),
+    );
+  });
+
+  testWidgets('full dock keeps the measured badge, gaps and glyph chip', (
+    t,
+  ) async {
+    await pumpMeasured(
+      t,
+      SizedBox(
+        width: 900,
+        child: GameDock(
+          game: _game,
+          mode: GameDockMode.full,
+          onResume: () {},
+          onDetails: () {},
+          onFavorite: () {},
+          onMore: () {},
+        ),
+      ),
+    );
+    final badge = t.widget<Container>(
+      find
+          .ancestor(of: find.text('GAMECUBE'), matching: find.byType(Container))
+          .first,
+    );
+    expect(
+      badge.padding,
+      const EdgeInsets.symmetric(horizontal: Tokens.dockGap),
+    );
+    final chipFinder = find
+        .ancestor(of: find.text('Enter'), matching: find.byType(Container))
+        .first;
+    final chip = t.widget<Container>(chipFinder);
+    expect(t.getSize(chipFinder).height, 24, reason: '24 px glyph chip');
+    expect(chip.decoration, isA<BoxDecoration>());
+    expect(
+      (chip.decoration! as BoxDecoration).borderRadius,
+      BorderRadius.circular(12),
+    );
+    expect(
+      find.descendant(
+        of: find.byType(GameDock),
+        matching: find.byWidgetPredicate(
+          (w) => w is SizedBox && w.height == Tokens.dockGap,
+        ),
+      ),
+      findsWidgets,
+      reason: '10 px dock rhythm',
+    );
+  });
+
+  testWidgets('OS bar status corner keeps the measured chip and gap', (
+    t,
+  ) async {
+    await pumpMeasured(t, OrbitStatus(now: () => DateTime(2026, 1, 1, 9, 41)));
+    final chipFinder = find
+        .ancestor(
+          of: find.text('On this device'),
+          matching: find.byType(Container),
+        )
+        .first;
+    final chip = t.widget<Container>(chipFinder);
+    expect(t.getSize(chipFinder).height, 30);
+    expect(
+      chip.padding,
+      const EdgeInsets.symmetric(horizontal: Tokens.statusPad),
+    );
+    final label = t.widget<Text>(find.text('On this device'));
+    expect(label.style?.fontSize, 14);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is SizedBox && w.width == Tokens.statusGap,
+      ),
+      findsNWidgets(2),
+      reason: '22 px status gaps',
+    );
+  });
+
+  testWidgets('library search field and chip counts keep the measured type', (
+    t,
+  ) async {
+    final controller = TextEditingController();
+    final node = FocusNode();
+    addTearDown(() {
+      controller.dispose();
+      node.dispose();
+    });
+    await pumpMeasured(
+      t,
+      LibrarySearchField(
+        controller: controller,
+        focusNode: node,
+        onChanged: (_) {},
+      ),
+    );
+    final field = t.widget<AnimatedContainer>(
+      find.byType(AnimatedContainer).first,
+    );
+    expect(
+      field.padding,
+      const EdgeInsets.fromLTRB(
+        Tokens.searchPadLeft,
+        0,
+        Tokens.searchPadRight,
+        0,
+      ),
+    );
+    expect(t.widget<Icon>(find.byType(Icon).first).size, Tokens.searchIconSize);
+
+    await pumpMeasured(
+      t,
+      Center(
+        child: OrbitChip(
+          label: 'All games',
+          sub: '12',
+          active: false,
+          onTap: () {},
+        ),
+      ),
+    );
+    expect(
+      t.widget<Text>(find.text('12')).style?.fontSize,
+      14,
+      reason: 'chip counts inherit the 14 px label',
+    );
   });
 
   test('motion tokens hold the measured durations', () {

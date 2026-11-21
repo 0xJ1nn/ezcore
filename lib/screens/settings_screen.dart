@@ -954,10 +954,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               reduceMotion: reduceMotion,
               onChanged: (v) => _toggleSetting(artLookupKey, v),
             ),
-            onTap: () => _toggleSetting(
-              artLookupKey,
-              !_pref(artLookupKey, false),
-            ),
+            onTap: () =>
+                _toggleSetting(artLookupKey, !_pref(artLookupKey, false)),
           ),
         );
         add(
@@ -1009,10 +1007,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'Diamond':
         return DiamondSection(
           entitlement: _entitlement,
-          onSeePlans: () => showPlansSheet(
-            context,
-            entitlement: _entitlement,
-          ),
+          onSeePlans: () => showPlansSheet(context, entitlement: _entitlement),
           onRestore: () => _entitlement.restore(),
           onManage: () => openSupportUrl(manageSubscriptionsUrl()),
           onTips: () => showTipsSheet(context, entitlement: _entitlement),
@@ -1267,7 +1262,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             backgroundColor: Tokens.dockTop,
             title: Text(
               'Remove the art folder?',
-              style: Tokens.display(size: 22, weight: FontWeight.w600, ls: -0.6),
+              style: Tokens.display(
+                size: 22,
+                weight: FontWeight.w600,
+                ls: -0.6,
+              ),
             ),
             content: Text(
               'Games go back to their generated covers. Nothing is deleted '
@@ -1364,7 +1363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final note = status.survivesReinstall
         ? 'Saves are mirrored here and kept if the app is removed.'
         : 'Saves are mirrored here, but this folder is removed when the app is '
-            'deleted.';
+              'deleted.';
     final only = _state.mirrorOnlySaveCount;
     final found = only == 0
         ? ''
@@ -2062,20 +2061,20 @@ class _Toggle extends StatelessWidget {
         child: AnimatedContainer(
           duration: reduceMotion ? Duration.zero : Tokens.fastDur,
           curve: Tokens.ease,
-          width: 56,
-          height: 32,
-          padding: const EdgeInsets.all(4),
+          width: Tokens.toggleWidth,
+          height: Tokens.toggleHeight,
+          padding: const EdgeInsets.all(Tokens.togglePad),
           alignment: value ? Alignment.centerRight : Alignment.centerLeft,
           decoration: BoxDecoration(
             color: value ? Tokens.accent : Tokens.toggleOff,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(Tokens.toggleRadius),
             border: Border.all(color: const Color(0x1AFFFFFF)),
           ),
           child: AnimatedContainer(
             duration: reduceMotion ? Duration.zero : Tokens.fastDur,
             curve: Tokens.ease,
-            width: 24,
-            height: 24,
+            width: Tokens.toggleKnob,
+            height: Tokens.toggleKnob,
             decoration: BoxDecoration(
               color: value ? Colors.white : Tokens.toggleKnobOff,
               shape: BoxShape.circle,

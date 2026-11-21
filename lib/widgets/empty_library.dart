@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/symbols.dart';
 import '../theme/tokens.dart';
+import 'library_looks/library_cover.dart';
 
 /// The empty library (handoff §8.1): five dashed ghost covers standing on a
 /// lit ledge, one sentence explaining why the shelf is bare, and the two ways
@@ -32,10 +33,15 @@ class EmptyLibrary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final secondaryLabel = onOpenSystems == null ? 'Choose a folder' : 'Open Systems';
+    final secondaryLabel = onOpenSystems == null
+        ? 'Choose a folder'
+        : 'Open Systems';
     return LayoutBuilder(
       builder: (context, c) {
         final contentHeight = c.maxHeight;
+        // A narrow desktop window cannot fit the two measured buttons side by
+        // side; stack them as the phone frame does rather than overflow.
+        final compact = phone || c.maxWidth < 420;
         // 168 on the 844-tall phone frame puts the ghost shelf where the
         // design's lit ledge sits, below the brand lockup and clear of it.
         final topSpace = phone
@@ -54,28 +60,28 @@ class EmptyLibrary extends StatelessWidget {
                   'Your shelf is empty',
                   textAlign: TextAlign.center,
                   style: Tokens.display(
-                    size: phone ? 24 : 32,
+                    size: compact ? 26 : 32,
                     weight: FontWeight.w600,
-                    ls: -0.02 * (phone ? 24 : 32),
+                    ls: -0.02 * (compact ? 26 : 32),
                     color: Colors.white,
                     height: 1.1,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: phone ? 40 : 80),
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 40 : 80),
                   child: Text(
                     _copy,
                     textAlign: TextAlign.center,
                     style: Tokens.body(
-                      size: phone ? 14 : 17,
+                      size: compact ? 15 : 17,
                       color: Tokens.muted,
                       height: 1.5,
                     ),
                   ),
                 ),
-                SizedBox(height: phone ? 48 : 40),
-                if (phone)
+                SizedBox(height: compact ? 48 : 40),
+                if (compact)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 22),
                     child: Column(
@@ -93,6 +99,8 @@ class EmptyLibrary extends StatelessWidget {
                           icon: Symbols.sportsEsports,
                           primary: false,
                           onPressed: onOpenSystems ?? onAddGames,
+                          height: 50,
+                          fontSize: 15,
                         ),
                       ],
                     ),
@@ -184,23 +192,15 @@ class _GhostShelf extends StatelessWidget {
               ),
               Positioned(
                 top: drop,
-                left: phone
-                    ? -400
-                    : centre - w / 2 - 2 * gap - 2 * sideW,
+                left: phone ? -400 : centre - w / 2 - 2 * gap - 2 * sideW,
                 child: box(sideW, sideH),
               ),
               Positioned(
                 top: drop,
-                left: phone
-                    ? width + 300
-                    : centre + w / 2 + 2 * gap + sideW,
+                left: phone ? width + 300 : centre + w / 2 + 2 * gap + sideW,
                 child: box(sideW, sideH),
               ),
-              Positioned(
-                top: 0,
-                left: centre - w / 2,
-                child: box(w, h),
-              ),
+              Positioned(top: 0, left: centre - w / 2, child: box(w, h)),
               Positioned(
                 left: phone ? 44 : 0,
                 right: phone ? 44 : 0,
@@ -238,52 +238,62 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.primary,
     required this.onPressed,
+    this.height = Tokens.ctaHeight,
+    this.fontSize = 17,
   });
 
   final String label;
   final IconData icon;
   final bool primary;
   final VoidCallback onPressed;
+  final double height;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            alignment: Alignment.center,
-            decoration: primary
-                ? Tokens.primaryButton()
-                : Tokens.secondaryButton(),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: primary ? Colors.white : Tokens.text,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: Tokens.body(
-                    size: 15,
-                    weight: FontWeight.w700,
-                    color: primary ? Colors.white : Tokens.text,
-                    height: null,
-                  ),
-                ),
-              ],
+    // LookTile is the app's one focus owner: the empty state's actions stay in
+    // the same arrow-key/d-pad traversal as every cover and rail stop, so a
+    // newcomer can reach "Add games" without a pointer on desktop or TV.
+    return LookTile(
+      onTap: onPressed,
+      radius: Tokens.radiusPrimary,
+      semanticLabel: label,
+      semanticHint: primary ? 'Add the games you own' : null,
+      lift: 1.02,
+      child: Container(
+        height: height,
+        padding: const EdgeInsets.fromLTRB(
+          Tokens.ctaPadLeft,
+          0,
+          Tokens.ctaPadRight,
+          0,
+        ),
+        alignment: Alignment.center,
+        decoration: primary ? Tokens.primaryButton() : Tokens.secondaryButton(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: Tokens.ctaIconSize,
+              color: primary ? Colors.white : Tokens.text,
             ),
-          ),
+            const SizedBox(width: Tokens.dockGap),
+            // LookTile owns the spoken label; exclude the visible Text so the
+            // merged node announces "Add games" once, not twice.
+            ExcludeSemantics(
+              child: Text(
+                label,
+                style: Tokens.body(
+                  size: fontSize,
+                  weight: FontWeight.w700,
+                  color: primary ? Colors.white : Tokens.text,
+                  height: null,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

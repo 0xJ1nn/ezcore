@@ -129,7 +129,10 @@ class GameDock extends StatelessWidget {
     final pad =
         padding ??
         switch (mode) {
-          GameDockMode.full => const EdgeInsets.fromLTRB(32, 18, 28, 18),
+          // The 132 px panel pads only horizontally (`0 28px 0 32px` in the
+          // CSS) and centres its column vertically, so the measured 10 px
+          // info gaps fit without the 18 px band squeezing them into overflow.
+          GameDockMode.full => const EdgeInsets.fromLTRB(32, 0, 28, 0),
           GameDockMode.oneLine => const EdgeInsets.fromLTRB(24, 12, 20, 12),
           GameDockMode.stacked => const EdgeInsets.fromLTRB(16, 16, 16, 16),
           GameDockMode.mini => const EdgeInsets.fromLTRB(16, 0, 8, 0),
@@ -341,17 +344,10 @@ class GameDock extends StatelessWidget {
                           ),
                         ],
                       )
-                    : const Icon(
-                        Symbols.info,
-                        size: 20,
-                        color: Tokens.text,
-                      ),
+                    : const Icon(Symbols.info, size: 20, color: Tokens.text),
               ),
             ],
-            if (showMore) ...[
-              const SizedBox(width: 10),
-              more,
-            ],
+            if (showMore) ...[const SizedBox(width: 10), more],
           ],
         );
       case GameDockMode.stacked:
@@ -418,7 +414,7 @@ class _Info extends StatelessWidget {
     final oneLine = mode == GameDockMode.oneLine;
     final badge = Container(
       height: stacked ? 24 : 26,
-      padding: const EdgeInsets.symmetric(horizontal: 9),
+      padding: const EdgeInsets.symmetric(horizontal: Tokens.dockGap),
       decoration: BoxDecoration(
         color: Tokens.systemLabelBg,
         borderRadius: BorderRadius.circular(7),
@@ -509,7 +505,7 @@ class _Info extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: stacked ? 10 : 9),
+          SizedBox(height: Tokens.dockGap),
         ],
         Text(
           game.title,
@@ -523,7 +519,7 @@ class _Info extends StatelessWidget {
           ),
         ),
         if (showStatus && !stacked) ...[
-          SizedBox(height: stacked ? 6 : 7),
+          SizedBox(height: Tokens.dockGap),
           Text(
             status,
             maxLines: 1,
@@ -706,12 +702,12 @@ class _GlyphChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 28,
+      height: 24,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: onPrimary ? const Color(0x33060B14) : const Color(0x14DDE6F4),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: onPrimary ? const Color(0x33FFFFFF) : const Color(0x24DDE6F4),
         ),

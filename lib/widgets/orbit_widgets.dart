@@ -112,27 +112,33 @@ class OrbitRail extends StatelessWidget {
         color: Color(0xE608101C),
         border: Border(right: BorderSide(color: Color(0x16DDE6F4))),
       ),
-      // The 96/28 band is the wide rail's measured inset. A sideways phone
-      // keeps its compact vertical inset: four 52 px buttons would not fit
-      // below a 96 px top pad on a 320 px-tall viewport.
+      // The 96/28 band is the wide rail's measured inset and its horizontal
+      // padding is zero (the CSS pads `96px 0 28px`): the 80 px items are
+      // centred in the 104 px rail by the column, not pushed in by padding.
+      // A sideways phone keeps its compact vertical inset: four 52 px buttons
+      // would not fit below a 96 px top pad on a 320 px-tall viewport.
       padding: EdgeInsets.fromLTRB(
-        short ? 8 : 10,
+        short ? 8 : 0,
         short ? 14 : 96,
-        short ? 8 : 10,
+        short ? 8 : 0,
         short ? 14 : 28,
       ),
       child: Column(
         children: [
           for (final it in items) ...[
+            // The design separates Add games from the four destinations by
+            // an extra 18 px, so the route reads as an action, not a tab.
+            if (it.id == 'import' && !short)
+              const SizedBox(height: Tokens.railAddGap),
             _RailButton(
               item: it,
               active: page == it.id,
               short: short,
               hideLabel: handheld,
-              height: short ? 52.0 : 76.0,
+              height: short ? 52.0 : Tokens.railItemHeight,
               onTap: () => it.id == 'import' ? onAddGames?.call() : onGo(it.id),
             ),
-            SizedBox(height: short ? 4 : 10),
+            SizedBox(height: short ? 4 : Tokens.railItemGap),
           ],
         ],
       ),
@@ -166,6 +172,10 @@ class _RailButton extends StatelessWidget {
       label: item.label,
       child: AnimatedContainer(
         duration: Tokens.fastDur,
+        // Set the measured width on this outer box so the 1.2 px focus border
+        // is drawn inside the 80 px item (the CSS sets `width:80px`). Short
+        // rails keep their compact intrinsic width.
+        width: short ? null : Tokens.railItemWidth,
         decoration: BoxDecoration(
           borderRadius: radius,
           gradient: active
@@ -284,15 +294,7 @@ class OrbitPrimary extends StatelessWidget {
         children: [
           Icon(icon, size: 22, color: Colors.white),
           const SizedBox(width: 10),
-          Text(
-            label,
-            style: Tokens.display(
-              size: 17,
-              weight: FontWeight.w700,
-              ls: 0,
-              color: Colors.white,
-            ),
-          ),
+          Text(label, style: Tokens.bodyAction.copyWith(color: Colors.white)),
         ],
       ),
     );
@@ -331,12 +333,7 @@ class OrbitPrimary extends StatelessWidget {
                       const SizedBox(width: 10),
                       Text(
                         label,
-                        style: Tokens.display(
-                          size: 17,
-                          weight: FontWeight.w700,
-                          ls: 0,
-                          color: Colors.white,
-                        ),
+                        style: Tokens.bodyAction.copyWith(color: Colors.white),
                       ),
                     ],
                   ),
@@ -363,14 +360,18 @@ class OrbitSecondary extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: icon != null ? Icon(icon, size: 17) : const SizedBox.shrink(),
-      label: Text(label, style: Tokens.body(size: 12, color: Tokens.text)),
+      icon: icon != null
+          ? Icon(icon, size: Tokens.ctaIconSize)
+          : const SizedBox.shrink(),
+      label: Text(label, style: Tokens.bodyActionDock),
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
+        minimumSize: const Size(0, Tokens.ctaHeight),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         backgroundColor: const Color(0x0ADDE6F4),
         side: const BorderSide(color: Color(0x26DDE6F4)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Tokens.radiusPrimary),
+        ),
         foregroundColor: Tokens.text,
       ),
     );
@@ -395,26 +396,35 @@ class OrbitSearch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
+      height: 46,
       constraints: const BoxConstraints(maxWidth: 320),
       decoration: BoxDecoration(
         color: Tokens.searchIdle,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(23),
         border: Border.all(color: Tokens.line),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 13),
+      padding: const EdgeInsets.fromLTRB(
+        Tokens.searchPadLeft,
+        0,
+        Tokens.searchPadRight,
+        0,
+      ),
       child: Row(
         children: [
-          const Icon(Icons.search, size: 16, color: Tokens.muted),
-          const SizedBox(width: 9),
+          const Icon(
+            Icons.search,
+            size: Tokens.searchIconSize,
+            color: Tokens.muted,
+          ),
+          const SizedBox(width: Tokens.searchIconGap),
           Expanded(
             child: TextField(
               controller: controller,
               onChanged: onChanged,
-              style: Tokens.body(size: 13),
+              style: Tokens.body(size: 14),
               decoration: InputDecoration(
                 hintText: hint,
-                hintStyle: Tokens.body(size: 13, color: Tokens.muted),
+                hintStyle: Tokens.body(size: 14, color: Tokens.muted),
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
@@ -428,12 +438,12 @@ class OrbitSearch extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Tokens.line),
               ),
               child: Text(
                 shortcutLabel!,
-                style: Tokens.body(size: 10, color: Tokens.muted),
+                style: Tokens.glyphChip.copyWith(color: Tokens.muted),
               ),
             ),
         ],
@@ -461,24 +471,24 @@ class OrbitToggle extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onChanged(!value),
         child: Container(
-          width: 44,
+          width: Tokens.toggleWidth,
           height: 44,
           alignment: Alignment.center,
           color: Colors.transparent,
           child: AnimatedContainer(
             duration: Tokens.fastDur,
             curve: Tokens.ease,
-            width: 38,
-            height: 23,
-            padding: const EdgeInsets.all(3),
+            width: Tokens.toggleWidth,
+            height: Tokens.toggleHeight,
+            padding: const EdgeInsets.all(Tokens.togglePad),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(Tokens.toggleRadius),
               color: value ? Tokens.accent : Tokens.toggleOff,
             ),
             alignment: value ? Alignment.centerRight : Alignment.centerLeft,
             child: Container(
-              width: 17,
-              height: 17,
+              width: Tokens.toggleKnob,
+              height: Tokens.toggleKnob,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: value ? Colors.white : Tokens.toggleKnobOff,
@@ -589,10 +599,11 @@ class OrbitChip extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     sub!,
-                    style: Tokens.display(
-                      size: 8,
-                      ls: 0.1,
+                    style: Tokens.body(
+                      size: 14,
+                      weight: FontWeight.w500,
                       color: Tokens.muted,
+                      height: null,
                     ),
                   ),
                 ],
@@ -825,9 +836,13 @@ class _BottomNavButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = item.label;
+    // The plate shortens the fifth tab to "Add"; the spoken label keeps the
+    // verb and its object so a screen reader announces the actual destination.
+    final spokenLabel = item.id == 'import' ? 'Add games' : label;
     return Semantics(
       button: true,
       selected: active,
+      label: spokenLabel,
       child: InkWell(
         onTap: onTap,
         child: Column(

@@ -11,13 +11,12 @@ import '../../theme/tokens.dart';
 /// The numbers here are the measured desktop reference. Each look scales the
 /// covers it lays out; none of them invents a colour outside the token palette.
 abstract final class LookTheme {
-  /// Covers in the Wall. The measured render fans cards with a 164 px pitch,
-  /// so neighbours overlap instead of sitting in an evenly spaced grid.
-  static const wallCover = Size(158, 208);
+  /// Covers in the Wall: 156×208 on the prototype's curved wall. Neighbours
+  /// overlap instead of sitting in an evenly spaced grid.
+  static const wallCover = Size(156, 208);
 
-  /// Grid covers are 132×186, eight columns, 24 px between rows. The measured
-  /// render is taller than the 176 px written in the handoff; the picture wins.
-  static const gridCover = Size(132, 186);
+  /// Grid covers are 132×176, eight columns, 24 px between rows.
+  static const gridCover = Size(132, 176);
   static const gridColumns = 8;
   static const gridRowGap = 24.0;
 
@@ -26,11 +25,12 @@ abstract final class LookTheme {
   static const listRowGap = 6.0;
   static const listThumb = Size(38, 50);
 
-  /// Shelf covers and the lit ledge beneath each row.
-  static const shelfCoverHeight = 204.0;
-  static const shelfCoverWidth = 155.0;
-  static const shelfSelectedWidth = 167.0;
-  static const shelfGap = 18.0;
+  /// Shelf covers (150×200, r8) and the lit ledge beneath each row; the
+  /// focused cover grows 3%, and the row's cards sit 22 px apart (§8.1).
+  static const shelfCoverHeight = 200.0;
+  static const shelfCoverWidth = 150.0;
+  static const shelfSelectedWidth = 155.0;
+  static const shelfGap = 22.0;
   static const shelfRowHeight = 276.0;
 
   static const ledge = Color(0x8C3B8BFF); // rgba(59,139,255,.55)
@@ -40,11 +40,8 @@ abstract final class LookTheme {
   static const wallBadge = Color(0xFFD9AE45);
 
   /// A 13/500 muted count after a section title.
-  static TextStyle get sectionCount => Tokens.body(
-    size: 14,
-    color: const Color(0xFF7E93A8),
-    height: null,
-  );
+  static TextStyle get sectionCount =>
+      Tokens.body(size: 14, color: const Color(0xFF7E93A8), height: null);
 
   /// 12/700 uppercase column header in the List look.
   static TextStyle get columnHeader => Tokens.body(
@@ -202,9 +199,5 @@ String snapshotsLabel(GameEntry game) =>
 String sizeLabel(GameEntry game) => fileSizeLabel(game.fileSize);
 
 /// Glyph for a favourite in a list row: a filled heart after the title.
-Widget favoriteGlyph() => const Icon(
-  Symbols.favorite,
-  size: 16,
-  color: Tokens.iconBlue,
-  fill: 1,
-);
+Widget favoriteGlyph() =>
+    const Icon(Symbols.favorite, size: 16, color: Tokens.iconBlue, fill: 1);

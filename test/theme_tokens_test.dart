@@ -58,6 +58,29 @@ void main() {
     test('rail is 104 wide', () {
       expect(Tokens.rail, 104, reason: 'was 112');
       expect(Tokens.railShort, 72);
+      expect(Tokens.railItemWidth, 80);
+      expect(Tokens.railItemHeight, 76);
+      expect(Tokens.railItemGap, 10);
+      expect(Tokens.railAddGap, 18);
+    });
+
+    test('measured control geometry comes from tokens', () {
+      expect(Tokens.toggleWidth, 56);
+      expect(Tokens.toggleHeight, 32);
+      expect(Tokens.toggleKnob, 24);
+      expect(Tokens.togglePad, 4);
+      expect(Tokens.toggleRadius, 16);
+      expect(Tokens.dockGap, 10);
+      expect(Tokens.searchIconSize, 20);
+      expect(Tokens.searchIconGap, 10);
+      expect(Tokens.searchPadLeft, 14);
+      expect(Tokens.searchPadRight, 10);
+      expect(Tokens.statusPad, 12);
+      expect(Tokens.statusGap, 22);
+      expect(Tokens.ctaHeight, 56);
+      expect(Tokens.ctaIconSize, 22);
+      expect(Tokens.ctaPadLeft, 18);
+      expect(Tokens.ctaPadRight, 24);
     });
   });
 
@@ -162,9 +185,10 @@ void main() {
       expect(Tokens.panelGlass, Tokens.dockDecor);
 
       expect(Tokens.dialogDecor.borderRadius, BorderRadius.circular(22));
-      expect(Tokens.sheetDecor.borderRadius, const BorderRadius.vertical(
-        top: Radius.circular(24),
-      ));
+      expect(
+        Tokens.sheetDecor.borderRadius,
+        const BorderRadius.vertical(top: Radius.circular(24)),
+      );
     });
 
     test('HALO, HALO3 and RING', () {

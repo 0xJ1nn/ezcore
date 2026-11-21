@@ -134,19 +134,20 @@ const _games = <GameEntry>[
   ),
 ];
 
-CoreManifest _core(String id, {List<String> biosFiles = const []}) => CoreManifest(
-  id: id,
-  name: id,
-  version: '1.0.0',
-  license: 'GPL-2.0',
-  systems: const ['nds'],
-  extensions: const ['nds'],
-  cheatFamilies: const [],
-  cheatsSupported: false,
-  delivery: const {'linux': 'bundled'},
-  artifacts: const {'linux-x64': 'test-pin'},
-  biosFiles: biosFiles,
-);
+CoreManifest _core(String id, {List<String> biosFiles = const []}) =>
+    CoreManifest(
+      id: id,
+      name: id,
+      version: '1.0.0',
+      license: 'GPL-2.0',
+      systems: const ['nds'],
+      extensions: const ['nds'],
+      cheatFamilies: const [],
+      cheatsSupported: false,
+      delivery: const {'linux': 'bundled'},
+      artifacts: const {'linux-x64': 'test-pin'},
+      biosFiles: biosFiles,
+    );
 
 void main() {
   Future<AppState> pump(
@@ -206,15 +207,15 @@ void main() {
     await pump(t, look: 'wall');
     expect(find.byType(WallLook), findsOneWidget);
     final cover = t.widget<LibraryCover>(find.byType(LibraryCover).first);
-    // The measured PNG (the source of truth) shows 158×208 cards; the old
-    // written spec's 174×214 was superseded in T21's pixel sweep.
-    expect(cover.width, 158);
+    // The prototype's CSS measures Wall covers at 156×208.
+    expect(cover.width, 156);
     expect(cover.height, 208);
 
     await pump(t, look: 'grid');
     expect(find.byType(GridLook), findsOneWidget);
     final grid = t.widget<GridView>(find.byType(GridView).first);
-    final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    final delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
     expect(delegate.crossAxisCount, 8);
     expect(delegate.mainAxisSpacing, 24);
 
@@ -223,10 +224,12 @@ void main() {
     expect(find.text('SNAPSHOTS'), findsOneWidget);
     expect(find.text('2.0 MB'), findsOneWidget);
     // The tile's focus ring sits outside the measured 64 px row.
-    final firstRow = find.descendant(
-      of: find.byType(LookTile).first,
-      matching: find.byType(Container),
-    ).first;
+    final firstRow = find
+        .descendant(
+          of: find.byType(LookTile).first,
+          matching: find.byType(Container),
+        )
+        .first;
     expect(t.getSize(firstRow).height, 64);
   });
 
@@ -239,7 +242,10 @@ void main() {
     await t.pump();
     String dockTitle() => t
         .widgetList<Text>(
-          find.descendant(of: find.byType(GameDock), matching: find.byType(Text)),
+          find.descendant(
+            of: find.byType(GameDock),
+            matching: find.byType(Text),
+          ),
         )
         .map((w) => w.data)
         .whereType<String>()
@@ -265,11 +271,7 @@ void main() {
   });
 
   testWidgets("the phone opens the five-look picker sheet", (t) async {
-    final s = await pump(
-      t,
-      size: const Size(390, 844),
-      look: 'list',
-    );
+    final s = await pump(t, size: const Size(390, 844), look: 'list');
     expect(find.byType(ListLook), findsOneWidget);
     await t.tap(find.byTooltip('View options'));
     await t.pumpAndSettle();
@@ -305,12 +307,18 @@ void main() {
           .widgetList<LibraryCover>(find.byType(LibraryCover))
           .map((w) => w.gameId)
           .toList();
-      expect(ids.indexOf('spire'), lessThan(ids.indexOf('glass')), reason: look);
+      expect(
+        ids.indexOf('spire'),
+        lessThan(ids.indexOf('glass')),
+        reason: look,
+      );
       expect(ids.indexOf('glass'), lessThan(ids.indexOf('neon')), reason: look);
     }
   });
 
-  testWidgets('the List look says Last week for a seven-day-old game', (t) async {
+  testWidgets('the List look says Last week for a seven-day-old game', (
+    t,
+  ) async {
     final sevenDays =
         DateTime.now().millisecondsSinceEpoch - 7 * 24 * 3600 * 1000;
     await pump(
