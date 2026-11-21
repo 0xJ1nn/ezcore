@@ -69,7 +69,7 @@ Local-first. No account and no telemetry; the network is used only when you choo
 <td valign="top">
 
 ### Build your own cores
-Any emulator that speaks libretro can become an ezCORE core: package it, share it under your own name, and pick any licence you like. The [Core Module Exception](LICENSE-EXCEPTION.md) keeps the core ecosystem open to everyone.
+Any emulator that speaks libretro can become an ezCORE core: package it, share it under your own name, and pick any licence you like. The [writing-your-own-core guide](docs/CUSTOM-CORES.md) covers the package, the build and the install; the [Core Module Exception](LICENSE-EXCEPTION.md) keeps the core ecosystem open to everyone.
 
 </td>
 </tr>
@@ -216,7 +216,7 @@ Prerequisites and every platform: [`docs/BUILDING.md`](docs/BUILDING.md).
 └──────────────────────────────────────────────┘
 ```
 
-Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · core authoring: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md) · package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md) · platform rules: [`docs/PLATFORM.md`](docs/PLATFORM.md).
+Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · write your own core: [`docs/CUSTOM-CORES.md`](docs/CUSTOM-CORES.md) · core authoring: [`docs/CORE_AUTHORING.md`](docs/CORE_AUTHORING.md) · package format: [`docs/PACKAGE_FORMAT.md`](docs/PACKAGE_FORMAT.md) · platform rules: [`docs/PLATFORM.md`](docs/PLATFORM.md).
 </details>
 
 ## License and credits
