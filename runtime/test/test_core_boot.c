@@ -3,6 +3,10 @@
  * Usage: ./test_core_boot <core_path> <rom_path>
  *        EZCORE_BOOT_OPTIONS="key=value;..." optionally sets core options
  *        before the game loads (see apply_boot_options).
+ *        EZCORE_FRAME_PPM=/path/frame.ppm optionally saves the frame used for
+ *        the pre-restore pixel sum as a binary PPM (P6, maxval 255, RGB), so
+ *        the rendered frame can be hashed and inspected. A write failure
+ *        prints a warning and never changes the boot result.
  * Exit codes:
  *   0 = pass
  *   1 = load/init failed
@@ -40,6 +44,7 @@
  * cheat_reset/cheat_set calls. MATRIX.md's IDENTIFIES row is likewise
  * unstrengthened here — see its harness-limits section.
  */
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -142,6 +147,57 @@ static void run_frames(ezcore_session *s, int n) {
   }
 }
 
+/* Optionally record the frame just measured by the pre-restore pixel sum as a
+ * binary PPM (P6, maxval 255). The frame is XRGB8888, so red lives in bits
+ * 16-23 and blue in bits 0-7; each pixel becomes R,G,B bytes in that order.
+ * This is a recording aid for frame hashing and inspection, never a gate: a
+ * missing or unwritable path is warned about and the boot carries on. */
+static void write_frame_ppm(const uint32_t* px, unsigned w, unsigned h) {
+  const char* path = getenv("EZCORE_FRAME_PPM");
+  if (!path || !*path) return;
+
+  FILE* out = fopen(path, "wb");
+  if (!out) {
+    fprintf(stderr, "  warning: cannot open EZCORE_FRAME_PPM '%s': %s\n",
+            path, strerror(errno));
+    return;
+  }
+
+  if (w == 0 || h == 0 || (size_t)w > SIZE_MAX / (size_t)h ||
+      (size_t)w * (size_t)h > SIZE_MAX / 3) {
+    fprintf(stderr,
+            "  warning: frame %ux%u is empty or too large to write as PPM\n",
+            w, h);
+    fclose(out);
+    return;
+  }
+
+  size_t count = (size_t)w * (size_t)h;
+  unsigned char* rgb = malloc(count * 3);
+  if (!rgb) {
+    fprintf(stderr, "  warning: out of memory writing EZCORE_FRAME_PPM '%s'\n",
+            path);
+    fclose(out);
+    return;
+  }
+  for (size_t i = 0; i < count; i++) {
+    rgb[i * 3] = (unsigned char)((px[i] >> 16) & 0xFF);
+    rgb[i * 3 + 1] = (unsigned char)((px[i] >> 8) & 0xFF);
+    rgb[i * 3 + 2] = (unsigned char)(px[i] & 0xFF);
+  }
+
+  int header = fprintf(out, "P6\n%u %u\n255\n", w, h);
+  size_t written = fwrite(rgb, 3, count, out);
+  int closed = fclose(out);
+  free(rgb);
+  if (header < 0 || written != count || closed != 0) {
+    fprintf(stderr, "  warning: failed to write EZCORE_FRAME_PPM '%s'\n", path);
+    return;
+  }
+  printf("  frame PPM: %s (%ux%u, %zu bytes)\n", path, w, h,
+         (size_t)header + count * 3);
+}
+
 static int run_boot_test(const char* core_path, const char* rom_path) {
   char err[1024] = {0};
   /* Set the content directories before the core is loaded and initialized,
@@ -223,6 +279,11 @@ static int run_boot_test(const char* core_path, const char* rom_path) {
     ezcore_unload(s);
     return 3;
   }
+
+  /* Record this same frame for the suite's frame hashes. It is a side effect
+   * only: the warning-on-failure contract above keeps the gate's verdict
+   * independent of the output path. */
+  write_frame_ppm(px, rw, rh);
 
   /* Save state */
   size_t snap_size = ezcore_serialize_size(s);
