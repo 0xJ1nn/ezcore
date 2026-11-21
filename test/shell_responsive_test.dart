@@ -6,6 +6,7 @@ import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/screens/home_screen.dart';
 import 'package:ezcore/screens/import_screen.dart';
+import 'package:ezcore/screens/onboarding_screen.dart';
 import 'package:ezcore/screens/vault_screen.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
@@ -412,5 +413,39 @@ void main() {
     await tester.enterText(find.byType(TextField), 'no such game');
     await tester.pump();
     expect(find.textContaining('No games match'), findsOneWidget);
+  });
+
+  // A warm start restores games before the gate decides: first run never
+  // replaces a populated library, at any viewport.
+  testWidgets('a warm start with games never shows first run', (tester) async {
+    final state = AppState.ephemeral()..games = List.of(games);
+    await state.setSetting(libraryViewKey, CollectionView.grid.value);
+    state.registry.loadCatalog({core.id: jsonEncode(core.toJson())});
+    state.registry.install(core, expectedSha256: 'test-pin');
+    state.loaded = true;
+
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: Tokens.theme(),
+        debugShowCheckedModeBanner: false,
+        home: FirstRunGate(
+          state: state,
+          shell: (_) => Shell(key: UniqueKey(), state: state),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(OnboardingScreen.shouldShow(state), isFalse);
+    expect(find.byType(OnboardingScreen), findsNothing);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 }
