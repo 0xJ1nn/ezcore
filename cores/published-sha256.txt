@@ -1,0 +1,11 @@
+# v0.2.0
+# SHA-256 of every asset attached to the release this build downloads from.
+# Copy the release's SHA256SUMS.txt here and put its tag on the first line;
+# scripts/verify_release_pins.py refuses a build whose pins disagree.
+a13ee7bebe476258d34676364f9a4fcec993f19b72cb140168dac1a1aeb7dfb3  ezcore-0.2.0-android-arm64.apk
+f59f7524226e269d2acf3ac8c673d8e8d7e46973bd7d2c312a95682c4132133c  ezcore-0.2.0-linux-x64.tar.gz
+0407302467a879e79d06fb023ad98b165181b022622ba6c663171df0d5786c51  dreamarc_libretro-linux-x64.so
+411c6dfe44029be2e1af64de8ca6e4ae0c70e29c1a5be3cd36824a215c43328f  gw_libretro-linux-x64.so
+105aa4fefdc98b5875274f44aafa3a068ebdc27bef7a6ef3b24a0721baff03a1  pointclick_libretro-linux-x64.so
+a8c3f0d8ec98bc3f9260350a1c28202232bfc330c8c9150738a9317abca8dc09  potator_libretro-linux-x64.so
+932183e20d222d914850fa3c081dcd34c6d2acbde4a418a3dc1455545646c81e  powercube_libretro-linux-x64.so

@@ -6,11 +6,6 @@
       "pointclick": "pointclick_libretro-linux-x64.so",
       "potator": "potator_libretro-linux-x64.so",
       "powercube": "powercube_libretro-linux-x64.so"
-    },
-    "macos-arm64": {
-      "dreamarc": "dreamarc_libretro-macos-arm64.dylib",
-      "pointclick": "pointclick_libretro-macos-arm64.dylib",
-      "powercube": "powercube_libretro-macos-arm64.dylib"
     }
   },
   "repo": "0xJ1nn/ezcore",
@@ -23,6 +18,10 @@
     "ios-arm64": {
       "message": "On-demand core downloads are not offered on iOS.",
       "reason": "policy"
+    },
+    "macos-arm64": {
+      "message": "No on-demand core assets are published for macOS yet. Install a core from a file instead.",
+      "reason": "assetsNotPublished"
     },
     "windows-x64": {
       "message": "No on-demand core assets are published for Windows yet. Install a core from a file instead.",

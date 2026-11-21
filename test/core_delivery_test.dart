@@ -343,17 +343,21 @@ void main() {
       final assets = jsonMap['assets'] as Map<String, dynamic>;
       final absent = jsonMap['unavailablePlatforms'] as Map<String, dynamic>;
 
-      expect(assets.keys.toSet(), {'linux-x64', 'macos-arm64'});
-      expect(absent.keys.toSet(),
-          {'windows-x64', 'android-arm64', 'ios-arm64'});
+      expect(assets.keys.toSet(), {'linux-x64'});
+      expect(absent.keys.toSet(), {
+        'macos-arm64',
+        'windows-x64',
+        'android-arm64',
+        'ios-arm64',
+      });
       expect(
         {...assets.keys, ...absent.keys},
         {
-          'linux-x64',
           'macos-arm64',
           'windows-x64',
           'android-arm64',
           'ios-arm64',
+          'linux-x64',
         },
       );
       expect(release.hasAssetsFor('linux-x64'), isTrue);
@@ -364,6 +368,44 @@ void main() {
       );
       expect(release.unavailableMessage('ios-arm64'),
           'On-demand core downloads are not offered on iOS.');
+    });
+
+    test('every offered core is pinned to the bytes the release serves', () {
+      // The app verifies a download against the catalog pin. A pin that
+      // disagrees with the asset on the tag makes the download succeed and
+      // then be discarded on every attempt, with no way for the person to
+      // tell it apart from a corrupt transfer.
+      final published = <String, String>{};
+      for (final line in File('cores/published-sha256.txt')
+          .readAsLinesSync()) {
+        final parts = line.trim().split(RegExp(r'\s+'));
+        if (parts.length == 2 && !line.trimLeft().startsWith('#')) {
+          published[parts[1]] = parts[0].toLowerCase();
+        }
+      }
+      final release =
+          json.decode(File('cores/release.json').readAsStringSync())
+              as Map<String, dynamic>;
+      final assets = release['assets'] as Map<String, dynamic>;
+      final catalog =
+          json.decode(File('cores/catalog.json').readAsStringSync())
+              as Map<String, dynamic>;
+
+      expect(assets, isNotEmpty, reason: 'the release map publishes something');
+      for (final platform in assets.keys) {
+        final offered = assets[platform] as Map<String, dynamic>;
+        for (final entry in offered.entries) {
+          final pin = ((catalog[entry.key]['artifacts'] ??
+                  <String, dynamic>{})[platform] as String?)
+              ?.toLowerCase();
+          final digest = published[entry.value];
+          expect(digest, isNotNull,
+              reason: '${entry.value} is not in the published checksum file');
+          expect(pin, digest,
+              reason: '${entry.key} on $platform: catalog pin must be the '
+                  'bytes the release serves');
+        }
+      }
     });
   });
 

@@ -266,6 +266,11 @@ The iOS rule is enforced in three places (belt-and-suspenders):
 2. `fill_manifest_data.py` never sets iOS to `download` (L89–90)
 3. `build_catalog.py` L98 rejects any manifest with `ios: download`
 
+Only a core listed in `cores/published-sha256.txt` and pinned to the same
+digest is offered as a download. Everything else in the `download` set is
+reported on that platform as "not published yet", with the one route that
+works today: install a core from a file.
+
 ### 3.3 Hold and gated cores
 
 | Status | Manifest field | build_core.sh | Distribution |
@@ -297,6 +302,14 @@ Flutter assets:
 cores/catalog.json   # merged index (sorted ids, sort_keys) — loaded at startup
 cores/release.json   # on-demand download map: repo, tag, asset filenames
 ```
+
+It also reads `cores/published-sha256.txt`, which is the release's own
+`SHA256SUMS.txt` with its tag on a `# vX.Y.Z` line. The map is built from
+that file, so an asset the host does not serve is never offered and a pin
+that disagrees with the served bytes fails the build instead of producing a
+download that verifies and is then discarded on every device. Refresh the
+file by copying the `SHA256SUMS.txt` attached to the release the build
+downloads from.
 
 **Verified:** `build_catalog.py` L27–28, L103–106.
 
