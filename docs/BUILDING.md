@@ -2,6 +2,12 @@
 
 ## Prerequisites
 
+Build with **Flutter 3.47.8** on the stable channel. That is the SDK this tree
+is developed and tested against, and it ships Dart 3.13, which satisfies the
+`^3.12.2` constraint in `pubspec.yaml`. `pubspec.lock` was resolved against it.
+Install that version rather than whatever `stable` resolves to on the day you
+start: a newer SDK can change analyzer and test results.
+
 ### macOS (Apple Silicon)
 ```bash
 # Xcode 26+ (macOS deployment target is 12.0+)
@@ -19,9 +25,26 @@ brew install cmake ninja pkg-config make rgbds libpng libmad flutter
 sudo apt update
 sudo apt install -y \
   cmake ninja-build pkg-config libpng-dev libgtk-3-dev clang \
-  git curl unzip
-# Flutter: https://docs.flutter.dev/get-started/install/linux
+  git curl unzip make
+# Flutter 3.47.8: https://docs.flutter.dev/get-started/install/linux
 ```
+
+`--tier-desktop` builds 17 cores, and the toolchain needs two things beyond
+that package list:
+
+- **GNU make 4 or newer.** `--tier-desktop` includes `pocketbit` (SameBoy),
+  whose BootROM rules use `$(realpath)`, which make 3.81 does not have. The
+  recipe checks this and refuses with "GNU make 4+ required for SameBoy"
+  rather than building a wrong boot ROM. Check with `make --version`; if your
+  distribution still ships 3.81, install GNU make 4 or newer before the
+  desktop tier.
+- **rgbds.** The SameBoy boot ROMs are assembled from clean-room sources with
+  RGBDS. The project's own Linux CI records that RGBDS is unavailable through
+  `apt` and therefore runs a core set *without* SameBoy
+  (`ci.yml`: "SameBoy excluded: its BootROMs need rgbds (unavailable via
+  apt)"); the macOS and iOS CI legs build it. Install RGBDS from
+  https://github.com/gbdev/rgbds/releases and put it on `PATH`. The macOS leg
+  gets it from Homebrew, as in the macOS block above.
 
 ### Windows (x64)
 ```powershell
@@ -54,7 +77,7 @@ cd ezcore
 scripts/prereqs.sh                    # installs toolchain via Homebrew
 scripts/build_core.sh --fetch-headers # vendors libretro.h
 scripts/build_runtime.sh macos        # builds runtime + CTest
-scripts/build_core.sh --tier1         # first six cores (GB/GBC, GBA, SNES, Genesis, DOS)
+scripts/build_core.sh --tier1         # first five cores (GB/GBC, GBA, SNES, Genesis, DOS)
 python3 scripts/build_catalog.py      # merges manifests → cores/catalog.json (required asset)
 flutter analyze && flutter test       # gates
 flutter run -d macos                  # debug run
@@ -74,10 +97,40 @@ flutter run -d macos                  # debug run
 
 | Tier | Cores | Platforms |
 |------|---------|-----------|
-| `--tier1` | GB/GBC, GBA, SNES, Genesis, DOS (6 cores, run-verified) | All |
-| `--tier-desktop` | All desktop cores (18) | macOS, Linux, Windows |
-| `--tier-android` | Mobile tier (11 cores) | Android |
-| `--tier-ios` | Interpreter-only tier (10 cores) | iOS |
+| `--tier1` | GB/GBC, GBA, SNES, Genesis, DOS (5 cores) | All |
+| `--tier-desktop` | All desktop cores (17) | macOS, Linux, Windows |
+| `--tier-android` | Mobile tier (10 cores) | Android |
+| `--tier-ios` | Interpreter-only tier (9 cores) | iOS |
+
+`--tier1` is five cores, not six, and not all five are run-verified. On Linux
+x64 `pocketbit` (GB/GBC) and `advancebit` (GBA) hold RENDERS against recorded
+frames. `realmode` (DOS) has a recorded boot that opens the DOS start menu, but
+it refuses to serialize until a program runs, so no frame was kept. `superfx`
+(SNES) has no Linux cell at all and stops at IDENTIFIES on macOS; `blastproc`
+(Genesis) is BUILT on Linux with no recorded frame. Both are non-commercial
+upstream, so no binary of either ever ships — those two recipes exist to prove
+the build. [`MATRIX.md`](MATRIX.md) is the per-core record; read it before
+quoting a tier as proven.
+
+## Fetching the emulator sources
+
+Cores are not vendored. `scripts/build_core.sh` clones **23 upstream
+repositories** at build time — one for the libretro header (`--fetch-headers`,
+into `runtime/external/libretro-common`) plus one per core recipe — and six of
+those recipes then run `git submodule update --init --recursive` (PPSSPP,
+Flycast, FBNeo, Dolphin, LRPS2, and Play!, which nests zstd/xxHash/zlib). Both
+destination directories are gitignored and never committed, so a second
+checkout starts empty.
+
+Building cores therefore needs network access and enough disk for the upstream
+trees (PPSSPP and Dolphin are the large ones). Only **three** recipes pin a
+commit: `dualvu` (`d44bfa1`), `potator` (`227c5f6`) and `gw` (`91d599b`); they
+check out that SHA after cloning and fetch it when the shallow clone does not
+have it. Every other recipe tracks the upstream default branch as of the day
+you build, so two builds weeks apart can produce different binaries and
+different `SHA256SUMS`. The sha256 pins in `cores/<id>/manifest.json` describe
+the bytes the maintainers built and reviewed, not whatever a fresh clone
+produces — verify rather than assume a local build matches.
 
 ## Release Build
 
