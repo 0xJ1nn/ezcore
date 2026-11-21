@@ -215,6 +215,14 @@ does not implement or call the `ezcore_*` host `API` in
 the existing libretro contract is what makes a core usable by ezCORE,
 RetroArch, and others. See `CONTRIBUTING.md`, "What a core must implement".
 
+Save states are optional and either state is legitimate. A core that exports
+`retro_serialize`, `retro_unserialize` and a nonzero `retro_serialize_size`
+gets snapshots with no extra integration. A core that reports 0 from
+`retro_serialize_size` is not broken: the session runs, the pause menu says
+"No saves", and autosave and the restart/quit prompts stop promising a
+snapshot. Record such a core's boot evidence without the state round trip (see
+the note in `docs/MATRIX.md`) rather than treating it as a failure.
+
 ## 3. Declare
 
 ### 3.1 Policy maps: fill_manifest_data.py

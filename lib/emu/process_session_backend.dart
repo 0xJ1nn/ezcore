@@ -228,6 +228,9 @@ class ProcessSessionBackend implements CoreSessionBackend {
       'fps': fps,
       'sampleRate': rate,
       'rejectedOptions': rejected,
+      // Trailing on the wire so a reader that stops early still parses the
+      // rest. Absent means "unknown"; only an explicit 0 hides snapshots.
+      'canSave': r.atEnd ? true : r.u8() != 0,
     };
   }
 
@@ -404,9 +407,8 @@ class _Writer {
     (ByteData(4)..setUint32(0, v, Endian.little)).buffer.asUint8List(),
   );
 
-  void i32(int v) => _b.add(
-    (ByteData(4)..setInt32(0, v, Endian.little)).buffer.asUint8List(),
-  );
+  void i32(int v) =>
+      _b.add((ByteData(4)..setInt32(0, v, Endian.little)).buffer.asUint8List());
 
   void str(String s) {
     final bytes = utf8.encode(s);
@@ -430,6 +432,11 @@ class _Reader {
   int _at = 0;
 
   int u8() => _data.getUint8(_at++);
+
+  /// True once every byte of the body has been read. Used for reply fields
+  /// added after the first release of a protocol op, so an older host reads
+  /// as "field absent" instead of throwing.
+  bool get atEnd => _at >= _bytes.length;
 
   int u32() {
     final v = _data.getUint32(_at, Endian.little);

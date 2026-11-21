@@ -22,7 +22,13 @@
  *   OPEN       str core, str content, str system_dir, str save_dir,
  *              u32 n, n x (str key, str value)
  *              -> str core_name, u32 w, u32 h, f64 fps, f64 sample_rate,
- *                 u32 n_rejected, n_rejected x str key
+ *                 u32 n_rejected, n_rejected x str key, u8 can_save
+ *
+ * `can_save` is 1 when the loaded core can serialize a save state right now,
+ * 0 when it cannot (its `retro_serialize_size()` is 0, as the LCD-handheld
+ * core does). The app uses it to hide the snapshot affordance instead of
+ * offering a button that can only fail. It is the last field of the reply on
+ * purpose: a reader that stops early still parses everything before it.
  *   FRAME      u32 count (1..8)
  *              -> u8 has_frame; if 1: u32 w, u32 h, blob rgba, blob pcm
  *                 (pcm is s16 stereo; empty when count > 1 or paused)

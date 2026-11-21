@@ -46,6 +46,14 @@ RetroArch, and by others.
 A core must never depend on Flutter, on the Orbit UI, or on any application
 type. It is a native artifact described by data.
 
+**Save states are optional.** A core whose `retro_serialize_size()` returns 0
+has no save states, and ezCORE treats that as a fact rather than a fault: the
+session opens and runs normally, the pause menu says "No saves" instead of
+offering a snapshot, and autosave, restart and quit stop promising one. The
+LCD-handheld core is such a core. If your core can serialize, implement
+`retro_serialize`, `retro_unserialize` and a nonzero `retro_serialize_size`,
+and snapshots work with no further integration.
+
 ### What a core must not do
 
 - Require a specific core name, version string, or vendor to be special-cased by

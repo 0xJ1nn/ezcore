@@ -139,5 +139,26 @@ void main() {
         expect(() => service.runFrame(), throwsStateError);
       },
     );
+
+    test(
+      'a core with no save states reports canSaveState false',
+      skip: _built && paths.synthNoSaveLib() != null
+          ? null
+          : 'runtime/synth_no_save core not built',
+      () async {
+        final service = EmulationService(runtime: _runtime());
+        await service.start(
+          corePath: paths.synthNoSaveLib()!,
+          romPath: '/dev/null',
+          rom: Uint8List(0),
+        );
+        try {
+          expect(service.canSaveState, isFalse);
+          expect(service.saveState(), isNull);
+        } finally {
+          service.close();
+        }
+      },
+    );
   });
 }

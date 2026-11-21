@@ -47,6 +47,11 @@ String? synthLib() => _join(runtimeBuildDir(), 'libsynth_libretro.$hostLibExt');
 String? synthOptionsLib() =>
     _join(runtimeBuildDir(), 'libsynth_options_libretro.$hostLibExt');
 
+/// Path to the built synthetic core with no save states
+/// (`retro_serialize_size` is 0), if present.
+String? synthNoSaveLib() =>
+    _join(runtimeBuildDir(), 'libsynth_no_save_libretro.$hostLibExt');
+
 /// Staged core artifact for [id] (dev checkout or platform matrix output).
 String? stagedCoreLib(String id) {
   final roots = <String>['native/cores'];
