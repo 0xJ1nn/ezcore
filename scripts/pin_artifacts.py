@@ -3,6 +3,7 @@
 
 Usage: python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>]
        python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>] --check
+       python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>] --drift-only
 
 Hashes the staged artifact bytes directly — the SHA256SUMS sidecar is
 regenerated as a byproduct and never trusted (a stale sidecar once hid
@@ -12,6 +13,10 @@ Write mode: pins the staged bytes into cores/<id>/manifest.json, refreshes
 each SHA256SUMS, and regenerates cores/catalog.json.
 --check: verifies staged bytes against committed pins without writing
 (release gate: the bundle must match the reviewed pins exactly).
+--drift-only: verifies staged bytes against committed pins and requires only
+the download-delivery cores to be staged, without writing. Use it when
+checking manifests rather than building a package; use --check on a release
+host, where the full staged set must be present.
 
 Pins are build evidence, never aspirational: only run this after a real
 platform build + boot matrix pass (docs/MATRIX.md). Review the manifest
@@ -53,15 +58,34 @@ def find_artifact(core_dir: Path) -> "Path | None":
     return candidates[0] if candidates else None
 
 
+def load_waivers(plat: str) -> set[str]:
+    """Audited core ids that may be absent from the staged tree on this host.
+
+    This is read only by the reverse check (is a pinned core staged?). A
+    waiver can excuse a missing artifact, but it can never hide forward
+    drift: staged bytes that disagree with a committed pin always fail.
+    """
+    waiver = ROOT / "native" / "pin-waivers" / f"{plat}.txt"
+    if not waiver.is_file():
+        return set()
+    return {
+        line.split("#", 1)[0].strip()
+        for line in waiver.read_text().splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    }
+
+
 def main() -> None:
     args = [a for a in sys.argv[1:] if not a.startswith("--out")]
     check_only = "--check" in sys.argv
-    args = [a for a in args if a != "--check"]
+    drift_only = "--drift-only" in sys.argv
+    args = [a for a in args if a not in ("--check", "--drift-only")]
     out_idx = next(
         (i for i, a in enumerate(sys.argv) if a == "--out"), None
     )
     if not args:
-        fail("usage: pin_artifacts.py <platform-arch> [--out <dir>] [--check]")
+        fail("usage: pin_artifacts.py <platform-arch> [--out <dir>] "
+             "[--check | --drift-only]")
     plat = args[0]
     if not re.fullmatch(r"[a-z]+-[a-z0-9-]+", plat):
         fail(f"bad platform-arch key: {plat!r}")
@@ -72,8 +96,10 @@ def main() -> None:
     )
     if not out.is_dir():
         fail(f"no staged output at {out}")
+    checking = check_only or drift_only
     updated: list[str] = []
-    mismatched: list[str] = []
+    drifted: list[str] = []
+    omitted: list[str] = []
     for core_dir in sorted(out.iterdir()):
         if not core_dir.is_dir():
             continue
@@ -89,9 +115,9 @@ def main() -> None:
         if data.get("blocked_reason"):
             fail(f"refusing to pin blocked core {core_dir.name}")
         current = data.get("artifacts", {}).get(plat)
-        if check_only:
+        if checking:
             if current != sha:
-                mismatched.append(
+                drifted.append(
                     f"{core_dir.name} (staged {sha[:12]} != pinned "
                     f"{(current or 'absent')[:12]})"
                 )
@@ -105,44 +131,40 @@ def main() -> None:
             json.dumps(data, indent=2, ensure_ascii=False) + "\n"
         )
         updated.append(f"{core_dir.name}={sha[:12]}")
-    if check_only:
-        if mismatched:
-            fail("pin drift: " + ", ".join(mismatched))
-        # Reverse direction: every pinned manifest must be staged, or the
-        # release would silently ship an incomplete set. Same for every
-        # core the delivery map promises this OS.
+    if checking:
+        if drifted:
+            fail("pin drift: " + ", ".join(drifted))
+        # Reverse direction: does the staged tree hold what the release
+        # promises? Forward drift is reported above and never folded in here.
         os_name = plat.split("-")[0]
-        staged_ids = {
-            p.name for p in out.iterdir() if p.is_dir()
-        }
+        staged_ids = {p.name for p in out.iterdir() if p.is_dir()}
+        waived = load_waivers(plat)
         for path in sorted((ROOT / "cores").glob("*/manifest.json")):
             data = json.loads(path.read_text())
             if data.get("blocked_reason"):
                 continue
-            if data.get("artifacts", {}).get(plat) and data["id"] not in staged_ids:
-                mismatched.append(f"{data['id']}: pinned but not staged")
-            if data.get("delivery", {}).get(os_name) == "bundled" and data[
-                "id"
-            ] not in staged_ids:
-                # A missing toolchain dep on this build host is a gap to
-                # report, not a lie to paper over: allow an explicit,
-                # audited waiver file instead of failing the whole gate.
-                waiver = ROOT / "native" / "pin-waivers" / f"{plat}.txt"
-                waived = set()
-                if waiver.is_file():
-                    waived = {
-                        line.split("#", 1)[0].strip()
-                        for line in waiver.read_text().splitlines()
-                        if line.strip() and not line.strip().startswith("#")
-                    }
-                if data["id"] in waived:
-                    continue
-                mismatched.append(
+            delivery = data.get("delivery", {}).get(os_name)
+            if data["id"] in staged_ids:
+                continue
+            if drift_only:
+                if delivery == "download" and data["id"] not in waived:
+                    omitted.append(
+                        f"{data['id']}: download delivery but not staged"
+                    )
+                continue
+            if data.get("artifacts", {}).get(plat):
+                omitted.append(f"{data['id']}: pinned but not staged")
+            if delivery == "bundled" and data["id"] not in waived:
+                omitted.append(
                     f"{data['id']}: delivery promises {os_name} but not staged"
                 )
-        if mismatched:
-            fail("incomplete staged set: " + ", ".join(mismatched))
-        print(f"pin_artifacts: {plat}: staged tree matches committed pins")
+        if omitted:
+            fail("incomplete staged set: " + ", ".join(omitted))
+        if drift_only:
+            print(f"pin_artifacts: {plat}: staged bytes match pins; "
+                  "download cores staged (drift-only)")
+        else:
+            print(f"pin_artifacts: {plat}: staged tree matches committed pins")
         return
     if updated:
         import subprocess
