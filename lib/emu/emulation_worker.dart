@@ -237,6 +237,7 @@ Future<void> _workerMain(SendPort ready) async {
           'fps': geo.fps,
           'sampleRate': service.sampleRate,
           'rejectedOptions': service.rejectedCoreOptions,
+          'canSave': service.canSaveState,
         };
       } else {
         final active = service;

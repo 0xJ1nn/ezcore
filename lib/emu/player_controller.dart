@@ -28,6 +28,11 @@ class PlayerController extends ChangeNotifier {
   String? audioError;
   bool paused = false, fastForward = false, running = false;
 
+  /// False when the core has no save states at all (the LCD-handheld core
+  /// reports a zero serialize size). The pause menu then hides the snapshot
+  /// affordance instead of offering a button that can only fail.
+  bool canSaveStates = true;
+
   /// Session-start audio/image pacing prefs (set by the player before `open`
   /// returns frames): [muted] drops PCM, [volume] scales s16 samples 0-100,
   /// [ffFrames] is the frames-per-tick fast-forward speed (worker allows 1-8).
@@ -67,6 +72,7 @@ class PlayerController extends ChangeNotifier {
     _fps = (info['fps'] as num).toDouble();
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
+    canSaveStates = info['canSave'] as bool? ?? true;
     await _startAudio();
     running = true;
     _notify();

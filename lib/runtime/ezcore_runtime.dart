@@ -791,6 +791,11 @@ class EzCoreRuntime {
     }
   }
 
+  /// Bytes this core needs for one save state, or 0 when it cannot serialize
+  /// at all. A core that reports 0 has no save states (the LCD-handheld core
+  /// is one); the UI must not offer what can never work.
+  int serializeSize(Pointer<Void> session) => _serializeSize(session);
+
   /// Captures a save state via the runtime. Null when the core has no
   /// content loaded or omits serialization. Bytes are opaque to the
   /// frontend — the sync layer moves them without interpreting them.

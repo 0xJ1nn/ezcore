@@ -219,7 +219,15 @@ void retro_run(void) {
     }
 }
 
-size_t retro_serialize_size(void) { return sizeof(g_state); }
+size_t retro_serialize_size(void) {
+#if defined(EZCORE_SYNTH_NO_SAVE)
+    /* A core that has no save states at all, like the LCD-handheld one:
+     * the app must learn this from OPEN, not from a failed SAVE. */
+    return 0;
+#else
+    return sizeof(g_state);
+#endif
+}
 
 bool retro_serialize(void *data, size_t size) {
     if (size < sizeof(g_state)) return false;

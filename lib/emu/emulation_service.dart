@@ -131,6 +131,12 @@ class EmulationService {
   bool setCoreOption(String key, String value) =>
       runtime.setCoreOption(_active, key, value);
   Uint8List? saveState() => runtime.saveState(_active);
+
+  /// Whether the loaded core can serialize at all. False for a core whose
+  /// `retro_serialize_size` is 0: offering it a snapshot can only fail, so
+  /// the player hides the affordance instead.
+  bool get canSaveState => runtime.serializeSize(_active) > 0;
+
   bool loadState(Uint8List bytes) => runtime.loadState(_active, bytes);
 
   /// Adds only produced stereo signed-16 PCM bytes, never unused capacity.

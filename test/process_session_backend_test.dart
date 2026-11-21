@@ -154,4 +154,31 @@ void main() {
     expect(classifyExit(exitCode: -11).outcome, SessionOutcome.crashed);
     expect(classifyExit(exitCode: -6).outcome, SessionOutcome.crashed);
   });
+
+  test(
+    'a core with no save states says so at open, before a snapshot is offered',
+    skip: skip,
+    () async {
+      final noSave = paths.synthNoSaveLib();
+      if (noSave == null) {
+        markTestSkipped('runtime/synth_no_save core not built');
+        return;
+      }
+      final b = ProcessSessionBackend(hostPath: host!);
+      final info = await open(b, noSave);
+      expect(info['canSave'], isFalse);
+      // It still runs; only saving is impossible.
+      final packet = await b.frame();
+      expect(packet, isNotNull);
+      await expectLater(b.save(), throwsA(isA<StateError>()));
+      await b.close();
+    },
+  );
+
+  test('a core with save states says so at open', skip: skip, () async {
+    final b = ProcessSessionBackend(hostPath: host!);
+    final info = await open(b, synth!);
+    expect(info['canSave'], isTrue);
+    await b.close();
+  });
 }

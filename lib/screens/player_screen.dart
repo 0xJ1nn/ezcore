@@ -56,6 +56,10 @@ class PlayerPreview {
     this.thumbnail,
     this.sessionMinutes = 0,
     this.touchControls,
+
+    /// Whether the previewed core can save. Tests pass false to render the
+    /// pause menu of a core with no save states at all.
+    this.saveStates = true,
   });
 
   /// The picture a core would have produced.
@@ -71,6 +75,9 @@ class PlayerPreview {
   /// Forces the touch layer on or off, so the capture pass can render the
   /// phone states on a desktop test runner.
   final bool? touchControls;
+
+  /// Whether the previewed core can save; see [PlayerPreview.saveStates].
+  final bool saveStates;
 }
 
 /// Orbit Player — a black stage with the game picture on it, a glass HUD
@@ -127,6 +134,11 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   /// A session the UI can draw: a real one, or the capture's preview.
   bool get _running => player.running || widget.preview != null;
+
+  /// Whether a snapshot can be taken at all. A real session reports it from
+  /// the core; the capture seam supplies it so the no-saves state is
+  /// renderable in a test.
+  bool get _canSave => widget.preview?.saveStates ?? player.canSaveStates;
 
   /// The picture on the stage, from the core or the capture fixture.
   ui.Image? get _frame => player.frame ?? widget.preview?.frame;
@@ -493,7 +505,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _autoSave() async {
-    if (!player.running || player.error != null || launchError != null) {
+    if (!_canSave ||
+        !player.running ||
+        player.error != null ||
+        launchError != null) {
       return;
     }
     try {
@@ -1154,6 +1169,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   List<_MenuEntry> _menuEntries(GameEntry game) {
     final on = widget.state.cheatsFor(game.id).where((c) => c.enabled).length;
     final saved = _slots.length;
+    // A core with no save states cannot take a snapshot, so the two rows stay
+    // in place (the menu keeps its shape) and say why, instead of failing
+    // after a tap with a Dart error string.
+    final saves = _canSave;
     return [
       const _MenuEntry('resume', Symbols.playArrow, 'Resume', 'Resume'),
       _MenuEntry(
@@ -1161,15 +1180,16 @@ class _PlayerScreenState extends State<PlayerScreen>
         Symbols.bookmarkAdd,
         'Save snapshot',
         'Save',
-        enabled: _running,
+        hint: saves ? null : 'No saves',
+        enabled: _running && saves,
       ),
       _MenuEntry(
         'load',
         Symbols.history,
         'Load snapshot',
         'Load',
-        hint: saved == 1 ? '1 saved' : '$saved saved',
-        enabled: _running && saved > 0,
+        hint: !saves ? 'No saves' : (saved == 1 ? '1 saved' : '$saved saved'),
+        enabled: _running && saves && saved > 0,
       ),
       _MenuEntry(
         'cheats',
@@ -1235,6 +1255,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         _PauseKind.sheet => 12.0,
       },
       onLoad: _loadSlot,
+      enabled: _canSave,
     );
 
     final Widget panel = switch (metrics.kind) {
@@ -1390,9 +1411,17 @@ class _PlayerScreenState extends State<PlayerScreen>
       case 'resume':
         await _closeMenu();
       case 'save':
+        if (!_canSave) {
+          await _closeMenu();
+          return;
+        }
         await _action(_saveMoment, 'Snapshot saved');
         await _closeMenu();
       case 'load':
+        if (!_canSave) {
+          await _closeMenu();
+          return;
+        }
         await _action(
           () =>
               player.restore(widget.state.saves, widget.gameId, _loadSlotId()),
@@ -1503,12 +1532,15 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Future<void> _restartGame(GameEntry game) async {
+    final keeps = _canSave;
     final ok = await showOrbitDialog<bool>(
       context,
       title: 'Restart ${game.title}?',
-      body:
-          'Starts from the title screen. A snapshot of this moment is kept in '
-          'your time capsule first.',
+      body: keeps
+          ? 'Starts from the title screen. A snapshot of this moment is kept '
+                'in your time capsule first.'
+          : 'Starts from the title screen. This core has no save states, so '
+                'the moment you are in is not kept.',
       icon: Symbols.restartAlt,
       actions: const [
         OrbitDialogAction(label: 'Keep playing', value: false),
@@ -1520,21 +1552,29 @@ class _PlayerScreenState extends State<PlayerScreen>
       ],
     );
     if (ok != true || !mounted) return;
-    if (_running) await _action(_saveMoment);
+    if (_running && keeps) await _action(_saveMoment);
     await _action(player.worker.reset);
     if (mounted) {
-      orbitToast(context, 'Restarted · this moment kept as a snapshot');
+      orbitToast(
+        context,
+        keeps
+            ? 'Restarted · this moment kept as a snapshot'
+            : 'Restarted from the title screen',
+      );
     }
     await _closeMenu();
   }
 
   Future<void> _quitFlow(GameEntry game) async {
+    final keeps = _canSave;
     final ok = await showOrbitDialog<bool>(
       context,
       title: 'Back to the library?',
-      body:
-          'ezCORE takes a snapshot of ${game.title} as you leave, so you’ll '
-          'pick up exactly here next time.',
+      body: keeps
+          ? 'ezCORE takes a snapshot of ${game.title} as you leave, so you’ll '
+                'pick up exactly here next time.'
+          : 'This core has no save states, so ${game.title} starts from the '
+                'beginning next time.',
       icon: Symbols.logout,
       actions: const [
         OrbitDialogAction(label: 'Keep playing', value: false),
@@ -2262,6 +2302,7 @@ class _SnapshotStrip {
     required this.headingSize,
     required this.gap,
     required this.onLoad,
+    required this.enabled,
   });
 
   final List<SaveSlot> slots;
@@ -2272,39 +2313,49 @@ class _SnapshotStrip {
   final double gap;
   final ValueChanged<SaveSlot> onLoad;
 
-  Widget heading() => Text(
-    'Snapshots',
-    style: Tokens.display(
-      size: headingSize,
-      weight: FontWeight.w600,
-      ls: 0,
-      color: Colors.white,
-      height: 1,
-    ),
-  );
+  /// False for a core with no save states: there is nothing to show, and a
+  /// "Snapshots" heading would promise something the core cannot do.
+  final bool enabled;
+
+  Widget heading() => enabled
+      ? Text(
+          'Snapshots',
+          style: Tokens.display(
+            size: headingSize,
+            weight: FontWeight.w600,
+            ls: 0,
+            color: Colors.white,
+            height: 1,
+          ),
+        )
+      : const SizedBox.shrink();
 
   /// Heading over the cards, for the phone sheet.
-  Widget block() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [heading(), const SizedBox(height: 23), cards()],
-  );
+  Widget block() => enabled
+      ? Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [heading(), const SizedBox(height: 23), cards()],
+        )
+      : const SizedBox.shrink();
 
-  Widget cards() => SizedBox(
-    height: cardHeight + (style == _SnapStyle.wide ? 32 : 0),
-    child: ListView.separated(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      itemCount: slots.length,
-      separatorBuilder: (_, _) => SizedBox(width: gap),
-      itemBuilder: (context, i) => _SnapshotCard(
-        slot: slots[i],
-        width: cardWidth,
-        height: cardHeight,
-        style: style,
-        onTap: () => onLoad(slots[i]),
-      ),
-    ),
-  );
+  Widget cards() => enabled
+      ? SizedBox(
+          height: cardHeight + (style == _SnapStyle.wide ? 32 : 0),
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: slots.length,
+            separatorBuilder: (_, _) => SizedBox(width: gap),
+            itemBuilder: (context, i) => _SnapshotCard(
+              slot: slots[i],
+              width: cardWidth,
+              height: cardHeight,
+              style: style,
+              onTap: () => onLoad(slots[i]),
+            ),
+          ),
+        )
+      : const SizedBox.shrink();
 }
 
 class _SnapshotCard extends StatefulWidget {

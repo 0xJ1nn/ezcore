@@ -206,6 +206,10 @@ static int op_open(reader_t *r) {
   wr_u32(&w, n_rejected);
   wr_bytes(&w, rej.buf, rej.len);
   free(rej.buf);
+  /* Whether this core can serialize at all. Some cannot — an LCD-handheld
+   * core returns 0 from retro_serialize_size — and the app must know before
+   * it offers a snapshot, not learn it from a failed SAVE. */
+  wr_u8(&w, E->serialize_size(g_engine) > 0 ? 1 : 0);
   ok = send_body(w.buf, w.len);
   goto done;
 fail_destroy:

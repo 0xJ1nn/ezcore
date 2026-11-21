@@ -98,6 +98,22 @@ if(APPLE)
   set_target_properties(synth_no_set_cheat_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# A core with no save states at all (retro_serialize_size returns 0), like the
+# LCD-handheld core. The app must learn this from OPEN, so the snapshot
+# affordance can be withheld instead of failing after a tap.
+add_library(synth_no_save_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_no_save_libretro PRIVATE
+  EZCORE_SYNTH_NO_SAVE
+)
+target_include_directories(synth_no_save_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_no_save_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # --- Synthetic core that exercises core-options & capability env calls ---
 add_library(synth_options_libretro SHARED
   test/synth_core/synth_options_core.c
@@ -395,7 +411,8 @@ endif()
 # segfaults mid-frame (only the host dies), and the host exiting when its
 # input closes. POSIX-only (fork/exec/waitpid).
 add_executable(test_core_host test/test_core_host.c)
-add_dependencies(test_core_host ezcore_core_host synth_libretro crash_libretro)
+add_dependencies(test_core_host ezcore_core_host synth_libretro crash_libretro
+  synth_no_save_libretro)
 
 # Generic engine host (Tier 2): the SAME wire protocol, a non-libretro engine
 # selected by --engine=synthetic. POSIX-only (fork/exec/waitpid), like the
@@ -411,7 +428,8 @@ if(NOT WIN32)
     COMMAND test_core_host
     $<TARGET_FILE:ezcore_core_host>
     $<TARGET_FILE:synth_libretro>
-    $<TARGET_FILE:crash_libretro>)
+    $<TARGET_FILE:crash_libretro>
+    $<TARGET_FILE:synth_no_save_libretro>)
   add_test(NAME engine_host_generic_protocol
     COMMAND test_engine_host $<TARGET_FILE:ezcore_core_host>)
 endif()

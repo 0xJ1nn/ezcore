@@ -142,6 +142,24 @@ static int open_core(host_t *h, const char *core, uint8_t **resp,
   return call(h, &m, resp, len);
 }
 
+/* Reads the trailing `can_save` flag out of an OPEN reply body. Returns -1
+ * when the reply is too short to hold one, so an older host is visible as
+ * "unknown" rather than silently "cannot save". */
+static int open_can_save(const uint8_t *r, uint32_t n) {
+  if (n < 2) return -1;
+  uint32_t at = 1;                          /* status byte */
+  uint32_t name_len = get_u32(r + at);      /* core name string */
+  at += 4 + name_len;
+  at += 4 + 4 + 8 + 8;                      /* w, h, fps, sample rate */
+  uint32_t rejected = get_u32(r + at);
+  at += 4;
+  for (uint32_t i = 0; i < rejected && at + 4 <= n; i++) {
+    at += 4 + get_u32(r + at);
+  }
+  if (at + 1 > n) return -1;
+  return r[at] != 0;
+}
+
 static int test_good_core(const char *host, const char *synth) {
   host_t h;
   CHECK(spawn_host(host, NULL, &h) == 0, "host spawned");
@@ -149,6 +167,7 @@ static int test_good_core(const char *host, const char *synth) {
   uint32_t n = 0;
 
   CHECK(open_core(&h, synth, &r, &n) == EZH_OK, "open synth core");
+  CHECK(open_can_save(r, n) == 1, "OPEN reports that this core can save");
   free(r);
 
   msg_t m = {.len = 0};
@@ -233,8 +252,46 @@ static int test_crashing_core(const char *host, const char *crash) {
   return 0;
 }
 
-static int test_parent_gone(const char *host, const char *synth) {
+/* A core with no save states must say so at OPEN, before the app offers a
+ * snapshot: the reply carries can_save = 0, and a SAVE attempt is an error
+ * that names the reason instead of crashing or hanging. */
+static int test_no_saves(const char *host, const char *core) {
   host_t h;
+  CHECK(spawn_host(host, NULL, &h) == 0, "host spawned for no-save core");
+  uint8_t *r = NULL;
+  uint32_t n = 0;
+  CHECK(open_core(&h, core, &r, &n) == EZH_OK, "no-save core opens cleanly");
+  CHECK(open_can_save(r, n) == 0, "OPEN reports that this core cannot save");
+  free(r);
+
+  msg_t m = {.len = 0};
+  put_u8(&m, EZH_OP_FRAME);
+  put_u32(&m, 1);
+  CHECK(call(&h, &m, &r, &n) == EZH_OK, "it still draws a frame");
+  free(r);
+
+  m.len = 0;
+  put_u8(&m, EZH_OP_SAVE);
+  CHECK(call(&h, &m, &r, &n) == EZH_ERROR,
+        "an explicit SAVE is refused, not a crash");
+  CHECK(n > 1 && strstr((char *)r + 1, "save states") != NULL,
+        "the refusal names save states");
+  free(r);
+
+  m.len = 0;
+  put_u8(&m, EZH_OP_CLOSE);
+  CHECK(call(&h, &m, &r, &n) == EZH_OK, "close acknowledged");
+  free(r);
+  int status = 0;
+  waitpid(h.pid, &status, 0);
+  CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 0,
+        "host exits 0 after a no-save session");
+  close(h.to_host);
+  close(h.from_host);
+  return 0;
+}
+
+static int test_parent_gone(const char *host, const char *synth) {  host_t h;
   CHECK(spawn_host(host, NULL, &h) == 0, "host spawned for orphan check");
   uint8_t *r = NULL;
   uint32_t n = 0;
@@ -250,13 +307,16 @@ static int test_parent_gone(const char *host, const char *synth) {
 }
 
 int main(int argc, char **argv) {
-  if (argc < 4) {
-    fprintf(stderr, "usage: test_core_host <host> <synth_core> <crash_core>\n");
+  if (argc < 5) {
+    fprintf(stderr,
+            "usage: test_core_host <host> <synth_core> <crash_core> "
+            "<no-save_core>\n");
     return 9;
   }
   signal(SIGPIPE, SIG_IGN); /* a dead host must surface as EOF, not kill us */
   if (test_good_core(argv[1], argv[2])) return 1;
   if (test_crashing_core(argv[1], argv[3])) return 1;
+  if (test_no_saves(argv[1], argv[4])) return 1;
   if (test_parent_gone(argv[1], argv[2])) return 1;
   printf("PASS\n");
   return 0;
