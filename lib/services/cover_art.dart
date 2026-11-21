@@ -5,6 +5,7 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/foundation.dart';
 
 import '../services/local_data_dir.dart';
+import 'game_art.dart' show artExtensions, isImageBytes;
 
 /// Deterministic per-game cover identity + screenshot-cover resolution.
 ///
@@ -82,9 +83,95 @@ File? coverFileFor(String gameId) {
 void invalidateCoverFile(String gameId) {
   // Drop the decoded image once, here, where the file changes. (Evicting in
   // the cover's build reloaded every cover from disk on every carousel frame.)
+  // A chosen cover may be any supported container, so evict every path the
+  // resolver could have used, not just the screenshot writer's .png.
   final old =
       _coverFileCache.remove(gameId) ??
       File('${PlatformLocalDataDirProvider.path()}/art/$gameId.png');
   PaintingBinding.instance.imageCache.evict(FileImage(old));
+  for (final ext in artExtensions) {
+    if (ext == '.png') continue;
+    PaintingBinding.instance.imageCache.evict(
+      FileImage(
+        File('${PlatformLocalDataDirProvider.path()}/art/$gameId$ext'),
+      ),
+    );
+  }
   coverRevision.value++;
+}
+
+/// Copies a cover the person chose into the pinned slot for [gameId].
+///
+/// The file keeps its own container under the name the screenshot writer
+/// already uses, so a pick, a capture and a fetched thumbnail all land in the
+/// same place. Anything unreadable, or not a complete supported image, leaves
+/// the current cover alone and returns null instead of throwing.
+Future<File?> setCoverFromFile(String gameId, String sourcePath) async {
+  final source = File(sourcePath);
+  late final List<int> bytes;
+  try {
+    bytes = await source.readAsBytes();
+  } catch (_) {
+    return null;
+  }
+  if (!isImageBytes(bytes)) return null;
+
+  final lower = sourcePath.toLowerCase();
+  var ext = artExtensions.first;
+  for (final candidate in artExtensions) {
+    if (lower.endsWith(candidate)) {
+      ext = candidate;
+      break;
+    }
+  }
+
+  try {
+    final folder = await Directory(
+      '${PlatformLocalDataDirProvider.path()}/art',
+    ).create(recursive: true);
+    // One cover per game: an earlier pick in any container is removed, so a
+    // .jpg replaced by a .png never leaves two files competing on disk.
+    for (final old in artExtensions) {
+      final stale = File('${folder.path}/$gameId$old');
+      if (stale.existsSync()) await stale.delete();
+    }
+    final written = File('${folder.path}/$gameId$ext');
+    await written.writeAsBytes(bytes, flush: true);
+    invalidateCoverFile(gameId);
+    return written;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Returns [gameId] to its generated cover by removing any pinned file.
+///
+/// Only this game's art is deleted; every other game keeps its own cover.
+Future<void> resetCover(String gameId) async {
+  final folder = Directory('${PlatformLocalDataDirProvider.path()}/art');
+  if (folder.existsSync()) {
+    for (final ext in artExtensions) {
+      final file = File('${folder.path}/$gameId$ext');
+      if (!file.existsSync()) continue;
+      try {
+        file.deleteSync();
+      } catch (_) {
+        // A file locked by the OS stays, but the revision still bumps so a
+        // tile re-resolves rather than holding a stale image.
+      }
+    }
+  }
+  invalidateCoverFile(gameId);
+}
+
+/// Whether [gameId] has a pinned cover in any of the supported containers.
+///
+/// Used to offer a reset only when there is something to undo.
+bool hasPinnedCover(String gameId) {
+  final folder = Directory('${PlatformLocalDataDirProvider.path()}/art');
+  if (!folder.existsSync()) return false;
+  for (final ext in artExtensions) {
+    if (File('${folder.path}/$gameId$ext').existsSync()) return true;
+  }
+  return false;
 }
