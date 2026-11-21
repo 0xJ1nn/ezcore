@@ -199,6 +199,47 @@ final class PcmAudioSink {
       default: result(FlutterMethodNotImplemented)
       }
     }
+    // Save backups use the app's iCloud Documents folder so saves survive
+    // deleting the app. When there is no container the locator falls back to
+    // an app-local folder and says so, rather than claiming a durable path.
+    let backup = FlutterMethodChannel(name: "ezcore/backup",
+                                      binaryMessenger: engineBridge.applicationRegistrar.messenger())
+    backup.setMethodCallHandler { call, result in
+      switch call.method {
+      case "icloudContainer":
+        // Returns nil until the iCloud capability is enabled for the bundle id.
+        guard let container = FileManager.default.url(forUbiquityContainerIdentifier: nil) else {
+          result(nil); return
+        }
+        let folder = container.appendingPathComponent("Documents/ezCORE Backup")
+        do {
+          try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+          result(folder.path)
+        } catch {
+          result(nil)
+        }
+      case "probeFolder":
+        guard let args = call.arguments as? [String: Any],
+              let folder = args["folder"] as? String else {
+          result(false); return
+        }
+        let probe = URL(fileURLWithPath: folder).appendingPathComponent(".ezcore_backup_probe")
+        do {
+          try "ok".write(to: probe, atomically: true, encoding: .utf8)
+          let bytes = try String(contentsOf: probe, encoding: .utf8)
+          try FileManager.default.removeItem(at: probe)
+          result(!bytes.isEmpty)
+        } catch {
+          // Clear a probe left behind by a partial failure before answering.
+          try? FileManager.default.removeItem(at: probe)
+          result(false)
+        }
+      case "pickTree":
+        result(nil) // iOS has no Storage Access Framework folder picker.
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
     let padChannel = FlutterMethodChannel(name: "ezcore/gamepad",
                                           binaryMessenger: engineBridge.applicationRegistrar.messenger())
     gamepad = GamepadBridge(channel: padChannel)
