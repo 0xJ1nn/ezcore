@@ -9,11 +9,18 @@ and loaded at startup by AppState. Run before flutter pub get/test/build:
 
 cores/release.json is the on-demand delivery map (hybrid core delivery): the GitHub
 release tag matching this pubspec version plus the asset filename for
-every delivery=download core that has a pin for that platform-arch. The
-app downloads exactly these names, sha256-verifies them against the pin
-in the catalog, and stages them. Every buildable platform that publishes no
-assets is listed in `unavailablePlatforms` with the reason, so the app can
-say plainly why a core cannot be downloaded there.
+every delivery=download core that has a pin for that platform-arch **and
+whose bytes are actually attached to the release**. The app downloads
+exactly these names, sha256-verifies them against the pin in the catalog,
+and stages them. Every buildable platform that publishes no assets is
+listed in `unavailablePlatforms` with the reason, so the app can say
+plainly why a core cannot be downloaded there.
+
+cores/published-sha256.txt is the release's own SHA256SUMS.txt with the tag
+on a `# vX.Y.Z` line. It is what makes the map honest: an asset the host
+does not serve is never offered, and a pin that disagrees with the served
+bytes is a hard failure here rather than a download that verifies and is
+then thrown away on every device.
 
     python3 scripts/build_catalog.py --check   # verify the committed files
 
@@ -30,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CORES = ROOT / "cores"
 CATALOG = CORES / "catalog.json"
 RELEASE = CORES / "release.json"
+PUBLISHED = CORES / "published-sha256.txt"
 
 # Repository slug whose releases host the on-demand core assets. Manual
 # uploads only (`gh release upload`) — GitHub is repo-hosting, no CI (hybrid core delivery).
@@ -78,6 +86,28 @@ def asset_ext(plat: str) -> str:
     }.get(plat.split("-")[0], "so")
 
 
+def read_published() -> "tuple[str, dict[str, str]]":
+    """The release's own SHA256SUMS.txt, with its tag on a `# vX.Y.Z` line."""
+    if not PUBLISHED.is_file():
+        fail(f"{PUBLISHED} is missing; it records what the release host serves")
+    tag = ""
+    sums: dict[str, str] = {}
+    for line in PUBLISHED.read_text().splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            if not tag and stripped[1:].strip().startswith("v"):
+                tag = stripped[1:].strip()
+            continue
+        parts = stripped.split()
+        if len(parts) == 2:
+            sums[parts[1]] = parts[0].lower()
+    if not tag:
+        fail(f"{PUBLISHED}: record the release tag on a '# vX.Y.Z' line")
+    if not sums:
+        fail(f"{PUBLISHED}: no asset digests recorded")
+    return tag, sums
+
+
 def unavailable_platforms(catalog: dict, assets: dict) -> dict:
     """Plain reason for every buildable platform with no published assets."""
     result = {}
@@ -115,6 +145,13 @@ def unavailable_platforms(catalog: dict, assets: dict) -> dict:
 
 def build_release(catalog: dict) -> dict:
     """cores/release.json — tag + downloadable asset names (hybrid core delivery)."""
+    tag, published = read_published()
+    expected_tag = f"v{pubspec_version()}"
+    if tag != expected_tag:
+        fail(
+            f"{PUBLISHED} describes {tag} but this build downloads from "
+            f"{expected_tag}; copy the current release's SHA256SUMS.txt"
+        )
     assets: dict[str, dict[str, str]] = {}
     for cid, m in sorted(catalog.items()):
         if m.get("blocked_reason"):
@@ -125,13 +162,23 @@ def build_release(catalog: dict) -> dict:
                 continue
             if delivery.get(plat.split("-")[0]) != "download":
                 continue
-            assets.setdefault(plat, {})[cid] = (
-                f"{cid}_libretro-{plat}.{asset_ext(plat)}"
-            )
+            name = f"{cid}_libretro-{plat}.{asset_ext(plat)}"
+            digest = published.get(name)
+            if digest is None:
+                # Not attached to the release: offering it would install a
+                # button that only ever 404s. The platform is reported below.
+                continue
+            if digest != pin.lower():
+                fail(
+                    f"{cid}: {plat} pin {pin[:12]} does not match the "
+                    f"{tag} asset {digest[:12]} ({name}); the app would "
+                    "download, verify and discard it"
+                )
+            assets.setdefault(plat, {})[cid] = name
     ordered_assets = {k: dict(sorted(v.items())) for k, v in sorted(assets.items())}
     return {
         "repo": REPO,
-        "tag": f"v{pubspec_version()}",
+        "tag": tag,
         "assets": ordered_assets,
         "unavailablePlatforms": unavailable_platforms(catalog, ordered_assets),
     }
