@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +12,8 @@ import '../models/cheat.dart';
 import '../models/core_manifest.dart';
 import '../models/game_entry.dart';
 import '../services/local_data_dir.dart';
+import '../services/mirrored_saves.dart';
+import '../services/backup_folder.dart';
 import '../services/core_discovery.dart';
 import '../services/core_downloader.dart';
 import '../services/core_options_resolver.dart';
@@ -21,6 +24,7 @@ import '../services/persistence_service.dart';
 import '../services/content_importer.dart';
 import '../services/hash_verifier.dart';
 import '../services/native_dirs.dart';
+import '../version.dart';
 import 'save_sync.dart';
 
 /// Summary of a [AppState.rescanRomFolders] pass.
@@ -56,12 +60,19 @@ class AppState extends ChangeNotifier {
   /// [PersistenceService] backed by the platform data directory.
   /// Pass the startup-resolved provider from `main()` on mobile; desktop
   /// resolves synchronously when omitted.
-  factory AppState({LocalDataDirProvider? dirProvider}) {
+  factory AppState({
+    LocalDataDirProvider? dirProvider,
+    BackupFolderService? backupFolder,
+  }) {
     final resolved = dirProvider ?? PlatformLocalDataDirProvider();
     final dir = Directory(resolved.localDataDirPath());
     final saves = LocalSaveSyncProvider(dir);
     final persistence = PersistenceService(resolved);
-    return AppState.internal(persistence: persistence, saves: saves);
+    return AppState.internal(
+      persistence: persistence,
+      saves: saves,
+      backupFolder: backupFolder,
+    );
   }
 
   /// Creates an in-memory state with no persistence — used by tests.
@@ -69,11 +80,13 @@ class AppState extends ChangeNotifier {
   /// caller-chosen directory (tests point it at a temp dir).
   factory AppState.ephemeral({
     Future<Directory> Function()? documentsProvider,
+    BackupFolderService? backupFolder,
   }) {
     return AppState.internal(
       persistence: null,
       saves: MemorySaveSyncProvider(),
       documentsProvider: documentsProvider,
+      backupFolder: backupFolder,
     );
   }
 
@@ -82,11 +95,15 @@ class AppState extends ChangeNotifier {
   @visibleForTesting
   AppState.internal({
     required this.persistence,
-    required this.saves,
+    required SaveSyncProvider saves,
     this.documentsProvider,
+    BackupFolderService? backupFolder,
     CoreDownloader? downloader,
   }) : _downloader =
-           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider());
+           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider()),
+       backupFolder = backupFolder ?? BackupFolderService.disabled(),
+       _baseSaves = saves,
+       _saves = saves;
 
   final CoreDownloader _downloader;
 
@@ -118,9 +135,29 @@ class AppState extends ChangeNotifier {
   List<GameEntry> games = [];
   final Map<String, List<CheatEntry>> cheatsByGame = {};
 
-  /// Save/sync seam: local vault by default; swap in a cloud provider
-  /// (or memory provider for tests) without touching callers.
-  final SaveSyncProvider saves;
+  /// The provider the app started with, before any backup folder was found.
+  /// Kept so a lost or revoked folder can put saves back on plain local
+  /// storage without losing the original provider.
+  final SaveSyncProvider _baseSaves;
+
+  SaveSyncProvider _saves;
+
+  /// Save/sync seam: local vault by default. Once a durable backup folder is
+  /// resolved this becomes a mirror wrapper around that same vault, so
+  /// callers never change. If no folder is available it stays plain local.
+  SaveSyncProvider get saves => _saves;
+
+  /// Saves found only in the backup folder. Kept in sync after background
+  /// resolution so Settings can offer a restore without doing disk I/O.
+  int _mirrorOnlySaveCount = 0;
+  int get mirrorOnlySaveCount => _mirrorOnlySaveCount;
+
+  bool _disposed = false;
+
+  /// Per-device save backup location, resolved once in the background at
+  /// boot. A failure here never blocks the app: saves keep using the local
+  /// vault.
+  final BackupFolderService backupFolder;
 
   bool loaded = false;
   String? loadError;
@@ -240,6 +277,82 @@ class AppState extends ChangeNotifier {
     }
     loaded = true;
     notifyListeners();
+    // Backup discovery must never hold up the first frame or the library.
+    unawaited(resolveBackupFolder());
+  }
+
+  /// Setting key for the Android folder grant, restored on each launch.
+  static const backupFolderGrantKey = 'backupFolderGrant';
+
+  /// Resolves the backup folder without blocking boot. A restored Android
+  /// grant is applied first so the right locator is used. Every failure stays
+  /// local: this method never throws and the first frame is never held up.
+  Future<void> resolveBackupFolder() async {
+    final grant = _settings[backupFolderGrantKey];
+    try {
+      if (grant is String && grant.isNotEmpty) {
+        await backupFolder.applyAndroidGrant(grant);
+      } else {
+        await backupFolder.resolveOnce();
+      }
+    } catch (_) {
+      // Backup discovery is optional; keep the plain local provider.
+    }
+    _applySaveMirror();
+    await _refreshMirrorOnlyCount();
+    if (!_disposed) notifyListeners();
+  }
+
+  /// Points saves at a durable mirror when the resolved folder is usable,
+  /// and back at the plain provider when it is not.
+  void _applySaveMirror() {
+    final status = backupFolder.status;
+    _saves = status.available
+        ? MirroredSaveSyncProvider(
+            _baseSaves,
+            Directory(status.path),
+            appVersion: appVersion,
+          )
+        : _baseSaves;
+  }
+
+  /// Recomputes how many saves can be restored from the mirror. A broken
+  /// mirror reports zero rather than an error.
+  Future<void> _refreshMirrorOnlyCount() async {
+    final provider = _saves;
+    if (provider is! MirroredSaveSyncProvider) {
+      _mirrorOnlySaveCount = 0;
+      return;
+    }
+    try {
+      _mirrorOnlySaveCount = (await provider.mirrorOnlySlots()).length;
+    } catch (_) {
+      _mirrorOnlySaveCount = 0;
+    }
+  }
+
+  /// Copies saves found only in the backup into the local vault. Returns the
+  /// number restored. No-op when no backup folder is in use.
+  Future<int> restoreFromBackup() async {
+    final provider = _saves;
+    if (provider is! MirroredSaveSyncProvider) return 0;
+    final restored = await provider.restoreFromMirror();
+    await _refreshMirrorOnlyCount();
+    if (!_disposed) notifyListeners();
+    return restored;
+  }
+
+  /// Opens the system folder picker where one is needed and remembers the
+  /// choice. Returns null when the person cancels or no picker exists.
+  Future<BackupFolderStatus?> chooseBackupFolder() async {
+    final grant = await backupFolder.pickTree();
+    if (grant == null || grant.isEmpty) return null;
+    await setSetting(backupFolderGrantKey, grant);
+    final status = await backupFolder.applyAndroidGrant(grant);
+    _applySaveMirror();
+    await _refreshMirrorOnlyCount();
+    if (!_disposed) notifyListeners();
+    return status;
   }
 
   /// Re-runs discovery over the core root resolved during [load]: registers
@@ -758,6 +871,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     registry.removeListener(notifyListeners);
     super.dispose();
   }
