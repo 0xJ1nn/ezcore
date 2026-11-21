@@ -79,6 +79,16 @@ Rules: pins are evidence, never aspirational (`pin_artifacts.py` refuses
 blocked cores). iOS entries must be interpreter (manifest validation
 enforces; `TIER_IOS` excludes JIT-default cores until flags are verified).
 
+**What a RENDERS row must also carry (2026-11-21).** A nonzero pixel sum and a
+successful save/restore are not enough on their own. `test_core_boot` writes
+the frame with `EZCORE_FRAME_PPM=<path>`; the row must name that frame, and the
+frame must differ from the one the same core draws when it is fed a file from
+another system. A core that accepts an NES file and a GBA cartridge and paints
+the same picture for both is painting decoration, and its RENDERS claim is
+withdrawn — that is what happened to `geometry1`. Where a core cannot be given
+a foreign file (it refuses it, which is correct), the frame hash alone is the
+record.
+
 **Harness limits on IDENTIFIES and RENDERS** (corrected 2026-09-29 — both
 levels previously claimed more than the harness asserts):
 
@@ -114,7 +124,7 @@ levels previously claimed more than the harness asserts):
 | realmode | IDENTIFIES | BUILT | BUILT | BUILT · frames, no state (2026-10-01) | — | Linux: DOSBox Pure renders its start menu (640×400) from the DOOM shareware installer zip, but refuses to serialize until a program runs ("Unable to save state while game is not running"), so not RENDERS. Needs a self-running DOS fixture. Android needed `ISMAC=` + NDK `STRIP`; all-interpreter (perf caveat) |
 | coinbox | IDENTIFIES | BUILT | BUILT | — | — | All-interpreter on 64-bit (Cyclone is 32-bit ARM only) |
 | pointclick | IDENTIFIES | — | BUILT | BUILT · **crashes** (2026-10-01) | — | Linux: ScummVM segfaults after failing to open *Beneath a Steel Sky* given as a bare `sky.dsk` (no `sky.cpt`, no game directory) — a content-shape problem, but a crash on bad input still kills the app (P6). macOS first build 2026-09-19 (freetype zconf.h patch was being reverted by their configure step — see build_core.sh); Android arm64 staged + pinned the same day |
-| geometry1 | IDENTIFIES | — | — | **RENDERS** (2026-10-01) | — | Linux: SwanStation boots the 240p Test Suite (PS1) on its **default software renderer** — 256×224, restore within 2%. The old "needs GL" note was wrong for this core. Fixture is local-only (see *Local test content*) |
+| geometry1 | IDENTIFIES | — | — | BUILT · **RENDERS unverified** (2026-11-21) | — | Linux: the 2026-10-01 RENDERS row does not reproduce. Fed a 2 MB NES file and a GBA cartridge — neither a PlayStation image — the core accepts both, runs them, and renders **the identical 640×478 frame** it renders for its own content (same SHA-256, 4 colours, 70% of one colour). A frame that does not change with the content cannot evidence PlayStation rendering, so loading, init and save/restore stand and video output does not. The earlier 256×224 note is not reproducible on this build. Restoring the row needs one real PSX image whose frame differs from a negative control |
 | rcp64 | IDENTIFIES | — | — | BUILT · **RENDERS on GPU (GLideN64) and software (Angrylion)** (2026-10-01) | — | Linux: on its default GLideN64 renderer, with the P8 handshake fixes (GL core profile, context_reset after load, framebuffer sized to max geometry, libretro teardown order), two N64 homebrew ROMs reach RENDERS, cold and warm shader cache — 640×480, restore exact. Also RENDERS on the #93 build with `mupen64plus-rdp-plugin=angrylion` (software). Cold-cache runs crashed at shutdown before the teardown-order fix |
 | dualscreen | IDENTIFIES | — | — | **RENDERS** (2026-10-01) | — | Linux: boots *World of Sand* (DS homebrew) on defaults — 256×384, restore exact. The old "needs core options" note no longer applies |
 | portcomp | IDENTIFIES | — | — | **RENDERS on GPU (OpenGL)** (2026-10-02) | — | Linux: PPSSPP boots *Yokero* (PSP homebrew) to its title screen — 480×270, 40 MB save state, restore within 2% — with `EZCORE_BOOT_FRAMES=300 EZCORE_BOOT_PACE=1` (PPSSPP boots on its own thread in real time, so 30 unpaced frames end before it draws) and PPSSPP's own `assets` folder at `<system>/PPSSPP`. Two runtime bugs were in the way: core options sent with `SET_CORE_OPTIONS_V2_INTL` were dropped (so every PPSSPP option was undefined and no frame was presented), and `context_destroy` ran after `retro_unload_game`, which crashes PPSSPP |
