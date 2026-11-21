@@ -152,8 +152,8 @@ void main() {
       await t.pumpWidget(_host(Shell(state: s)));
       await _pumps(t);
       expect(t.getTopLeft(find.byType(LibraryChips)).dy, closeTo(168, 8));
-      expect(LookTheme.wallCover, const Size(158, 208));
-      expect(LookTheme.gridCover, const Size(132, 186));
+      expect(LookTheme.wallCover, const Size(156, 208));
+      expect(LookTheme.gridCover, const Size(132, 176));
       expect(Tokens.body(size: 8).fontSize, 12);
       expect(Tokens.display(size: 8).fontSize, 12);
     },

@@ -89,7 +89,12 @@ class LibrarySearchField extends StatelessWidget {
           return AnimatedContainer(
             duration: Tokens.fastDur,
             curve: Tokens.ease,
-            padding: EdgeInsets.only(left: height * 0.3, right: height * 0.24),
+            padding: const EdgeInsets.fromLTRB(
+              Tokens.searchPadLeft,
+              0,
+              Tokens.searchPadRight,
+              0,
+            ),
             decoration: BoxDecoration(
               color: const Color(0x8C060A11), // rgba(6,10,17,.55)
               borderRadius: radius,
@@ -105,8 +110,12 @@ class LibrarySearchField extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Symbols.search, size: 18, color: Tokens.muted),
-                SizedBox(width: height * 0.2),
+                const Icon(
+                  Symbols.search,
+                  size: Tokens.searchIconSize,
+                  color: Tokens.muted,
+                ),
+                const SizedBox(width: Tokens.searchIconGap),
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -199,7 +208,7 @@ class LibraryLookSwitch extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final look in LibraryLook.values) ...[
-            const SizedBox(width: 2),
+            if (look != LibraryLook.values.first) const SizedBox(width: 4),
             _LookButton(
               look: look,
               active: look == value,
@@ -208,7 +217,6 @@ class LibraryLookSwitch extends StatelessWidget {
               onTap: () => onChanged(look),
             ),
           ],
-          const SizedBox(width: 2),
         ],
       ),
     );
@@ -331,7 +339,10 @@ class LibraryViewChip extends StatelessWidget {
               ),
               child: Text(
                 'V',
-                style: Tokens.glyphChip.copyWith(color: Tokens.text, fontSize: 11),
+                style: Tokens.glyphChip.copyWith(
+                  color: Tokens.text,
+                  fontSize: 11,
+                ),
               ),
             ),
           ),

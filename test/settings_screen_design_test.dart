@@ -64,6 +64,26 @@ void main() {
     expect(find.text('3D shelf'), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('Controller: A'), findsNothing);
+
+    // The design's switch is 56×32 with a 24 px knob (§8.7).
+    final toggles = find.byWidgetPredicate(
+      (w) => w is Semantics && w.properties.toggled != null,
+    );
+    expect(toggles, findsWidgets);
+    expect(tester.getSize(toggles.first), const Size(56, 32));
+    final knob = find.descendant(
+      of: toggles.first,
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is AnimatedContainer &&
+            w.constraints ==
+                BoxConstraints.tightFor(
+                  width: Tokens.toggleKnob,
+                  height: Tokens.toggleKnob,
+                ),
+      ),
+    );
+    expect(knob, findsOneWidget);
   });
 
   testWidgets('the toggle and value rows persist their preferences', (
@@ -269,9 +289,7 @@ void main() {
     expect(state.settings['muted'], isTrue);
   });
 
-  testWidgets('Reduce motion cycles Follow system, On and Off', (
-    tester,
-  ) async {
+  testWidgets('Reduce motion cycles Follow system, On and Off', (tester) async {
     final state = AppState.ephemeral();
     await pump(tester, state);
 

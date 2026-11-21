@@ -43,6 +43,13 @@ abstract final class Tokens {
   static const scrim = Color(0xC902070D);
   static const searchIdle = Color(0x770A0A0A);
   static const chipActiveBg = Color(0x13DDE6F4); // #DDE6F413
+
+  /// Switch: 56×32, r16, 24 px knob, 4 px inset (§8.7).
+  static const toggleWidth = 56.0;
+  static const toggleHeight = 32.0;
+  static const toggleRadius = 16.0;
+  static const toggleKnob = 24.0;
+  static const togglePad = 4.0;
   static const toggleOff = Color(0xFF38434C);
   static const toggleKnobOff = Color(0xFFBDC7CE);
 
@@ -168,8 +175,7 @@ abstract final class Tokens {
   static Duration get moveDur => _reduced ? reducedFadeDur : fullMoveDur;
 
   /// Page enter, shelf camera (650 ms).
-  static Duration get ambientDur =>
-      _reduced ? reducedFadeDur : fullAmbientDur;
+  static Duration get ambientDur => _reduced ? reducedFadeDur : fullAmbientDur;
 
   /// Room tint, parallax (900–1200 ms): stops entirely when reduced.
   static Duration get sceneDur => _reduced ? Duration.zero : fullSceneDur;
@@ -201,6 +207,13 @@ abstract final class Tokens {
   static const double rail = 104; // CHANGED 112 → 104
   static const double railShort = 72;
 
+  /// Rail items are 80×76 on a 104 px rail (12 px either side), 10 px apart;
+  /// Add games sits a further 18 px below the last destination (§7.3).
+  static const double railItemWidth = 80;
+  static const double railItemHeight = 76;
+  static const double railItemGap = 10;
+  static const double railAddGap = 18;
+
   // ---- Responsive breakpoints (shared by every screen) ----
   // Five layout families mirror the studio plate:
   //   phone portrait  — bottom command bar, featured game, continue row
@@ -218,6 +231,20 @@ abstract final class Tokens {
   static const double statPanelRadius = 14;
   static const double pillRadius = radiusPill;
   static const double tileRadius = 12;
+
+  /// Dock text/badge/button rhythm (§7.5), search field (§8.1) and
+  /// OS-bar status corner (§7.2), all read from the prototype's CSS.
+  static const double dockGap = 10;
+  static const double searchIconSize = 20;
+  static const double searchIconGap = 10;
+  static const double searchPadLeft = 14;
+  static const double searchPadRight = 10;
+  static const double statusPad = 12;
+  static const double statusGap = 22;
+  static const double ctaHeight = 56;
+  static const double ctaIconSize = 22;
+  static const double ctaPadLeft = 18;
+  static const double ctaPadRight = 24;
 
   // ---- Type (Space Grotesk display / Manrope body, bundled) ----
   static const displayFamily = 'SpaceGrotesk';
@@ -278,12 +305,8 @@ abstract final class Tokens {
   // Named `displayHero` etc. so the design roles stay greppable.
 
   /// Detail title: 76 / 0.95, 700, −0.035em.
-  static TextStyle get displayHero => display(
-    size: 76,
-    weight: FontWeight.w700,
-    ls: -0.035 * 76,
-    height: 0.95,
-  );
+  static TextStyle get displayHero =>
+      display(size: 76, weight: FontWeight.w700, ls: -0.035 * 76, height: 0.95);
 
   /// Screen title: 44 / 1, 600, −0.03em.
   static TextStyle get displayScreen => display(
@@ -294,36 +317,20 @@ abstract final class Tokens {
   );
 
   /// Dock title: 32 / 1, 600, −0.02em.
-  static TextStyle get displayDock => display(
-    size: 32,
-    weight: FontWeight.w600,
-    ls: -0.02 * 32,
-    height: 1,
-  );
+  static TextStyle get displayDock =>
+      display(size: 32, weight: FontWeight.w600, ls: -0.02 * 32, height: 1);
 
   /// Panel / dialog title: 26 / 1.1, 600, −0.02em (dialog uses 28).
-  static TextStyle get displayPanel => display(
-    size: 26,
-    weight: FontWeight.w600,
-    ls: -0.02 * 26,
-    height: 1.1,
-  );
+  static TextStyle get displayPanel =>
+      display(size: 26, weight: FontWeight.w600, ls: -0.02 * 26, height: 1.1);
 
   /// Dialog title at 28.
-  static TextStyle get displayDialog => display(
-    size: 28,
-    weight: FontWeight.w600,
-    ls: -0.02 * 28,
-    height: 1.1,
-  );
+  static TextStyle get displayDialog =>
+      display(size: 28, weight: FontWeight.w600, ls: -0.02 * 28, height: 1.1);
 
   /// Section title: 19 / 1, 600, −0.01em.
-  static TextStyle get sectionTitle => display(
-    size: 19,
-    weight: FontWeight.w600,
-    ls: -0.01 * 19,
-    height: 1,
-  );
+  static TextStyle get sectionTitle =>
+      display(size: 19, weight: FontWeight.w600, ls: -0.01 * 19, height: 1);
 
   /// Eyebrow: 13, 500, +0.30em, uppercase (callers uppercase the copy).
   static TextStyle get eyebrow => const TextStyle(
@@ -335,18 +342,12 @@ abstract final class Tokens {
   );
 
   /// Buttons and menu items: 17, 700.
-  static TextStyle get bodyAction => body(
-    size: 17,
-    weight: FontWeight.w700,
-    height: null,
-  );
+  static TextStyle get bodyAction =>
+      body(size: 17, weight: FontWeight.w700, height: null);
 
   /// Buttons inside the dock / detail: 16, 700.
-  static TextStyle get bodyActionDock => body(
-    size: 16,
-    weight: FontWeight.w700,
-    height: null,
-  );
+  static TextStyle get bodyActionDock =>
+      body(size: 16, weight: FontWeight.w700, height: null);
 
   /// Dialog body / notes: 16 / 1.6, 500.
   static TextStyle get bodyLead => body(size: 16, height: 1.6);
@@ -368,12 +369,8 @@ abstract final class Tokens {
   );
 
   /// Stat value: Space Grotesk 19, 600.
-  static TextStyle get statValue => display(
-    size: 19,
-    weight: FontWeight.w600,
-    ls: 0,
-    height: 1.1,
-  );
+  static TextStyle get statValue =>
+      display(size: 19, weight: FontWeight.w600, ls: 0, height: 1.1);
 
   /// System badge: Space Grotesk 12, 600, +0.10em.
   static TextStyle get systemLabel => display(
@@ -384,11 +381,8 @@ abstract final class Tokens {
   );
 
   /// Glyph chip: Space Grotesk 11.5–12, 700. The 12 px floor wins.
-  static TextStyle get glyphChip => display(
-    size: 12,
-    weight: FontWeight.w700,
-    ls: 0,
-  );
+  static TextStyle get glyphChip =>
+      display(size: 12, weight: FontWeight.w700, ls: 0);
 
   /// Rail footer: Space Grotesk 11–12, 500, +0.24em.
   static TextStyle get railFooter => display(
@@ -399,11 +393,7 @@ abstract final class Tokens {
   );
 
   /// Dock metadata line: 13, 500, muted.
-  static TextStyle get dockMeta => body(
-    size: 13,
-    color: muted,
-    height: null,
-  );
+  static TextStyle get dockMeta => body(size: 13, color: muted, height: null);
 
   /// Big screen title size: "The collection" (44).
   static const screenTitle = 44.0;

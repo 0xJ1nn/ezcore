@@ -145,9 +145,9 @@ class _OrbitStatusState extends State<OrbitStatus> {
           label: 'On this device',
           boxed: true,
         ),
-        const SizedBox(width: 28),
-        _StatusChip(icon: _inputIcon, label: _inputLabel),
-        const SizedBox(width: 28),
+        const SizedBox(width: Tokens.statusGap),
+        _StatusChip(icon: _inputIcon, label: _inputLabel, iconSize: 20),
+        const SizedBox(width: Tokens.statusGap),
         Text(
           time,
           style: Tokens.display(
@@ -200,23 +200,25 @@ class _StatusChip extends StatelessWidget {
     required this.icon,
     required this.label,
     this.boxed = false,
+    this.iconSize = 16,
   });
 
   final IconData icon;
   final String label;
   final bool boxed;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Tokens.muted),
+        Icon(icon, size: iconSize, color: Tokens.muted),
         const SizedBox(width: 8),
         Text(
           label,
           style: Tokens.body(
-            size: 13,
+            size: 14,
             weight: FontWeight.w500,
             color: Tokens.muted,
             height: 1,
@@ -227,7 +229,7 @@ class _StatusChip extends StatelessWidget {
     if (!boxed) return child;
     return Container(
       height: 30,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: Tokens.statusPad),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: const Color(0xFF16222F),
