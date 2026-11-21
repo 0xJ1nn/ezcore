@@ -4,7 +4,6 @@ import '../theme/symbols.dart';
 import '../theme/tokens.dart';
 import '../widgets/diamond_badge.dart';
 import 'diamond_tokens.dart';
-import 'early_access.dart';
 import 'entitlement.dart';
 import 'open_url.dart';
 import 'support_ui.dart';
@@ -103,10 +102,10 @@ class _DiamondSectionState extends State<DiamondSection> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'New features and systems reach Diamond members first. '
-                      'Every one of them comes to the free app 60 days later. '
-                      'ezCORE itself stays free, with every core and every '
-                      'feature.',
+                      'Diamond supports ezCORE and unlocks nothing. Every '
+                      'feature and every core is free for everyone, on every '
+                      'platform. Members get the Diamond badge and accent, and '
+                      'the option to be named in the credits.',
                       style: Tokens.body(
                         size: 15,
                         color: Tokens.muted,
@@ -137,70 +136,6 @@ class _DiamondSectionState extends State<DiamondSection> {
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Text(
-            'IN DIAMOND NOW',
-            style: Tokens.body(
-              size: 12,
-              weight: FontWeight.w600,
-              ls: 0.24 * 12,
-              color: Tokens.muted,
-              height: 1,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        _Card(
-          child: earlyAccessFeatures.isEmpty
-              ? Text(
-                  'Nothing in early access right now.',
-                  style: Tokens.body(
-                    size: 15,
-                    color: Tokens.muted,
-                    height: 1.45,
-                  ),
-                )
-              : Column(
-                  children: [
-                    for (final feature in earlyAccessFeatures)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Row(
-                          children: [
-                            Icon(
-                              feature.icon,
-                              size: 22,
-                              color: DiamondTokens.fg,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                feature.title,
-                                style: Tokens.body(
-                                  size: 15,
-                                  weight: FontWeight.w600,
-                                  color: Colors.white,
-                                  height: 1,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Free for everyone on ${_date(feature.freeFrom)}',
-                              style: Tokens.body(
-                                size: 13,
-                                color: Tokens.muted,
-                                height: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-        ),
-        const SizedBox(height: 6),
         _TipCard(
           focused: true,
           description:

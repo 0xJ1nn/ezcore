@@ -1,8 +1,6 @@
 import 'package:ezcore/support/diamond_tokens.dart';
-import 'package:ezcore/support/early_access.dart';
 import 'package:ezcore/support/entitlement.dart';
 import 'package:ezcore/support/purchase_store.dart';
-import 'package:flutter/widgets.dart' show IconData;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support_fake_store.dart';
@@ -141,44 +139,26 @@ void main() {
     });
   });
 
-  group('Early access', () {
-    final feature = EarlyAccessFeature(
-      id: 'wall',
-      title: 'Curved wall view',
-      icon: const IconData(0xe8eb),
-      freeFrom: DateTime(2026, 2, 12),
-    );
-
-    test('is on for Diamond members before the free date', () async {
+  group('Diamond is a supporter tier', () {
+    test('a member gets no capability a free user does not have', () async {
       final diamond = Entitlement(
         store: FakePurchaseStore(),
         storage: InMemorySupportStorage({'diamond.member': true}),
       );
       addTearDown(diamond.dispose);
       await diamond.start();
-      expect(
-        earlyAccessIsOn(feature, diamond, now: DateTime(2026, 1, 1)),
-        isTrue,
-      );
-    });
-
-    test('is off for everyone until the free date, then on', () {
       final free = Entitlement(
         store: FakePurchaseStore(),
         storage: InMemorySupportStorage(),
       );
-      expect(
-        earlyAccessIsOn(feature, free, now: DateTime(2026, 2, 11)),
-        isFalse,
-      );
-      expect(
-        earlyAccessIsOn(feature, free, now: DateTime(2026, 2, 12)),
-        isTrue,
-      );
-    });
+      addTearDown(free.dispose);
+      await free.start();
 
-    test('the feature table starts empty', () {
-      expect(earlyAccessFeatures, isEmpty);
+      expect(diamond.isDiamond, isTrue);
+      expect(free.isDiamond, isFalse);
+      // Membership changes the badge, the accent and the credit opt-in only.
+      expect(diamond.storeAvailable, free.storeAvailable);
+      expect(diamond.products, free.products);
       expect(DiamondTokens.sponsorsUrl, contains('github.com/sponsors'));
     });
   });

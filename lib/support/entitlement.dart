@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../state/app_state.dart';
-import 'early_access.dart';
 import 'purchase_store.dart';
 
 // Persisted keys. Stored through the app's existing local settings service.
@@ -237,10 +236,6 @@ class Entitlement extends ChangeNotifier {
       ),
     );
   }
-
-  /// Whether a feature is available to this device right now.
-  bool isFeatureOn(EarlyAccessFeature feature, {DateTime? now}) =>
-      earlyAccessIsOn(feature, this, now: now);
 
   @override
   void dispose() {

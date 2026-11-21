@@ -111,9 +111,9 @@ class _PlansSheetState extends State<PlansSheet> {
             ),
             SizedBox(height: phone ? 8 : 10),
             Text(
-              'Get new features and systems 60 days before they reach the free '
-              'app, plus Diamond icons, an accent colour and your name in the '
-              'credits.',
+              'Support the project and unlock nothing: every feature and every '
+              'core is free for everyone. Diamond adds its icons, an accent '
+              'colour and your name in the credits.',
               style: Tokens.body(
                 size: 15,
                 color: Tokens.muted,

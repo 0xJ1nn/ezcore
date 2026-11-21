@@ -78,14 +78,13 @@ void main() {
     );
   });
 
-  testWidgets('a store build shows Diamond, empty early access and the tip card', (
+  testWidgets('a store build shows Diamond and the tip card', (
     tester,
   ) async {
     await pumpDiamond(tester);
     expect(find.text('ezCORE Diamond'), findsOneWidget);
     expect(find.text('See plans'), findsOneWidget);
     expect(find.text('Restore purchases'), findsOneWidget);
-    expect(find.text('Nothing in early access right now.'), findsOneWidget);
     expect(find.text('Send the developer something'), findsOneWidget);
     expect(
       find.text('Support ezCORE on GitHub Sponsors'),
