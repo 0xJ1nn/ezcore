@@ -10,7 +10,7 @@ involved, and this gate closes both:
 1. The DENOMINATOR was wrong (92). It had been counted from a per-core copy of
    libretro.h under native/src/<upstream>/, not from the authoritative vendored
    header at runtime/external/libretro-common/include/libretro.h. The vendored
-   header defines 93 commands, not 92.
+   header defined 98 commands at the last recorded check, not 92.
 
 2. The COUNTING METHOD was wrong. A plain substring grep for
    RETRO_ENVIRONMENT_[A-Z0-9_]+ reports 96, because it also matches three
@@ -61,12 +61,12 @@ RUNTIME_C = ROOT / "runtime" / "src" / "runtime.c"
 SCAN_GLOBS = ["*.md", "docs/**/*.md"]
 
 # A stated coverage figure, in the forms the docs actually use:
-#   "**13 of 93** environment commands"   (bold, with the context word)
-#   "Both files now cite 13/93"            (slash form, no context word)
-#   "13 of the 93 environment commands"
+#   "**22 of 98** environment commands"   (bold, with the context word)
+#   "Both files now cite 22/98"            (slash form, no context word)
+#   "22 of the 98 environment commands"
 #
-# A bare "13 of 93" with no context word is accepted only when the line also
-# mentions the header or "environment" somewhere, because "13 of 93" alone is
+# A bare "22 of 98" with no context word is accepted only when the line also
+# mentions the header or "environment" somewhere, because "22 of 98" alone is
 # too generic to attribute. Every form is anchored on the two numbers, so the
 # ctest tallies ("14 of 14", "3 of 3") and test counts cannot match: those
 # never carry an environment/header keyword on the same line.

@@ -15,8 +15,9 @@
 > kept as the record of what was true on 2026-09-28.
 >
 > **Last verified:** 2026-09-28 — P1b capability surface merged: `env_cb` answers
-> **17 of the 93** environment requests (core options v2 + intl, input
-> descriptors, controller info, memory maps), with the Dart bindings, the
+> **22 of the 98** environment requests at the last recorded vendored-header
+> check (core options v2 + intl, input descriptors, controller info, memory
+> maps, and later the GPU and input-device commands), with the Dart bindings, the
 > 4-layer global/system/core/game resolver, and the worker protocol landed via
 > #45/#48/#50. The option surface removes the kernel blocker for frame
 > verification of the built-but-unverified systems; their RENDERS evidence
@@ -29,11 +30,17 @@
 > quoting it — see the note in [`../ROADMAP.md`](../ROADMAP.md):
 >
 > ```bash
-> grep -o 'RETRO_ENVIRONMENT_[A-Z0-9_]*' \
->   runtime/external/libretro-common/include/libretro.h | sort -u | wc -l   # -> 93
+> grep -oE '^#\s*define\s+RETRO_ENVIRONMENT_[A-Z0-9_]+' \
+>   runtime/external/libretro-common/include/libretro.h \
+>   | awk '{print $2}' | sort -u | wc -l    # denominator; drifts with libretro-common
 > grep -oE 'case RETRO_ENVIRONMENT_[A-Z0-9_]+' \
->   runtime/src/runtime.c | sort -u | wc -l                               # -> 13
+>   runtime/src/runtime.c | sort -u | wc -l # -> 22
 > ```
+>
+> The header is fetched by `scripts/build_core.sh --fetch-headers`, not
+> committed, so the denominator changes when libretro-common moves. The
+> figure above is the last recorded measurement, not a promise about a
+> future header.
 >
 > **Refresh:** build the tier (`scripts/build_core.sh`), then
 > `flutter test test/core_matrix_test.dart` (subprocess-isolated harness).
@@ -186,7 +193,7 @@ levels previously claimed more than the harness asserts):
 | Platform | Shell | App build | Audio sink | Gamepad | Notes |
 |---|---|---|---|---|---|
 | macOS | ✅ | ✅ debug (+ release via release.sh) | AVAudioEngine ✅ | GCController ✅ | Sandbox bookmarks wired; E2E pending human run |
-| Linux | ✅ (`flutter create`) | CI | ALSA/FFI (code, unverified) | evdev (code, unverified) | Never executed here; CI leg covers |
+| Linux | ✅ (`flutter create`) | CI | ALSA/FFI (code, unverified) | evdev (code, unverified) | Flutter shell CI-built, not run on a desktop here; the native boot harness does run on Linux x64 (see the core matrix above) |
 | Windows | ✅ (renamed binary) | CI | waveOut/FFI (code, unverified) | XInput/FFI (code, unverified) | `dynload_win32.c` compiles on CI |
 | Android | ✅ | ✅ debug APK | AudioTrack ✅ (code) | KeyEvent ✅ (code) | Needs device run; cores verified ELF+symbols |
 | iOS | ✅ (15.0 floor) | release build w/ 15.0 pods fix (verifying) | AVAudioEngine ✅ (code) | GCController ✅ (code) | No sim/device here; cores verified Mach-O+symbols |

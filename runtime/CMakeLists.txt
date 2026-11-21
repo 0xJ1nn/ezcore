@@ -242,7 +242,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME api_docs
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/../scripts/check_api_docs.py)
-  # The kernel capability count ("13 of 93 environment commands") lived in
+  # The kernel capability count ("22 of 98 environment commands") lived in
   # prose and sat wrong in six files simultaneously, because api_docs only
   # checks the ezCORE-owned ABI and could never see a libretro figure. This
   # gate recomputes both numbers from the vendored header and the runtime

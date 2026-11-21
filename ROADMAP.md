@@ -94,14 +94,14 @@ the whole product.
 > so verify before quoting them):
 >
 > ```bash
-> # commands DEFINED by the vendored libretro header (93).
+> # commands DEFINED by the vendored libretro header (98 at the last recorded check).
 > # Anchor on the #define: a plain substring grep also matches doc-comment
 > # references like \ref RETRO_ENVIRONMENT_GET_ASSET_DIRECTORY, which are not
 > # real commands — that is what produced the earlier, wrong "96".
 > grep -oE '^#\s*define\s+RETRO_ENVIRONMENT_[A-Z0-9_]+' \
 >   runtime/external/libretro-common/include/libretro.h \
 >   | awk '{print $2}' | sort -u | wc -l
-> # commands the kernel actually answers (13)
+> # commands the kernel actually answers (22)
 > grep -oE 'case RETRO_ENVIRONMENT_[A-Z0-9_]+' \
 >   runtime/src/runtime.c | sort -u | wc -l
 > ```
