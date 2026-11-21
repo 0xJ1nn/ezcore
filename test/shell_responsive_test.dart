@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:ezcore/main.dart';
 import 'package:ezcore/models/core_manifest.dart';
@@ -240,6 +241,74 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(ImportScreen), findsOneWidget);
   });
+
+  // The plate measures the bar's content row at 64 px and draws a 26 px inset
+  // under it. A phone cannot change the row: the row is what keeps the five
+  // 24 px icons and their 12 px labels at full touch size. What varies by
+  // device is only the room reserved beneath it, which is the larger of the
+  // plate's 26 px and the device's own gesture area. Measured here on a small
+  // phone, a common one and a large one, with no gesture bar, a shallow one
+  // and the deepest one iOS draws.
+  for (final phone in const <String, Size>{
+    'small phone (360x640)': Size(360, 640),
+    'common phone (390x844)': Size(390, 844),
+    'large phone (430x932)': Size(430, 932),
+  }.entries) {
+    for (final gesture in const [0.0, 20.0, 34.0]) {
+      testWidgets('phone bar keeps its 64 px row and reserves room below: '
+          '${phone.key}, gesture ${gesture.toInt()}', (tester) async {
+        tester.view.viewPadding = FakeViewPadding(bottom: gesture);
+        tester.view.padding = FakeViewPadding(bottom: gesture);
+        addTearDown(() {
+          tester.view.resetViewPadding();
+          tester.view.resetPadding();
+        });
+        await pumpShell(tester, phone.value);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'overflow at ${phone.value} with gesture $gesture',
+        );
+
+        final nav = find.byType(OrbitBottomNav);
+        expect(nav, findsOneWidget);
+        final row = tester.renderObject<RenderBox>(nav);
+        expect(row.size.height, Tokens.bottomBarHeight);
+        expect(
+          row.size.width,
+          phone.value.width,
+          reason: 'the bar spans the screen, not a part of it',
+        );
+
+        final reserved = tester.renderObject<RenderBox>(
+          find.ancestor(of: nav, matching: find.byType(SafeArea)).first,
+        );
+        expect(
+          reserved.size.height,
+          Tokens.bottomBarHeight + math.max(26.0, gesture),
+          reason: 'the plate inset, or the device gesture area if deeper',
+        );
+
+        // Five icons and five labels still fit inside the row at every size:
+        // a 360 dp phone gives each cell 72 dp, which is the floor.
+        for (final label in const [
+          'Library',
+          'Systems',
+          'Capsule',
+          'Settings',
+          'Add',
+        ]) {
+          final text = find.descendant(of: nav, matching: find.text(label));
+          expect(text, findsOneWidget, reason: '$label at ${phone.value}');
+          expect(
+            tester.renderObject<RenderBox>(text).size.width,
+            lessThanOrEqualTo(row.size.width / 5),
+            reason: '$label overflows its cell at ${phone.value}',
+          );
+        }
+      });
+    }
+  }
 
   testWidgets('a deeper gesture inset is added below the measured bar', (
     tester,
