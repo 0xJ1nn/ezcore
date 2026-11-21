@@ -6,6 +6,8 @@ import 'dart:io';
 import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/core_manager_screen.dart';
+import 'package:ezcore/services/core_downloader.dart';
+import 'package:ezcore/services/core_path_resolver.dart';
 import 'package:ezcore/state/app_state.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +48,16 @@ void main() {
     ];
     s.registry.loadCatalog({
       for (final c in cores) c.id: jsonEncode(c.toJson()),
+    });
+    // The download core publishes an asset here, so the manager offers it.
+    s.coreRelease = CoreRelease.fromJson({
+      'repo': '0xJ1nn/ezcore',
+      'tag': 'v0.2.0',
+      'assets': {
+        CorePathResolver.currentPlatformKey(): {
+          'dreamarc': 'dreamarc_libretro-test.core',
+        },
+      },
     });
     s.registry.install(cores[0], expectedSha256: 'pin');
     s.registry.install(cores[1], expectedSha256: 'pin');

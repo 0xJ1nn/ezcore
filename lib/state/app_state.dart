@@ -260,6 +260,14 @@ class AppState extends ChangeNotifier {
   bool needsDownload(CoreManifest m) =>
       m.delivery[Platform.operatingSystem] == 'download';
 
+  /// Prepares the download seam for a new install and clears any earlier
+  /// cancellation request.
+  void beginCoreDownload() => _downloader.resetCancellation();
+
+  /// Requests that an in-flight core download stop after the current chunk.
+  /// The download is refused with `CoreDownloadFailure.cancelled`.
+  void cancelCoreDownload() => _downloader.cancelDownload();
+
   /// Adds a core to the registry. Download-delivery cores without a
   /// verified vault copy are fetched first (sha256-checked against the
   /// manifest pin inside [CoreDownloader]); everything else marks the
@@ -276,10 +284,12 @@ class AppState extends ChangeNotifier {
       if (await resolver.resolve(m) == null) {
         final release = coreRelease;
         if (release == null) {
-          throw StateError(
-            'Release metadata missing — cannot download ${m.id} yet',
+          throw CoreDownloadException(
+            CoreDownloadFailure.noAssetForPlatform,
+            'Release metadata is missing for this device.',
           );
         }
+        beginCoreDownload();
         await _downloader.download(
           manifest: m,
           release: release,
