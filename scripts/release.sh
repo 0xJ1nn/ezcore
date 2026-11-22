@@ -138,7 +138,7 @@ esac
 # 4. bundle natives next to the app
 case "$PLATFORM" in
   macos)
-    APP="$ROOT/build/macos/Build/Products/Release/ezCore.app"
+    APP="$ROOT/build/macos/Build/Products/Release/ezCORE.app"
     [ -d "$APP" ] || fail "missing $APP"
     gate cp "$RUNTIME_OUT/libezcore_runtime.dylib" "$APP/Contents/Frameworks/"
     gate mkdir -p "$APP/Contents/Resources/ezcore/cores"

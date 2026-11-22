@@ -133,12 +133,12 @@ void main() {
     // release found zero cores.
     final tmp = await Directory.systemTemp.createTemp('ezcore_bundle');
     try {
-      final exeDir = Directory('${tmp.path}/ezCore.app/Contents/MacOS')
+      final exeDir = Directory('${tmp.path}/ezCORE.app/Contents/MacOS')
         ..createSync(recursive: true);
-      final exe = File('${exeDir.path}/ezCore')..writeAsBytesSync([0]);
+      final exe = File('${exeDir.path}/ezCORE')..writeAsBytesSync([0]);
       // macOS bundle layout
       final bundled = Directory(
-          '${tmp.path}/ezCore.app/Contents/Resources/ezcore/cores/probe')
+          '${tmp.path}/ezCORE.app/Contents/Resources/ezcore/cores/probe')
         ..createSync(recursive: true);
       File('${bundled.path}/probe_libretro.dylib').writeAsBytesSync([1]);
       // Windows/Linux layout

@@ -131,7 +131,7 @@ change; `fill_manifest_data.py --check` keeps policy fields consistent.
 
 | Platform | How cores ship | Notes |
 |---|---|---|
-| macOS | `ezCore.app/Contents/Resources/ezcore/cores/` | runtime dylib in `Contents/Frameworks/` |
+| macOS | `ezCORE.app/Contents/Resources/ezcore/cores/` | runtime dylib in `Contents/Frameworks/` |
 | Windows / Linux | `cores/` next to the executable | release zip / tarball |
 | Android | `jniLibs/arm64-v8a/` in the APK | flat `.so` names, loaded by absolute path |
 | iOS | embedded frameworks (build-time) | never downloaded |

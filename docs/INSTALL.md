@@ -30,11 +30,11 @@ and [`MATRIX.md`](MATRIX.md) before downloading.
 older ad-hoc-signed app is not notarized.
 
 1. Download `ezcore-<version>-macos-arm64.zip` and unzip it.
-2. Move `ezCore.app` to `/Applications`.
+2. Move `ezCORE.app` to `/Applications`.
 3. First launch — macOS will block the un-notarized app. Either
    right-click → **Open** → **Open**, or clear the quarantine flag once:
    ```bash
-   xattr -cr /Applications/ezCore.app
+   xattr -cr /Applications/ezCORE.app
    ```
 4. Open from Applications. Cores marked bundled are included; eligible large
    desktop cores may be downloaded explicitly and are hash-verified before
@@ -140,9 +140,9 @@ own game dumps and firmware. See
 
 ### macOS: "App is damaged / can't be opened"
 ```bash
-xattr -cr /Applications/ezCore.app
+xattr -cr /Applications/ezCORE.app
 # If that doesn't help:
-codesign --force --deep --sign - /Applications/ezCore.app
+codesign --force --deep --sign - /Applications/ezCORE.app
 ```
 
 ### macOS: a folder import isn't visible after restart
@@ -177,7 +177,7 @@ affected by updates.
 
 | Platform | Method |
 |---|---|
-| macOS | Delete `/Applications/ezCore.app` (optionally `~/Library/Application Support/ezcore/`) |
+| macOS | Delete `/Applications/ezCORE.app` (optionally `~/Library/Application Support/ezcore/`) |
 | Windows | Delete the extracted folder (optionally `%APPDATA%\ezcore\`) |
 | Linux | Delete the extracted folder (optionally `~/.local/share/ezcore/`) |
 | Android | Settings → Apps → ezCORE → Uninstall |
