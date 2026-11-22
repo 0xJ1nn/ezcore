@@ -2,11 +2,10 @@
 
 // Runs test/check_clean_script_test.sh as part of `flutter test`.
 //
-// scripts/check_clean.sh is a repository hygiene gate that the merge tooling
-// runs on every pull request head, so its own behaviour needs a test that
-// actually runs. The project's only automated gate is `flutter test`, hence
-// this wrapper: a shell suite nothing invokes is a suite that stops running
-// the first time someone edits the script.
+// scripts/check_clean.sh is a repository hygiene gate whose behaviour must keep
+// working wherever it is invoked. The project's automated gate is `flutter
+// test`, hence this wrapper: a shell suite nothing invokes is a suite that
+// stops running the first time someone edits the script.
 //
 // Skipped, not failed, when bash is unavailable: the suite is bash-only, and
 // the script under test is run through `sh` on the platforms that matter.
