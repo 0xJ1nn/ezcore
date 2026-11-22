@@ -365,7 +365,7 @@ first-party cores that may not be extracted or redistributed.
   folder. Execution on iOS is interpreter-only.
 - **macOS.** Current releases are ad-hoc signed and are not notarised. If macOS
   blocks the app on first launch, right-click it and choose **Open**, or clear
-  the quarantine flag with `xattr -cr /Applications/ezCore.app`.
+  the quarantine flag with `xattr -cr /Applications/ezCORE.app`.
 - **Android and Google Play.** Cores ship bundled in the APK; the project
   publishes no separate Android core downloads. Only the maintainer may publish
   an app under the ezCORE name on Google Play or any other store, and official

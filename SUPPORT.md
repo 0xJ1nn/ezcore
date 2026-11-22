@@ -31,8 +31,8 @@ Privacy questions can be raised on the GitHub issues page as well; see
 **Q: Where do I download ezCORE?**
 A: The desktop builds are on [GitHub Releases](https://github.com/0xJ1nn/ezcore/releases): a signed and notarised download for macOS, an installer and a portable zip for Windows, and an AppImage and a tar.gz archive for Linux. The iOS and iPadOS builds come from the App Store and the Android build from Google Play; both listings are coming soon. Every official download is listed in the README, and checksums are published with each release.
 
-**Q: macOS says "ezCore.app is damaged" or won't open**
-A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCore.app` then open. (Notarized builds need an Apple Developer identity.)
+**Q: macOS says "ezCORE.app is damaged" or won't open**
+A: The release is ad-hoc signed, not notarized. Run: `xattr -cr /Applications/ezCORE.app` then open. (Notarized builds need an Apple Developer identity.)
 
 **Q: Android APK won't install**
 A: Enable "Install unknown apps" for your browser/file manager, and make sure any older ezCORE debug build is uninstalled first (debug and release signatures can't upgrade each other). Release APKs are signed with the project's release keystore.

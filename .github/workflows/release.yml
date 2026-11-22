@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cd build/macos/Build/Products/Release
-          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCore.app
+          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCORE.app
       - name: Import signing certificate
         if: >-
           env.MACOS_CERT_P12 != '' && env.MACOS_CERT_PASSWORD != '' &&
@@ -84,7 +84,7 @@ jobs:
           env.APPLE_APP_PASSWORD != ''
         run: |
           set -euo pipefail
-          app="build/macos/Build/Products/Release/ezCore.app"
+          app="build/macos/Build/Products/Release/ezCORE.app"
           codesign --force --deep --options runtime --timestamp -s \
             "$APPLE_TEAM_ID" "$app"
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/ezcore-notarise.zip"
@@ -94,7 +94,7 @@ jobs:
           xcrun stapler staple "$app"
           cd build/macos/Build/Products/Release
           rm -f "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip"
-          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCore.app
+          zip -q -ry "$GITHUB_WORKSPACE/dist/ezcore-${TAG}-macos-arm64.zip" ezCORE.app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

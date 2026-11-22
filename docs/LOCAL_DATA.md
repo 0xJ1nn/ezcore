@@ -1,4 +1,4 @@
-# ezCore — Local Data & Persistence
+# ezCORE — Local Data & Persistence
 
 > **Version:** 1.1
 > **Date:** 2026-09-23
@@ -7,7 +7,7 @@
 
 ## Overview
 
-ezCore persists all user-owned data locally. No games, BIOS, or copyrighted assets ship with the app — every byte of content is supplied by the user through the import flow and stored under the platform application-support directory.
+ezCORE persists all user-owned data locally. No games, BIOS, or copyrighted assets ship with the app — every byte of content is supplied by the user through the import flow and stored under the platform application-support directory.
 
 ---
 

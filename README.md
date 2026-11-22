@@ -140,7 +140,7 @@ Official builds come from this repository's [Releases](https://github.com/0xJ1nn
 Releases are ad-hoc signed and may not be notarised. If macOS blocks the app, right-click it and choose **Open**, or run:
 
 ```bash
-xattr -cr /Applications/ezCore.app
+xattr -cr /Applications/ezCORE.app
 ```
 </details>
 

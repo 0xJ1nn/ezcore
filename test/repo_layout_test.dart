@@ -9,7 +9,7 @@ void main() {
     final root = await Directory.systemTemp.createTemp('ezcore_layout');
     try {
       final exe = File(
-        '${root.path}/build/macos/Build/Products/Debug/ezCore.app/Contents/MacOS/ezCore',
+        '${root.path}/build/macos/Build/Products/Debug/ezCORE.app/Contents/MacOS/ezCORE',
       );
       await exe.create(recursive: true);
       await File(

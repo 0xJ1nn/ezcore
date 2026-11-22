@@ -163,6 +163,7 @@ All notable changes to ezCORE are documented here. The format follows
   not wired yet; iOS cannot support it (Apple forbids helper processes).
 ### Changed
 
+- **One app name on macOS and Windows.** The macOS and Windows build settings, the packaged app paths and the macOS install instructions now use ezCORE. Evidence: `flutter analyze` reported no issues and the full `flutter test` suite passed (1131 passed, 66 skipped).
 - **Player and pause screens match the design.** The pause menu uses plain snapshot
   labels on phones and the controls icon for its Controls action, the game preview
   recedes with the measured margin and shadow, and the on-screen controls sit at
