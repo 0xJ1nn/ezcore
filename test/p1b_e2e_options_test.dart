@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // P1b end-to-end proof: Dart bindings -> runtime -> synthetic core.
 // The permanent counterpart of test_core_options.c (the C-side harness):
 // this drives the SAME registration through the public Dart bindings, so a

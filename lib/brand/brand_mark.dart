@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:flutter/material.dart';
 
 /// The ezCORE mark: two halves of a gamepad and the blue light along the cut.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_unload_order.c — libretro teardown order (and that it happens).
  *
  * The order, as RetroArch's core_unload_game does it (cores are written

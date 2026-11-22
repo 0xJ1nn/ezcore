@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Builds cores/catalog.json (+ cores/release.json) from cores/*/manifests.
 
 Single source of truth is the per-core manifests; the catalog is a

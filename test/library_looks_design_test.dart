@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // T06: the four measured library looks, the V cycle, the shared selection,
 // the look toast and the phone's look picker (design §8.1, Devices 4a/4b).
 import 'dart:convert';

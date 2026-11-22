@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Fills per-OS `execution` strategy + verified cheat flags across manifests.
 
 Policy (mirrors docs/ARCHITECTURE.md rule 3):

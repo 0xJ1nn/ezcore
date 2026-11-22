@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Core-option precedence layers, ordered from lowest to highest.
 ///
 /// The runtime (see `package:ezcore/runtime/ezcore_runtime.dart`) exposes

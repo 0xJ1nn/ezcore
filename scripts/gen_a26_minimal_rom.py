@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Generate a minimal Atari 2600 homebrew program for playability evidence.
 
 Original hand-assembled 6507 machine code (CC0 / public domain), no third-party

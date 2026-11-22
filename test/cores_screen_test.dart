@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The Cores screen (layout option A): cores named by the systems they play,
 // an honest status, a trust label, and every action in the detail view.
 import 'dart:convert';

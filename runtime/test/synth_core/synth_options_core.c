@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* synth_options_core.c — minimal libretro core that exercises the
  * core-options & capability env calls during retro_set_environment.
  *

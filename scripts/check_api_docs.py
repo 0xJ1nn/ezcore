@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Gate: docs/API.md must describe the ABI runtime/include/ezcore_runtime.h exports.
 
 Why this exists

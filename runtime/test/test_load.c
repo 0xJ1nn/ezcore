@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* SmokeLoad: dlopen a built core through the ezCore runtime, init it, print
  * identity. Proves build -> verify -> load -> init with no ROM needed. */
 #include <stdbool.h>

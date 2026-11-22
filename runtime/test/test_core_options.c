@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_core_options.c — exercises the runtime's P1b core-options &
  * capability-surface env handlers and the ezcore_* host query API.
  *

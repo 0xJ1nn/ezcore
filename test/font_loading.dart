@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Loads the bundled fonts so widget tests measure text with the same faces
 /// the app uses. Cover titles are balanced with [TextPainter], whose result
 /// depends on real glyph metrics; the test binding's default face has 1-em

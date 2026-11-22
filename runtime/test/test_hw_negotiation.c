@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* How a core picks its context type, and what the host must answer.
  *
  * Two answers decide whether a GPU core renders or crashes:

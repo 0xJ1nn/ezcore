@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Windows render context: WGL backend (the GPU render-context design).
  *
  * NOT YET IMPLEMENTED. This file exists so that a Windows build configures and

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // P3b: real devices reach the core. Picture touches become the pointer (the
 // DS bottom screen maps to the frame's lower half), sticks become analog
 // with a dead zone, and each backend reports libretro's axis convention.

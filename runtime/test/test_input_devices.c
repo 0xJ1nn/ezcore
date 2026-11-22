@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_input_devices.c — analog, mouse, keyboard and pointer reach a core
  * (P3). Drives synth_input_core.c, which echoes what it read through audio,
  * so every check is the core's own view.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_engine_host.c — failing-first proof of the GENERIC engine host.
  *
  * The question: can a NON-libretro engine satisfy the exact same wire

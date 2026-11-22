@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Package staged iOS cores as .framework bundles for Xcode embedding.
 #
 # WHY THIS EXISTS

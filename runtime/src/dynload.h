@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Dynamic-library loading behind one seam.
  *
  * runtime.c never touches dlopen/LoadLibrary directly: POSIX (.so/.dylib)

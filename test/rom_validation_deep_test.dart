@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Deep classification test: ROM content validation must accept the
 /// playable content each bundled core declares, and reject system files
 /// that abuse the same (or a similar) extension.

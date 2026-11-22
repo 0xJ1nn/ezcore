@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // T19: one focus owner. Each acceptance rule from handoff §4.1 has a test
 // here — pointer-writes-focus, per-screen memory, the rail boundary, the dock
 // return, modal trap and B, the safe confirm, key repeat, the stick dead zone,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Proves scripts/android-stubs/librt.so is real and load-bearing, rather than
 // a plausible-looking file that happens to sit in the tree.
 //

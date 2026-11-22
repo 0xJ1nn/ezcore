@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Idempotent macOS-arm64 adaptation of PPSSPP's libretro/Makefile.common.
 
 Upstream gaps (both macOS-only, both verified against the failing builds):

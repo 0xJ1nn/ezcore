@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:ezcore/theme/layout.dart';
 import 'package:ezcore/theme/tokens.dart';
 import 'package:flutter/material.dart';

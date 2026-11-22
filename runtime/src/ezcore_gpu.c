@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Backend dispatch for the GPU render context (the GPU render-context design).
  *
  * This is the ONLY file that knows which platform implementation is in play.

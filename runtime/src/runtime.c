@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezCore runtime — loads a libretro core dylib and forwards the session API.
  * Desktop/Android path: dynload seam at runtime after sha256 verification.
  * iOS path: cores are linked/bundled; ezcore_load resolves bundled symbols.

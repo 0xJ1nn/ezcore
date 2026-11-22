@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* probe4: is retro_deinit (no game ever loaded) the crasher? */
 #include <dlfcn.h>
 #include <stdbool.h>

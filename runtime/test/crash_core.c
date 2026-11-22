@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* crash_core.c — a libretro core that crashes on demand (P6 spike).
  *
  * Purpose: prove that a native core can fault at a chosen moment so the

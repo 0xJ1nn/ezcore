@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* macOS render context: CGL/NSOpenGL backend (the GPU render-context design).
  *
  * NOT YET IMPLEMENTED, for the same reason and with the same contract as

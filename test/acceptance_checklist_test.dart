@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Handoff §17: one widget test per acceptance item that can be proved in a
 // widget test. The shared focus-owner, launch and overlay behaviours are
 // covered in their own suites; these tests pin the parts a final pass can

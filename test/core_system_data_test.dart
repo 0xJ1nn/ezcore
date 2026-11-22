@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Core system data (core system data): a core's own data folders, shipped under
 // system/ in its package and copied into the system dir. Data only, exactly
 // the declared folders, never BIOS, never someone else's folder.

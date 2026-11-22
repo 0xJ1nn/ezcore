@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/models/core_manifest.dart';
 import 'package:ezcore/services/bios_check.dart';

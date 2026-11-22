@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Behavioural suite for scripts/check_clean.sh, run on a throwaway git
 # repository so it needs no build, no network and no Flutter SDK.
 #

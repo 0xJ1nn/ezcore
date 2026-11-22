@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Installs everything scripts/build_core.sh needs on macOS/arm64.
 # Linux/Windows notes at the bottom. Idempotent — rerun freely.
 set -euo pipefail

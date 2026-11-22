@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Cheats screen: Orbit §8.8. The list and code panel present the real
 // entries; validation blocks invalid codes; every action stays available.
 import 'dart:convert';

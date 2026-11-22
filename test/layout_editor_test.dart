@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Users can make on-screen controls their own: move, resize, hide, fade,
 // save, and reset to default. These drive the real editor with gestures and
 // check what gets saved, and that a saved layout survives only while valid.

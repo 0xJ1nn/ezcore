@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* synth_test_core.c — deterministic synthetic libretro core.
  *
  * NOT a real emulator. A minimal libretro ABI citizen used to verify

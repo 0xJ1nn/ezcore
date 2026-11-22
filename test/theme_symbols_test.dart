@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Guards the bundled Material Symbols contract: the family is registered, every
 // constant points at it, the variable axes survive the subset, and the glyphs
 // the design uses are actually mapped by the font file.

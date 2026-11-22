@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezcore_engine.c — the tiny name→backend registry for the engine seam. */
 #include "ezcore_engine.h"
 
