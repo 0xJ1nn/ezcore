@@ -5,22 +5,28 @@
 # Usage: scripts/release.sh <macos|windows|linux|android|ios> [--out dist/]
 # Env:   EZCORE_VERSION (default: pubspec version),
 #        EZCORE_CODESIGN_IDENTITY (macOS; default ad-hoc),
-#        EZCORE_KEYSTORE_* (Android; see android signing config).
+#        EZCORE_KEYSTORE_* (Android; see android signing config),
+#        EZCORE_IOS_SIGNING_IDENTITY (iOS; NOT wired to a signed archive
+#          path in this script — see the iOS note below),
+#        EZCORE_UNSIGNED_IOS=1 (iOS; opt in to a NON-shippable compile
+#          check only; never produces a release artifact).
 #
 # Pipeline per platform:
 #   1. data gates (manifests, artwork provenance/pins, catalog fresh)
 #   2. native gates (runtime builds; staged cores match committed pins)
-#   3. flutter build --release
+#   3. flutter build --release (or --no-codesign for the iOS compile check)
 # 4. bundle runtime + tier cores next to the app (desktop), jniLibs
-#      (Android), unsigned device build (iOS; store pipeline needs a
-#      signing identity)
-# 5. sign + archive + banned-content scan
+#      (Android). iOS has no bundle/sign/archive stage here.
+# 5. sign + archive + banned-content scan (desktop/Android only)
 #
 # iOS note: cores ship as versioned .framework bundles embedded via the
 # Xcode project (scripts/ios_frameworks.sh, run once per core set — NOT
 # per release), and the runtime is built by scripts/build_runtime.sh ios
-# and linked in Runner.xcodeproj. Until a signing identity is
-# configured, iOS stops after an unsigned --no-codesign build.
+# and linked in Runner.xcodeproj. There is no signed archive/.ipa path in
+# this script, so iOS cannot produce a shippable release here. A default
+# `release.sh ios` fails fast instead of claiming success. Setting
+# EZCORE_UNSIGNED_IOS=1 runs the old --no-codesign compile check, labels it
+# INCOMPLETE and still exits non-zero: no archive, no .ipa, no signing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -110,13 +116,22 @@ case "$PLATFORM" in
     gate flutter build apk --release --target-platform android-arm64
     ;;
   ios)
-    # No codesign path yet (needs EZCORE_IOS_SIGNING_IDENTITY + embedded
-    # core frameworks). Until then an
-    # unsigned device build proves the app + Swift + assets compile.
-    echo "WARN: no iOS signing identity; unsigned device build only"
+    # No signed iOS release path exists here: no archive, no .ipa and no
+    # identity wired to an export step. An unsigned --no-codesign build is
+    # a compile check, not a shippable artifact, so it must never be
+    # reported as an OK release (audit finding F4). Never fall through to
+    # the desktop bundle stage either: it would produce no valid iOS
+    # artifact.
+    if [ -n "${EZCORE_IOS_SIGNING_IDENTITY:-}" ]; then
+      fail "EZCORE_IOS_SIGNING_IDENTITY is set but this script has no signed iOS archive/.ipa pipeline; cannot produce a release"
+    fi
+    if [ "${EZCORE_UNSIGNED_IOS:-}" != "1" ]; then
+      fail "cannot produce a signed iOS release without EZCORE_IOS_SIGNING_IDENTITY (set EZCORE_UNSIGNED_IOS=1 only for a non-shippable compile check)"
+    fi
+    echo "INCOMPLETE: unsigned iOS compile check only (no archive, no .ipa, no signing); this is not a release"
     gate flutter build ios --no-codesign
-    echo "OK: unsigned iOS build (device deploy needs signing)"
-    exit 0
+    echo "INCOMPLETE: iOS compile check passed but no shippable artifact was produced"
+    exit 1
     ;;
 esac
 
