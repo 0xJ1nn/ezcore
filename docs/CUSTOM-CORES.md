@@ -333,7 +333,7 @@ render for a core whose state round trip was never made.
 ## Licensing and the Core Module Exception
 
 The app and runtime are GPL-3.0-only with the
-[Core Module Exception](LICENSE-EXCEPTION.md). Under that exception an
+[Core Module Exception](../LICENSE-EXCEPTION.md). Under that exception an
 independent core module may be under terms of your choice, including proprietary
 terms, provided it communicates through libretro or the ezCORE package
 interface, is distributed as a distinct module, and contains no ezCORE code.

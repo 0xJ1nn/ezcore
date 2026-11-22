@@ -53,4 +53,4 @@ account to create and no information to submit.
 ## Contact
 
 Questions about this policy belong on the project's GitHub issues page. See
-[`SUPPORT.md`](SUPPORT.md) for the other ways to reach the project.
+[`SUPPORT.md`](../SUPPORT.md) for the other ways to reach the project.

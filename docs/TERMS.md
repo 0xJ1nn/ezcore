@@ -71,4 +71,4 @@ own name and icon.
 
 These terms may be updated as the app changes. The date at the top shows when
 they were last updated. Questions can be raised on the project's GitHub issues
-page; see [`SUPPORT.md`](SUPPORT.md).
+page; see [`SUPPORT.md`](../SUPPORT.md).
