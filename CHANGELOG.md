@@ -6,6 +6,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The Android NDK, Flutter, Dart and host compiler versions are now pinned in one place for every build, so CI and local cores are compiled with the same toolchain. [ios, android, macos, linux, windows]
+
 ### Documentation and release preparation
 
 - Added a privacy policy and terms of use. The policy records that the library,

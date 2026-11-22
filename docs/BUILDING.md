@@ -2,15 +2,16 @@
 
 ## Prerequisites
 
-Build with **Flutter 3.47.8** on the stable channel. That is the SDK this tree
-is developed and tested against, and it ships Dart 3.13, which satisfies the
-`^3.12.2` constraint in `pubspec.yaml`. `pubspec.lock` was resolved against it.
-Install that version rather than whatever `stable` resolves to on the day you
-start: a newer SDK can change analyzer and test results.
+Build with the Flutter and Dart versions in `toolchain.json` on the stable
+channel. Those are the SDKs this tree is developed and tested against; the Dart
+version satisfies the `^3.12.2` constraint in `pubspec.yaml`, and
+`pubspec.lock` was resolved against it. Install those versions rather than
+whatever `stable` resolves to on the day you start: a newer SDK can change
+analyzer and test results.
 
 ### macOS (Apple Silicon)
 ```bash
-# Xcode 26+ (macOS deployment target is 12.0+)
+# Xcode version in toolchain.json (macOS deployment target is 12.0+)
 xcode-select --install
 
 # Homebrew
@@ -26,7 +27,7 @@ sudo apt update
 sudo apt install -y \
   cmake ninja-build pkg-config libpng-dev libgtk-3-dev clang \
   git curl unzip make
-# Flutter 3.47.8: https://docs.flutter.dev/get-started/install/linux
+# Flutter version in toolchain.json: https://docs.flutter.dev/get-started/install/linux
 ```
 
 `--tier-desktop` builds 17 cores, and the toolchain needs two things beyond
@@ -58,14 +59,14 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mak
 ### Android
 ```bash
 # Android Studio or command line tools
-# NDK r27c (27.2.12479018), CMake 3.22.1, Platform android-34
+# NDK and CMake versions in toolchain.json, Platform android-34
 # Set ANDROID_NDK_HOME, ANDROID_SDK_ROOT
 ```
 
 ### iOS
 ```bash
 # macOS only
-# Xcode 15+, CocoaPods: `sudo gem install cocoapods`
+# Xcode version in toolchain.json, CocoaPods: `sudo gem install cocoapods`
 # Apple Developer account for device deploy / TestFlight
 ```
 
@@ -282,10 +283,9 @@ flutter analyze
 ```
 
 ### Android NDK version mismatch
-```bash
-# Ensure NDK r27c
-export ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk/27.2.12479018
-```
+Install the NDK version pinned in `toolchain.json` and point `ANDROID_NDK_HOME`
+at it. The core scripts refuse any other version, and the Android build legs
+install the same pin through the SDK manager.
 
 ### iOS "Pods-Runner" config errors
 ```bash

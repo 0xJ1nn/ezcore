@@ -325,7 +325,7 @@ a Linux host. No macOS machine is required. This section records how the
 ### Building
 
 ```bash
-export ANDROID_NDK_HOME=/path/to/ndk/28.2.13676358
+export ANDROID_NDK_HOME="/path/to/ndk/$(python3 scripts/toolchain_pin.py get ndk)"
 scripts/build_core.sh --fetch-headers                 # once per checkout
 EZCORE_PLATFORM=android scripts/build_core.sh <core-id>
 ```
