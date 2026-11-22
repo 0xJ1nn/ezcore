@@ -117,6 +117,21 @@ Future<String> _defaultDocumentsPath() async {
   }
 }
 
+/// Default write-and-delete probe used by filesystem locators.
+Future<bool> _writeProbeFile(String path) async {
+  final probe = File('$path/.ezcore_backup_probe');
+  try {
+    await probe.writeAsString('ok');
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    try {
+      if (probe.existsSync()) await probe.delete();
+    } catch (_) {}
+  }
+}
+
 /// Finds one candidate backup location. Every implementation probes what it
 /// returns and reports a reason instead of throwing when nothing is writable.
 abstract class BackupFolderLocator {
@@ -124,13 +139,16 @@ abstract class BackupFolderLocator {
     Map<String, String>? environment,
     this.channel,
     Future<bool> Function(String path)? ensureFolder,
+    Future<bool> Function(String path)? probeFolder,
   }) : environment = environment ?? Platform.environment,
-       ensureFolder = ensureFolder ?? ensureBackupFolder;
+       ensureFolder = ensureFolder ?? ensureBackupFolder,
+       probeFolder = probeFolder ?? _writeProbeFile;
 
   /// Injected in tests so environment-dependent paths are deterministic.
   final Map<String, String> environment;
   final BackupChannel? channel;
   final Future<bool> Function(String path) ensureFolder;
+  final Future<bool> Function(String path) probeFolder;
 
   String get provider;
   bool get survivesReinstall;
@@ -142,7 +160,10 @@ abstract class BackupFolderLocator {
     String notWritable = 'The backup folder is not writable',
   }) async {
     if (!await ensureFolder(path)) {
-      return const BackupFolderProbe(null, 'The backup folder could not be created');
+      return const BackupFolderProbe(
+        null,
+        'The backup folder could not be created',
+      );
     }
     if (!await probeWritable(path)) {
       return BackupFolderProbe(null, notWritable);
@@ -158,20 +179,9 @@ abstract class BackupFolderLocator {
     );
   }
 
-  /// Writes and deletes a probe file inside a real directory.
-  Future<bool> probeWritable(String path) async {
-    final probe = File('$path/.ezcore_backup_probe');
-    try {
-      await probe.writeAsString('ok');
-      return true;
-    } catch (_) {
-      return false;
-    } finally {
-      try {
-        if (probe.existsSync()) await probe.delete();
-      } catch (_) {}
-    }
-  }
+  /// Writes and deletes a probe file inside a real directory. Injectable so
+  /// an unwritable folder is testable without host permissions.
+  Future<bool> probeWritable(String path) => probeFolder(path);
 
   Future<BackupFolderProbe> locate();
 }
@@ -184,6 +194,7 @@ abstract class _AppleIcloudBackupFolder extends BackupFolderLocator {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
     Future<String> Function()? documentsPath,
   }) : documentsPath = documentsPath ?? _defaultDocumentsPath;
 
@@ -192,10 +203,12 @@ abstract class _AppleIcloudBackupFolder extends BackupFolderLocator {
   @override
   Future<BackupFolderProbe> locate() async {
     String? container;
+    var containerFailed = false;
     try {
       container = await channel?.invoke<String>('icloudContainer');
     } catch (_) {
       container = null;
+      containerFailed = true;
     }
 
     if (container != null && container.isNotEmpty) {
@@ -217,13 +230,17 @@ abstract class _AppleIcloudBackupFolder extends BackupFolderLocator {
     );
     final status = fallback.status;
     if (status == null) return fallback;
+    final reason = containerFailed
+        ? 'iCloud could not be checked on this device; saves go to a folder '
+              'that is removed when the app is deleted.'
+        : 'iCloud is not available here; this folder is removed when the app '
+              'is deleted.';
     return BackupFolderProbe(
       status.copyWith(
+        provider: 'Documents',
         survivesReinstall: false,
         confidence: BackupConfidence.bestEffort,
-        reason:
-            'iCloud is not available here; this folder is removed when the '
-            'app is deleted.',
+        reason: reason,
       ),
       fallback.reason,
     );
@@ -236,6 +253,7 @@ class IosIcloudBackupFolder extends _AppleIcloudBackupFolder {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
     super.documentsPath,
   });
 
@@ -252,6 +270,7 @@ class MacosIcloudBackupFolder extends _AppleIcloudBackupFolder {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
     super.documentsPath,
   });
 
@@ -270,6 +289,7 @@ class AndroidSafBackupFolder extends BackupFolderLocator {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
     this.grant = '',
   });
 
@@ -296,21 +316,26 @@ class AndroidSafBackupFolder extends BackupFolderLocator {
   @override
   Future<BackupFolderProbe> locate() async {
     if (grant.isEmpty) {
-      return const BackupFolderProbe(null, 'Choose a folder');
+      return const BackupFolderProbe(null, 'Choose a folder to back up saves');
     }
     bool writable = false;
+    var checkFailed = false;
     try {
       writable =
           await channel?.invoke<bool>('probeFolder', {'folder': grant}) ??
           false;
+      checkFailed = channel == null;
     } catch (_) {
       writable = false;
+      checkFailed = true;
     }
     if (!writable) {
-      return const BackupFolderProbe(
-        null,
-        'The chosen folder is not available for backups',
-      );
+      final reason = checkFailed
+          ? 'The permission for the chosen folder could not be checked. '
+                'Choose the folder again.'
+          : 'The chosen folder can no longer be written to. Choose the folder '
+                'again.';
+      return BackupFolderProbe(null, reason);
     }
     return BackupFolderProbe(
       BackupFolderStatus(
@@ -332,6 +357,7 @@ class WindowsOneDriveBackupFolder extends BackupFolderLocator {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
   });
 
   static const _envKeys = <String>[
@@ -369,10 +395,7 @@ class WindowsOneDriveBackupFolder extends BackupFolderLocator {
         'Create an ezCORE folder in OneDrive to back up saves there',
       );
     }
-    return confirm(
-      path,
-      notWritable: 'The OneDrive folder is not writable',
-    );
+    return confirm(path, notWritable: 'The OneDrive folder is not writable');
   }
 }
 
@@ -383,6 +406,7 @@ class LinuxXdgBackupFolder extends BackupFolderLocator {
     super.environment,
     super.channel,
     super.ensureFolder,
+    super.probeFolder,
   });
 
   @override
@@ -412,8 +436,10 @@ class _UnavailableLocator extends BackupFolderLocator {
   bool get survivesReinstall => false;
 
   @override
-  Future<BackupFolderProbe> locate() async =>
-      const BackupFolderProbe(null, 'Backup folders are not used in this session');
+  Future<BackupFolderProbe> locate() async => const BackupFolderProbe(
+    null,
+    'Backup folders are not used in this session',
+  );
 }
 
 /// Resolves the backup folder once and caches the result for the session.
@@ -426,8 +452,8 @@ class BackupFolderService {
     Future<String> Function()? documentsPath,
     this.androidGrant = '',
   }) : _locator =
-            locator ??
-            _platformLocator(channel, environment, documentsPath, androidGrant);
+           locator ??
+           _platformLocator(channel, environment, documentsPath, androidGrant);
 
   /// No probing and no folder creation — for sessions without persistence.
   factory BackupFolderService.disabled() =>
@@ -472,9 +498,15 @@ class BackupFolderService {
 
   BackupFolderStatus? _cached;
   bool _resolved = false;
+  Future<BackupFolderStatus>? _resolveFuture;
 
   /// True when this platform needs the person to pick a folder.
   bool get needsPicker => _locator is AndroidSafBackupFolder;
+
+  /// False for [BackupFolderService.disabled]: a session with no backup
+  /// source has nothing to resolve, so an empty [status] means "not set"
+  /// rather than a folder that stopped working.
+  bool get hasBackupSource => _locator is! _UnavailableLocator;
 
   /// Always readable; an unresolved or failed lookup has an empty path.
   BackupFolderStatus get status =>
@@ -487,35 +519,63 @@ class BackupFolderService {
         reason: 'Not checked yet',
       );
 
-  /// Resolves at most once unless a new grant is applied.
-  Future<BackupFolderStatus> resolveOnce() async {
-    if (_resolved) return status;
-    return resolve();
+  /// Resolves at most once unless a new grant is applied. Concurrent callers
+  /// (boot plus an explicit refresh) share the same probe instead of one
+  /// seeing the placeholder "Not checked yet" status.
+  Future<BackupFolderStatus> resolveOnce() {
+    final pending = _resolveFuture;
+    if (pending != null) return pending;
+    if (_resolved) return Future.value(status);
+    final future = resolve();
+    _resolveFuture = future;
+    return future;
   }
 
   /// Re-runs the probe (used after a folder is chosen).
   Future<BackupFolderStatus> resolve() async {
     _resolved = true;
-    BackupFolderProbe probe;
     try {
-      probe = await _locator.locate();
-    } catch (_) {
-      probe = const BackupFolderProbe(null, 'The backup folder could not be checked');
+      BackupFolderProbe probe;
+      try {
+        probe = await _locator.locate();
+      } catch (_) {
+        probe = const BackupFolderProbe(
+          null,
+          'The backup folder could not be checked',
+        );
+      }
+      final candidate = probe.status;
+      if (candidate == null) {
+        final unavailable = BackupFolderStatus(
+          path: '',
+          provider: _locator.provider,
+          survivesReinstall: false,
+          confidence: BackupConfidence.unavailable,
+          reason: probe.reason,
+        );
+        _cached = unavailable;
+        return unavailable;
+      }
+      _cached = candidate;
+      return candidate;
+    } finally {
+      _resolveFuture = null;
     }
-    final candidate = probe.status;
-    if (candidate == null) {
-      final unavailable = BackupFolderStatus(
-        path: '',
-        provider: _locator.provider,
-        survivesReinstall: false,
-        confidence: BackupConfidence.unavailable,
-        reason: probe.reason,
-      );
-      _cached = unavailable;
-      return unavailable;
-    }
-    _cached = candidate;
-    return candidate;
+  }
+
+  /// The save layer found the folder broken after it was resolved. Drop the
+  /// claim that saves are backed up, and allow a later resolve to re-probe.
+  void reportMirrorFailure(String reason) {
+    if (reason.isEmpty) return;
+    _cached = BackupFolderStatus(
+      path: '',
+      provider: _cached?.provider ?? _locator.provider,
+      survivesReinstall: false,
+      confidence: BackupConfidence.unavailable,
+      reason: reason,
+    );
+    _resolved = false;
+    _resolveFuture = null;
   }
 
   /// Opens the native folder picker where one is needed.
