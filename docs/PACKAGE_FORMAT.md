@@ -4,7 +4,7 @@
 
 ## 1. What a package is
 
-A package is a directory (or a zip of one) that bundles a single libretro core together with its validated metadata. A package is self-contained and operates fully offline — no account, telemetry, or network access is required to install or run it.
+A package is a directory that bundles a single libretro core together with its validated metadata. Zip archives are not supported by the v1 installer (`zip_not_supported`); give it a directory. A package is self-contained and operates fully offline — no account, telemetry, or network access is required to install or run it.
 
 The directory name MUST equal the core's `id` field (see §2). The on-disk shape is:
 
@@ -57,14 +57,15 @@ The `options/` and `cheats/` directories are reserved for future use and are not
 | `gated_reason` | string | optional | License gate explanation |
 | `notes` | string | optional | Free-form operator notes |
 | `default_options` | object | optional | Recommended starting values for the core's own options |
+| `system_data` | string[] | optional | Core-owned folders supplied under `system/` (§10) |
 
-The known top-level field set is fixed at these 22 keys by the validator (`kKnownManifestFields`). No other top-level key is accepted, including a `signature` field (see §5.1).
+The known top-level field set is fixed at these 23 keys by the validator (`kKnownManifestFields`). No other top-level key is accepted, including a `signature` field (see §5.1).
 
 **Required-field summary:**
 
 - The *validator* requires only `id` (presence, format, directory match — §3).
 - The *catalog merger* (`scripts/build_catalog.py`) additionally requires `name`, `version`, `license`, `systems`, and `delivery` to be present (§4.5).
-- The *app-side model* (`lib/models/core_manifest.dart`) requires `id`, `name`, `version`, `license`, and `systems` to be non-empty at runtime.
+- The *app-side model* (`lib/models/core_manifest.dart`) requires `id`, `name`, `version`, `license`, and `systems` to be non-empty at runtime, and also a non-empty `extensions` list for any core that is not under a `blocked_reason` hold.
 
 ### 2.2 Field semantics
 
@@ -158,7 +159,7 @@ Every rule below is enforced by `lib/services/core_package_validator.dart`. A pa
 
 ### 3.2 Top-level field set
 
-5. Every top-level key in `manifest.json` MUST be one of the 22 known fields. Any unrecognized key is REJECTED. This is the forward-safety mechanism described in §7. (The known set is `id`, `name`, `version`, `license`, `license_url`, `homepage`, `upstream`, `systems`, `extensions`, `cheats_supported`, `cheat_families`, `bios_required`, `bios_files`, `delivery`, `artifacts`, `execution`, `bios_notes`, `provenance`, `blocked_reason`, `gated_reason`, `notes`, `default_options`.)
+5. Every top-level key in `manifest.json` MUST be one of the 23 known fields. Any unrecognized key is REJECTED. This is the forward-safety mechanism described in §7. (The known set is `id`, `name`, `version`, `license`, `license_url`, `homepage`, `upstream`, `systems`, `extensions`, `cheats_supported`, `cheat_families`, `bios_required`, `bios_files`, `delivery`, `artifacts`, `execution`, `bios_notes`, `provenance`, `blocked_reason`, `gated_reason`, `notes`, `default_options`, `system_data`.)
 
 ### 3.3 Identifier
 
@@ -201,13 +202,13 @@ Installation is a six-stage pipeline. The entire pipeline is offline-only: no ne
 3. **Pin-verify.** The SHA-256 of the actual core library bytes is compared against the `artifacts` pin for the current platform. The validator checks that pin *values* are well-formed hex (§3.4); pin *matching* is performed separately by `scripts/pin_artifacts.py --check`. A mismatch fails the install.
 4. **Consent.** Installing a package adds native code to the device. This MUST require the user's explicit consent in the UI. The trust level (§5) MUST be stated plainly at the consent prompt. Native code is never staged silently.
 5. **Stage.** The package is copied into the user's vault. The directory scan (§3.7) is re-applied during staging — symlinks and oversize are rejected.
-6. **Register.** The package is registered into the runtime catalog via `scripts/build_catalog.py`, which enforces the invariants in §4.5.
+6. **Register.** At startup the app's discovery pass recognises the staged directory as a user package and adds it to the in-memory core registry, re-verifying the pin. `scripts/build_catalog.py` is a build-time tool for the shipped catalog; it does not run on the device.
 
 If any stage fails, installation aborts immediately and no files are staged into the vault.
 
-### 4.5 Catalog invariants (enforced at registration)
+### 4.5 Catalog invariants (build time) and app-side checks
 
-The catalog merger (`scripts/build_catalog.py`) enforces these before a package enters the runtime catalog:
+The catalog merger (`scripts/build_catalog.py`) enforces these before a core enters the shipped catalog. At discovery the app enforces the subset it can check on-device through `CoreManifest.validate()`: required fields, the iOS `download`/`dynarec` bans, and the blocked-core-no-artifacts rule. A user-installed package is never passed through the build-time merger.
 
 17. `id`, `name`, `version`, `license`, `systems`, and `delivery` MUST all be present (`REQUIRED` set).
 18. `id` MUST match the directory name. For directories ending in `_hold`, the match is relaxed — the id may omit the suffix.
@@ -270,7 +271,7 @@ This specification is enforced by and must be read alongside these files:
 
 The following files were read and checked against this specification:
 
-- **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (22 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
+- **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (23 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
 - **`cores/nesbyte/manifest.json`** — bundled core reference shape; `delivery: bundled` on all platforms; 3 artifact pins; `bios_files: ["disksys.rom"]`; provenance present.
 - **`cores/gambatte/manifest.json`** — gated core; `gated_reason` present; `delivery: absent` on all platforms; 3 artifact pins despite being gated.
 - **`cores/citra_hold/manifest.json`** — hold core; `blocked_reason` present; `artifacts: {}`; `bios_required: true` with `bios_files: []` (triggers §3.6 warning); `execution` absent.

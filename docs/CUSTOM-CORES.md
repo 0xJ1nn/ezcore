@@ -185,7 +185,45 @@ cc -shared -fPIC -O2 -I runtime/external/libretro-common/include \
 The fetch step places `libretro.h` under `runtime/external/libretro-common/include`.
 Use `clang -dynamiclib` and `.dylib` instead of `.so` on macOS, and `.dll` on
 Windows. On Android and iOS, pass the target sysroot and architecture to the
-NDK or Xcode compiler in the same shape.
+NDK or Xcode compiler in the same shape. The `cc` line above is the Linux
+example; the other platforms need their own compilers and sysroots.
+
+### What the build script's flags mean
+
+`build_core.sh` cannot be pointed at an arbitrary id: `<id>` is dispatched to
+`build_<id>()`, and an id with no recipe fails with
+`build_<id>: command not found`. It is still the reference for how each
+platform is built, and these are the flags and variables it uses:
+
+| Flag or variable | Effect |
+|---|---|
+| `--fetch-headers` | Shallow-clones libretro-common so the vendored `libretro.h` exists. Needs network once; `build_runtime.sh` refuses to run without it. |
+| `<id>` | Runs `build_<id>()` in `scripts/build_core.sh`: clone upstream, make, stage. |
+| `--tier1` | The five run-verified macOS cores. |
+| `--tier-desktop` | The 17 shippable desktop cores; pair with `EZCORE_PLATFORM=linux` or `windows`. |
+| `--tier-android` | The ten Android cores. |
+| `--tier-ios` | The nine interpreter-only iOS cores. |
+| `EZCORE_PLATFORM=macos\|linux\|windows\|android\|ios` | Selects the platform layer; defaults to `macos`, so set it for every other platform. |
+| `EZCORE_ARCH` | Overrides the default architecture for the platform. |
+| `EZCORE_OUT_DIR` | Overrides the staging root (`native/cores` on macOS arm64, `native/cores-<platform>-<arch>` otherwise). |
+| `JOBS_OVERRIDE` | Parallel make jobs; defaults to the CPU count. |
+| `EZCORE_NO_RESET=1` | Skips the source-tree reset between platform switches. For local iteration only, never for a pin or a release. |
+
+For the repository's own cores the calls look like this; none of them builds a
+core you wrote, because your id has no recipe:
+
+```bash
+scripts/build_core.sh --fetch-headers
+EZCORE_PLATFORM=linux scripts/build_core.sh <id-with-a-recipe>
+EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop
+EZCORE_PLATFORM=android scripts/build_core.sh --tier-android   # needs ANDROID_NDK_HOME
+EZCORE_PLATFORM=ios scripts/build_core.sh --tier-ios           # macOS + Xcode, interpreter-only
+```
+
+The staging step strips debug symbols but keeps the exports used by `dlopen`,
+writes `SHA256SUMS`, and ad-hoc signs the library on macOS; on iOS it also
+repairs the link-time minimum OS version to 15.0. If you copy that staging
+behaviour, pin the bytes after stripping and signing, not before.
 
 The platform layer resolves the architecture, the library suffix, the manifest
 pin key and the staging directory:
@@ -202,11 +240,27 @@ pin key and the staging directory:
 staging root. Android builds need `ANDROID_NDK_HOME`; iOS builds need the Xcode
 SDK and an explicit interpreter flag for any core whose default is a dynarec.
 
-The app looks for `<core-id>_libretro.<ext>` first, then `<core-id>.<ext>`, in the
-package root or in a `<core-id>/` subfolder. Build that exact name: a library
-under any other name is reported as missing. For on-demand distribution the
-release asset name is `<core-id>_libretro-<platform>-<arch>.<ext>`, as listed in
-`cores/release.json`.
+### How the app finds the library
+
+Build the exact name: a library under any other name is reported as missing.
+At install the library is found as `<core-id>_libretro.<ext>` first, then
+`<core-id>.<ext>`, in the package root or in a `<core-id>/` subfolder. It is
+then copied to `<local data>/cores/<core-id>/<core-id>.<ext>` with a `.ezpin`
+sidecar for fast re-verification.
+
+On every startup, discovery scans `<cores root>/<core-id>/`, accepts either
+`<core-id>_libretro.<ext>` or `<core-id>.<ext>`, hashes the bytes and compares
+them with `artifacts[<platform-arch>]` in the manifest before registering the
+core. The platform key comes from the Dart `Abi` (`linux-x64`, `macos-arm64`,
+`windows-x64`, `android-arm64`, `ios-arm64`); a manifest with no pin for the
+running host is not launched. Bundled cores use the same `<id>/` shape in the
+platform's bundled cores directory and are checked the same way.
+
+For on-demand distribution the release asset name is
+`<core-id>_libretro-<platform>-<arch>.<ext>`, as listed in `cores/release.json`.
+Only assets listed there and in `cores/published-sha256.txt` are offered;
+every other `download` core is reported as "not published yet" on that
+platform.
 
 ## Installing a core from a file
 
@@ -224,6 +278,57 @@ to install them. A core with `blocked_reason` is refused. A core with
 distributes its recipe only, and you are responsible for the rights to the
 build. iOS does not support installing native code at runtime; its cores are
 built into the app.
+
+## Crash containment and the runtime host protocol
+
+When the desktop **Crash protection** setting is on (it is off by default), the
+app runs a session in a separate `ezcore_core_host` helper instead of in
+process. Cores know nothing about this: they still speak libretro. The wire
+contract is [`runtime/host/ezcore_core_host_protocol.h`](../runtime/host/ezcore_core_host_protocol.h).
+It is an app-to-helper protocol — not a core ABI, not part of the package
+format, and not something a core implements.
+
+What it guarantees:
+
+- Framing, in both directions, is a little-endian `u32` body length followed
+  by that many bytes. A request body starts with a `u8` op, a response with a
+  `u8` status (`EZH_OK` or `EZH_ERROR`); an error body is a UTF-8 message.
+  Strings are a `u32` byte length plus UTF-8 bytes, blobs a `u32` length plus
+  bytes. The protocol version is 1.
+- The ops cover open (core, content, system and save directories, options),
+  frame, pause, button/analog/mouse/key/pointer input, save, restore, cheats,
+  reset, options/set-option and close. A save state is the largest message;
+  the host refuses request bodies over 256 MiB (`EZH_MAX_REQUEST`).
+- The helper exits 0 when its input reaches EOF, so it never outlives the app.
+  `CLOSE` ends the session and the helper exits 0. A crash in the core kills
+  the helper; the app sees EOF and reads the exit status to classify the
+  crash. A helper that stops answering is killed by a watchdog and reported
+  as hung, not crashed.
+- With crash protection off, or where the helper is unavailable (it is not
+  wired for Android and is forbidden on iOS), the session runs in-process and
+  a native crash can still end the app.
+
+The same framing is used by the generic engine host, which can run a
+non-libretro engine when started with `--engine=NAME` (the default is libretro).
+That is a host capability exercised by the runtime tests, not a package option;
+neither host changes what a libretro core implements.
+
+## Cores without save states
+
+A libretro core may return 0 from `retro_serialize_size()`. That is a supported
+case, not a malformed package: the library loads, initialises and runs
+content. The runtime's `ezcore_serialize_size()` reports 0 when no state size
+is available, and the app's save path fails explicitly with "Core does not
+support save states" rather than writing an empty file. Automatic snapshots
+are best-effort and silently skipped. Set `cheats_supported: false` if the
+core has neither feature; no save-state data belongs in the package.
+
+The verification matrix cannot promote such a core to **BOOTS** or **RENDERS**,
+because those levels require a serialize/restore round trip. Its recorded
+level stays **IDENTIFIES** even when frames are captured; those frames are
+evidence of drawing only. See the PocketTick row in
+[`MATRIX.md`](MATRIX.md) for the worked example. Do not claim a save or a
+render for a core whose state round trip was never made.
 
 ## Licensing and the Core Module Exception
 
@@ -293,8 +398,11 @@ cmake --build runtime/build-core-boot --target test_core_boot -j4
 runtime/build-core-boot/test_core_boot <package-dir>/<core-id>_libretro.so --identify-only
 ```
 
-It prints the name the core reports through `retro_get_system_info` and exits
-non-zero if the library cannot be loaded or identified.
+It loads and initialises the library, prints the name the core reports through
+`retro_get_system_info`, and exits non-zero if the library cannot be loaded or
+initialised. Identify-only proves no more than that: the printed name is not
+checked, and nothing here proves a frame, a save or correct behaviour
+(see the IDENTIFIES limits in [`MATRIX.md`](MATRIX.md)).
 
 The catalog check rejects an iOS `download` delivery, duplicate identifiers and
 a blocked core that carries artifacts. The license and content gates refuse

@@ -30,7 +30,7 @@ layer is which:
 | OS layer | ezCORE part | Directory |
 |---|---|---|
 | Shell / desktop | Orbit UI — library, systems, player, settings | `lib/screens`, `lib/widgets`, `lib/theme` |
-| Userspace packages | core packages: control layouts, skins, cheat sets, presets | package data, validated (§4) |
+| Userspace packages | core packages: library, manifest, optional layouts and system data | package data, validated (§4) |
 | Package manager | discovery, validation, hashing, trust tiers, delivery | `lib/cores`, `lib/services`, `cores/` |
 | System services | configuration resolver, controller profiles, save vault, diagnostics | `lib/state`, `lib/services` |
 | Device drivers | video out, audio out, input in, haptics | Flutter textures, platform channels, `lib/emu` |
@@ -75,10 +75,10 @@ it.
 3. The largest single blocker is not architecture — it is that the kernel
    answers "no" to almost everything a core asks.
 
-**The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 93 is
+**The keystone gap (verified 2026-09-26; count re-verified 2026-09-29 — 98 was
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
-`runtime/external/libretro-common/include/libretro.h`, reproducible with one
-grep):** `env_cb` implements **22 of the 98** `RETRO_ENVIRONMENT_*` commands;
+`runtime/external/libretro-common/include/libretro.h` at the last recorded
+check):** `env_cb` implements **22 of the 98** `RETRO_ENVIRONMENT_*` commands;
 everything else hits `default: return false` (`runtime/src/runtime.c:197`).
 Still unimplemented and relevant here: `GET_RUMBLE_INTERFACE`,
 `SET_GEOMETRY`, `SET_SYSTEM_AV_INFO`, `SET_PERFORMANCE_LEVEL`,
@@ -134,25 +134,26 @@ around.
 
 ## 4. The package format — metadata is data, never code
 
-A core package carries the emulator **and** its controls, skin, cheats, and
-host-exposed functions. Because libretro already standardises most of the
-metadata, the genuinely ezCORE-specific surface is small:
+A core package carries the emulator library, its manifest, and optional data.
+The on-disk shape enforced today is the one in
+[`PACKAGE_FORMAT.md`](PACKAGE_FORMAT.md); libretro already standardises most of
+the metadata, so the ezCORE-specific surface is small:
 
 ```
 <core-id>/
-├── <core-id>_libretro.<so|dylib|dll>   # native code — trust tier applies
-├── <core-id>.info                      # libretro's own metadata standard
-└── ezcore/
-    ├── control/<system>.json           # touch layout   (ezCORE-specific)
-    ├── skin/<theme>.json               # skin/theme tokens (ezCORE-specific)
-    ├── cheats/<system>.json            # reuses the existing .cht format
-    └── functions.json                  # shaders, netplay, rewind, region hooks
+├── manifest.json                       # validated source of truth (v1)
+├── <core-id>_libretro.<so|dylib|dll>    # native code — trust tier applies
+├── info/<core-id>.info                  # libretro's own metadata standard
+├── layouts/<system>.json                # optional touch layouts, ezcore.controls/1
+└── system/<name>/                       # optional core-owned data, declared in system_data
 ```
 
-Only `control/`, `skin/`, and `functions.json` are new to the world. Core
-identity, supported extensions, firmware, options, and input descriptors come
-from standards that already exist — which is what makes "fully documented and
-correct" an achievable goal rather than an aspiration.
+Touch layouts and core-owned system data are the ezCORE-specific additions;
+both are data and are validated as such. Core identity, supported extensions,
+firmware, options, and input descriptors come from standards that already
+exist. Skins, packaged cheat sets and "function hooks" are ideas for a later
+format, not part of v1: the `options/` and `cheats/` folders are reserved and
+not parsed, and no package file other than the native library is executed.
 
 **Adoption is deliberately compatible:** a v0.2.0 `cores/<id>/manifest.json`
 is a valid v1 package. No forced migration, no break for existing cores.
@@ -182,8 +183,8 @@ run, and never let metadata execute anything. Anyone promising more is selling
 something.
 
 **Layer 2 — Data packages: fully enforceable, and the best safety-per-effort
-in the platform.** Control layouts, skins, cheat sets, and presets are JSON and
-**must never execute anything**. The validator enforces: JSON-schema validation;
+in the platform.** Manifests, touch layouts and core-owned system data are
+data and **must never execute anything**. The validator enforces: JSON-schema validation;
 size caps; path confinement (no `..`); no symlinks; no nested directories; no
 network URLs fetched; unknown fields rejected rather than ignored. This reuses
 the proven shape of the existing `scripts/verify_core_art.py` gate (flat files,

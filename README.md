@@ -63,7 +63,7 @@ Each system is a **core** you add or remove like an app. Official cores are buil
 <td valign="top">
 
 ### Your saves stay yours
-Local-first. No account and no telemetry; the network is used only when you choose to download a core. Every save is a card you can load or delete.
+Local-first. No account and no telemetry; download builds make one opt-out daily update request, and the network is otherwise used only when you choose to download a core. Every save is a card you can load or delete.
 
 </td>
 <td valign="top">
@@ -111,12 +111,12 @@ ezCORE hosts the best open-source emulators through the [libretro](https://www.l
 | PlayStation | Geometry1 (SwanStation) | Loads and survives a state round trip on Linux; its video output is not yet evidence, so rendering is unclaimed |
 | PlayStation 2 | DualVU (Play!) · LRPS2 (PCSX2) | Boots and saves on Linux; no frame recorded yet. DualVU needs no BIOS; LRPS2 uses your own dump |
 | Nintendo DS | DualScreen (melonDS) | Boots and saves on Linux; no frame recorded yet |
-| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots, saves and renders · Linux, GPU or software renderer (recorded frame) |
+| Nintendo 64 | RCP64 (Mupen64Plus-Next) | Boots, saves and renders · Linux, software renderer (recorded frame) |
 | PC Engine · Atari 2600 · Saturn | CardCon · Joystick · TwinSH | Verification in progress |
 | DOS · SCUMM adventures | RealMode (DOSBox Pure) · PointClick (ScummVM) | Verification in progress |
 | PSP · Dreamcast · GameCube / Wii | PortComp · DreamArc · PowerCube | Boots and saves on Linux; no frame recorded yet, and DreamArc's earlier capture was black. Other platforms in progress |
-| Watara Supervision | SpritePocket (Potator) | Boots, saves and renders · Linux (recorded frame). Desktop on-demand download |
-| LCD handheld | PocketTick (GW) | Loads and draws real content on Linux, and refuses other systems' files; its core has no save states, so it stops short of the full check above. Desktop on-demand download |
+| Watara Supervision | SpritePocket (Potator) | Boots, saves and renders · Linux (recorded frame). On-demand download published for Linux x64 only |
+| LCD handheld | PocketTick (GW) | Loads and draws real content on Linux, and refuses other systems' files; its core has no save states, so it stops short of the full check above. On-demand download published for Linux x64 only |
 | Super Nintendo · Genesis · Arcade | SuperFX · BlastProc · CoinBox | Build your own: their licences forbid redistribution |
 | 3DS · Switch | — | Held by project policy |
 
@@ -126,7 +126,7 @@ ezCORE hosts the best open-source emulators through the [libretro](https://www.l
 
 | Platform | Get it | Status |
 |---|---|---|
-| **Linux x64** | [Build from source](docs/BUILDING.md) · [latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.tar.gz` | Runs and is tested here |
+| **Linux x64** | [Build from source](docs/BUILDING.md) · [latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.tar.gz` | Cores are built and verified here; the desktop app shell is built in CI |
 | **Android arm64** | [Latest release](https://github.com/0xJ1nn/ezcore/releases/latest) `.apk` | App artifact in v0.2.0; on-device boot not verified |
 | **macOS arm64** | [Build from source](docs/BUILDING.md) | No artifact in v0.2.0; last run-verified at v0.1.1 |
 | **Windows x64** | [Build from source](docs/BUILDING.md) | Not yet verified |

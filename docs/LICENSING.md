@@ -10,7 +10,7 @@ case. It is a policy, not legal advice to you.
 | Part | Licence |
 |---|---|
 | The app and runtime (this repository) | **GPL-3.0-only**, with the [Core Module Exception](../LICENSE-EXCEPTION.md) |
-| Runtime host API header (`ezcore-core-api`) | GPL-3.0-only |
+| Runtime host API header (`runtime/include/ezcore_runtime.h`) | GPL-3.0-only |
 | Third-party emulator cores | each core's upstream licence, unchanged |
 | Cores you write yourself | **any licence you choose**, including proprietary |
 | First-party core packages in official builds | proprietary; shipped only inside official ezCORE builds |

@@ -26,7 +26,7 @@ same rules.
 
 | Path | Who it is for | What happens |
 |---|---|---|
-| **Self-serve package** | Anyone, including you, right now | A core package — the emulator plus its control layout, skin, cheats, and functions — is placed locally or added from a published release. No account, no network required. |
+| **Self-serve package** | Anyone, including you, right now | A core package — the native library, its manifest and optional data such as layouts — is installed from a local folder through **Systems › Install core from file**. No account, no network required. |
 | **Reviewed pull request** | Contributors who want the core shipped and labelled | A PR adds `cores/<id>/` with a manifest, license and provenance, and a build recipe. It must pass the manifest, license, and pin gates before it can be labelled **ezCORE Verified**. |
 
 The detailed contract is [`docs/PLATFORM.md`](docs/PLATFORM.md). Read it before
@@ -60,8 +60,8 @@ and snapshots work with no further integration.
   the application or the kernel. The runtime already carries exactly one such
   workaround (`runtime/src/runtime.c:272-287`); adding more is a last resort that
   needs an ADR explaining why.
-- Execute anything from a package's data files. Control layouts, skins, cheats,
-  and presets are JSON, and they never execute code.
+- Execute anything from a package's data files. The manifest, touch layouts and
+  core-owned system data are data only, and no package file is executed.
 - Assume a network connection, an account, or a remote service.
 
 ### Metadata and licensing
@@ -69,7 +69,8 @@ and snapshots work with no further integration.
 Reuse the standards that already exist rather than inventing parallel formats —
 libretro `.info` files for core metadata, the existing `.cht` format for cheats,
 and the existing `cores/<id>/manifest.json` schema, which stays valid as a
-v1 package. Only control layouts, skins, and function hooks are ezCORE-specific.
+v1 package. Only touch layouts (`layouts/`) and core-owned system data
+(`system/`) are ezCORE-specific; both are data, not code.
 
 Record provenance and license for every core. `scripts/license_audit.py` and
 `scripts/verify_core_art.py` are enforced by the pre-commit hook; run them
