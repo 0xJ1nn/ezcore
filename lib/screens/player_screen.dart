@@ -14,6 +14,7 @@ import '../controls/layout_store.dart';
 import '../controls/phone_controls.dart';
 import '../controls/retro_keys.dart';
 import '../controls/stage_backdrop.dart';
+import '../emu/core_session_backend.dart';
 import '../emu/player_controller.dart';
 import '../emu/process_session_backend.dart';
 import '../models/game_entry.dart';
@@ -60,6 +61,14 @@ class PlayerPreview {
     /// Whether the previewed core can save. Tests pass false to render the
     /// pause menu of a core with no save states at all.
     this.saveStates = true,
+
+    /// Runs the session for a scripted save. Production leaves this null and
+    /// the real worker opens through the launch path.
+    this.backend,
+
+    /// Capture seam for a scripted save. Production leaves this null and the
+    /// live frame is encoded; tests use it to script a capture that fails.
+    this.captureStill,
   });
 
   /// The picture a core would have produced.
@@ -78,6 +87,13 @@ class PlayerPreview {
 
   /// Whether the previewed core can save; see [PlayerPreview.saveStates].
   final bool saveStates;
+
+  /// The session a scripted save talks to; see [PlayerPreview].
+  final CoreSessionBackend? backend;
+
+  /// The still a scripted save captures in place of the live frame; see
+  /// [PlayerPreview].
+  final Future<Uint8List?> Function(ui.Image? frame)? captureStill;
 }
 
 /// Orbit Player — a black stage with the game picture on it, a glass HUD
@@ -153,9 +169,19 @@ class _PlayerScreenState extends State<PlayerScreen>
   final _stageFocus = FocusNode(debugLabel: 'player-stage');
   final _resumeFocus = FocusNode(debugLabel: 'pause-resume');
   List<SaveSlot> _slots = const [];
+
+  /// The still captured with each save, decoded for the snapshot cards.
+  /// Slots without a still keep the design's striped placeholder.
+  final Map<String, ui.Image> _stills = {};
+
+  /// Bumped by each still load so a slower earlier read cannot paint over a
+  /// newer one.
+  int _stillLoad = 0;
   String? _launchToast;
   Timer? _toastTimer;
   Timer? _hudTimer;
+  Timer? _flashTimer;
+  bool _flash = false;
   bool _hudVisible = true;
   late final DateTime _openedAt;
   String? launchError;
@@ -181,6 +207,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         widget.preview?.touchControls ??
         widget.state.settings['touchOverlay'] as bool? ??
         (Platform.isAndroid || Platform.isIOS);
+    final previewBackend = widget.preview?.backend;
+    if (previewBackend != null) player.useBackend(previewBackend);
     _restartHudTimer();
     unawaited(_loadSlots());
     opening = widget.preview != null ? Future<void>.value() : _launch();
@@ -231,10 +259,61 @@ class _PlayerScreenState extends State<PlayerScreen>
         if (b.id == 'slot0' && a.id != 'slot0') return 1;
         return b.modified.compareTo(a.modified);
       });
-      if (mounted) setState(() => _slots = slots);
+      if (!mounted) return;
+      setState(() => _slots = slots);
+      // Stills decode on their own; the strip must paint from the listing
+      // without waiting for a picture to arrive.
+      unawaited(_loadStills(slots));
     } catch (_) {
       // The strip is display metadata; a read failure must not block play.
     }
+  }
+
+  /// Decodes the still captured with each save into [_stills]. A slot the
+  /// provider has no still for is left out; its card keeps the striped
+  /// placeholder the design uses for an empty slot.
+  Future<void> _loadStills(List<SaveSlot> slots) async {
+    final token = ++_stillLoad;
+    final decoded = <String, ui.Image>{};
+    for (final slot in slots) {
+      try {
+        final png = await widget.state.saves.thumbnail(widget.gameId, slot.id);
+        if (png == null || png.isEmpty) continue;
+        final codec = await ui.instantiateImageCodec(png);
+        try {
+          final frame = await codec.getNextFrame();
+          decoded[slot.id] = frame.image;
+        } finally {
+          codec.dispose();
+        }
+      } catch (_) {
+        // A still that will not decode leaves the design's placeholder.
+      }
+    }
+    // A newer load has already been asked for, or the screen is gone: this
+    // answer is stale, and showing it would replace fresher pictures.
+    if (!mounted || token != _stillLoad) {
+      for (final image in decoded.values) {
+        image.dispose();
+      }
+      return;
+    }
+    final dropped = [
+      for (final entry in _stills.entries)
+        if (!identical(decoded[entry.key], entry.value)) entry.value,
+    ];
+    setState(() {
+      _stills
+        ..clear()
+        ..addAll(decoded);
+    });
+    // The cards rebuild against the map now in state; the handles it no
+    // longer holds are released once that paint is done.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final image in dropped) {
+        image.dispose();
+      }
+    });
   }
 
   Future<void> _launch() async {
@@ -454,6 +533,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     _cancelAxis?.call();
     _hudTimer?.cancel();
     _toastTimer?.cancel();
+    _flashTimer?.cancel();
+    for (final image in _stills.values) {
+      image.dispose();
+    }
+    _stills.clear();
     _stageFocus.dispose();
     _resumeFocus.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -498,10 +582,66 @@ class _PlayerScreenState extends State<PlayerScreen>
     final now = DateTime.now();
     final stamp =
         '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    // One encode serves both slots the save writes. A still that cannot be
+    // captured leaves the save itself untouched.
+    final still = await _captureStill();
     await player.save(widget.state.saves, widget.gameId, 'slot0');
     await player.save(widget.state.saves, widget.gameId, 'slot-$stamp');
+    if (still != null) {
+      for (final slot in ['slot0', 'slot-$stamp']) {
+        try {
+          await widget.state.saves.putThumbnail(
+            widget.gameId,
+            slot,
+            still,
+          );
+        } catch (_) {
+          // A save without its still is the behaviour before stills existed.
+        }
+      }
+    }
     await _refreshStateCount();
     await _loadSlots();
+    _flashSaved();
+  }
+
+  /// The current picture as PNG bytes. The frame is cloned before encoding
+  /// and the clone released, because the player disposes its own handle. A
+  /// missing frame, or an encode that fails, is not an error: the save goes
+  /// on without a still.
+  Future<Uint8List?> _captureStill() async {
+    final scripted = widget.preview?.captureStill;
+    if (scripted != null) {
+      try {
+        return await scripted(_frame);
+      } catch (_) {
+        return null;
+      }
+    }
+    final source = _frame;
+    if (source == null) return null;
+    ui.Image? copy;
+    try {
+      copy = source.clone();
+      final data = await copy.toByteData(format: ui.ImageByteFormat.png);
+      return data?.buffer.asUint8List();
+    } catch (_) {
+      return null;
+    } finally {
+      copy?.dispose();
+    }
+  }
+
+  /// The design's shutter: the picture goes white at 40% and fades back out.
+  /// The overlay lives inside [_frameCard] so it follows the frame's own
+  /// recede and clip.
+  void _flashSaved() {
+    if (!mounted) return;
+    _flashTimer?.cancel();
+    setState(() => _flash = true);
+    _flashTimer = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) setState(() => _flash = false);
+    });
   }
 
   Future<void> _autoSave() async {
@@ -1090,6 +1230,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   opacity: t.clamp(0.0, 1.0),
                   child: CustomPaint(painter: _CoverPicturePainter(thumb)),
                 ),
+                _shutterFlash(),
               ],
             ),
           ),
@@ -1120,7 +1261,13 @@ class _PlayerScreenState extends State<PlayerScreen>
             : null,
       ),
       clipBehavior: Clip.antiAlias,
-      child: CustomPaint(painter: GamePicturePainter(image, local)),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CustomPaint(painter: GamePicturePainter(image, local)),
+          _shutterFlash(),
+        ],
+      ),
     );
     if (t > 0.001) {
       // The whole card recedes: the picture keeps its own pixels and the
@@ -1141,6 +1288,27 @@ class _PlayerScreenState extends State<PlayerScreen>
       key: const Key('player-frame'),
       rect: base,
       child: card,
+    );
+  }
+
+  /// The design's shutter: the picture flashes white the moment the snapshot
+  /// is taken, then fades back to the game. Reduced motion holds the flash at
+  /// 40% and drops the fade.
+  Widget _shutterFlash() {
+    final peak = _reduceMotion ? 0.4 : 1.0;
+    return IgnorePointer(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(end: _flash ? peak : 0),
+        // On with the save itself; only the return to the game is a fade.
+        duration: _flash || _reduceMotion ? Duration.zero : Tokens.fastDur,
+        curve: Tokens.ease,
+        builder: (context, value, _) => value <= 0
+            ? const SizedBox.shrink()
+            : ColoredBox(
+                key: const Key('player-flash'),
+                color: Colors.white.withValues(alpha: value),
+              ),
+      ),
     );
   }
 
@@ -1241,6 +1409,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     final strip = _SnapshotStrip(
       slots: tv ? _slots.take(3).toList() : _slots,
+      stills: _stills,
       style: switch (metrics.kind) {
         _PauseKind.panel => _SnapStyle.wide,
         _PauseKind.compact => _SnapStyle.compact,
@@ -2296,6 +2465,7 @@ enum _SnapStyle {
 class _SnapshotStrip {
   const _SnapshotStrip({
     required this.slots,
+    required this.stills,
     required this.style,
     required this.cardWidth,
     required this.cardHeight,
@@ -2306,6 +2476,10 @@ class _SnapshotStrip {
   });
 
   final List<SaveSlot> slots;
+
+  /// The still captured with each save, by slot id. A slot with no entry is
+  /// a placeholder: the design's striped card.
+  final Map<String, ui.Image> stills;
   final _SnapStyle style;
   final double cardWidth;
   final double cardHeight;
@@ -2348,6 +2522,7 @@ class _SnapshotStrip {
             separatorBuilder: (_, _) => SizedBox(width: gap),
             itemBuilder: (context, i) => _SnapshotCard(
               slot: slots[i],
+              still: stills[slots[i].id],
               width: cardWidth,
               height: cardHeight,
               style: style,
@@ -2361,6 +2536,7 @@ class _SnapshotStrip {
 class _SnapshotCard extends StatefulWidget {
   const _SnapshotCard({
     required this.slot,
+    required this.still,
     required this.width,
     required this.height,
     required this.style,
@@ -2368,6 +2544,9 @@ class _SnapshotCard extends StatefulWidget {
   });
 
   final SaveSlot slot;
+
+  /// The still saved with this snapshot, or null for the striped placeholder.
+  final ui.Image? still;
   final double width;
   final double height;
   final _SnapStyle style;
@@ -2426,18 +2605,30 @@ class _SnapshotCardState extends State<_SnapshotCard> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF1F5564),
-                              width: 1.5,
+                        if (widget.still case final still?)
+                          RawImage(
+                            key: ValueKey('snapshot-still-${widget.slot.id}'),
+                            image: still,
+                            fit: BoxFit.cover,
+                          )
+                        else
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFF1F5564),
+                                width: 1.5,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                phone ? 8 : 10,
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(phone ? 8 : 10),
+                            child: CustomPaint(
+                              key: ValueKey(
+                                'snapshot-placeholder-${widget.slot.id}',
+                              ),
+                              painter: const _SnapshotStripesPainter(),
+                            ),
                           ),
-                          child: const CustomPaint(
-                            painter: _SnapshotStripesPainter(),
-                          ),
-                        ),
                         if (phone)
                           const Positioned.fill(
                             child: DecoratedBox(

@@ -12,7 +12,7 @@ import 'package:ezcore/theme/tokens.dart';
 
 /// A vault with fixed slot times and sizes, so the timeline's order and copy
 /// can be asserted without depending on when the test runs.
-class _FixedSaves implements SaveSyncProvider {
+class _FixedSaves extends SaveSyncProvider {
   _FixedSaves(this.slots);
   final Map<String, List<SaveSlot>> slots;
 

@@ -16,7 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A save provider with the fixed ages the device renders show.
-class _TimedSaves implements SaveSyncProvider {
+class _TimedSaves extends SaveSyncProvider {
   _TimedSaves(this.times);
   final Map<String, DateTime> times;
 

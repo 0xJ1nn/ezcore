@@ -98,7 +98,7 @@ class MirrorSaveRef {
 /// * Deleting a save tombstones this install's index entry. The mirror bytes
 ///   are left alone, and another device's live entry for the same slot stays
 ///   live.
-class MirroredSaveSyncProvider implements SaveSyncProvider {
+class MirroredSaveSyncProvider extends SaveSyncProvider {
   MirroredSaveSyncProvider(
     this.primary,
     this.mirrorRoot, {
@@ -191,6 +191,17 @@ class MirroredSaveSyncProvider implements SaveSyncProvider {
     await primary.remove(gameId, slot);
     await _tombstone(gameId, slot);
   }
+
+  /// Stills stay with the primary. Mirroring them would need a second index
+  /// entry for pictures nobody can play, so the survival copy keeps carrying
+  /// only the state bytes it always has.
+  @override
+  Future<Uint8List?> thumbnail(String gameId, String slot) =>
+      primary.thumbnail(gameId, slot);
+
+  @override
+  Future<void> putThumbnail(String gameId, String slot, Uint8List png) =>
+      primary.putThumbnail(gameId, slot, png);
 
   /// Copies every mirror-only save into the primary. Returns how many were
   /// copied. Tombstoned slots are skipped so a deliberate delete stays deleted.
