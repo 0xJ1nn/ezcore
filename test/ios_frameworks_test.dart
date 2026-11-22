@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Runs test/ios_frameworks_script_test.sh as part of `flutter test`.
 //
 // Why a Dart wrapper for a shell test: the project's only automated gate is

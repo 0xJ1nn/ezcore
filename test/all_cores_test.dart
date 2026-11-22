@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Diagnostic prints are the point of this harness (it reports per-core
 // boot/render results when run locally); the lint is for production code.
 // ignore_for_file: avoid_print

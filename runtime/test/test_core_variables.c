@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_core_variables.c — regression test: core option values must reach
  * the core.
  *

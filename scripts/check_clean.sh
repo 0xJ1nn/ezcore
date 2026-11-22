@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Repository hygiene gate for a fresh clone: no build, no network, no Flutter.
 #
 # Run by the merge gate on each pull request head, and cheap enough to run by

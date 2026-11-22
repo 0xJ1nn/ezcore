@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // P3: analog sticks, mouse, keyboard and pointer reach a core through both
 // ways ezCORE runs one — the in-process service and the crash-protected
 // helper process. The synth_input core echoes what it read into audio, one

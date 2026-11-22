@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The package-install discovery round trip (P2 integration): install a
 // package into a vault, then discovery must register it as a user package —
 // exactly the path app_state.load()/rediscoverCores() run.

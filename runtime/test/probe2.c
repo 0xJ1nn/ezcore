@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Replicates ezcore_load step by step with checkpoints. */
 #include <dlfcn.h>
 #include <stdbool.h>

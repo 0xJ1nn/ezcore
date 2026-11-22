@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Diagnostic prints are the point of this harness (it reports each stage of
 // the mGBA boot/render/save sequence when run locally).
 // ignore_for_file: avoid_print

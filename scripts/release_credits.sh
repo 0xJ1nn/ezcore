@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Print the Credits section for a release: every GitHub user whose pull
 # request was merged since the previous tag, plus human co-authors named in
 # Co-Authored-By trailers. Paste the output into .github/release-notes/<tag>.md.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 cmake_minimum_required(VERSION 3.21)
 project(ezcore_runtime C)
 

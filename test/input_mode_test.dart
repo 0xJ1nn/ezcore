@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The TV / ultrawide / handheld modifiers are measurements layered on the
 // five layout families. These tests pin both the input rules (§10) and the
 // numbers the chrome uses, without adding new OrbitLayout values.

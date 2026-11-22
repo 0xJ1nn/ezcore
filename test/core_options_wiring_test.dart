@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Core options must reach the core from the very first frame.
 //
 // Many cores read their options only inside retro_load_game (the renderer

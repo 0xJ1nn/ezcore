@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* EGL-backed render context: Linux and Android (the GPU render-context design).
  *
  * One implementation serves every GL/GLES API variant ezCORE exposes, because

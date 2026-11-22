@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // T18: the empty, loading and error states from handoff §8.1 and §8.10.
 // Each state is a small public widget, so the tests lock its copy, actions
 // and geometry without depending on a whole app boot.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Regression test: libretro cheat entry points are independently optional. */
 #include <stdbool.h>
 #include <stdint.h>

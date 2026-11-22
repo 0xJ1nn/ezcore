@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// A versioned, signed emulator-core plugin descriptor.
 ///
 /// Mirrors `cores/<id>/manifest.json`. Validation rules live in [validate]

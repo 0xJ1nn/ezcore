@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Xcode "Bundle ezCORE cores" build phase (iOS).
 #
 # Apple rejects standalone Mach-O dylibs inside an app bundle (90171) and only

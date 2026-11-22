@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // External controllers: remappable buttons, Select+Start for the pause
 // menu, and a controller that can drive every menu.
 import 'package:ezcore/services/gamepad.dart';

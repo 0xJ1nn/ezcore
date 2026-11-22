@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Single policy for native-artifact paths in tests.
 ///
 /// Host artifacts live under `runtime/build*` (legacy `runtime/build` or

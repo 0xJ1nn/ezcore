@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Handoff §9: the reusable overlay kit. These tests lock the toast, dialog
 // and options-sheet geometry, colour, motion, focus order and return values
 // without depending on any screen wiring.

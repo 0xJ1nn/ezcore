@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* synth_variables_core.c — minimal libretro core that READS its options.
  *
  * NOT a real emulator. Used by test_core_variables.c to prove that a value

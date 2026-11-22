@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Records built core hashes into manifests as platform-arch pins.
 
 Usage: python3 scripts/pin_artifacts.py <platform-arch> [--out <dir>]

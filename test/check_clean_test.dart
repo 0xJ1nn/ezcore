@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Runs test/check_clean_script_test.sh as part of `flutter test`.
 //
 // scripts/check_clean.sh is a repository hygiene gate that the merge tooling

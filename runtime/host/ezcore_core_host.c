@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezcore_core_host — runs ONE engine session in its own process
  * (P6 crash containment; Tier 2 engine hosting).
  *

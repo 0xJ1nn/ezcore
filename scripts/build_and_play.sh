@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # build_and_play.sh — build real emulator cores and PROVE they play games.
 #
 # A green unit test, a built library, a manifest or a golden hash is NOT the

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:flutter/material.dart';
 
 /// Per-system hues for generated cover art (handoff §3.1).

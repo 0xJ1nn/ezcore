@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Small display helpers shared by the library dock, tiles, and cards.
 ///
 /// These are presentation only — no logic depends on the strings, and no

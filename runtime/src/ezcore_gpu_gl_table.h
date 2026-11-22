@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* X-macro list of the GL/GLES entry points the runtime resolves per context.
  *
  * One list, three consumers: the pointer struct, the resolver and nothing

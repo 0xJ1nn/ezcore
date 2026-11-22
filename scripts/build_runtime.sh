@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Builds the ezCore C runtime + synthetic test core for one platform.
 # Usage:
 #   scripts/build_runtime.sh macos        # arm64 host (also: macos-x64 via ARCH)

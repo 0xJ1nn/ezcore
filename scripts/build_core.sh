@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Builds libretro core plugins from upstream source into build/cores/<id>/.
 # Usage:
 #   scripts/build_core.sh --fetch-headers      # vendor libretro.h (once)

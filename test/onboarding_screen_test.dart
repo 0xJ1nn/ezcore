@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:ezcore/brand/brand_mark.dart';
 import 'package:ezcore/main.dart';
 import 'package:ezcore/models/game_entry.dart';

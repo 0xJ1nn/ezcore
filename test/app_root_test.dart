@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:ezcore/main.dart';
 import 'package:ezcore/services/ui_sounds.dart';
 import 'package:ezcore/state/app_state.dart';

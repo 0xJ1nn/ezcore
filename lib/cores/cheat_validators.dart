@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Syntax validators for per-system cheat code families.
 ///
 /// These check *format* only (hex shape, grouping) plus a bridge dry-run

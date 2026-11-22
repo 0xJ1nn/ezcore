@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Behavioural tests for scripts/checksums.py.
 
 Each case builds a throwaway directory that looks like a release drop -- a

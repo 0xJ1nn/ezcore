@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """NDK compiler wrapper: drops `-lrt` (bionic libc already provides
 clock_gettime et al; the NDK ships no librt, and several upstream
 libretro makefiles unconditionally add it).

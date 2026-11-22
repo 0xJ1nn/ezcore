@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// Human-readable labels for system IDs.
 ///
 /// Sourced from core manifest `systems` entries and common shorthand.

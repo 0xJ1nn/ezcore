@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// RetroArch-compatible `.cht` cheat file model.
 ///
 /// Canonical on-disk format (sections per code). Nothing cheat-related

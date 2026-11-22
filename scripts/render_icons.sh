@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Regenerates the in-app logos and every platform launcher icon from the
 # exported Claude Design brand files. Rerunnable from a clean checkout.
 #

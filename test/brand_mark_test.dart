@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The in-app logos are the exported brand files, rendered into Flutter's
 // density buckets by scripts/render_icons.sh.
 import 'package:ezcore/brand/brand_mark.dart';

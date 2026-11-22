@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* GL/GLES context body: the windowing backend's private layout.
  *
  * Separate from ezcore_gpu_internal.h on purpose. The shared header is

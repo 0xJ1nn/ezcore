@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The user-facing promise of P6 (crash containment): with crash protection on, a core
 // that crashes mid-game ends the game — the player reports it plainly and
 // stops — while the app (here, this test runner) keeps running.

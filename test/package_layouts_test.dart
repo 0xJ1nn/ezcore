@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Core packages can ship their own on-screen layouts (controls as data). The same
 // rules gate them at install (validator) and at play time (loader), the
 // installer stages only what passes, and the player prefers: the user's own

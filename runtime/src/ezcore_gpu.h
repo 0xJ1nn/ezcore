@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* GPU render-context surface for the ezCORE runtime (the GPU render-context design).
  *
  * WHY THIS FILE EXISTS

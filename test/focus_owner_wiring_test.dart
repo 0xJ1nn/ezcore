@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // T19 review: the two places that still owned focus for themselves now write
 // to the one FocusOwner. A LookTile's hover moves the same focus its arrows
 // move, and the 3D shelf is registered so the dock returns to it and its row

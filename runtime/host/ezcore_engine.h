@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezcore_engine.h — the GENERIC engine-backend seam inside the host process.
  *
  * The wire contract (ezcore_core_host_protocol.h) is unchanged by this file.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// The Orbit overlay kit: the reusable toast, dialog and options-sheet
 /// surfaces from handoff §9.
 ///

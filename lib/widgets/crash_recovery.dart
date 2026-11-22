@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'dart:typed_data' show Float64List;
 import 'dart:ui' show ImageFilter;
 

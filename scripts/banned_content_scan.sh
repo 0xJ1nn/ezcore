@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Fails if any ROM/BIOS/keys/game blob lands in the repo (source of truth
 # for the "ships zero copyrighted bytes" posture). CI runs this per PR.
 set -euo pipefail

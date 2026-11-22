@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Bisect probe: dlopen a core and call entry points one at a time. */
 #include <dlfcn.h>
 #include <stdbool.h>

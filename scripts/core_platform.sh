@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Platform layer for scripts/build_core.sh (sourced, not executed).
 #
 #   EZCORE_PLATFORM: macos | linux | windows | android | ios (default macos)
