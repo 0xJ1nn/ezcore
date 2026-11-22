@@ -224,12 +224,9 @@ jobs:
       - name: Checksums
         run: |
           set -euo pipefail
-          cd dist
-          find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' \
-            -printf '%f\n' | sort | while read -r name; do
-            sha256sum "$name"
-          done > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+          python3 scripts/checksums.py --write --root dist \
+            --record SHA256SUMS.txt
+          cat dist/SHA256SUMS.txt
       - name: Release notes from changelog
         run: |
           set -euo pipefail

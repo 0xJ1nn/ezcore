@@ -134,8 +134,23 @@ produces — verify rather than assume a local build matches.
 
 ## Release Build
 
-Full maintainer checklist (secrets, checksums, notes, publish):
-the maintainer's release process.
+A release needs the signing secrets for the platform (below), notes taken from
+`CHANGELOG.md`, and a checksum file a reader can verify against what they
+downloaded. The release workflow generates that file over the artifacts it
+attaches; the same file can be produced and re-verified locally:
+
+```bash
+python3 scripts/checksums.py --write --root dist --record SHA256SUMS.txt
+python3 scripts/checksums.py --check --root dist --record SHA256SUMS.txt
+```
+
+A directory is described by every regular file below it, sorted; `.git`
+internals are never included, and the record never lists itself. `--check`
+names any file whose bytes changed, any file the record omits and any entry
+for a path that is no longer there, so a run after the final build names
+exactly what changed. No record of the source tree is committed: it would go
+stale as soon as any pull request edits a tracked file, and git already names
+every commit by the hash of its contents.
 
 ```bash
 # Requires: all cores built + pinned for target platform
