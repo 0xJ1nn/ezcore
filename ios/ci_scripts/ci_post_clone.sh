@@ -8,8 +8,9 @@ set -e
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
-# Same Flutter as the local release builds; bump it here when you upgrade locally.
-FLUTTER_VERSION=3.47.8
+# Same Flutter as the local release builds; bump toolchain.json when upgrading.
+REPO_ROOT="${CI_PRIMARY_REPOSITORY_PATH:-$(cd "$(dirname "$0")/../.." && pwd)}"
+FLUTTER_VERSION="$(python3 "$REPO_ROOT/scripts/toolchain_pin.py" get flutter)"
 
 git clone https://github.com/flutter/flutter.git --depth 1 --branch "$FLUTTER_VERSION" "$HOME/flutter"
 export PATH="$PATH:$HOME/flutter/bin"

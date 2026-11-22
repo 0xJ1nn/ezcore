@@ -17,6 +17,18 @@
 
 PLATFORM="${EZCORE_PLATFORM:-macos}"
 
+# One NDK for every Android build. build_core.sh sets ROOT before sourcing this
+# file; the fallback keeps direct sourcing usable. The pin itself lives in
+# toolchain.json, so a workflow and a local shell cannot quietly disagree.
+: "${ROOT:=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+if command -v python3 >/dev/null 2>&1; then
+  _pin_python=python3
+else
+  _pin_python=python
+fi
+NDK_VERSION="$("$_pin_python" "$ROOT/scripts/toolchain_pin.py" get ndk)"
+export NDK_VERSION
+
 default_arch() {
   case "$PLATFORM" in
     macos) echo arm64 ;;
@@ -90,6 +102,13 @@ ios_fix_min_version() { # file
 
 android_toolchain() {
   : "${ANDROID_NDK_HOME:?set ANDROID_NDK_HOME (sdkmanager ndk bundle)}"
+  case "$ANDROID_NDK_HOME" in
+    */"$NDK_VERSION") ;;
+    *)
+      echo "REFUSED: ANDROID_NDK_HOME is $ANDROID_NDK_HOME; toolchain.json pins NDK $NDK_VERSION" >&2
+      return 1
+      ;;
+  esac
   local tc="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin"
   [ -d "$tc" ] || tc="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
   export PATH="$tc:$PATH"

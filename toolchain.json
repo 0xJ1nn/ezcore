@@ -1,0 +1,22 @@
+{
+  "flutter": "3.47.8",
+  "dart": "3.13.7",
+  "ndk": "28.2.13676358",
+  "cmake": "3.22.1",
+  "xcode_minimum": "27",
+  "ios_deployment_target": "15.0",
+  "mingw": "14.2.0",
+  "llvm_mingw": "21.1.0",
+  "msvc": "2022",
+  "notes": {
+    "flutter": "Stable SDK used by CI, local gates and Xcode Cloud; verified with flutter --version.",
+    "dart": "Bundled with the pinned Flutter SDK; verified with dart --version.",
+    "ndk": "Flutter 3.47.8 defaults to this NDK. CI, Gradle and the core scripts must use the same one.",
+    "cmake": "SDK manager component installed by the Android CI legs.",
+    "xcode_minimum": "Floor already used by the Podfile, the iOS core scripts and the platform matrix.",
+    "ios_deployment_target": "Deployment floor for the app and every iOS core.",
+    "mingw": "Minimum GCC in the MSYS2 UCRT64 toolchain used by the Windows CI leg; that leg prints the installed compiler.",
+    "llvm_mingw": "Baseline for the Windows-on-Linux cross build; no leg consumes this pin yet.",
+    "msvc": "Visual Studio generation on the Windows runner; no leg consumes this pin yet."
+  }
+}
