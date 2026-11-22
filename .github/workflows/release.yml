@@ -1,7 +1,15 @@
 name: Release
 
-# Builds the desktop downloads and prepares a draft release. A person reviews
-# the draft and publishes it; the workflow never publishes on its own.
+# Builds the desktop downloads (macOS arm64, Windows x64, Linux x64) and
+# prepares a draft release. A person reviews the draft and publishes it; the
+# workflow never publishes on its own.
+#
+# Release scope (audit finding F5): this workflow does NOT build, sign or
+# distribute iOS or Android. Both targets are exercised by the PR CI matrix,
+# but a signed IPA/APK needs credentials and platform assets that are not
+# available in this repository, so no mobile artifacts are attached here.
+# The draft body states the same scope, so a published release cannot
+# silently imply that all five targets were shipped.
 
 on:
   push:
@@ -256,6 +264,13 @@ jobs:
           )
           print('\n'.join(lines[start + 1:end]).strip())
           PY
+      - name: State release scope in notes
+        run: |
+          set -euo pipefail
+          { printf '%s\n' \
+            '> **Release scope:** this release provides desktop builds for macOS (arm64), Windows (x64) and Linux (x64) only. iOS and Android are not distributed from this workflow; signed IPA/APK artifacts require credentials and assets that are not available here.' \
+            ''; cat notes.md; } > notes.scoped.md
+          mv notes.scoped.md notes.md
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
