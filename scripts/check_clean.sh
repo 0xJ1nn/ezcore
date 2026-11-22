@@ -23,6 +23,10 @@
 #      cores/catalog.json and cores/release.json. The catalog is a checked-in
 #      generated file (the app loads it as an asset), so drift here is a
 #      hand-edited merge that would ship a stale core list.
+#   4. When origin/main is present, a change to a shipped source tree (lib,
+#      runtime, cores or a platform directory) adds an entry under
+#      `## [Unreleased]` in CHANGELOG.md. `scripts/check_changelog.py` owns that
+#      rule; a documentation-only or tooling-only branch needs no entry.
 #
 # Deliberately NOT checked here:
 #
@@ -89,6 +93,23 @@ if [ -f "$ROOT/scripts/build_catalog.py" ]; then
     problems=$((problems + 1))
     printf 'check_clean: catalog out of date:\n'
     printf '%s\n' "$catalog" | sed 's/^/  /'
+  fi
+fi
+
+# 4. Every shipped-source change carries a changelog entry. This needs a base
+#    revision, so skip on a bare tree or a fresh clone without origin/main;
+#    the merge gate always has that ref at the pull request head.
+if [ -f "$ROOT/scripts/check_changelog.py" ] &&
+   git -C "$ROOT" rev-parse --verify -q origin/main >/dev/null 2>&1; then
+  if ! command -v python3 >/dev/null 2>&1; then
+    problems=$((problems + 1))
+    printf 'check_clean: python3 not found (required by scripts/check_changelog.py)\n'
+  elif changelog=$(cd "$ROOT" && python3 scripts/check_changelog.py 2>&1); then
+    :
+  else
+    problems=$((problems + 1))
+    printf 'check_clean: changelog gate failed:\n'
+    printf '%s\n' "$changelog" | sed 's/^/  /'
   fi
 fi
 
