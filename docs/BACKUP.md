@@ -7,6 +7,12 @@ not sync between devices, and does not reconcile versions across machines.
 Any synchronization of a folder is done by the storage provider that owns it,
 not by ezCORE.
 
+The durability outcome is the same on all five targets: saves survive app
+deletion only where the probe verified a durable location outside the app's
+private data. The provider that supplies that location differs by OS, because
+each OS exposes writable storage in its own way. The difference is in the path
+and the picker, not in what a save is promised to survive.
+
 ## Where the mirror goes
 
 | Platform | Folder | How it is chosen |
@@ -17,9 +23,12 @@ not by ezCORE.
 | Windows | `ezCORE` inside the OneDrive folder | Environment variable set by the OneDrive client; the folder must already exist |
 | Linux | `ezCORE-backup` under `$XDG_DATA_HOME`, or `~/.local/share/ezCORE-backup` | Filesystem location derived from the environment |
 
-Every candidate is probed before use: the app creates it when missing, writes
-a throwaway file, and deletes that file again. A folder that cannot take the
-probe is never presented as a backup location; the app keeps using local saves
+Every candidate is probed before use. Where the OS permits it, the app creates
+the folder when missing, writes a throwaway file, and deletes that file again.
+On Windows the `ezCORE` folder inside OneDrive must already exist: when it is
+missing, the app reports the backup as unavailable rather than creating it. A
+folder that cannot take the probe is never presented as a backup location; the
+app keeps using local saves
 and shows the reason in Storage. The probe is only a check at the moment the
 folder is chosen: if the folder is later deleted or becomes unwritable, the
 next save reports that failure and Storage changes to Unavailable with the
@@ -47,12 +56,14 @@ reports the backup as unavailable. Choosing the folder again restores it.
 The badge in Settings → Storage describes how much the app can trust the
 folder, not how full the backup is.
 
-**Verified** means the host answered the platform channel, the location was
-written and probed successfully, and the folder is expected to remain after
-the app is removed. On Android this also means the tree grant was persisted
-rather than refused by the platform. On Apple platforms the iCloud container
-had to exist and be writable. On desktop the chosen folder had to pass the
-same write-and-delete probe.
+**Verified** means the host answered the platform channel where one is used,
+the location was written and probed successfully, and the probed folder is
+outside the app's private data, so saves placed there survive app removal. On
+Android this also means the tree grant was persisted rather than refused by
+the platform. On Apple platforms the iCloud container had to exist and be
+writable. On desktop the chosen folder had to pass the same write-and-delete
+probe. The badge promises that durability on that device; it does not promise
+cloud sync or a version history.
 
 **Best effort** means a writable folder was found, but it lives inside the
 app's own data and is deleted when the app is deleted. On iOS and macOS this
@@ -79,7 +90,9 @@ versions from different machines.
 
 ## When the app is removed
 
-What survives removal depends on the folder.
+A save survives removal only where the verified folder is still present and
+the app can reach it again. That outcome is the same on every target; the
+provider that holds the folder is what changes.
 
 - **Android:** files in the granted tree remain where they were written. The
   permission is tied to the installation, so a reinstall must choose the
@@ -87,10 +100,13 @@ What survives removal depends on the folder.
 - **iOS and macOS with iCloud:** files remain in the app's iCloud container.
   A reinstall using the same bundle identifier can reach them again.
 - **iOS and macOS with the Documents fallback:** the folder is inside the
-  app's sandbox and is removed with the app.
-- **Windows and Linux:** the folder is outside the app's private data and
-  remains on disk. On Windows, whether it leaves the machine is decided by
-  the OneDrive client, not by ezCORE.
+  app's sandbox and is removed with the app. These saves are best effort, not
+  verified.
+- **Windows:** the `ezCORE` folder inside OneDrive remains on disk, provided
+  it existed for the probe. Whether OneDrive syncs it off the machine is decided
+  by the client, not by ezCORE.
+- **Linux:** the `ezCORE-backup` folder under the XDG data directory remains
+  on disk.
 
 ## Maintainer step for iCloud
 

@@ -69,7 +69,10 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja mak
 # Apple Developer account for device deploy / TestFlight
 ```
 
-## One-Command Bootstrap (macOS)
+## One-Command Bootstrap (macOS arm64 host)
+
+`scripts/prereqs.sh` installs the toolchain with Homebrew, so this sequence
+runs on an Apple Silicon Mac only:
 
 ```bash
 git clone https://github.com/0xJ1nn/ezcore.git
@@ -83,15 +86,22 @@ flutter analyze && flutter test       # gates
 flutter run -d macos                  # debug run
 ```
 
+On the other four hosts, install the tools in their sections above and use
+the matching row below; `scripts/prereqs.sh` is not a Linux, Windows, Android
+or iOS installer. The header, catalog and gate commands are host-independent,
+and `flutter run -d <target>` names the device for that host (`linux`,
+`windows`, `android` or an attached iOS device). Building for iOS needs macOS
+and Xcode; Windows needs an MSYS2 host; Android needs the NDK.
+
 ## Platform Build Commands
 
-| Platform | Runtime | Cores | Flutter |
-|----------|---------|-------|---------|
-| macOS | `scripts/build_runtime.sh macos` | `scripts/build_core.sh --tier1` | `flutter build macos --release` |
-| Linux | `scripts/build_runtime.sh linux` | `EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop` | `flutter build linux --release` |
-| Windows | `scripts/build_runtime.sh windows` (MSYS2) | `EZCORE_PLATFORM=windows scripts/build_core.sh --tier-desktop` | `flutter build windows --release` (MSYS2) |
-| Android | `scripts/build_runtime.sh android` | `EZCORE_PLATFORM=android scripts/build_core.sh --tier-android` | `flutter build apk --release` |
-| iOS | `scripts/build_runtime.sh ios` | `EZCORE_PLATFORM=ios scripts/build_core.sh --tier-ios` | `flutter build ios --no-codesign` |
+| Target | Build host | Runtime | Cores | Flutter |
+|--------|-----------|---------|-------|---------|
+| macOS arm64 | macOS arm64 | `scripts/build_runtime.sh macos` | `scripts/build_core.sh --tier1` | `flutter build macos --release` |
+| Linux x64 | Linux x64 | `scripts/build_runtime.sh linux` | `EZCORE_PLATFORM=linux scripts/build_core.sh --tier-desktop` | `flutter build linux --release` |
+| Windows x64 | Windows x64 (MSYS2) | `scripts/build_runtime.sh windows` (MSYS2) | `EZCORE_PLATFORM=windows scripts/build_core.sh --tier-desktop` | `flutter build windows --release` (MSYS2) |
+| Android arm64 | host with the Android NDK (CI uses Linux x64) | `scripts/build_runtime.sh android` | `EZCORE_PLATFORM=android scripts/build_core.sh --tier-android` | `flutter build apk --release` |
+| iOS arm64 | macOS with Xcode | `scripts/build_runtime.sh ios` | `EZCORE_PLATFORM=ios scripts/build_core.sh --tier-ios` | `flutter build ios --no-codesign` (compile check only) |
 
 ## Core Tiers
 
@@ -109,8 +119,14 @@ it refuses to serialize until a program runs, so no frame was kept. `superfx`
 (SNES) has no Linux cell at all and stops at IDENTIFIES on macOS; `blastproc`
 (Genesis) is BUILT on Linux with no recorded frame. Both are non-commercial
 upstream, so no binary of either ever ships — those two recipes exist to prove
-the build. [`MATRIX.md`](MATRIX.md) is the per-core record; read it before
-quoting a tier as proven.
+the build.
+
+The same tier means different evidence on the other targets: Android cells
+are ELF and symbol checks on the built arm64 artifacts, with no on-device core
+run recorded here; iOS cells are dated build evidence with no current
+`ios-arm64` artifact pins; Windows x64 has no per-core boot evidence. A core
+result on one target proves that target alone. [`MATRIX.md`](MATRIX.md) is the
+per-core record; read it before quoting a tier as proven on any platform.
 
 ## Fetching the emulator sources
 
@@ -170,8 +186,11 @@ EZCORE_KEYSTORE_FILE="$PWD/ezcore-release.keystore" \
 EZCORE_KEYSTORE_PASSWORD=... EZCORE_KEY_ALIAS=ezcore EZCORE_KEY_PASSWORD=... \
 scripts/release.sh android --out dist/
 
-# iOS (needs signing identity + embedded frameworks):
-EZCORE_IOS_SIGNING_IDENTITY="..." scripts/release.sh ios --out dist/
+# iOS: no signed release pipeline exists in this tree. The script stops
+# after an unsigned `flutter build ios --no-codesign` and exits without an
+# archive or an .ipa. A device build needs a signing identity and embedded
+# core frameworks outside this repository.
+scripts/release.sh ios --out dist/
 ```
 
 ### Android release signing
@@ -186,10 +205,23 @@ Signing holds the app signing key; the key used to sign the uploaded bundle is
 the upload key.
 
 Outputs:
-- macOS: `dist/ezcore-<version>-macos-arm64.zip`
-- Windows: `dist/ezcore-<version>-windows-x64.zip`
-- Linux: `dist/ezcore-<version>-linux-x64.tar.gz`
-- Android: `dist/ezcore-<version>-android-arm64.apk`
+- macOS arm64: `dist/ezcore-<version>-macos-arm64.zip` (ad-hoc signed without an Apple Developer identity)
+- Windows x64: `dist/ezcore-<version>-windows-x64.zip`
+- Linux x64: `dist/ezcore-<version>-linux-x64.tar.gz`
+- Android arm64: `dist/ezcore-<version>-android-arm64.apk` (debug-signed without the release keystore)
+- iOS arm64: none. `scripts/release.sh ios` produces an unsigned compile check
+  only — no archive, no `.ipa` and no signed frameworks — and reports success
+  without a shippable artifact.
+
+An end-to-end release needs all five targets: iOS, Android, macOS arm64,
+Linux x64 and Windows x64. The Linux x64 chain is the only one with published
+and pinned core assets; Android has an app artifact but no on-device core boot
+evidence. macOS arm64 and Windows x64 need their own build hosts, and a
+notarised macOS build needs Apple credentials. iOS needs a Mac with Xcode, a
+signed archive pipeline and a device or TestFlight run, none of which this
+tree provides. The release workflow currently drafts only macOS, Windows and
+Linux. These are blockers to a complete release, not targets that can be
+dropped; see [`MATRIX.md`](MATRIX.md) for the evidence behind each row.
 
 ## Verification Gates (CI Equivalent)
 
@@ -207,7 +239,8 @@ python3 scripts/pin_artifacts.py macos-arm64 --out native/cores --check
 flutter analyze lib/ test/
 flutter test
 
-# Native CTest (runtime)
+# Native CTest (runtime); run the build directory for your host:
+# runtime/build-macos on macOS, runtime/build-linux on Linux
 cd runtime/build-macos && ctest --output-on-failure
 
 # Core matrix (Dart-driven, fork-isolated)

@@ -54,6 +54,20 @@ older ad-hoc-signed app is not notarized.
    keystore — future updates will install over it as long as that key is
    used.
 
+   What works today: an arm64 device can install this APK. The release host
+   did not build Android runtime or core artifacts, so no on-device core boot
+   or rendering is verified for this target.
+
+## iOS
+
+> No iOS binary is attached to v0.2.0. There is no signed release archive and
+> no recorded device run.
+
+What works today: the iOS app shell builds in CI and source builds use the
+interpreter-only core tier. Installing on a device needs an Apple Developer
+identity and a signed build; this release does not provide one. Historical iOS
+core build cells have no current artifact pins — see [`MATRIX.md`](MATRIX.md).
+
 ## First run
 
 1. The app opens on **Library** (empty on first launch).
@@ -64,8 +78,10 @@ older ad-hoc-signed app is not notarized.
    the empty state). In the Import screen you can **Browse
    files** or type a folder path and **Scan** it, then **Import scanned
    content**. Imported games **stay where you keep them** — the library
-   references your folder (on macOS, access is kept with a security-scoped
-   bookmark), it does not copy files around.
+   references your folder and does not copy files around. How that access is
+   kept depends on the OS: macOS uses a security-scoped bookmark, Android uses
+   a persisted folder grant, and the other targets read from the location you
+   chose and ask again if that access is lost.
 3. Play: click a game cover → **Game hub** → **Play**. If the core needs
    BIOS/firmware you haven't placed yet, the player tells you exactly which
    files are missing and where they go.
@@ -76,14 +92,17 @@ switch between Library / Systems / Time Capsule / Settings.
 ## BIOS / firmware
 
 **ezCORE ships no BIOS or firmware.** Some cores need files you supply
-yourself. Place them in the app's **`system/`** folder:
+yourself. Place them in the app's **`system/`** folder. The placement rule is
+the same on all five targets; the OS decides where that folder lives and how
+you reach it:
 
 | Platform | Folder |
 |---|---|
 | macOS | `~/Library/Application Support/ezcore/system/` |
 | Windows | `%APPDATA%\ezcore\system\` |
 | Linux | `~/.local/share/ezcore/system/` |
-| Android | app-private data folder (not user-accessible in v0.2.x — see note) |
+| Android | app-private data folder (see note) |
+| iOS | app-private data folder (see note) |
 
 What each core looks for (the Systems screen and the player also name
 missing files exactly). Cores are named as the Systems screen shows them,
@@ -101,12 +120,13 @@ with the catalog id in parentheses:
 | Genesis/SMS | BlastProc (`blastproc`) | `bios_MD.bin`, `bios.gg`, `bios_U.sms` / `bios_E.sms` / `bios_J.sms`, Sega CD `bios_CD_U.bin` / `bios_CD_E.bin` / `bios_CD_J.bin` | optional |
 | Arcade/Neo Geo | CoinBox (`coinbox`) | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.2.x |
 
-> **Android note (v0.2.x):** the `system/` folder lives inside the app's
-> private storage, which isn't reachable from normal file managers yet.
-> Desktop is the supported place for BIOS files today; mobile placement is
-> planned. Cores that don't need firmware (GB/GBC, GBA, NES, SNES, Genesis,
-> Atari, DOS, TG-16 cards, PS1 with the built-in OpenBIOS) do not require a
-> firmware file.
+> **Mobile note (v0.2.x):** on Android and iOS the `system/` folder lives in
+> the app's private storage and is not reachable from a normal file manager.
+> On macOS, Windows and Linux it is a folder on disk that you can open
+> directly. Either way the app looks in the same relative location; no target
+> is given a different firmware rule. Cores that don't need firmware (GB/GBC,
+> GBA, NES, SNES, Genesis, Atari, DOS, TG-16 cards, PS1 with the built-in
+> OpenBIOS) do not require a firmware file.
 
 ## Notice
 
@@ -161,6 +181,7 @@ affected by updates.
 | Windows | Delete the extracted folder (optionally `%APPDATA%\ezcore\`) |
 | Linux | Delete the extracted folder (optionally `~/.local/share/ezcore/`) |
 | Android | Settings → Apps → ezCORE → Uninstall |
+| iOS | Remove ezCORE from the home screen; its app-private data goes with it |
 
 ## Support
 
