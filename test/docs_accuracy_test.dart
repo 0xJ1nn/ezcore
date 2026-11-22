@@ -6,6 +6,23 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const String _guidePath = 'docs/CUSTOM-CORES.md';
+const String _matrixPath = 'docs/MATRIX.md';
+
+/// The levels a matrix cell may record, with PLAYS as the top of the ladder.
+const Set<String> _matrixLevels = {
+  'BUILT',
+  'IDENTIFIES',
+  'BOOTS',
+  'RENDERS',
+  'PLAYS',
+};
+
+/// Trimmed, non-empty cells of a Markdown table row.
+List<String> _cells(String line) => line
+    .split('|')
+    .map((cell) => cell.trim())
+    .where((cell) => cell.isNotEmpty)
+    .toList();
 
 /// Every top-level key used by at least one committed manifest.
 Set<String> _realManifestKeys() {
@@ -109,6 +126,71 @@ void main() {
         missing,
         isEmpty,
         reason: 'real manifest fields missing from the guide: $missing',
+      );
+    });
+  });
+
+  group('core matrix accuracy', () {
+    late String matrix;
+    late List<String> lines;
+
+    setUpAll(() {
+      matrix = File(_matrixPath).readAsStringSync();
+      lines = matrix.split('\n');
+    });
+
+    test('every level has one short definition', () {
+      for (final level in _matrixLevels) {
+        final definition =
+            lines.where((line) => line.startsWith('| $level |')).toList();
+        expect(definition, hasLength(1), reason: '$level has one definition');
+        expect(
+          definition.single.length,
+          lessThan(160),
+          reason: '$level definition is one short line',
+        );
+      }
+    });
+
+    test('the page is a reference table, not a work log', () {
+      expect(lines.length, lessThan(150));
+    });
+
+    test('each row has one word per platform and a last verified date', () {
+      final headerAt = lines.indexWhere(
+        (line) => line.startsWith('| Core |') && line.contains('Linux x64'),
+      );
+      expect(headerAt, isNonNegative, reason: 'the core table has a header');
+      final headings = _cells(lines[headerAt]);
+      expect(headings.last, 'Last verified');
+
+      final allowed = <Matcher>[
+        for (final level in _matrixLevels) equals(level),
+        equals('—'),
+        equals('holds'),
+      ];
+      for (final line in lines.skip(headerAt + 2)) {
+        if (!line.startsWith('|')) break;
+        final row = _cells(line);
+        expect(row, hasLength(headings.length), reason: '$row is a full row');
+        for (final cell in row.sublist(1, row.length - 1)) {
+          expect(cell, anyOf(allowed), reason: '${row.first}: $cell is a level');
+        }
+        expect(
+          RegExp(r'^\d{4}-\d{2}-\d{2}$|^—$').hasMatch(row.last),
+          isTrue,
+          reason: '${row.first} records a last verified date',
+        );
+      }
+    });
+
+    test('evidence stays with the maintainers', () {
+      expect(matrix, contains('kept by the maintainers'));
+      expect(matrix, isNot(contains('docs/evidence/')));
+      expect(
+        RegExp(r'\b[a-f0-9]{64}\b').hasMatch(matrix),
+        isFalse,
+        reason: 'no evidence hash in public text',
       );
     });
   });
