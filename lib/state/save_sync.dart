@@ -11,6 +11,14 @@ abstract class SaveSyncProvider {
   Future<Uint8List?> download(String gameId, String slot);
   Future<void> upload(String gameId, String slot, Uint8List bytes);
   Future<void> remove(String gameId, String slot);
+
+  /// The still captured when [slot] was saved, as PNG bytes, or null when the
+  /// provider keeps none. The player draws the striped placeholder then.
+  Future<Uint8List?> thumbnail(String gameId, String slot) async => null;
+
+  /// Stores [png] beside [slot]. Providers that keep no stills accept and
+  /// ignore it, so a save never depends on the picture.
+  Future<void> putThumbnail(String gameId, String slot, Uint8List png) async {}
 }
 
 class SaveSlot {
@@ -26,7 +34,7 @@ class SaveSlot {
 }
 
 /// Ephemeral default: in-memory map. Tests and sessions without storage.
-class MemorySaveSyncProvider implements SaveSyncProvider {
+class MemorySaveSyncProvider extends SaveSyncProvider {
   @override
   String get id => 'memory';
 
@@ -68,7 +76,7 @@ class _Entry {
 
 /// On-disk vault: `<root>/<gameId>/<slot>.bin`. No cloud, no account,
 /// no network — the baseline every future provider must beat.
-class LocalSaveSyncProvider implements SaveSyncProvider {
+class LocalSaveSyncProvider extends SaveSyncProvider {
   LocalSaveSyncProvider(this.root);
   final Directory root;
 
@@ -114,5 +122,30 @@ class LocalSaveSyncProvider implements SaveSyncProvider {
   Future<void> remove(String gameId, String slot) async {
     final file = _file(gameId, slot);
     if (file.existsSync()) await file.delete();
+    final still = _still(gameId, slot);
+    if (still.existsSync()) await still.delete();
+  }
+
+  /// `<root>/<gameId>/<slot>.png`. A different extension on purpose:
+  /// [list] reads every `.bin`, so a still never surfaces as a slot.
+  File _still(String gameId, String slot) =>
+      File('${root.path}/$gameId/$slot.png');
+
+  @override
+  Future<Uint8List?> thumbnail(String gameId, String slot) async {
+    final file = _still(gameId, slot);
+    if (!file.existsSync()) return null;
+    return file.readAsBytes();
+  }
+
+  @override
+  Future<void> putThumbnail(
+    String gameId,
+    String slot,
+    Uint8List png,
+  ) async {
+    final file = _still(gameId, slot);
+    file.parent.createSync(recursive: true);
+    await file.writeAsBytes(png, flush: true);
   }
 }

@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ezcore/controls/control_overlay.dart';
+import 'package:ezcore/emu/core_session_backend.dart';
 import 'package:ezcore/models/cheat.dart';
 import 'package:ezcore/models/game_entry.dart';
 import 'package:ezcore/screens/player_screen.dart';
@@ -14,10 +15,14 @@ import 'package:ezcore/theme/symbols.dart';
 import 'package:ezcore/theme/tokens.dart';
 
 /// A save provider with fixed timestamps, so the snapshot copy is stable.
-class _FixedSaves implements SaveSyncProvider {
+class _FixedSaves extends SaveSyncProvider {
   _FixedSaves(this.slots);
   final Map<String, List<SaveSlot>> slots;
   final Map<String, Map<String, Uint8List>> _bytes = {};
+  final Map<String, Map<String, Uint8List>> thumbnails = {};
+
+  /// When true, storing a still fails the way a read-only vault would.
+  bool rejectStills = false;
 
   @override
   String get id => 'test';
@@ -33,12 +38,49 @@ class _FixedSaves implements SaveSyncProvider {
   @override
   Future<void> upload(String gameId, String slot, Uint8List bytes) async {
     _bytes.putIfAbsent(gameId, () => {})[slot] = bytes;
+    final list = slots.putIfAbsent(gameId, () => []);
+    list.removeWhere((s) => s.id == slot);
+    list.add(SaveSlot(id: slot, modified: DateTime.now(), size: bytes.length));
   }
 
   @override
   Future<void> remove(String gameId, String slot) async {
     _bytes[gameId]?.remove(slot);
+    thumbnails[gameId]?.remove(slot);
   }
+
+  @override
+  Future<Uint8List?> thumbnail(String gameId, String slot) async =>
+      thumbnails[gameId]?[slot];
+
+  @override
+  Future<void> putThumbnail(
+    String gameId,
+    String slot,
+    Uint8List png,
+  ) async {
+    if (rejectStills) throw StateError('still folder is read-only');
+    thumbnails.putIfAbsent(gameId, () => {})[slot] = png;
+  }
+}
+
+/// A session backend that answers a scripted save; the preview never opens
+/// a real core, so only the save path is exercised.
+class _SaveBackend implements CoreSessionBackend {
+  int saves = 0;
+
+  @override
+  Future<Uint8List> save() async {
+    saves++;
+    return Uint8List.fromList([7, 7, 7, 7]);
+  }
+
+  @override
+  Future<void> close() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
 }
 
 AppState _state({SaveSyncProvider? saves}) {
@@ -103,11 +145,14 @@ Future<void> _pumpPlayer(
   Size frameSize = const Size(120, 90),
   bool touch = false,
   String? slot = 'auto',
+  CoreSessionBackend? backend,
+  bool frame = true,
+  Future<Uint8List?> Function(ui.Image? frame)? captureStill,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final frame = await _frame(tester, frameSize);
+  final picture = frame ? await _frame(tester, frameSize) : null;
   await tester.pumpWidget(
     MaterialApp(
       theme: Tokens.theme(),
@@ -116,14 +161,35 @@ Future<void> _pumpPlayer(
         state: state,
         initialSlot: slot,
         preview: PlayerPreview(
-          frame: frame,
+          frame: picture,
           touchControls: touch,
+          backend: backend,
+          captureStill: captureStill,
           sessionMinutes: 38,
         ),
       ),
     ),
   );
   await tester.pump(const Duration(milliseconds: 100));
+}
+
+/// A PNG of a flat [size] field, the shape of a captured still.
+Future<Uint8List> _stillPng(WidgetTester tester, Size size) async {
+  final image = await _frame(tester, size);
+  final data = await tester.runAsync(
+    () => image.toByteData(format: ui.ImageByteFormat.png),
+  );
+  image.dispose();
+  return data!.buffer.asUint8List();
+}
+
+/// Lets a decoded still arrive. The codec's work is real async, so the test
+/// waits outside its fake clock before pumping the rebuild into place.
+Future<void> _settleStills(WidgetTester tester) async {
+  await tester.runAsync(
+    () => Future<void>.delayed(const Duration(milliseconds: 100)),
+  );
+  await tester.pump();
 }
 
 Future<void> _openPause(WidgetTester tester) async {
@@ -507,6 +573,199 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Back to the library?'), findsOneWidget);
     expect(find.textContaining('takes a snapshot'), findsOneWidget);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('a still paints on its card; a slot without one keeps stripes', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final saves = _FixedSaves({
+      'lanterns': [
+        SaveSlot(id: 'auto', modified: now, size: 8),
+        SaveSlot(id: 'slot0', modified: now, size: 8),
+      ],
+    });
+    saves.thumbnails['lanterns'] = {
+      'auto': await _stillPng(tester, const Size(120, 90)),
+    };
+    final state = _state(saves: saves);
+    await _pumpPlayer(tester, state: state);
+    await _settleStills(tester);
+    await _openPause(tester);
+
+    expect(find.byKey(const ValueKey('snapshot-still-auto')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('snapshot-placeholder-auto')),
+      findsNothing,
+    );
+    // The slot with no captured still is the design's placeholder.
+    expect(
+      find.byKey(const ValueKey('snapshot-placeholder-slot0')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('snapshot-still-slot0')), findsNothing);
+    final still = tester.widget<RawImage>(
+      find.byKey(const ValueKey('snapshot-still-auto')),
+    );
+    expect(still.fit, BoxFit.cover);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('saving a snapshot stores a still for both slots it writes', (
+    tester,
+  ) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]});
+    final backend = _SaveBackend();
+    final state = _state(saves: saves);
+    await _pumpPlayer(tester, state: state, backend: backend);
+    await _openPause(tester);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(backend.saves, 2);
+    final stills = saves.thumbnails['lanterns'] ?? const {};
+    expect(stills.keys, contains('slot0'));
+    expect(stills.keys.where((id) => id.startsWith('slot-')), hasLength(1));
+    // The bytes are a PNG, not the state's own payload.
+    expect(stills['slot0']!.sublist(0, 8), [137, 80, 78, 71, 13, 10, 26, 10]);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('a save with no picture still writes both snapshots', (
+    tester,
+  ) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]});
+    final state = _state(saves: saves);
+    await _pumpPlayer(
+      tester,
+      state: state,
+      backend: _SaveBackend(),
+      frame: false,
+    );
+    await _openPause(tester);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final ids = (await saves.list('lanterns')).map((s) => s.id).toSet();
+    expect(ids, contains('slot0'));
+    expect(ids.where((id) => id.startsWith('slot-')), hasLength(1));
+    expect(saves.thumbnails, isEmpty);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('a save whose still cannot be stored keeps the snapshot', (
+    tester,
+  ) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]})
+      ..rejectStills = true;
+    final state = _state(saves: saves);
+    await _pumpPlayer(tester, state: state, backend: _SaveBackend());
+    await _openPause(tester);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final ids = (await saves.list('lanterns')).map((s) => s.id).toSet();
+    expect(ids, contains('slot0'));
+    expect(ids.where((id) => id.startsWith('slot-')), hasLength(1));
+    expect(find.text('Snapshot saved'), findsOneWidget);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('a capture that throws still saves both snapshots', (
+    tester,
+  ) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]});
+    final state = _state(saves: saves);
+    await _pumpPlayer(
+      tester,
+      state: state,
+      backend: _SaveBackend(),
+      captureStill: (_) async => throw StateError('encoder is busy'),
+    );
+    await _openPause(tester);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final ids = (await saves.list('lanterns')).map((s) => s.id).toSet();
+    expect(ids, contains('slot0'));
+    expect(ids.where((id) => id.startsWith('slot-')), hasLength(1));
+    expect(saves.thumbnails, isEmpty);
+    expect(find.text('Snapshot saved'), findsOneWidget);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('a save flashes the frame white, then clears it', (tester) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]});
+    final state = _state(saves: saves);
+    await _pumpPlayer(tester, state: state, backend: _SaveBackend());
+    await _openPause(tester);
+    expect(find.byKey(const Key('player-flash')), findsNothing);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    final flash = tester.widget<ColoredBox>(
+      find.byKey(const Key('player-flash')),
+    );
+    // A white shutter over the picture.
+    expect(flash.color.r, 1);
+    expect(flash.color.g, 1);
+    expect(flash.color.b, 1);
+    expect(flash.color.a, greaterThan(0.2));
+
+    // The flash clears on its own timer, so the wait is real time.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('player-flash')), findsNothing);
+    await _dispose(tester, state);
+  });
+
+  testWidgets('reduced motion holds the flash at 40% and drops the fade', (
+    tester,
+  ) async {
+    final saves = _FixedSaves({'lanterns': <SaveSlot>[]});
+    final state = _state(saves: saves);
+    await state.setSetting('motion', false);
+    await _pumpPlayer(tester, state: state, backend: _SaveBackend());
+    await _openPause(tester);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('pause-row-save')));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    final flash = tester.widget<ColoredBox>(
+      find.byKey(const Key('player-flash')),
+    );
+    expect(flash.color.a, closeTo(0.4, 0.001));
     await _dispose(tester, state);
   });
 }
