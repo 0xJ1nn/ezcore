@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';

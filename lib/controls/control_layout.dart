@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'dart:ui' show Rect;
 
 /// On-screen controls as data (format `ezcore.controls/1`, controls as data).

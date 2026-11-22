@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Render-time checks for the numbers the phone and desktop plates measure.
 // Each assertion reads a value back from a pumped widget or a public token so
 // a drifted chrome number fails where it is painted, not in a design note.

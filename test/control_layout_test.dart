@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // On-screen controls as data (ezcore.controls/1). The format is the contract
 // a core package will ship against, so it is validated strictly; the
 // built-in layouts are held to the same rules plus geometry a player can

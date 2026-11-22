@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The phone layout editor is an in-place board: a banner over the game,
 // dashed outlines on unselected controls, and a selected group with a scale
 // label and resize handles. These tests drive that board, not a side panel.

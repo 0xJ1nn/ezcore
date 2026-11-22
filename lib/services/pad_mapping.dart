@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import '../controls/control_layout.dart' show retroPadInputs, retroPadId;
 import '../state/app_state.dart';
 

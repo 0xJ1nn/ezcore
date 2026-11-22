@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_core_boot.c — boot a core, run frames, save/restore state, verify.
  *
  * Usage: ./test_core_boot <core_path> <rom_path>

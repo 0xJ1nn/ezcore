@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_crash_signal.c — automated proof of the P6 exit-code contract.
  *
  * `crash_libretro` (runtime/test/crash_core.c) is a core that faults on

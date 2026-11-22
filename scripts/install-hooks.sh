@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Point git at the repo's tracked hooks (.githooks/).
 # pre-commit: banned-content scan + license audit (when present).
 set -euo pipefail

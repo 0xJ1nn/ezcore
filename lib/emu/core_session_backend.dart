@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'dart:typed_data';
 
 /// What the player needs from whatever runs a core session.

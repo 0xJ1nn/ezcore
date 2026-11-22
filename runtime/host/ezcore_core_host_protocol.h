@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezcore_core_host_protocol.h — the wire contract between ezCORE and
  * ezcore_core_host, the helper process that runs one core session (P6,
  * crash containment).

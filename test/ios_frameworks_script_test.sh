@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Exercises scripts/ios_frameworks.sh logic on a non-macOS host by stubbing the
 # Apple tools it shells out to (xcrun, lipo, install_name_tool, otool, plutil).
 #

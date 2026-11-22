@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Proves the GPU context seam works, or reports honestly why it cannot.
  *
  * This is the test that makes the GPU render-context design verifiable rather than aspirational. It

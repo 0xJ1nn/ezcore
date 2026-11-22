@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 """Regression: frame evidence from test_core_boot must actually be reproducible.
 
 Earlier evidence runs recorded `reproducible` by comparing two EXIT CODES and

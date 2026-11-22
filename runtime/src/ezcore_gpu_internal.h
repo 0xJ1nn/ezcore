@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Private layout shared by the GPU backends and the dispatcher.
  *
  * Why this exists: ezcore_gpu.c must decide whether a context belongs to the

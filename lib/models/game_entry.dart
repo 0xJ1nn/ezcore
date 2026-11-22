@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /// A user-supplied game entry. The app never ships ROMs — every entry
 /// references a file the user imported themselves (or a bundled
 /// public-domain homebrew sample used as a test fixture).

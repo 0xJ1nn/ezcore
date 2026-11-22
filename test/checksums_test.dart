@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Runs scripts/tests/test_checksums.py as part of `flutter test`, and pins the
 // repository-side decision that test suite protects.
 //

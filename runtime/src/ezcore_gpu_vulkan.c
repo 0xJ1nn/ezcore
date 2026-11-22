@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Vulkan render context (the GPU render-context design).
  *
  * Why this is its own file rather than a branch in the EGL backend: Vulkan has

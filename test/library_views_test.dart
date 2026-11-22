@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The library's three views (3D, Grid, List): the 3D shelf opens on the game
 // played last and carries one action; the switch is remembered; keyboard and
 // controller browse the shelf.

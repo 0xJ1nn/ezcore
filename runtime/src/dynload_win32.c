@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Windows dynamic loading (.dll via LoadLibraryA). */
 #include "dynload.h"
 

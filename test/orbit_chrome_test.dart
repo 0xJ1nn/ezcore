@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The OS bar's status corner shows only what is true: the time, and P1 only
 // while a controller is connected.
 import 'package:ezcore/theme/tokens.dart';

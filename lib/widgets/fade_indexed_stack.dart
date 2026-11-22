@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:flutter/material.dart';
 
 /// An [IndexedStack] that fades the new page in when [index] changes, so

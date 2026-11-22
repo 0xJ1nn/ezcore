@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* probe3: probe2 + the bridge's exact callback set. Bisects the mGBA
  * segfault down to a specific callback or setter call. */
 #include <dlfcn.h>

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* POSIX dynamic loading (Linux, macOS, Android, iOS simulator/device). */
 #include "dynload.h"
 

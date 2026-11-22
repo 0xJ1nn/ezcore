@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'control_layout.dart';
 
 /// The layouts ezCORE ships, one portrait and one landscape per family of

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // The game page: play or resume, saves with readable names, core choice,
 // favourite and remove. And visible keyboard/controller focus on tiles.
 import 'dart:convert';

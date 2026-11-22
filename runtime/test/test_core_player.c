@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_core_player.c — exercises the runtime's player capabilities.
  *
  * Uses the synthetic libretro core (deterministic, no copyrighted content).

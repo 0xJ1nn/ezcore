@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // A core's manifest may declare recommended starting values for its own
 // options (`default_options`). They are data — validated strings, never
 // code — and they sit at the bottom of the precedence order: the user's

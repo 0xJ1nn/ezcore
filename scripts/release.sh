@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 # Assembles a shippable ezCORE release for one platform.
 # Usage: scripts/release.sh <macos|windows|linux|android|ios> [--out dist/]
 # Env:   EZCORE_VERSION (default: pubspec version),

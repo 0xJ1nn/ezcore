@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_hw_readback.c — a GPU-rendered frame reaches the host (P8).
  *
  * A core that renders with OpenGL signals a finished frame by passing

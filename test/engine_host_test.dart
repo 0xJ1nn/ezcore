@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Tier-2 proof: a NON-libretro engine behind the SAME wire protocol, launched
 // and driven by the existing ProcessSessionBackend. The engine is selected by
 // data (--engine=synthetic); no protocol op, no Dart client code changes.

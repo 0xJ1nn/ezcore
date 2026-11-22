@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Locks the Orbit token contract: colours, radii, type roles, motion,
 // elevation and button states. Screens may change; these values may not
 // drift without updating the design spec and this test.

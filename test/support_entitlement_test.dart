@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 import 'package:ezcore/support/diamond_tokens.dart';
 import 'package:ezcore/support/entitlement.dart';
 import 'package:ezcore/support/purchase_store.dart';

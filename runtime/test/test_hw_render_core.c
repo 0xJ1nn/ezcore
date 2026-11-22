@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* Proves a CORE can negotiate and use a GPU context, which is the only thing
  * that distinguishes "a context exists" from "P8 works".
  *

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* ezcore_engine_libretro.c — the default backend: the existing libretro
  * runtime behind the generic ezh_engine_vtable. Behaviour is the unchanged
  * ezcore_core_host behaviour; this file only re-points each op at the table.

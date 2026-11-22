@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 /* test_loadgame_input.c — regression test for the stuck-input bug at the
  * game boundary.
  *

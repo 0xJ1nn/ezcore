@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
+
 // Renders the Diamond frames to PNG for the design pixel review. Output goes
 // to EZCORE_CAPTURE_DIR (set by the capture run) or a temp folder; no capture
 // artefacts are written into the app repository.
