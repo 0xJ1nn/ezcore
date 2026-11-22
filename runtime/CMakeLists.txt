@@ -479,3 +479,24 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ps2/lwx-ps2-guncon-range.elf"
     "${EZCORE_CORES_ROOT}/dualvu/dualvu_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
     "${CMAKE_SOURCE_DIR}/../native/test-roms/ps2/lwx-ps2-guncon-range.elf")
 endif()
+
+# Evidence gate (2026-11-22): a boot is only claimable twice when the FRAME is
+# reproduced, not just the exit code. Earlier evidence runs compared exit codes
+# and never captured the second frame, so a renderer that paints a different
+# picture every boot still counted as reproducible. This test enforces the
+# stronger contract on the harness:
+# two runs must print the same frame SHA-256, that hash must equal SHA-256 over
+# the stored PPM's RGB bytes, and an unwritable capture destination must be
+# exit 7 (a loud evidence failure, never a silent skip). Fixture-gated exactly
+# like boot_nesbyte so a fresh clone skips it rather than failing.
+if(PYTHON3_EXECUTABLE AND
+   EXISTS "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes" AND
+   EXISTS "${EZCORE_CORES_ROOT}/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  add_test(NAME frame_hash_reproducible
+    COMMAND ${PYTHON3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_frame_reproducibility.py
+            $<TARGET_FILE:test_core_boot>
+            "${EZCORE_CORES_ROOT}/nesbyte/nesbyte_libretro${CMAKE_SHARED_LIBRARY_SUFFIX}"
+            "${CMAKE_SOURCE_DIR}/../native/test-roms/ezcore_nes_minimal.nes"
+            ${CMAKE_CURRENT_BINARY_DIR}/frame-evidence)
+endif()
