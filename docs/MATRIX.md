@@ -219,7 +219,13 @@ levels previously claimed more than the harness asserts):
 | Linux | ✅ (`flutter create`) | CI | ALSA/FFI (code, unverified) | evdev (code, unverified) | Flutter shell CI-built, not run on a desktop here; the native boot harness does run on Linux x64 (see the core matrix above) |
 | Windows | ✅ (renamed binary) | CI | waveOut/FFI (code, unverified) | XInput/FFI (code, unverified) | `dynload_win32.c` compiles on CI |
 | Android | ✅ | ✅ debug APK | AudioTrack ✅ (code) | KeyEvent ✅ (code) | Needs device run; cores verified ELF+symbols |
-| iOS | ✅ (15.0 floor) | release build w/ 15.0 pods fix (verifying) | AVAudioEngine ✅ (code) | GCController ✅ (code) | No sim/device here; cores verified Mach-O+symbols |
+| iOS | ✅ (15.0 floor) | CI build; unsigned compile check only, no signed release artifact | AVAudioEngine ✅ (code) | GCController ✅ (code) | No sim/device here; cores verified Mach-O+symbols, no current `ios-arm64` pins |
+
+All five targets — iOS, Android, macOS arm64, Linux x64 and Windows x64 — are
+required for a release. No row above waives one: macOS end-to-end runs,
+Linux and Windows audio and gamepad runs, Android and iOS device runs, and a
+signed iOS release remain outstanding. A result in one cell proves that target
+alone.
 
 ## Xcode 27 notes (paid forward)
 
