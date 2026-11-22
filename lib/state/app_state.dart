@@ -86,6 +86,7 @@ class AppState extends ChangeNotifier {
       persistence: persistence,
       saves: saves,
       backupFolder: backupFolder,
+      coreDirProvider: resolved,
     );
   }
 
@@ -95,12 +96,14 @@ class AppState extends ChangeNotifier {
   factory AppState.ephemeral({
     Future<Directory> Function()? documentsProvider,
     BackupFolderService? backupFolder,
+    LocalDataDirProvider? coreDirProvider,
   }) {
     return AppState.internal(
       persistence: null,
       saves: MemorySaveSyncProvider(),
       documentsProvider: documentsProvider,
       backupFolder: backupFolder,
+      coreDirProvider: coreDirProvider,
     );
   }
 
@@ -113,13 +116,20 @@ class AppState extends ChangeNotifier {
     this.documentsProvider,
     BackupFolderService? backupFolder,
     CoreDownloader? downloader,
-  }) : _downloader =
-           downloader ?? CoreDownloader(dirs: PlatformLocalDataDirProvider()),
+    LocalDataDirProvider? coreDirProvider,
+  }) : _downloader = downloader ??
+            CoreDownloader(
+              dirs: coreDirProvider ?? PlatformLocalDataDirProvider(),
+            ),
+       // Null in ephemeral tests: cleanup never touches the developer's
+       // real application-support directory unless a provider was supplied.
+       _coreDirProvider = coreDirProvider,
        backupFolder = backupFolder ?? BackupFolderService.disabled(),
        _baseSaves = saves,
        _saves = saves;
 
   final CoreDownloader _downloader;
+  final LocalDataDirProvider? _coreDirProvider;
 
   /// Base directory for the managed "ezCORE ROMs" folder. Null in
   /// production: the platform Documents directory is resolved lazily at
@@ -403,9 +413,35 @@ class AppState extends ChangeNotifier {
   /// told about verified bytes.
   Future<void> addCore(CoreManifest m) async {
     final key = CorePathResolver.currentPlatformKey();
+    // Never register a core with a pin from a different platform: the pin
+    // describes bytes that cannot exist here, so the install could never be
+    // played. The Core Manager hides the button; this is the last gate.
+    final pin = m.artifacts[key];
+    if (pin == null) {
+      throw CoreDownloadException(
+        CoreDownloadFailure.noAssetForPlatform,
+        'No verified ${m.name} build exists for this device.',
+      );
+    }
+    final provider = _coreDirProvider;
+    if (!needsDownload(m) && provider != null) {
+      // A bundled core removed earlier has no vault copy left. Re-stage its
+      // verified bytes from the app bundle before marking it installed again,
+      // or the next launch would fail to find a core.
+      final resolver = CorePathResolver(provider, const PlatformHashVerifier());
+      if (await resolver.resolve(m) == null) {
+        await CoreStagingService(dirs: provider).ensureStaged(catalog: [m]);
+        if (await resolver.resolve(m) == null) {
+          throw CoreDownloadException(
+            CoreDownloadFailure.noAssetForPlatform,
+            'No verified ${m.name} build exists for this device.',
+          );
+        }
+      }
+    }
     if (needsDownload(m)) {
       final resolver = CorePathResolver(
-        PlatformLocalDataDirProvider(),
+        provider ?? PlatformLocalDataDirProvider(),
         const PlatformHashVerifier(),
       );
       if (await resolver.resolve(m) == null) {
@@ -426,13 +462,36 @@ class AppState extends ChangeNotifier {
         return; // verified + installed inside the downloader
       }
     }
-    registry.install(
-      m,
-      expectedSha256:
-          m.artifacts[key] ??
-          m.artifacts.values.firstOrNull ??
-          'dev-unverified',
-    );
+    registry.install(m, expectedSha256: pin);
+  }
+
+  /// Uninstalls a core completely: verified artifact, pin sidecar, any
+  /// half-downloaded part, and the registry's install/pin state. Games are
+  /// kept; those that used this core move to another installed core that can
+  /// open them, or are left unassigned so launch shows a clear message.
+  ///
+  /// File cleanup is skipped for ephemeral states with no directory provider
+  /// so tests never touch a developer's real application-support directory.
+  Future<void> removeCore(CoreManifest m) async {
+    final provider = _coreDirProvider;
+    if (provider != null) {
+      final dir = await provider.localDataDir();
+      final coreDir = Directory('${dir.path}/cores/${m.id}');
+      try {
+        if (coreDir.existsSync()) {
+          await coreDir.delete(recursive: true);
+        }
+      } catch (_) {
+        // A locked file must not leave the app in a worse state: the
+        // registry is still updated below, and discovery never sees the core.
+      }
+    }
+    registry.remove(m.id);
+    for (final game in games.where((g) => g.coreId == m.id).toList()) {
+      final replacement = registry.compatibleCores(game.extension).firstOrNull;
+      setCore(game.id, replacement?.id ?? '');
+    }
+    notifyListeners();
   }
 
   /// Persists current state; await before reporting a durable UI operation.

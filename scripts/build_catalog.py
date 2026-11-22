@@ -175,6 +175,43 @@ def build_release(catalog: dict) -> dict:
                     "download, verify and discard it"
                 )
             assets.setdefault(plat, {})[cid] = name
+    # The catalog and the release map must agree, or the app offers an
+    # install that can only ever fail. Three impossible states are refused
+    # here rather than shipped to a device:
+    #   * a core whose delivery is absent everywhere but that still has pins;
+    #   * a download-delivery pin with no asset on the release host;
+    #   * a download-delivery core that no platform can fetch at all.
+    download_cores: set[str] = set()
+    for cid, m in sorted(catalog.items()):
+        if m.get("blocked_reason"):
+            continue
+        delivery = m.get("delivery", {})
+        if not any(v in ("bundled", "download") for v in delivery.values()):
+            if m.get("artifacts"):
+                fail(
+                    f"{cid}: every platform says absent, so pins for "
+                    f"{sorted(m['artifacts'])} can never be installed"
+                )
+            continue
+        if any(v == "download" for v in delivery.values()):
+            download_cores.add(cid)
+        for plat, pin in sorted((m.get("artifacts") or {}).items()):
+            if not pin or delivery.get(plat.split("-")[0]) != "download":
+                continue
+            name = f"{cid}_libretro-{plat}.{asset_ext(plat)}"
+            if name not in published:
+                fail(
+                    f"{cid}: {plat} has pin {pin[:12]} but the {tag} release "
+                    f"serves no {name}; remove the pin or publish the asset"
+                )
+    offered = {cid for group in assets.values() for cid in group}
+    unreachable = sorted(download_cores - offered)
+    if unreachable:
+        fail(
+            f"no platform can download {', '.join(unreachable)}; "
+            "change delivery to bundled/absent or publish their assets"
+        )
+
     ordered_assets = {k: dict(sorted(v.items())) for k, v in sorted(assets.items())}
     return {
         "repo": REPO,

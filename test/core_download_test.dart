@@ -261,7 +261,7 @@ void main() {
       );
     });
 
-    test('iOS never downloads (App Review 2.5.2/4.7)', () async {
+    test('iOS never downloads and says so in plain words', () async {
       final pin = await pinOf(utf8.encode('x'));
       final dl = CoreDownloader(
         dirs: dirs,
@@ -276,11 +276,11 @@ void main() {
           platformKey: 'linux-x64',
           registry: CoreRegistry(),
         ),
-        throwsA(isA<StateError>().having(
-          (e) => e.message,
-          'message',
-          contains('iOS never downloads'),
-        )),
+        throwsA(isA<CoreDownloadException>()
+            .having((e) => e.failure, 'failure',
+                CoreDownloadFailure.notSupportedOnDevice)
+            .having((e) => e.message, 'message',
+                CoreDownloadFailure.notSupportedOnDevice.sentence)),
       );
     });
   });
