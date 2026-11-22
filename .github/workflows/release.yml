@@ -43,10 +43,16 @@ jobs:
       APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      # The pin in toolchain.json drives every leg of this workflow.
+      - name: toolchain pin
+        id: pin
+        run: |
+          python3 scripts/toolchain_pin.py check
+          echo "flutter=$(python3 scripts/toolchain_pin.py get flutter)" >> "$GITHUB_OUTPUT"
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: ${{ steps.pin.outputs.flutter }}
       - name: Build
         run: |
           set -euo pipefail
@@ -111,10 +117,16 @@ jobs:
       TAG: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+      # The pin in toolchain.json drives every leg of this workflow.
+      - name: toolchain pin
+        id: pin
+        run: |
+          python scripts/toolchain_pin.py check
+          "flutter=$(python scripts/toolchain_pin.py get flutter)" >> $env:GITHUB_OUTPUT
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: ${{ steps.pin.outputs.flutter }}
       - name: Build
         run: |
           flutter pub get
@@ -152,6 +164,12 @@ jobs:
       TAG: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+      # The pin in toolchain.json drives every leg of this workflow.
+      - name: toolchain pin
+        id: pin
+        run: |
+          python3 scripts/toolchain_pin.py check
+          echo "flutter=$(python3 scripts/toolchain_pin.py get flutter)" >> "$GITHUB_OUTPUT"
       - name: Dependencies
         run: |
           sudo apt-get update
@@ -160,7 +178,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: ${{ steps.pin.outputs.flutter }}
       - name: Build
         run: |
           set -euo pipefail
@@ -224,6 +242,9 @@ jobs:
       TAG: ${{ github.event.inputs.version || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+      # The pin in toolchain.json drives every leg of this workflow.
+      - name: toolchain pin
+        run: python3 scripts/toolchain_pin.py check
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:

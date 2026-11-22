@@ -4,6 +4,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// toolchain.json is the single toolchain pin. Read the NDK from it directly so
+// a Flutter SDK update cannot change the compiler behind an Android build.
+val pinFile = File(rootProject.projectDir.parentFile, "toolchain.json")
+val pinnedNdk = Regex("\"ndk\"\\s*:\\s*\"([^\"]+)\"")
+    .find(pinFile.readText())
+    ?.groupValues
+    ?.get(1)
+    ?: error("$pinFile does not pin an NDK version")
+require(flutter.ndkVersion == pinnedNdk) {
+    "Flutter NDK ${flutter.ndkVersion} differs from the pinned NDK $pinnedNdk in $pinFile"
+}
+
 // Signing values may come from the environment or from a Gradle property of
 // the same name (for example in ~/.gradle/gradle.properties). Never print
 // them: they are secrets.
@@ -13,7 +25,7 @@ fun signingValue(name: String): String? =
 android {
     namespace = "com.ezcore.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = pinnedNdk
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

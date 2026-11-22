@@ -164,6 +164,7 @@ All notable changes to ezCORE are documented here. The format follows
   not wired yet; iOS cannot support it (Apple forbids helper processes).
 ### Changed
 
+- The Android NDK, Flutter, Dart and host compiler versions are now pinned in one place for every build, so CI and local cores are compiled with the same toolchain. [ios, android, macos, linux, windows]
 - **One app name on macOS and Windows.** The macOS and Windows build settings, the packaged app paths and the macOS install instructions now use ezCORE. Evidence: `flutter analyze` reported no issues and the full `flutter test` suite passed (1131 passed, 66 skipped).
 - **Player and pause screens match the design.** The pause menu uses plain snapshot
   labels on phones and the controls icon for its Controls action, the game preview

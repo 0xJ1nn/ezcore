@@ -22,11 +22,11 @@ Install per-platform toolchains (see `docs/BUILDING.md` for full instructions):
 
 | Platform | Essentials |
 |---|---|
-| macOS | Xcode 26+, Homebrew, then `scripts/prereqs.sh` |
+| macOS | Xcode version in `toolchain.json`, Homebrew, then `scripts/prereqs.sh` |
 | Linux | `cmake ninja-build pkg-config libpng-dev libgtk-3-dev clang git curl unzip` + Flutter |
 | Windows | MSYS2 (UCRT64) + Flutter |
-| Android | Android Studio / command-line tools + NDK r27c (`ANDROID_NDK_HOME`) |
-| iOS | macOS + Xcode 15+ + CocoaPods |
+| Android | Android Studio / command-line tools + the NDK in `toolchain.json` (`ANDROID_NDK_HOME`) |
+| iOS | macOS + Xcode version in `toolchain.json` + CocoaPods |
 
 ### 1.2 Fetch headers (once)
 

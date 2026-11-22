@@ -1,4 +1,4 @@
-# Android arm64 (arm64-v8a) core assets, built with NDK 28.2.13676358 at API 21.
+# Android arm64 (arm64-v8a) core assets, built with the NDK pinned in toolchain.json at API 21.
 # Built on Linux x86_64 from origin/main; NOT published yet. These bytes are not
 # attached to any release and must not be offered as on-demand downloads until a
 # maintainer publishes the assets and updates release.json/catalog.json.
