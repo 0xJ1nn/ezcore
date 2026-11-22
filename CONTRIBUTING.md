@@ -80,10 +80,22 @@ worked example of how a licensing problem is recorded honestly.
 
 ## Normal rules
 
+ezCORE and every core are multiplatform. Every contribution states which of
+the five release targets it affects: iOS, Android, macOS (arm64), Linux (x64)
+and Windows (x64). A production build is not production until all five compile
+and pass their platform gates. Prefer one shared implementation across all
+five; use platform-specific files or folders only where the OS requires
+different APIs, and keep user-visible behaviour identical — core availability,
+BIOS placement, save location and the Add-games flow must not diverge. Evidence
+is per platform: booting on one target proves that target alone. A target that
+cannot be exercised here is a blocker to report, not one to mark done or drop
+from scope.
+
 - New code ships with a failing-first test (`flutter test` / `ctest`).
 - `flutter analyze` must report no issues.
 - Core version bumps must update `cores/<id>/manifest.json` + SHA pin and
-  pass a homebrew boot test on at least one platform.
+  pass a homebrew boot test on all five release targets, with separate boot
+  evidence for each.
 - Sign off commits (DCO): `git commit -s`.
 
 ## Licensing of contributions
