@@ -86,19 +86,20 @@ yourself. Place them in the app's **`system/`** folder:
 | Android | app-private data folder (not user-accessible in v0.2.x — see note) |
 
 What each core looks for (the Systems screen and the player also name
-missing files exactly):
+missing files exactly). Cores are named as the Systems screen shows them,
+with the catalog id in parentheses:
 
 | System | Core | Files | Required? |
 |---|---|---|---|
-| PC Engine CD | `beetle_pce` | `syscard3.pce` | CD titles only |
-| Saturn | `beetle_saturn` | `sega_101.bin`, `mpr-17933.bin` | required (boot gate) |
-| PlayStation | `swanstation` | `scph5500.bin` / `scph5501.bin` / `scph5502.bin` | optional — OpenBIOS fallback built in |
-| Dreamcast | `flycast` | `dc_boot.bin`, `dc_flash.bin` | required (boot gate) |
-| DS | `melonds` | `bios7.bin`, `bios9.bin`, `firmware.bin` | required (boot gate) |
-| GameCube/Wii | `dolphin` | `IPL.bin` | optional (HLE default) |
-| NES (FDS) | `mesen` | `disksys.rom` | FDS titles only, optional |
-| Genesis/SMS | `genesis_plus_gx` | `bios_MD.bin`, `bios_SMS.bin` | optional |
-| Arcade/Neo Geo | `fbneo` | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.2.x |
+| PC Engine CD | CardCon (`cardcon`) | `syscard3.pce` | CD titles only |
+| Saturn | TwinSH (`twinsh`) | `sega_101.bin`, `mpr-17933.bin` | required (boot gate) |
+| PlayStation | Geometry1 (`geometry1`) | `scph5500.bin` / `scph5501.bin` / `scph5502.bin` | optional — OpenBIOS fallback built in |
+| Dreamcast | DreamArc (`dreamarc`) | `dc_boot.bin`, `dc_flash.bin` | required (boot gate) |
+| DS | DualScreen (`dualscreen`) | `bios7.bin`, `bios9.bin`, `firmware.bin` | optional — FreeBIOS fallback built in |
+| GameCube/Wii | PowerCube (`powercube`) | `IPL.bin` | optional (HLE default) |
+| NES (FDS) | NesByte (`nesbyte`) | `disksys.rom` | FDS titles only, optional |
+| Genesis/SMS | BlastProc (`blastproc`) | `bios_MD.bin`, `bios.gg`, `bios_U.sms` / `bios_E.sms` / `bios_J.sms`, Sega CD `bios_CD_U.bin` / `bios_CD_E.bin` / `bios_CD_J.bin` | optional |
+| Arcade/Neo Geo | CoinBox (`coinbox`) | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.2.x |
 
 > **Android note (v0.2.x):** the `system/` folder lives inside the app's
 > private storage, which isn't reachable from normal file managers yet.
