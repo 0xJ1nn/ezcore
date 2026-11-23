@@ -36,6 +36,7 @@ endif()
 
 add_library(ezcore_runtime SHARED
   src/runtime.c
+  src/ezcore_audio.c
   src/ezcore_gpu.c
   src/ezcore_gpu_vulkan.c
   ${EZCORE_GPU_BACKEND}
@@ -45,6 +46,16 @@ target_include_directories(ezcore_runtime PUBLIC
   include
   external/libretro-common/include
 )
+# miniaudio's implementation lives in ezcore_audio.c alone; only that file
+# sees the single-header library. Threads and dl are needed by its backends
+# on POSIX; MSVC ignores dl and uses its own threading primitives.
+target_include_directories(ezcore_runtime PRIVATE external/miniaudio)
+find_package(Threads REQUIRED)
+if(MSVC)
+  target_link_libraries(ezcore_runtime PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+else()
+  target_link_libraries(ezcore_runtime PRIVATE Threads::Threads ${CMAKE_DL_LIBS} m)
+endif()
 if(APPLE)
   set_target_properties(ezcore_runtime PROPERTIES SUFFIX ".dylib")
 endif()
@@ -317,6 +328,15 @@ add_test(NAME gpu_context COMMAND test_gpu_context)
 add_test(NAME core_player
   COMMAND test_core_player
   ${CMAKE_BINARY_DIR}/libsynth_libretro${CMAKE_SHARED_LIBRARY_SUFFIX})
+
+# Native audio: the synthetic core feeds the lock-free ring through the real
+# libretro audio callbacks; miniaudio's null backend consumes it at 48 kHz.
+add_executable(test_native_audio test/test_native_audio.c)
+target_link_libraries(test_native_audio PRIVATE ezcore_runtime m)
+target_include_directories(test_native_audio PRIVATE include)
+add_dependencies(test_native_audio synth_libretro)
+add_test(NAME native_audio
+  COMMAND test_native_audio $<TARGET_FILE:synth_libretro>)
 
 # Core-options & capability surface test (uses synth_options_libretro)
 add_executable(test_core_options test/test_core_options.c)

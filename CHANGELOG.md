@@ -9,6 +9,7 @@ All notable changes to ezCORE are documented here. The format follows
 ### Added
 
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
+- Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
 
 ### Release process
 

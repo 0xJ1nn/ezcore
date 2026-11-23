@@ -53,6 +53,21 @@ char err[256];
 
 All functions that can fail take an error buffer. On failure, the buffer is filled with a human-readable error message. On success, the buffer is unchanged.
 
+### Native Audio
+
+```c
+typedef struct ezcore_audio ezcore_audio;
+```
+
+An opaque handle to the process-wide playback device. Created by
+`ezcore_audio_open`, destroyed by `ezcore_audio_close`.
+
+`ezcore_audio_config` carries the core and device sample rates, channel count,
+ring capacity, initial gain and mute state, and the backend choice.
+`ezcore_audio_statistics` carries the frame counters, ring fill, resample ratio
+and device state. `ezcore_audio_backend` is either `EZCORE_AUDIO_BACKEND_AUTO` for
+the platform device or `EZCORE_AUDIO_BACKEND_NULL` for the test device.
+
 ---
 
 ## Functions
@@ -469,6 +484,90 @@ Returns the number of audio frames currently queued in the ring buffer.
 
 **Thread safety:** Not thread-safe. Reads the ring's fill level without
 synchronisation.
+
+---
+
+### Native audio device
+
+The device is process-wide and shared by the active session. Opening it
+attaches a lock-free ring to the libretro audio callbacks; a resampler and
+dynamic rate control run on the device thread. The same implementation drives
+every release target: miniaudio selects AAudio/OpenSL on Android, Core Audio
+on iOS and macOS, WASAPI on Windows, and ALSA, PulseAudio or PipeWire on Linux.
+`EZCORE_AUDIO_BACKEND_NULL` selects a silent device that runs at the requested
+sample rate for deterministic tests.
+
+#### `ezcore_audio_open`
+
+```c
+ezcore_audio *ezcore_audio_open(const ezcore_audio_config *config, char *err,
+                                size_t err_len);
+```
+
+Opens and starts the playback device. `config` supplies the core and device
+sample rates, channel count (two), ring capacity, initial volume, mute state
+and backend. On failure `err` receives a human-readable reason.
+
+**Returns:** An opaque device handle, or `NULL` on failure.
+
+**Thread safety:** Call from the emulation thread before frames run.
+
+---
+
+#### `ezcore_audio_close`
+
+```c
+void ezcore_audio_close(ezcore_audio *audio);
+```
+
+Stops the device, detaches it from the libretro audio callbacks and frees its
+buffers. Passing `NULL` is a no-op.
+
+**Thread safety:** Call from the emulation thread after the core stops
+producing audio.
+
+---
+
+#### `ezcore_audio_set_volume`
+
+```c
+void ezcore_audio_set_volume(ezcore_audio *audio, float volume);
+```
+
+Sets a linear gain in the range 0 to 1; values outside the range are clamped.
+The change reaches the next device callback.
+
+**Thread safety:** Safe to call while the device is running.
+
+---
+
+#### `ezcore_audio_set_muted`
+
+```c
+void ezcore_audio_set_muted(ezcore_audio *audio, bool muted);
+```
+
+Mutes or unmutes playback. Muted callbacks still consume core audio and keep
+the device clock running.
+
+**Thread safety:** Safe to call while the device is running.
+
+---
+
+#### `ezcore_audio_stats`
+
+```c
+bool ezcore_audio_stats(ezcore_audio *audio, ezcore_audio_stats *out);
+```
+
+Copies the device counters into `out`: frames written by the core, frames
+played, underruns, overruns, buffered frames, ring fill fraction, current
+resample ratio, volume, mute state and whether the device is running.
+
+**Returns:** `false` when either argument is `NULL`, otherwise `true`.
+
+**Thread safety:** Safe to call while the device is running; the counters are
+atomic snapshots, not a single instant across all fields.
 
 ---
 

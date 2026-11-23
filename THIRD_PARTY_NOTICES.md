@@ -179,6 +179,19 @@ bundled aFileChooser notice is a Dart-package notice and does appear in
 Platform runtimes (Android system libraries, Apple system frameworks) are
 used per their platform terms and are not redistributed by this project.
 
+### Native audio (miniaudio)
+
+| Component | Version | Copyright | License |
+|---|---|---|---|
+| miniaudio (single header, `runtime/external/miniaudio/miniaudio.h`) | 0.11.26 | David Reid and contributors | Public domain (Unlicense) or MIT-0, at your option |
+
+The unmodified header and its dual licence text are vendored in
+`runtime/external/miniaudio/`. Upstream: `mackron/miniaudio`. The runtime
+compiles the implementation into `ezcore_runtime`; miniaudio selects the
+system audio backend at run time (AAudio/OpenSL on Android, Core Audio on
+Apple platforms, WASAPI on Windows, ALSA/PulseAudio/PipeWire on Linux) and
+needs no firmware, keys or game content.
+
 ## 5. Verification and provenance
 
 - Core catalog artwork records its maintainer-supplied creation statement,

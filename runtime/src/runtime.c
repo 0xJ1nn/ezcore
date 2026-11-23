@@ -24,6 +24,7 @@
 #include "ezcore_gpu_internal.h"
 
 #include "dynload.h"
+#include "ezcore_audio_internal.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -863,6 +864,13 @@ static void video_cb(const void *data, unsigned width, unsigned height,
 
 static void audio_sample_cb(int16_t left, int16_t right) {
   if (!g_active) return;
+
+  /* The native device, when open, gets the same samples through a lock-free
+   * ring. This runs before the legacy buffer check: that buffer is drained by
+   * the Dart caller and must never starve the device clock. */
+  int16_t frame[2] = {left, right};
+  ezcore_audio_feed(frame, 1);
+
   ezcore_session *s = g_active;
   if (s->audio_len + 1 > s->audio_cap) return; /* drop on overflow (v0) */
   s->audio[s->audio_len * 2] = left;

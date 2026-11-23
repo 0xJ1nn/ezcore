@@ -20,7 +20,11 @@ runtime/build/
 runtime/build-*/
 runtime/Testing/
 runtime/build-*/Testing/
-runtime/external/
+runtime/external/*
+# The audio driver is vendored source, not a fetched build input: it must be
+# present in a fresh clone so the runtime compiles without a fetch step.
+!runtime/external/miniaudio/
+!runtime/external/miniaudio/**
 
 # Verified-artifact sidecars (see verifyPinnedFile): regenerated on stage.
 *.ezpin
