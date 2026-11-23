@@ -86,6 +86,18 @@ class EzplayTest(unittest.TestCase):
         self.assertGreaterEqual(result["fast_forward"]["4x"], 1.0)
         self.assertEqual(result["verdict"], "PASS")
 
+    def test_binary_finds_runtime_staged_beside_it(self):
+        """The adb driver stages the runtime next to ezplay; no absolute path exists on device."""
+        binary = ezplay_bin()
+        self.assertTrue(binary.is_file(), f"build ezplay first: {binary}")
+        if not sys.platform.startswith("linux"):
+            self.skipTest("readelf check runs on the Linux build host")
+        dynamic = subprocess.run(["readelf", "-d", str(binary)],
+                                 capture_output=True, text=True, timeout=60)
+        self.assertEqual(dynamic.returncode, 0, dynamic.stderr)
+        self.assertIn("$ORIGIN", dynamic.stdout,
+                      "ezplay must resolve libezcore_runtime.so beside itself")
+
     def test_foreign_content_is_rejected(self):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
         spec = RUNTIME / "test" / "ezplay_spec_synth.json"
