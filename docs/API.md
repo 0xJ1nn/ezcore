@@ -204,7 +204,7 @@ Runs one frame of emulation. Calls `retro_run`. The video refresh callback updat
 const char *ezcore_core_name(ezcore_session *s);
 ```
 
-Returns the core's library name (e.g., "Mesen", "Snes9x").
+Returns the core's library name (e.g., "Mesen", "SameBoy").
 
 **Parameters:**
 - `s` — session pointer

@@ -432,13 +432,12 @@ void main() {
       return importer.importFile(f.path, knownShas: {}, catalog: catalog);
     }
 
-    test('GB game picks a GB-first core, not the first alphabetical core',
-        () async {
+    test('GB game imports to a core that supports Game Boy', () async {
       final result = await importFile('game.gb', gbRom());
       expect(result.isSuccess, isTrue,
           reason: result.skippedReason ?? result.error);
-      expect(result.game!.coreId, 'gambatte',
-          reason: 'a .gb ROM must not be handed to a GBA-first core');
+      expect(result.game!.coreId, 'advancebit',
+          reason: 'a .gb ROM must go to a core that lists gb');
       expect(result.game!.system, 'gb');
     });
 
@@ -491,19 +490,6 @@ void main() {
       expect(result.game!.system, 'atari2600');
     });
 
-    test('Genesis .bin (SEGA header) goes to the Genesis core', () async {
-      final rom = List<int>.filled(262144, 0xFF);
-      const sega = [0x53, 0x45, 0x47, 0x41];
-      for (var i = 0; i < sega.length; i++) {
-        rom[0x100 + i] = sega[i];
-      }
-      final result = await importFile('sonic.bin', rom);
-      expect(result.isSuccess, isTrue,
-          reason: result.skippedReason ?? result.error);
-      expect(result.game!.coreId, 'blastproc');
-      expect(result.game!.system, 'genesis');
-    });
-
     test('GBA homebrew without the Nintendo logo imports (ARM header)',
         () async {
       final rom = List<int>.filled(32768, 0x00);
@@ -538,15 +524,6 @@ void main() {
           reason: result.skippedReason ?? result.error);
       expect(result.game!.coreId, 'nesbyte');
       expect(result.game!.system, 'nes');
-    });
-
-    test('zip with arcade-style entries goes to the arcade core', () async {
-      final zip = _zipWith('sf2.03', 0x00);
-      final result = await importFile('sf2.zip', zip);
-      expect(result.isSuccess, isTrue,
-          reason: result.skippedReason ?? result.error);
-      expect(result.game!.coreId, 'coinbox');
-      expect(result.game!.system, 'arcade');
     });
   });
 }
@@ -638,15 +615,11 @@ Map<String, CoreManifest> _multiCatalog() {
   return {
     'advancebit': core('advancebit', 'AdvanceBit', ['gba', 'gb', 'gbc'],
         ['gba', 'gb', 'gbc', 'zip']),
-    'blastproc': core('blastproc', 'BlastProc', ['genesis', 'sms', 'gg', 'scd'],
-        ['md', 'gen', 'sms', 'gg', 'sg', 'bin', 'iso', 'cue', 'chd', 'zip']),
     'cardcon': core('cardcon', 'CardCon', ['pce', 'pcecd'],
         ['pce', 'sgx', 'cue', 'ccd', 'chd', 'zip']),
-    'coinbox': core('coinbox', 'CoinBox', ['arcade', 'neogeo'], ['zip']),
     'dreamarc': core('dreamarc', 'DreamArc', ['dc', 'naomi'],
         ['cdi', 'gdi', 'chd', 'cue', 'zip', 'lst', 'bin']),
     'dualscreen': core('dualscreen', 'DualScreen', ['nds'], ['nds', 'zip']),
-    'gambatte': core('gambatte', 'Gambatte', ['gb', 'gbc'], ['gb', 'gbc', 'zip']),
     'geometry1': core('geometry1', 'Geometry1', ['psx'],
         ['cue', 'ccd', 'chd', 'pbp', 'iso', 'm3u']),
     'joystick': core('joystick', 'Joystick', ['atari2600'],
@@ -659,7 +632,5 @@ Map<String, CoreManifest> _multiCatalog() {
         ['iso', 'gcm', 'ciso', 'wbfs', 'rvz', 'elf', 'dol', 'wad']),
     'realmode': core('realmode', 'RealMode', ['dos'],
         ['zip', 'exe', 'com', 'bat', 'iso', 'img']),
-    'superfx': core('superfx', 'SuperFX', ['snes'],
-        ['sfc', 'smc', 'fig', 'zip']),
   };
 }

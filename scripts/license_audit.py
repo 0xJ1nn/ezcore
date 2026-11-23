@@ -37,9 +37,8 @@ def license_class(lic):
     low = lic.lower()
     if "non-commercial" in low or "noncommercial" in low:
         return "NON-COMMERCIAL"
-    # GPL version precision. A bare "GPL-2.0" is AMBIGUOUS and was exactly how
-    # gambatte (GPL-2.0-only) sat in the bundled set unnoticed — so an
-    # unresolved string is treated as unshippable rather than assumed fine.
+    # GPL version precision. A bare "GPL-2.0" is AMBIGUOUS, so an unresolved
+    # string is treated as unshippable rather than assumed fine.
     # GPL-2.0-only cannot form a combined work with our GPL-3.0-only app;
     # a dlopen'd plugin shipped in the bundle counts as one work.
     if "gpl-2.0-only" in low or "gpl-2-only" in low or "gplv2 only" in low:

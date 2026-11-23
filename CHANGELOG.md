@@ -10,6 +10,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 - Documented the release loop, the separate version schemes for the app and core sets, and who may perform each release step. A hygiene check now requires a changelog entry with every change to shipped code, and `scripts/release.sh --notes` prints the unreleased entries as draft release notes. [ios, android, macos, linux, windows]
 
+### Removed
+
+- The four cores ezCORE cannot ship — `superfx` (Snes9x), `blastproc` (Genesis Plus GX), `coinbox` (FBNeo) and `gambatte` (GPL-2.0-only) — are gone from the catalog, build tiers, artwork and documentation. [ios, android, macos, linux, windows]
+
 ### Documentation and release preparation
 
 - Rewrote the core matrix as a short level reference and a one-word table with a last-verified date per row; the detailed evidence is kept by the maintainers. [ios, android, macos, linux, windows]

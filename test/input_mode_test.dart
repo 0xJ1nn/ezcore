@@ -379,7 +379,7 @@ void main() {
         biosFiles: const [],
       );
       final nds = c('dualscreen', 'nds');
-      final snes = c('superfx', 'snes');
+      final snes = c('nesbyte', 'snes');
       s.registry.loadCatalog({
         for (final core in [nds, snes])
           core.id: jsonEncode(core.toJson()),

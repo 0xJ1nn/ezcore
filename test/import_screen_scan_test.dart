@@ -63,7 +63,7 @@ void main() {
 
   final results = [
     ready('Games/GBA/ember-circuit.gba', 'gba', 'advancebit', 16 * mb),
-    ready('Games/SNES/riverlight (USA).sfc', 'snes', 'superfx', 4 * mb),
+    ready('Games/SNES/riverlight (USA).sfc', 'snes', 'nesbyte', 4 * mb),
     ready('Games/NDS/paper_lunar.nds', 'nds', 'dualscreen', 128 * mb),
     duplicate('Games/GBA/starfall_courier.gba'),
     noCore('Games/GC/tide-engine.iso', 'gc'),
@@ -75,7 +75,7 @@ void main() {
     await tester.runAsync(() async {
       await state.load();
       installCore(state, 'advancebit');
-      installCore(state, 'superfx');
+      installCore(state, 'nesbyte');
       installCore(state, 'dualscreen');
       await state.addRomFolder('/Games');
     });

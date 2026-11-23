@@ -68,8 +68,8 @@ fail() { echo "release: ERROR: $*" >&2; exit 1; }
 
 # Prints the ids whose manifest promises this OS a bundled artifact.
 # release.sh ships exactly the delivery map — a core that is staged but
-# marked absent for this OS (e.g. fbneo, held pending review) stays out
-# of the bundle even though its artifact is present locally.
+# marked absent for this OS stays out of the bundle even though its
+# artifact is present locally.
 bundled_ids() { # $1 = os key
   python3 - "$1" "$ROOT" <<'PY'
 import glob, json, os, sys
