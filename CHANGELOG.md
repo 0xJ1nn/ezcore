@@ -6,6 +6,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
+
 ### Release process
 
 - Documented the release loop, the separate version schemes for the app and core sets, and who may perform each release step. A hygiene check now requires a changelog entry with every change to shipped code, and `scripts/release.sh --notes` prints the unreleased entries as draft release notes. [ios, android, macos, linux, windows]

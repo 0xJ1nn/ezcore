@@ -379,6 +379,26 @@ add_executable(test_core_boot test/test_core_boot.c)
 target_link_libraries(test_core_boot PRIVATE ezcore_runtime)
 target_include_directories(test_core_boot PRIVATE include)
 
+# Play harness: a spec-driven session that measures video, audio, speed, save
+# states, battery saves, cheats and fast-forward and prints a JSON result.
+add_executable(ezplay test/ezplay.c)
+if(MSVC)
+  target_link_libraries(ezplay PRIVATE ezcore_runtime)
+else()
+  target_link_libraries(ezplay PRIVATE ezcore_runtime m)
+endif()
+target_include_directories(ezplay PRIVATE include external/libretro-common/include)
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ezplay-system"
+                    "${CMAKE_CURRENT_BINARY_DIR}/ezplay-save")
+add_test(NAME ezplay
+  COMMAND ezplay
+    --core $<TARGET_FILE:synth_libretro>
+    --content ${CMAKE_CURRENT_SOURCE_DIR}/test/ezplay_content.synth
+    --system-dir ${CMAKE_CURRENT_BINARY_DIR}/ezplay-system
+    --save-dir ${CMAKE_CURRENT_BINARY_DIR}/ezplay-save
+    --spec ${CMAKE_CURRENT_SOURCE_DIR}/test/ezplay_spec_synth.json
+    --cheat 0101ABCD)
+
 # P6 exit-code contract: proves crash_libretro still faults on demand and that
 # a real signal death is classified as exit 9 (kCrashExitCode), the mapping
 # test_core_boot.c already uses. Until this existed the fixture was built and
