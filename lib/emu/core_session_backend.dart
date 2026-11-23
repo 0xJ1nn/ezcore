@@ -22,8 +22,14 @@ abstract interface class CoreSessionBackend {
   });
 
   /// Runs [count] frames (1-8); null when paused or no frame exists yet.
-  /// Keys: `width`, `height`, `rgba` (Uint8List), `pcm` (Uint8List).
+  /// Keys: `width`, `height`, `rgba` (Uint8List), `pcm` (Uint8List), and
+  /// `presented` (true when the runtime wrote the frame into an attached
+  /// surface, in which case `rgba` is null).
   Future<Map<String, dynamic>?> frame({int count = 1});
+
+  /// Attaches the ANativeWindow behind a Flutter texture to the session.
+  /// No-op on backends that cannot present into a surface.
+  Future<bool> attachVideo(int window, int width, int height) async => false;
 
   Future<void> pause(bool value);
 

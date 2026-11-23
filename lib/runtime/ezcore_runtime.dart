@@ -140,6 +140,25 @@ class EzCoreRuntime {
         .asFunction<
           void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)
         >();
+    // The video bridge is optional in a host-built runtime; older libraries
+    // keep working with the no-op fallbacks declared on the fields below.
+    try {
+      _videoAttach = _lib.lookupFunction<
+        Bool Function(Pointer<Void>, Pointer<Void>, Uint32, Uint32),
+        bool Function(Pointer<Void>, Pointer<Void>, int, int)
+      >('ezcore_video_attach');
+      _videoDetach = _lib.lookupFunction<
+        Void Function(Pointer<Void>),
+        void Function(Pointer<Void>)
+      >('ezcore_video_detach');
+      _videoPresent = _lib.lookupFunction<
+        Bool Function(Pointer<Void>),
+        bool Function(Pointer<Void>)
+      >('ezcore_video_present');
+    } catch (_) {
+      // Runtime without the bridge: the caller reports presentation as failed
+      // and the player keeps decoding frames on the Dart side.
+    }
     _cheatReset = _lib
         .lookup<NativeFunction<Void Function(Pointer<Void>)>>(
           'ezcore_cheat_reset',
@@ -374,6 +393,10 @@ class EzCoreRuntime {
   late final int Function(Pointer<Void>, Pointer<Uint8>, int) _framePixelsCopy;
   late final void Function(Pointer<Void>, Pointer<Uint32>, Pointer<Uint32>)
   _frameSize;
+  bool Function(Pointer<Void>, Pointer<Void>, int, int) _videoAttach =
+      (_, _, _, _) => false;
+  void Function(Pointer<Void>) _videoDetach = (_) {};
+  bool Function(Pointer<Void>) _videoPresent = (_) => false;
   late final void Function(Pointer<Void>) _cheatReset;
   late final bool Function(Pointer<Void>, int, bool, Pointer<Uint8>) _cheatSet;
   late final void Function(Pointer<Uint8>, Pointer<Uint8>) _setDirs;
@@ -483,6 +506,17 @@ class EzCoreRuntime {
   }
 
   void runFrame(Pointer<Void> session) => _runFrame(session);
+
+  /// Attaches the ANativeWindow behind a Flutter SurfaceProducer to [session].
+  /// The address is a jlong the platform side obtained from the Surface.
+  bool videoAttach(Pointer<Void> session, int window, int width, int height) =>
+      _videoAttach(session, Pointer<Void>.fromAddress(window), width, height);
+
+  void videoDetach(Pointer<Void> session) => _videoDetach(session);
+
+  /// Blits the latest frame into the attached window. Returns false when the
+  /// runtime has no bridge or the window could not accept the frame.
+  bool videoPresent(Pointer<Void> session) => _videoPresent(session);
 
   void setDirs(String systemDir, String saveDir) {
     final sysPtr = _toNativeUtf8(systemDir);

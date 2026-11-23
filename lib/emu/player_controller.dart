@@ -8,12 +8,21 @@ import '../state/save_sync.dart';
 import 'core_session_backend.dart';
 import 'emulation_worker.dart';
 import 'pcm_output.dart';
+import 'video_texture.dart';
 
 /// Frame scheduling/presentation only; native sessions belong to the worker.
 /// One outstanding frame bounds memory even when rendering is slower than emulation.
 class PlayerController extends ChangeNotifier {
-  PlayerController({PcmOutput? audio}) : audio = audio ?? createPlatformPcm();
+  PlayerController({PcmOutput? audio, VideoTextureController? video})
+      : audio = audio ?? createPlatformPcm(),
+        video = video ?? VideoTextureController();
   final PcmOutput audio;
+
+  /// Android presents frames into a Flutter surface; other targets keep the
+  /// decoded-image path until the native loop takes over.
+  final VideoTextureController video;
+  final FrameStats frameStats = FrameStats();
+  bool get usingTexture => video.active;
 
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
@@ -46,6 +55,7 @@ class PlayerController extends ChangeNotifier {
   Timer? _timer;
   Future<void>? _inFlight;
   Future<void>? _closeFuture;
+  DateTime? _lastFrameAt;
 
   void _notify() {
     if (!_disposed) notifyListeners();
@@ -75,10 +85,36 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
+    await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
+        (info['height'] as num?)?.toInt() ?? 0);
     await _startAudio();
     running = true;
     _notify();
     _schedule(Duration.zero);
+  }
+
+  /// Creates the Android surface and hands its native window to the session.
+  /// A failure leaves the decoded-image path in place; the player never stops
+  /// showing frames because a texture could not be registered.
+  Future<void> _attachVideo(int width, int height) async {
+    if (width <= 0 || height <= 0) return;
+    await video.create(width, height);
+    final window = video.window;
+    if (window == null || !await worker.attachVideo(window, width, height)) {
+      await video.release();
+      return;
+    }
+    // The stage still needs a frame object for layout. A one-pixel stand-in
+    // keeps that path intact; the visible picture is the surface itself.
+    final placeholder = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      Uint8List.fromList(const [0, 0, 0, 255]),
+      1,
+      1,
+      ui.PixelFormat.rgba8888,
+      placeholder.complete,
+    );
+    if (!_closed) frame = await placeholder.future;
   }
 
   Future<void> _startAudio() async {
@@ -104,23 +140,41 @@ class PlayerController extends ChangeNotifier {
     try {
       final packet = await worker.frame(count: fastForward ? ffFrames : 1);
       if (packet != null && !_closed && !paused) {
-        final completer = Completer<ui.Image>();
-        ui.decodeImageFromPixels(
-          packet['rgba'] as Uint8List,
-          packet['width'] as int,
-          packet['height'] as int,
-          ui.PixelFormat.rgba8888,
-          completer.complete,
-        );
-        final next = await completer.future;
-        if (_closed || paused) {
-          next.dispose();
-          return;
+        final now = DateTime.now();
+        final last = _lastFrameAt;
+        if (last != null) frameStats.sample(now.difference(last));
+        _lastFrameAt = now;
+
+        if (usingTexture && packet['presented'] == true) {
+          // The runtime wrote the frame into the surface. Flutter only needs a
+          // nudge to composite it; no pixel copy crosses into Dart.
+          await video.markFrame();
+          if (frameStats.count > 0 && frameStats.count % 120 == 0) {
+            debugPrint('ezcore/video frame-time: $frameStats');
+          }
+          _notify();
+        } else {
+          final data = packet['rgba'] as Uint8List?;
+          if (data != null) {
+            final completer = Completer<ui.Image>();
+            ui.decodeImageFromPixels(
+              data,
+              packet['width'] as int,
+              packet['height'] as int,
+              ui.PixelFormat.rgba8888,
+              completer.complete,
+            );
+            final next = await completer.future;
+            if (_closed || paused) {
+              next.dispose();
+              return;
+            }
+            final previous = frame;
+            frame = next;
+            _notify();
+            previous?.dispose();
+          }
         }
-        final previous = frame;
-        frame = next;
-        _notify();
-        previous?.dispose();
         if (_audioReady && !muted) {
           try {
             await audio.write(_applyGain(packet['pcm'] as Uint8List));
@@ -246,6 +300,7 @@ class PlayerController extends ChangeNotifier {
     } finally {
       if (_audioReady) await audio.stop();
       _audioReady = false;
+      await video.release();
     }
   }
 

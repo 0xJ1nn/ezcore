@@ -27,6 +27,15 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = pinnedNdk
 
+    // Small JNI shim: an ANativeWindow handle for a Flutter SurfaceProducer.
+    // The version matches toolchain.json so the native helper is reproducible.
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

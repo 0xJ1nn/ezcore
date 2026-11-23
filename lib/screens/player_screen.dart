@@ -1030,7 +1030,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   landscape: family == OrbitLayout.phoneLandscape,
                 ),
               ),
-              if (frame != null && !phone)
+              if (frame != null && !phone && !player.usingTexture)
                 Positioned.fill(
                   child: CustomPaint(
                     painter: _AmbientPainter(frame, dimmed ? 0.2 : 0.25),
@@ -1195,6 +1195,23 @@ class _PlayerScreenState extends State<PlayerScreen>
     double t,
     bool reduce,
   ) {
+    // Android presents through the runtime-owned surface. The widget samples
+    // that surface directly; the one-pixel [image] only drives stage layout.
+    final texture = player.video.view(key: const Key('player-texture'));
+    if (texture != null) {
+      return Positioned.fromRect(
+        key: const Key('player-frame'),
+        rect: base,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(18 * t),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: texture,
+        ),
+      );
+    }
     if (metrics.kind == _PauseKind.sheet) {
       final target = metrics.sheetFrame(stage);
       final rect = Rect.lerp(base, target, t)!;

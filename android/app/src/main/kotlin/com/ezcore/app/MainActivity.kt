@@ -23,6 +23,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private var track: AudioTrack? = null
     private var gamepadChannel: MethodChannel? = null
+    private var videoBridge: VideoTextureBridge? = null
     // Save-backup picker: at most one launched tree owns the pending result,
     // so a cancel and a success each answer Dart exactly once.
     private var pendingBackupPick: MethodChannel.Result? = null
@@ -122,6 +123,9 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        // Video: one SurfaceProducer texture whose ANativeWindow the runtime
+        // writes into. Dart receives only the texture id and window handle.
+        videoBridge = VideoTextureBridge(engine).also { it.install() }
         // Physical gamepads: Android KeyEvent/MotionEvent translated to the
         // canonical ezcore/gamepad vocabulary (see lib/services/gamepad.dart).
         gamepadChannel =
@@ -329,6 +333,8 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         inputManager?.unregisterInputDeviceListener(deviceListener)
+        videoBridge?.release()
+        videoBridge = null
         stop()
         super.onDestroy()
     }
