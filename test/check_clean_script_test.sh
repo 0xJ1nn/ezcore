@@ -15,6 +15,7 @@
 set -uo pipefail
 
 SCRIPT="${1:?path to check_clean.sh}"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -133,6 +134,73 @@ if [ "$rc" -eq 2 ] && printf '%s' "$out" | grep -q 'not a git checkout'; then
   ok "non-git directory exits 2 rather than claiming clean"
 else
   bad "non-git directory" "rc=$rc output=$(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+echo
+echo "== a shipped-source change needs an unreleased changelog entry =="
+d="$WORK/changelog"
+rm -rf "$d"
+mkdir -p "$d/scripts" "$d/lib"
+cp "$SCRIPT" "$d/scripts/check_clean.sh"
+cp "$SCRIPT_DIR/check_changelog.py" "$d/scripts/check_changelog.py"
+printf 'build/\n*.log\n' > "$d/.gitignore"
+cat > "$d/CHANGELOG.md" <<'MD'
+# Changelog
+
+## [Unreleased]
+
+### Added
+
+- Existing work.
+
+## [0.1.0]
+
+- First release.
+MD
+printf '// base\n' > "$d/lib/app.dart"
+git -C "$d" init -q
+git -C "$d" add -A
+git -C "$d" commit -q -m base
+git -C "$d" update-ref refs/remotes/origin/main HEAD
+printf '// changed\n' > "$d/lib/app.dart"
+git -C "$d" add -A
+git -C "$d" commit -q -m 'change lib'
+run "$d"
+if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q 'changelog gate failed'; then
+  ok 'a shipped-source change with no entry fails the gate'
+else
+  bad 'changelog gate' "rc=$rc output=$(printf '%s' "$out" | tr '\n' ' ')"
+fi
+printf '%s' "$out" | grep -q 'lib/app.dart' \
+  && ok 'the gate names the source file that needs an entry' \
+  || bad 'changelog location' "$out"
+
+python3 - "$d/CHANGELOG.md" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path, encoding="utf-8").read()
+open(path, "w", encoding="utf-8").write(
+    text.replace("### Added\n", "### Added\n\n- A user-visible change. [linux]\n", 1))
+PY
+git -C "$d" add -A
+git -C "$d" commit -q -m 'document the change'
+run "$d"
+if [ "$rc" -eq 0 ]; then
+  ok 'the same change passes once an unreleased entry is added'
+else
+  bad 'changelog entry' "rc=$rc output=$(printf '%s' "$out" | tr '\n' ' ')"
+fi
+
+git -C "$d" reset --hard -q HEAD~1
+printf '// changed again\n' > "$d/lib/app.dart"
+printf '%s\n' '- a stray line below the released section' >> "$d/CHANGELOG.md"
+git -C "$d" add -A
+git -C "$d" commit -q -m 'change lib with an entry outside Unreleased'
+run "$d"
+if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q 'Unreleased'; then
+  ok 'an edit outside Unreleased does not count as an entry'
+else
+  bad 'changelog scope' "rc=$rc output=$(printf '%s' "$out" | tr '\n' ' ')"
 fi
 
 echo

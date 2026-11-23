@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: GPL-3.0-only WITH LicenseRef-ezCORE-core-module-exception
 
-# Assembles a shippable ezCORE release for one platform.
+# Assembles a shippable ezCORE release for one platform, or prints the release
+# notes planned for the next one.
 # Usage: scripts/release.sh <macos|windows|linux|android|ios> [--out dist/]
+#        scripts/release.sh --notes
 # Env:   EZCORE_VERSION (default: pubspec version),
 #        EZCORE_CODESIGN_IDENTITY (macOS; default ad-hoc),
 #        EZCORE_KEYSTORE_* (Android; see android signing config),
@@ -30,6 +32,26 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Print the Unreleased section as draft release notes. The release workflow
+# reads the same section when it opens a draft, so this is the one place to
+# check what a release will say before the tag is made.
+if [ "${1:-}" = "--notes" ]; then
+  python3 - "$ROOT/CHANGELOG.md" <<'PY'
+import sys
+
+lines = open(sys.argv[1], encoding="utf-8").read().splitlines()
+start = next((i for i, l in enumerate(lines)
+              if l.strip() == "## [Unreleased]"), None)
+if start is None:
+    sys.exit("release: CHANGELOG.md has no ## [Unreleased] section")
+end = next((i for i in range(start + 1, len(lines))
+            if lines[i].startswith("## [")), len(lines))
+print("\n".join(lines[start + 1:end]).strip())
+PY
+  exit 0
+fi
+
 PLATFORM="${1:-}"
 OUT="${3:-$ROOT/dist}"
 VERSION="${EZCORE_VERSION:-$(grep '^version:' "$ROOT/pubspec.yaml" | cut -d' ' -f2 | cut -d+ -f1)}"
