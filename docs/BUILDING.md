@@ -104,6 +104,9 @@ and Xcode; Windows needs an MSYS2 host; Android needs the NDK.
 | Android arm64 | host with the Android NDK (CI uses Linux x64) | `scripts/build_runtime.sh android` | `EZCORE_PLATFORM=android scripts/build_core.sh --tier-android` | `flutter build apk --release` |
 | iOS arm64 | macOS with Xcode | `scripts/build_runtime.sh ios` | `EZCORE_PLATFORM=ios scripts/build_core.sh --tier-ios` | `flutter build ios --no-codesign` (compile check only) |
 
+The native audio device, its backends and its per-target verification status
+are described in [`NATIVE_AUDIO.md`](NATIVE_AUDIO.md).
+
 ## Core Tiers
 
 | Tier | Cores | Platforms |

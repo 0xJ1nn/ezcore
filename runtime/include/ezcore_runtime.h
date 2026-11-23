@@ -89,6 +89,49 @@ void ezcore_frame_size(ezcore_session *s, unsigned *w, unsigned *h);
 /* Returns const pointer to latest frame (XRGB8888). Do NOT free. Fast read access. */
 const uint32_t *ezcore_frame_pixels(ezcore_session *s, unsigned *w, unsigned *h);
 
+/* --- Native audio device ---
+ * One process-wide playback device, fed by the current session's libretro
+ * audio callbacks. It owns the lock-free frame ring, the resampler and the
+ * dynamic rate control; the platform backend and device clock come from
+ * miniaudio, so the same code runs on all five release targets. Open it once
+ * the core's sample rate is known and close it before the session unloads. */
+typedef struct ezcore_audio ezcore_audio;
+
+typedef enum {
+  EZCORE_AUDIO_BACKEND_AUTO = 0, /* platform default (AAudio, Core Audio, WASAPI, ...) */
+  EZCORE_AUDIO_BACKEND_NULL = 1  /* deterministic device for tests */
+} ezcore_audio_backend;
+
+typedef struct {
+  uint32_t input_sample_rate;  /* core rate from retro_get_system_av_info */
+  uint32_t output_sample_rate; /* device rate, normally 48000 */
+  uint32_t channels;           /* libretro is stereo: 2 */
+  uint32_t ring_frames;        /* ring capacity in frames; nearest power of two */
+  float volume;                /* 0..1 linear gain */
+  bool muted;
+  ezcore_audio_backend backend;
+} ezcore_audio_config;
+
+typedef struct {
+  uint64_t frames_written;  /* frames accepted from the core into the ring */
+  uint64_t frames_played;   /* frames delivered to the device */
+  uint64_t underruns;       /* callbacks that ran out of core audio */
+  uint64_t overruns;        /* frames dropped because the ring was full */
+  size_t buffered_frames;   /* frames in the ring at the time of the call */
+  double fill_fraction;     /* 0..1 of ring capacity */
+  double rate_ratio;        /* current resample ratio (input/output) */
+  float volume;
+  bool muted;
+  bool device_running;
+} ezcore_audio_statistics;
+
+ezcore_audio *ezcore_audio_open(const ezcore_audio_config *config, char *err,
+                                size_t err_len);
+void ezcore_audio_close(ezcore_audio *audio);
+void ezcore_audio_set_volume(ezcore_audio *audio, float volume);
+void ezcore_audio_set_muted(ezcore_audio *audio, bool muted);
+bool ezcore_audio_stats(ezcore_audio *audio, ezcore_audio_statistics *out);
+
 /* Audio: frames appended by the audio batch callback; drained by player. */
 size_t ezcore_audio_drain(ezcore_session *s, int16_t *out, size_t frames);
 size_t ezcore_audio_drain_copy(ezcore_session *s, int16_t *out,
