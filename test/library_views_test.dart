@@ -46,7 +46,7 @@ void main() {
       system: 'snes',
       filePath: '/c.sfc',
       extension: 'sfc',
-      coreId: 'superfx',
+      coreId: 'nesbyte',
     ),
   ];
 

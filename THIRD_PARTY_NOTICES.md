@@ -26,8 +26,8 @@ Full text: [`LICENSE`](LICENSE), with the [Core Module Exception](LICENSE-EXCEPT
 
 Each core is an independent upstream project, built from source by
 `scripts/build_core.sh`. Only cores whose licenses permit distribution are
-shipped as separate binaries (sha256-pinned in their manifests); the rest
-remain in-tree as build recipes. Licenses and upstream sources:
+shipped as separate binaries, sha256-pinned in their manifests. Licenses and
+upstream sources:
 
 | Core | Project | License | Upstream |
 |---|---|---|---|
@@ -35,10 +35,7 @@ remain in-tree as build recipes. Licenses and upstream sources:
 | `twinsh` | Beetle Saturn | GPL-2.0-or-later | libretro/beetle-saturn-libretro |
 | `powercube` | Dolphin | GPL-2.0-or-later | libretro/dolphin |
 | `realmode` | DOSBox Pure | GPL-2.0-or-later | libretro/dosbox-pure |
-| `coinbox` | FinalBurn Neo | FBNeo-custom (non-commercial) — **not distributed in any binary** | libretro/FBNeo |
 | `dreamarc` | Flycast | GPL-2.0-or-later | flyinghead/flycast (libretro build target) |
-| `gambatte` | Gambatte | GPL-2.0-**only** — **not distributed in any binary** (cannot form a combined work with our GPL-3.0-only app) | libretro/gambatte-libretro |
-| `blastproc` | Genesis Plus GX | Genesis-Plus-GX-custom (non-commercial) — **not distributed in any binary** | libretro/Genesis-Plus-GX |
 | `dualscreen` | melonDS | GPL-3.0 | libretro/melonDS |
 | `nesbyte` | Mesen | GPL-3.0 | libretro/Mesen |
 | `advancebit` | mGBA | MPL-2.0 | libretro/mgba |
@@ -46,7 +43,6 @@ remain in-tree as build recipes. Licenses and upstream sources:
 | `portcomp` | PPSSPP | GPL-2.0-or-later | hrydgard/ppsspp (libretro build target) |
 | `pocketbit` | SameBoy | MIT | libretro/SameBoy (built from LIJI32/SameBoy) |
 | `pointclick` | ScummVM | GPL-3.0 | scummvm/scummvm (libretro port in-tree) |
-| `superfx` | Snes9x | Snes9x-custom (non-commercial, attribution required) — **not distributed in any binary** | libretro/snes9x |
 | `joystick` | Stella | GPL-2.0-or-later | libretro/stella2023 |
 | `geometry1` | SwanStation | GPL-3.0 | libretro/swanstation |
 | `lrps2` | LRPS2 (libretro port of PCSX2) | GPL-3.0-or-later | libretro/ps2 |
@@ -56,12 +52,10 @@ remain in-tree as build recipes. Licenses and upstream sources:
 
 Notes:
 
-- **Non-commercial cores** (FBNeo, Genesis Plus GX, Snes9x) are **not
-  distributed in any binary — free or paid**. Their upstream licenses
+- **Non-commercial cores** are not part of ezCORE. Their upstream licenses
   forbid commercial redistribution, and ezCORE ships one artifact for
-  everyone. They remain in-tree as build recipes for users who compile
-  their own. Enforced by `scripts/license_audit.py` (removed from
-  distribution 2026-09-19; see `CHANGELOG.md`).
+  everyone. The licensing policy records the decision; the rule is enforced by
+  `scripts/license_audit.py`.
 - **`rcp64`** builds on the mupen64plus-libretro-nx tree (GPL-2.0);
   the classic Mupen64Plus project license text is included in that tree.
 - **Holds (never built, never distributed):** `citra_hold` (3DS),

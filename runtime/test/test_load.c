@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
       got = data ? fread(data, 1, size, f) : 0;
     }
     fclose(f);
-    /* need_fullpath cores (e.g. Gambatte) load from disk: pass path only. */
+    /* need_fullpath cores load from disk: pass the path only. */
     const void *payload = fullpath ? NULL : data;
     size_t payload_size = fullpath ? 0 : size;
     if ((!fullpath && (!data || got != size)) ||

@@ -56,8 +56,7 @@ compatibility rules whatever a person has bought.
 ## Compatibility rules (enforced by `scripts/license_audit.py`)
 
 - A **GPL-2.0-only** core is never bundled with the GPL-3.0-only app.
-- A **non-commercial** core (Snes9x, Genesis Plus GX, FBNeo) is never
-  bundled or downloaded by any build. Users may build it themselves.
+- Non-commercial cores are not part of ezCORE.
 - A store build bundles only cores whose licences permit distribution through
   that store.
 - A proprietary core is never linked with, or built from, third-party GPL

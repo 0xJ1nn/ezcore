@@ -75,8 +75,8 @@ v1 package. Only touch layouts (`layouts/`) and core-owned system data
 Record provenance and license for every core. `scripts/license_audit.py` and
 `scripts/verify_core_art.py` are enforced by the pre-commit hook; run them
 before opening a PR. A GPL-2.0-only core cannot be bundled with the
-GPL-3.0-only application — see the `gated_reason` on `cores/gambatte` for a
-worked example of how a licensing problem is recorded honestly.
+GPL-3.0-only application. The licensing policy explains which cores are part of
+ezCORE and why.
 
 ## Normal rules
 

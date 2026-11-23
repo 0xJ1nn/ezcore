@@ -172,8 +172,6 @@ credited by name wherever the core appears (repo description, core README,
 | PocketBit | GB / GBC | SameBoy (LIJI32/SameBoy) | Expat (MIT) |
 | ColorBit | GBC | ezCORE first-party (fresh-written) | GPL-3.0 (ours) |
 | AdvanceBit | GBA | mGBA (libretro/mgba) | MPL-2.0 |
-| SuperFX | SNES | Snes9x (snes9xgit/snes9x) | Snes9x custom (non-commercial) — recipe only |
-| BlastProc | Genesis/SMS/GG/SG-1000 | Genesis Plus GX (libretro/Genesis-Plus-GX) | custom non-commercial — recipe only |
 | Joystick | Atari 2600 | Stella (libretro/stella2023) | GPL-2.0-or-later |
 | CardCon | PC Engine / TG-16 | Beetle PCE Fast (libretro/beetle-pce-fast-libretro) | GPL-2.0-or-later |
 | TwinSH | Saturn | Beetle Saturn (libretro/beetle-saturn-libretro) | GPL-2.0-or-later |
@@ -183,13 +181,8 @@ credited by name wherever the core appears (repo description, core README,
 | PortComp | PSP | PPSSPP (hrydgard/ppsspp) | GPL-2.0-or-later |
 | DreamArc | Dreamcast / NAOMI | Flycast (flyinghead/flycast) | GPL-2.0-or-later |
 | PowerCube | GameCube / Wii | Dolphin (libretro/dolphin) | GPL-2.0-or-later |
-| CoinBox | Arcade / Neo Geo | FinalBurn Neo (libretro/FBNeo) | FBNeo custom (non-commercial) — recipe only |
 | RealMode | DOS | DOSBox Pure (libretro/dosbox-pure) | GPL-2.0-or-later |
 | PointClick | SCUMM / adventure | ScummVM (scummvm/scummvm) | GPL-3.0-or-later |
-
-"Recipe only" cores are never distributed as binaries — their upstream
-licence is non-commercial. The repository verifies the build recipe in CI
-and publishes nothing.
 
 ### Holds (never built, never shipped)
 

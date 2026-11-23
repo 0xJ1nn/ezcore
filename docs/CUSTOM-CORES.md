@@ -59,7 +59,6 @@ any other top-level key fails validation.
 | `execution` | object | optional | Per-OS strategy: `interpreter` or `dynarec` |
 | `provenance` | object | optional | `built_from`, `upstream_license`, `relationship` |
 | `blocked_reason` | string | hold cores | Why a core is under a legal or IP hold |
-| `gated_reason` | string | gated cores | Why the project distributes only the recipe |
 | `notes` | string | optional | Free-form operator notes |
 | `default_options` | object | optional | Starting values for the core's own options |
 | `system_data` | string[] | optional | Core-owned folders supplied under `system/` |
