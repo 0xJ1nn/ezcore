@@ -410,6 +410,12 @@ endif()
 target_include_directories(ezplay PRIVATE include external/libretro-common/include)
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ezplay-system"
                     "${CMAKE_CURRENT_BINARY_DIR}/ezplay-save")
+# The app's self-check reads its plan and synthetic fixture from the harness
+# build directory, so a built harness needs no source tree beside it.
+configure_file(test/ezplay_spec_synth.json
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_spec_synth.json" COPYONLY)
+configure_file(test/ezplay_content.synth
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_content.synth" COPYONLY)
 add_test(NAME ezplay
   COMMAND ezplay
     --core $<TARGET_FILE:synth_libretro>

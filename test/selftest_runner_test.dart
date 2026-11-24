@@ -17,8 +17,8 @@ Map<String, Object?> harnessResult() => {
       'frames': 120,
       'error': '',
       'frame_checkpoints': [
-        {'frame': 0, 'sha256': '${'a' * 64}', 'colours': 4},
-        {'frame': 60, 'sha256': '${'b' * 64}', 'colours': 9},
+        {'frame': 0, 'sha256': 'a' * 64, 'colours': 4},
+        {'frame': 60, 'sha256': 'b' * 64, 'colours': 9},
       ],
       'checks': {
         'video_changes_after_input': 'PASS',

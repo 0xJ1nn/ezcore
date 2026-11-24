@@ -8,6 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- A self-check mode for debug and profile builds: a named play spec runs through the native harness and writes a result that records the evidence behind each claim. A passing synthetic run is reported as a runtime check, not a game boot; release builds and targets without the harness report the check as unavailable. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
 
