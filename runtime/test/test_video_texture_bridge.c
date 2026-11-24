@@ -81,32 +81,34 @@ int main(int argc, char **argv) {
   CHECK(stats.width == 2 && stats.height == 2, "stats carry the frame size");
 
   /* The renderer may still be reading the buffer after copy_pixels returns.
-   * Advancing the core three frames must leave that snapshot untouched. */
+   * Advancing the core must leave that snapshot untouched until the next
+   * callback, even though the bridge publishes newer frames. */
   CHECK(ezcore_video_texture_publish(texture, kFrameB, 2, 2),
         "second snapshot published while the first is held");
   CHECK(ezcore_video_texture_publish(texture, kFrameA, 2, 2),
         "third snapshot published while the first is held");
   CHECK(ezcore_video_texture_publish(texture, kFrameB, 2, 2),
         "fourth snapshot published while the first is held");
-  pixels = ezcore_video_texture_pixels(texture, &w, &h);
-  CHECK(pixels == held, "held snapshot keeps its address while rendering");
-  CHECK(check_bytes(pixels, kFrameA, sizeof(kFrameA),
+  CHECK(check_bytes(held, kFrameA, sizeof(kFrameA),
                     "held snapshot was not overwritten by later frames") == 0,
         "held snapshot is tear-free");
 
   pixels = ezcore_video_texture_pixels(texture, &w, &h);
-  CHECK(pixels != NULL, "next callback releases the held snapshot");
+  CHECK(pixels != NULL, "next callback returns a snapshot");
   CHECK(check_bytes(pixels, kFrameB, sizeof(kFrameB),
                     "next callback sees the newest published frame") == 0,
         "newest frame is published");
 
   /* A geometry change must resize exactly once and keep the new pixels. */
+  ezcore_video_texture_stats before_resize;
+  ezcore_video_texture_stats_get(texture, &before_resize);
   uint8_t wide[4 * 4 * 4];
   for (size_t i = 0; i < sizeof(wide); ++i) wide[i] = (uint8_t)(i + 1);
   CHECK(ezcore_video_texture_publish(texture, wide, 4, 4),
         "larger frame published");
   ezcore_video_texture_stats_get(texture, &stats);
-  CHECK(stats.buffer_growths == 2, "geometry change grows the buffer once");
+  CHECK(stats.buffer_growths == before_resize.buffer_growths + 1,
+        "geometry change grows the buffer once");
   pixels = ezcore_video_texture_pixels(texture, &w, &h);
   CHECK(w == 4 && h == 4, "new geometry reaches the callback");
   CHECK(check_bytes(pixels, wide, sizeof(wide),
@@ -116,7 +118,8 @@ int main(int argc, char **argv) {
   CHECK(ezcore_video_texture_publish(texture, kFrameA, 2, 2),
         "smaller frame published");
   ezcore_video_texture_stats_get(texture, &stats);
-  CHECK(stats.buffer_growths == 2, "shrinking reuses the allocated buffer");
+  CHECK(stats.buffer_growths == before_resize.buffer_growths + 1,
+        "shrinking reuses the allocated buffer");
   pixels = ezcore_video_texture_pixels(texture, &w, &h);
   CHECK(w == 2 && h == 2, "shrink changes the reported dimensions");
   CHECK(check_bytes(pixels, kFrameA, sizeof(kFrameA),

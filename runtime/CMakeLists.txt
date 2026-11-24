@@ -14,11 +14,14 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include/libr
     "libretro.h not vendored. Run scripts/build_core.sh --fetch-headers first.")
 endif()
 
-# Platform seam: exactly one dynload implementation per target OS.
+# Platform seams: exactly one dynamic loader and one video-lock implementation
+# per target OS. The video lock is used only by the desktop texture bridge.
 if(WIN32)
   set(EZCORE_DYNLOAD_SRC src/dynload_win32.c)
+  set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_win32.c)
 else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
+  set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_posix.c)
 endif()
 
 # GPU render context (the GPU render-context design). ezcore_gpu.c is the only file that
@@ -39,6 +42,8 @@ add_library(ezcore_runtime SHARED
   src/ezcore_audio.c
   src/ezcore_gpu.c
   src/ezcore_gpu_vulkan.c
+  src/ezcore_video_texture.c
+  ${EZCORE_VIDEO_LOCK_SRC}
   ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
 )
