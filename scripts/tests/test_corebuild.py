@@ -13,7 +13,7 @@ import re
 import tempfile
 import unittest
 import zipfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -295,7 +295,7 @@ class PinEnforcementTest(unittest.TestCase):
 
 class DriverArgumentTest(unittest.TestCase):
     def parse(self, argv):
-        with redirect_stdout(io.StringIO()):
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             return cb.parse_args(argv)
 
     def quiet(self, argv):
