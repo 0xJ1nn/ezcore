@@ -107,6 +107,33 @@ and Xcode; Windows needs an MSYS2 host; Android needs the NDK.
 The native audio device, its backends and its per-target verification status
 are described in [`NATIVE_AUDIO.md`](NATIVE_AUDIO.md).
 
+## Pinned Core Builds
+
+Each shippable core has a `cores/<id>/recipe.json` and one entry in
+`cores/lock.json`. A recipe records the upstream repository, the exact commit,
+the build settings and the output file. Product metadata stays in
+`cores/catalog.json`, and tool versions stay in `toolchain.json`.
+
+The driver checks those files before it touches a source tree, checks out the
+recorded commit, then calls `scripts/build_core.sh` for the build itself. It
+packages the staged library with its manifest, licence and source record into
+`dist/cores/<platform>/` and writes SHA-256 sums to `index.json`. Held cores
+and cores gated from distribution have no recipe and cannot be selected.
+
+```bash
+python3 scripts/corebuild.py --validate-recipes
+python3 scripts/corebuild.py --platform linux --validate-catalog
+python3 scripts/corebuild.py --platform linux --all --dry-run
+python3 scripts/corebuild.py --platform linux --core potator
+```
+
+`--dry-run` prints the plan without a clone, a compile or a write. A real
+build needs the toolchain pinned in `toolchain.json` for that platform: the
+matching Android NDK, Xcode on macOS and iOS, or an x64 Windows toolchain (or
+its pinned cross toolchain on Linux). The driver warns when it selects a pin
+without a verified artifact; refresh those pins from the commits that produced
+a release before shipping it.
+
 ## Core Tiers
 
 | Tier | Cores | Platforms |
