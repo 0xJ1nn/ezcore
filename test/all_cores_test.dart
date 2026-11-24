@@ -21,14 +21,11 @@ const _coresWithRom = <String, ({String name, String romPath})>{
     romPath: 'native/test-roms/ezcore_nes_minimal.nes'
   ),
   'pocketbit': (name: 'SameBoy', romPath: 'native/test-roms/cpu_instrs.gb'),
-  'gambatte': (name: 'Gambatte', romPath: 'native/test-roms/cpu_instrs.gb'),
   'advancebit': (name: 'mGBA', romPath: 'native/test-roms/test.gba'),
 };
 
 /// Cores without test ROMs — load + identify only.
 const _coresNoRom = <String, String>{
-  'superfx': 'Snes9x',
-  'blastproc': 'Genesis Plus GX',
   'realmode': 'DOSBox-pure',
   'dualscreen': 'melonDS',
   'joystick': 'Stella',
@@ -39,7 +36,6 @@ const _coresNoRom = <String, String>{
   'portcomp': 'PPSSPP',
   'dreamarc': 'Flycast',
   'powercube': 'dolphin-emu',
-  'coinbox': 'FinalBurn Neo',
   'pointclick': 'ScummVM',
 };
 

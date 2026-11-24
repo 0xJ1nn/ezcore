@@ -23,17 +23,9 @@
       "sha256": "307dd6a438bddccbbff3dc64586590eb5f895800a50a58bc4fd714b3ca0d0a67",
       "role": "AdvanceBit / GBA family"
     },
-    "blastproc.webp": {
-      "sha256": "b89431fea2ff7a04692419bd87e8d9b5059948d7e2b0064dc5d8b81c790609bf",
-      "role": "BlastProc / 16-bit console family"
-    },
     "cardcon.webp": {
       "sha256": "e953752364ef1f13ccbd940a4c8f199e28c34506eaf36db4465867de9d47f2f9",
       "role": "CardCon / PCE family"
-    },
-    "coinbox.webp": {
-      "sha256": "9c6bf001867a632a69da712ee39f1c0f01f43955998fcde5d6c71c30acdb74ea",
-      "role": "CoinBox / arcade family"
     },
     "dreamarc.webp": {
       "sha256": "2a92c305bc5b101a1b766365d59586bb244ca61f3a2e8b176eaca1297cbc667b",
@@ -42,10 +34,6 @@
     "dualscreen.webp": {
       "sha256": "044d1c1900313fc0e4b612162c1f6ba1823d5f4632804481b95e9b2a4b85ce2f",
       "role": "DualScreen / dual-screen family"
-    },
-    "gambatte.webp": {
-      "sha256": "556dfb3d8ba8c168336ad3e84d165ddc0989ba57e2f2ee9bb7b5601e3441bad2",
-      "role": "Gambatte / GBC family"
     },
     "generic.webp": {
       "sha256": "eea0a0c2e736cf05a085271e0f49bc040da92773a45f6e5f04e1979fecd0a4d5",
@@ -90,10 +78,6 @@
     "realmode.webp": {
       "sha256": "2bed03e0eb57caabd6d60295b8c4c4526c800ae2cb80216f54e0ea8f936c93ac",
       "role": "RealMode / home-computer family"
-    },
-    "superfx.webp": {
-      "sha256": "be1ee5ec0cf59b4b0d6528e813ed3e8ee695cbd7e2de72e78864a16bc4da4e8b",
-      "role": "SuperFX / SNES family"
     },
     "twinsh.webp": {
       "sha256": "5d61213973581b94baa6f229ee9afd490a6ebd6d9641f575cf005cb6a6e06cbf",

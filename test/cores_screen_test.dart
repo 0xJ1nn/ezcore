@@ -46,7 +46,7 @@ void main() {
         ['dc'],
         delivery: {Platform.operatingSystem: 'download'},
       ),
-      core('superfx', ['snes'], delivery: {Platform.operatingSystem: 'absent'}),
+      core('nesbyte', ['nes'], delivery: {Platform.operatingSystem: 'absent'}),
     ];
     s.registry.loadCatalog({
       for (final c in cores) c.id: jsonEncode(c.toJson()),

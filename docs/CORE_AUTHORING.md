@@ -113,10 +113,10 @@ Pre-defined tiers match the platform matrix in `build_core.sh`:
 
 | Flag | Cores (count) | Platforms |
 |---|---|---|
-| `--tier1` | pocketbit, advancebit, superfx, blastproc, realmode (5) | macOS (run-verified) |
-| `--tier-desktop` | 17 cores | macOS, Linux, Windows |
-| `--tier-android` | 10 cores | Android |
-| `--tier-ios` | 9 cores | iOS (interpreter-only) |
+| `--tier1` | pocketbit, advancebit, realmode (3) | macOS (run-verified) |
+| `--tier-desktop` | 14 cores | macOS, Linux, Windows |
+| `--tier-android` | 7 cores | Android |
+| `--tier-ios` | 6 cores | iOS (interpreter-only) |
 
 **Verified:** `build_core.sh` `TIER1`, `TIER_ANDROID`, `TIER_IOS`,
 `TIER_DESKTOP`, and the `case "$cmd"` dispatch.
@@ -202,8 +202,7 @@ Validation never throws for policy failures — problems are collected in
 > `build_catalog.py` `build_release()` all use `download`.
 >
 > ⚠️ **Extra manifest fields.** Real manifests carry `blocked_reason` (holds:
-> citra_hold, switch_hold), `gated_reason` (license-gated: coinbox, superfx,
-> blastproc, gambatte), `notes` (ten cores), `default_options` (rcp64), and
+> citra_hold, switch_hold), `notes` (ten cores), `default_options` (rcp64), and
 > `system_data` (portcomp, powercube). All are in `kKnownManifestFields`, so the
 > validator accepts every manifest in this repository.
 
@@ -292,15 +291,9 @@ Hold cores (citra_hold, switch_hold) declare `blocked_reason`
 explaining the IP/legal block. `pin_artifacts.py` `main()` refuses to pin any
 core with `blocked_reason`.
 
-Recipe-only cores (coinbox, superfx, blastproc — non-commercial upstream
-licenses; gambatte — GPL-2.0-only incompatible with the GPL-3.0-only app
-shell) have `delivery: absent` on every OS. They build but never ship
-(`_delivery()` in `fill_manifest_data.py`).
-
-> **License gate.** A GPL-2.0-only core cannot be `dlopen`'d into the
-> GPL-3.0-only app bundle — a bundled plugin counts as a combined work. This is
-> why gambatte is gated despite being functional (see gambatte's manifest
-> `gated_reason`).
+Cores whose upstream licence cannot be combined with the app are not added
+to the catalog. A GPL-2.0-only core cannot be `dlopen`'d into the GPL-3.0-only
+app bundle, because a bundled plugin counts as a combined work.
 
 ### 3.4 Catalog merge: build_catalog.py
 
@@ -564,7 +557,7 @@ A core PR must include (`docs/CORE_SYSTEM.md`, "Adding a core (contributors)";
 - `scripts/install-hooks.sh`, `scripts/prereqs.sh`
 - `lib/services/core_package_validator.dart`, `lib/services/retro_info_parser.dart`
 - `.githooks/pre-commit`
-- `cores/nesbyte/manifest.json` (reference), `cores/dreamarc/`, `cores/powercube/`, `cores/gambatte/`, `cores/coinbox/`, `cores/superfx/`, `cores/blastproc/` (delivery/gated fields via search)
+- `cores/nesbyte/manifest.json` (reference), `cores/dreamarc/`, `cores/powercube/` (delivery fields via search)
 - `test/services/core_package_validator_test.dart`
 - `docs/CORE_SYSTEM.md`, `docs/BUILDING.md`, `docs/MATRIX.md` (searched)
 - `CONTRIBUTING.md`
