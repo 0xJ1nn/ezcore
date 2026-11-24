@@ -23,6 +23,11 @@ class EmulationService {
   Pointer<Void>? _session;
 
   bool get isRunning => _session != null;
+
+  /// Native address of the live session. Desktop textures use it to read the
+  /// latest frame on the render thread without copying pixels through Dart.
+  int get sessionAddress => _active.address;
+
   Pointer<Void> get _active =>
       _session ?? (throw StateError('No active emulation session'));
 

@@ -1186,6 +1186,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   String get _pauseGlyph =>
       GamepadService.shared.connectedPad != null ? '+' : 'P';
 
+  /// The native texture shows the runtime's own frame on desktop; other
+  /// targets keep painting the decoded frame from the worker packet.
+  Widget _videoPicture(ui.Image image, ScreenSpec local) {
+    final id = player.textureId;
+    if (id != null) {
+      return Texture(textureId: id, filterQuality: FilterQuality.none);
+    }
+    return CustomPaint(painter: GamePicturePainter(image, local));
+  }
+
   Widget _frameCard(
     Size stage,
     Rect base,
@@ -1227,7 +1237,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(painter: GamePicturePainter(image, local)),
+                _videoPicture(image, local),
                 Opacity(
                   opacity: t.clamp(0.0, 1.0),
                   child: CustomPaint(painter: _CoverPicturePainter(thumb)),
@@ -1266,7 +1276,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          CustomPaint(painter: GamePicturePainter(image, local)),
+          _videoPicture(image, local),
           _shutterFlash(),
         ],
       ),

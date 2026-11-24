@@ -8,12 +8,20 @@ import '../state/save_sync.dart';
 import 'core_session_backend.dart';
 import 'emulation_worker.dart';
 import 'pcm_output.dart';
+import 'video_texture.dart';
 
 /// Frame scheduling/presentation only; native sessions belong to the worker.
 /// One outstanding frame bounds memory even when rendering is slower than emulation.
 class PlayerController extends ChangeNotifier {
-  PlayerController({PcmOutput? audio}) : audio = audio ?? createPlatformPcm();
+  PlayerController({PcmOutput? audio, DesktopVideoTexture? videoTexture})
+      : audio = audio ?? createPlatformPcm(),
+        videoTexture = videoTexture ?? DesktopVideoTexture();
   final PcmOutput audio;
+
+  /// Native desktop texture; null until a session attaches to it.
+  final DesktopVideoTexture videoTexture;
+
+  int? get textureId => videoTexture.textureId;
 
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
@@ -75,6 +83,8 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
+    final address = info['sessionAddress'] as int?;
+    if (address != null && address != 0) await videoTexture.open(address);
     await _startAudio();
     running = true;
     _notify();
@@ -104,6 +114,7 @@ class PlayerController extends ChangeNotifier {
     try {
       final packet = await worker.frame(count: fastForward ? ffFrames : 1);
       if (packet != null && !_closed && !paused) {
+        await videoTexture.frameReady();
         final completer = Completer<ui.Image>();
         ui.decodeImageFromPixels(
           packet['rgba'] as Uint8List,

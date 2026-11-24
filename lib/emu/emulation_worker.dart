@@ -234,6 +234,7 @@ Future<void> _workerMain(SendPort ready) async {
         final geo = service.geometry;
         result = {
           'name': service.coreName,
+          'sessionAddress': service.sessionAddress,
           'width': geo.w,
           'height': geo.h,
           'fps': geo.fps,
