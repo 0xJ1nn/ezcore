@@ -26,4 +26,4 @@ target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${BINARY_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}"
-  "${CMAKE_SOURCE_DIR}/runtime/include")
+  "${CMAKE_SOURCE_DIR}/../runtime/include")
