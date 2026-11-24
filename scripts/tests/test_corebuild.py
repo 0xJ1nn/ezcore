@@ -76,7 +76,7 @@ def documents(**overrides):
     }
     lock = {"schema": 1, "cores": {"potator": PIN}}
     toolchain = {
-        "flutter": "3.47.8", "dart": "3.13.7", "ndk": "28.2.13676358",
+        "flutter": "test-sdk", "dart": "test-sdk", "ndk": "test-ndk",
         "cmake": "3.22.1", "xcode_minimum": "27",
         "ios_deployment_target": "15.0", "mingw": "14.2.0",
         "llvm_mingw": "21.1.0", "msvc": "2022",
