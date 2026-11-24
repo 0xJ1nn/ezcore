@@ -1,0 +1,68 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "-DBUILD_LIBRETRO_CORE=ON",
+        "-DBUILD_PLAY=OFF",
+        "-DBUILD_TESTS=OFF",
+        "-DBUILD_PSFPLAYER=OFF"
+      ],
+      "ios-arm64": [
+        "-DBUILD_LIBRETRO_CORE=ON",
+        "-DBUILD_PLAY=OFF",
+        "-DBUILD_TESTS=OFF",
+        "-DBUILD_PSFPLAYER=OFF",
+        "-DTARGET_IOS=ON",
+        "-DCMAKE_SYSTEM_NAME=iOS",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0",
+        "-DCMAKE_OSX_ARCHITECTURES=arm64"
+      ]
+    },
+    "cmake_build_dir": "build-libretro",
+    "dir": "",
+    "jobs": 2,
+    "system": "cmake",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "dualvu",
+  "license_files": [
+    "LICENSE",
+    "License.txt"
+  ],
+  "outputs": {
+    "android-arm64": "build-android-arm64/play_libretro.so",
+    "ios-arm64": "build-libretro/Source/ui_libretro/play_libretro_ios.dylib",
+    "linux-x64": "build-libretro/Source/ui_libretro/play_libretro.so"
+  },
+  "patches": [
+    {
+      "path": "patches/play/0001-libretro-teardown-and-ipu-guard.patch",
+      "repo": "."
+    },
+    {
+      "path": "patches/play/0002-framework-hex-parse.patch",
+      "repo": "deps/Framework"
+    }
+  ],
+  "pin": "d44bfa1814b729d4a3ed3c6c3a945432d5ee5bbe",
+  "pin_verified": true,
+  "pinned_targets": [
+    "linux-x64"
+  ],
+  "platforms": [
+    "ios-arm64",
+    "linux-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {},
+  "source_dir": "play",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g"
+  },
+  "submodules": "recursive",
+  "upstream": "https://github.com/jpd002/Play-.git"
+}

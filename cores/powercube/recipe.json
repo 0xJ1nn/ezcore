@@ -1,0 +1,73 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "-DLIBRETRO=ON"
+      ],
+      "ios-arm64": [
+        "-DLIBRETRO=ON",
+        "-DCMAKE_SYSTEM_NAME=iOS",
+        "-DCMAKE_SYSTEM_PROCESSOR=arm64",
+        "-DENABLE_GENERIC=ON",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0",
+        "-DCMAKE_OSX_ARCHITECTURES=arm64"
+      ],
+      "macos-arm64": [
+        "-DLIBRETRO=ON",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=27.0"
+      ]
+    },
+    "cmake_build_dir": "build-{target}",
+    "dir": "",
+    "jobs": 4,
+    "system": "cmake",
+    "target": ""
+  },
+  "data": [
+    {
+      "dest": "dolphin-emu/Sys",
+      "src": "Data/Sys"
+    }
+  ],
+  "hooks": [
+    "dolphin_ios_fix"
+  ],
+  "id": "powercube",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "build-ios-arm64/dolphin_libretro.dylib",
+    "linux-x64": "build-linux-x64/dolphin_libretro.so",
+    "macos-arm64": "build-macos-arm64/dolphin_libretro.dylib",
+    "windows-x64": "build-windows-x64/dolphin_libretro.dll"
+  },
+  "patches": [],
+  "pin": "fad480aced85403350597c5914540a97f6f53549",
+  "pin_verified": true,
+  "pinned_targets": [
+    "linux-x64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "dolphin-libretro",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": "recursive",
+  "upstream": "https://github.com/libretro/dolphin.git"
+}

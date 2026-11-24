@@ -1,0 +1,58 @@
+{
+  "build": {
+    "args": {
+      "android-arm64": [
+        "LDLIBS=",
+        "ISMAC="
+      ],
+      "default": []
+    },
+    "dir": "",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "realmode",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "dosbox_pure_libretro.so",
+    "ios-arm64": "dosbox_pure_libretro_ios.dylib",
+    "linux-x64": "dosbox_pure_libretro.so",
+    "macos-arm64": "dosbox_pure_libretro.dylib",
+    "windows-x64": "dosbox_pure_libretro.dll"
+  },
+  "patches": [],
+  "pin": "e39497e7c2a32c67c26e6598dd14f6d58c384bfd",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "dosbox-pure",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/dosbox-pure.git"
+}

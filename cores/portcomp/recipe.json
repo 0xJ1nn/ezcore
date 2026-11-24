@@ -1,0 +1,66 @@
+{
+  "build": {
+    "args": {
+      "default": [],
+      "ios-arm64": [
+        "TARGET_ARCH=arm64"
+      ],
+      "macos-arm64": [
+        "TARGET_ARCH=arm64"
+      ]
+    },
+    "dir": "libretro",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "data": [
+    {
+      "dest": "PPSSPP",
+      "src": "assets"
+    }
+  ],
+  "hooks": [
+    "ppsspp_macos_fix",
+    "ppsspp_ios_fix"
+  ],
+  "id": "portcomp",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "ppsspp_libretro_ios.dylib",
+    "linux-x64": "ppsspp_libretro.so",
+    "macos-arm64": "ppsspp_libretro.dylib",
+    "windows-x64": "ppsspp_libretro.dll"
+  },
+  "patches": [],
+  "pin": "2e6fd06ed6c77db467dea5fb3f67abd93457da20",
+  "pin_verified": true,
+  "pinned_targets": [
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "ppsspp",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": "recursive",
+  "upstream": "https://github.com/hrydgard/ppsspp.git"
+}

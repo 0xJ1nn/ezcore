@@ -1,0 +1,49 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "IS_X86=1"
+      ],
+      "ios-arm64": [
+        "IS_X86=0"
+      ]
+    },
+    "dir": "",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "lrps2",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "pcsx2_libretro.so",
+    "ios-arm64": "pcsx2_libretro_ios.dylib",
+    "linux-x64": "pcsx2_libretro.so"
+  },
+  "patches": [],
+  "pin": "cac1c32c7d4c2ad00edd6f4ba756340cefb39dd3",
+  "pin_verified": true,
+  "pinned_targets": [
+    "linux-x64"
+  ],
+  "platforms": [
+    "ios-arm64",
+    "linux-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {},
+  "source_dir": "lrps2",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g"
+  },
+  "submodules": "recursive",
+  "upstream": "https://github.com/libretro/ps2.git"
+}

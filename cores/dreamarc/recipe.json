@@ -1,0 +1,68 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "-DLIBRETRO=ON"
+      ],
+      "ios-arm64": [
+        "-DLIBRETRO=ON",
+        "-DIOS=ON",
+        "-DUSE_GLES=ON",
+        "-DUSE_VULKAN=OFF",
+        "-DCMAKE_SYSTEM_NAME=iOS",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=15.0",
+        "-DCMAKE_OSX_ARCHITECTURES=arm64"
+      ],
+      "macos-arm64": [
+        "-DLIBRETRO=ON",
+        "-DCMAKE_OSX_ARCHITECTURES=arm64"
+      ]
+    },
+    "cmake_build_dir": "build-{target}",
+    "dir": "",
+    "jobs": 4,
+    "system": "cmake",
+    "target": ""
+  },
+  "hooks": [],
+  "id": "dreamarc",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "build-android-arm64/flycast_libretro.so",
+    "ios-arm64": "build-ios-arm64/flycast_libretro.dylib",
+    "linux-x64": "build-linux-x64/flycast_libretro.so",
+    "macos-arm64": "build-macos-arm64/flycast_libretro.dylib",
+    "windows-x64": "build-windows-x64/flycast_libretro.dll"
+  },
+  "patches": [],
+  "pin": "eddf2635867f0f16f64bebd3185db151c99c551c",
+  "pin_verified": true,
+  "pinned_targets": [
+    "linux-x64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "flycast",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": "recursive",
+  "upstream": "https://github.com/flyinghead/flycast.git"
+}
