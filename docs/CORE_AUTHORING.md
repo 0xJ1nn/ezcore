@@ -284,7 +284,6 @@ works today: install a core from a file.
 | Status | Manifest field | build_core.sh | Distribution |
 |---|---|---|---|
 | Hold (never built) | `blocked_reason` | `hold()` → exit 4 | Recipe retained as architecture slot only |
-| Gated (license) | `gated_reason` | Builds; delivery=`absent` everywhere | Not shipped in any binary |
 | Recipe-only | — | Built locally, not pinned | User-built only |
 
 Hold cores (citra_hold, switch_hold) declare `blocked_reason`
@@ -568,8 +567,8 @@ A core PR must include (`docs/CORE_SYSTEM.md`, "Adding a core (contributors)";
    via `_allowedDelivery`; `on-demand` is rejected. The rest of the codebase
    uses `download`.
 2. **Extra manifest fields.** `kKnownManifestFields` includes `blocked_reason`,
-   `gated_reason`, `notes`, `default_options` and `system_data`; the validator
-   accepts every manifest in this repository.
+   `notes`, `default_options` and `system_data`; the validator accepts every
+   manifest in this repository.
 3. **`test/core_matrix_test.dart` reference.** The file exists and is tracked;
    the docs' reference to it is correct.
 4. **Build recipe location.** `docs/CORE_SYSTEM.md`, "Adding a core

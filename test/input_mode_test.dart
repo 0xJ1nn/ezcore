@@ -395,7 +395,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 1500));
       expect(find.text('Show games'), findsOneWidget);
       expect(find.text('Nintendo DS'), findsWidgets);
-      expect(find.text('Super Nintendo'), findsWidgets);
+      expect(find.text('Nintendo Entertainment System'), findsWidgets);
     });
 
     testWidgets('TV scanning keeps Stop scan and the readout on screen', (

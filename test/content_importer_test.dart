@@ -628,6 +628,8 @@ Map<String, CoreManifest> _multiCatalog() {
         ['a26', 'bin', 'zip']),
     'nesbyte': core('nesbyte', 'NesByte', ['nes', 'fds'],
         ['nes', 'fds', 'unf', 'zip']),
+    'pocketbit': core('pocketbit', 'PocketBit', ['gb', 'gbc'],
+        ['gb', 'gbc', 'zip']),
     'pointclick': core('pointclick', 'PointClick', ['scumm'],
         ['scummvm', 'zip']),
     'powercube': core('powercube', 'PowerCube', ['gc', 'wii'],
