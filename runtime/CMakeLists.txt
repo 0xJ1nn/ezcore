@@ -218,6 +218,15 @@ add_executable(test_core_player test/test_core_player.c)
 target_link_libraries(test_core_player PRIVATE ezcore_runtime)
 target_include_directories(test_core_player PRIVATE include)
 
+# Desktop video texture bridge: measured snapshot/copy regression using both
+# synthetic RGBA frames and a real core frame from the runtime.
+add_executable(test_video_texture_bridge test/test_video_texture_bridge.c)
+target_link_libraries(test_video_texture_bridge PRIVATE ezcore_runtime)
+target_include_directories(test_video_texture_bridge PRIVATE include)
+add_dependencies(test_video_texture_bridge synth_libretro)
+add_test(NAME video_texture_bridge
+  COMMAND test_video_texture_bridge $<TARGET_FILE:synth_libretro>)
+
 # Optional libretro entry points must not make a core unloadable.
 add_executable(test_optional_cheats test/test_optional_cheats.c)
 target_link_libraries(test_optional_cheats PRIVATE ezcore_runtime)
