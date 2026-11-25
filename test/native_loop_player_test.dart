@@ -26,6 +26,8 @@ class _SilentAudio implements PcmOutput {
 }
 
 class _FakeBackend implements CoreSessionBackend {
+  @override
+  Future<bool> attachVideo(int window, int width, int height) async => false;
   int frames = 0;
   int buttons = 0;
   bool paused = false;

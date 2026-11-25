@@ -16,14 +16,22 @@ import 'video_texture.dart';
 class PlayerController extends ChangeNotifier {
   PlayerController({
     PcmOutput? audio,
+    VideoTextureController? video,
     DesktopVideoTexture? videoTexture,
     NativeLoopProbe? nativeLoopProbe,
     Map<String, dynamic> settings = const {},
   })  : audio = audio ?? createPlatformPcm(),
+        video = video ?? VideoTextureController(),
         videoTexture = videoTexture ?? DesktopVideoTexture(),
         _loopProbe = nativeLoopProbe ?? probeNativeLoop,
         _settings = Map<String, dynamic>.from(settings);
   final PcmOutput audio;
+
+  /// Android presents frames into a Flutter surface; other targets keep the
+  /// decoded-image path until the native loop takes over.
+  final VideoTextureController video;
+  final FrameStats frameStats = FrameStats();
+  bool get usingTexture => video.active;
 
   /// Native desktop texture; null until a session attaches to it.
   final DesktopVideoTexture videoTexture;
@@ -49,22 +57,23 @@ class PlayerController extends ChangeNotifier {
   NativeLoopStats? get loopStats => _loop?.lastStats;
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
-
-  /// Publishes run-loop frames into the Flutter texture while the runtime owns
-  /// frame pacing. The timer path marks the texture in [_tick]; the run loop
-  /// needs the same nudge at display rate instead.
+  /// Keeps the composited textures current while the runtime owns frame
+  /// pacing: the Android surface producer and the desktop bridge both need a
+  /// nudge at display rate, while the timer path marks them in [_tick].
   Timer? _videoTimer;
   void _startVideoPump() {
     _videoTimer?.cancel();
     _videoTimer = null;
     if (!_usingNativeLoop || !running || paused ||
-        videoTexture.textureId == null) {
+        (!usingTexture && videoTexture.textureId == null)) {
       return;
     }
     _videoTimer = Timer.periodic(
       Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
       (_) {
-        if (!_closed && !paused && !_disposed) {
+        if (_closed || paused || _disposed) return;
+        if (usingTexture) unawaited(video.markFrame());
+        if (videoTexture.textureId != null) {
           unawaited(videoTexture.frameReady());
         }
       },
@@ -113,6 +122,7 @@ class PlayerController extends ChangeNotifier {
   Timer? _timer;
   Future<void>? _inFlight;
   Future<void>? _closeFuture;
+  DateTime? _lastFrameAt;
 
   void _notify() {
     if (!_disposed) notifyListeners();
@@ -142,10 +152,10 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
-    canSaveStates = info['canSave'] as bool? ?? true;
+    await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
+        (info['height'] as num?)?.toInt() ?? 0);
     final address = info['sessionAddress'] as int? ?? 0;
     if (address != 0) await videoTexture.open(address);
-
 
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
@@ -176,15 +186,45 @@ class PlayerController extends ChangeNotifier {
       }
     }
 
+    // Video is attached once above. The runtime-owned loop presents through
+    // its own bridge; the timer loop nudges the surface and desktop textures.
 
     await _startAudio();
     running = true;
+    // Frame times start at session start, so the first presented frame is
+    // measured like every other one and stats keep pace with presentations.
+    _lastFrameAt = DateTime.now();
     _notify();
     if (!_usingNativeLoop) {
       _schedule(Duration.zero);
     } else {
       _startVideoPump();
     }
+  }
+
+  /// Creates the Android surface and hands its native window to the session.
+  /// A failure leaves the decoded-image path in place; the player never stops
+  /// showing frames because a texture could not be registered.
+  Future<void> _attachVideo(int width, int height) async {
+    if (width <= 0 || height <= 0) return;
+    await video.create(width, height);
+    final window = video.window;
+    if (window == null || !await worker.attachVideo(window, width, height)) {
+      await video.release();
+      return;
+    }
+    // The stage still needs a frame object for layout. A one-pixel stand-in
+    // keeps that path intact; the visible picture is the surface itself.
+    final placeholder = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      Uint8List.fromList(const [0, 0, 0, 255]),
+      1,
+      1,
+      ui.PixelFormat.rgba8888,
+      placeholder.complete,
+    );
+    if (!_closed) frame = await placeholder.future;
+
   }
 
   Future<void> _startAudio() async {
@@ -210,24 +250,44 @@ class PlayerController extends ChangeNotifier {
     try {
       final packet = await worker.frame(count: fastForward ? ffFrames : 1);
       if (packet != null && !_closed && !paused) {
-        await videoTexture.frameReady();
-        final completer = Completer<ui.Image>();
-        ui.decodeImageFromPixels(
-          packet['rgba'] as Uint8List,
-          packet['width'] as int,
-          packet['height'] as int,
-          ui.PixelFormat.rgba8888,
-          completer.complete,
-        );
-        final next = await completer.future;
-        if (_closed || paused) {
-          next.dispose();
-          return;
+        final now = DateTime.now();
+        final last = _lastFrameAt;
+        if (last != null) frameStats.sample(now.difference(last));
+        _lastFrameAt = now;
+
+        if (videoTexture.textureId != null) {
+          await videoTexture.frameReady();
         }
-        final previous = frame;
-        frame = next;
-        _notify();
-        previous?.dispose();
+        if (usingTexture && packet['presented'] == true) {
+          // The runtime wrote the frame into the surface. Flutter only needs a
+          // nudge to composite it; no pixel copy crosses into Dart.
+          await video.markFrame();
+          if (frameStats.count > 0 && frameStats.count % 120 == 0) {
+            debugPrint('ezcore/video frame-time: $frameStats');
+          }
+          _notify();
+        } else {
+          final data = packet['rgba'] as Uint8List?;
+          if (data != null) {
+            final completer = Completer<ui.Image>();
+            ui.decodeImageFromPixels(
+              data,
+              packet['width'] as int,
+              packet['height'] as int,
+              ui.PixelFormat.rgba8888,
+              completer.complete,
+            );
+            final next = await completer.future;
+            if (_closed || paused) {
+              next.dispose();
+              return;
+            }
+            final previous = frame;
+            frame = next;
+            _notify();
+            previous?.dispose();
+          }
+        }
         if (_audioReady && !muted) {
           try {
             await audio.write(_applyGain(packet['pcm'] as Uint8List));
@@ -268,8 +328,10 @@ class PlayerController extends ChangeNotifier {
     if (value) {
       if (_audioReady) await audio.stop();
       _audioReady = false;
+      _lastFrameAt = null;
     } else {
       await _startAudio();
+      _lastFrameAt = DateTime.now();
       if (!_usingNativeLoop) {
         _schedule(Duration.zero);
       } else {
@@ -402,6 +464,7 @@ class PlayerController extends ChangeNotifier {
     } finally {
       if (_audioReady) await audio.stop();
       _audioReady = false;
+      await video.release();
     }
   }
 

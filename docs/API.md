@@ -448,6 +448,70 @@ writes; call from the emulation thread.
 
 ---
 
+#### `ezcore_video_attach`
+
+```c
+bool ezcore_video_attach(ezcore_session *s, void *window, unsigned width,
+                         unsigned height);
+```
+
+Attaches the `ANativeWindow` behind a Flutter `SurfaceProducer` surface to a
+session and sets its buffers to `width` × `height` RGBA. The caller must keep
+the window handle valid until `ezcore_video_detach`. Detach releases the
+handle. Returns `false` when any argument is invalid or the window refuses the
+geometry.
+
+---
+
+#### `ezcore_video_detach`
+
+```c
+void ezcore_video_detach(ezcore_session *s);
+```
+
+Stops presenting into the window and releases the native handle. Safe to call
+on a session that is not attached.
+
+---
+
+#### `ezcore_video_present`
+
+```c
+bool ezcore_video_present(ezcore_session *s);
+```
+
+Copies the session's latest frame into the attached window and posts it. Call
+from the emulation thread after the frame is complete. Returns `false` when no
+window is attached, no frame exists, or the window's buffer is too small.
+
+---
+
+#### `ezcore_video_stats`
+
+```c
+bool ezcore_video_stats(ezcore_session *s, ezcore_video_statistics *out);
+```
+
+Reads the presentation counters and attached geometry. Returns `false` when no
+window is attached. The counters are safe to read while frames are presented.
+
+---
+
+#### `ezcore_video_blit_rows`
+
+```c
+bool ezcore_video_blit_rows(uint8_t *dst, size_t dst_stride,
+                            const uint32_t *src, unsigned width,
+                            unsigned height, bool bgra);
+```
+
+Copies XRGB8888 pixels into 32-bit rows of `dst_stride` bytes, setting alpha to
+opaque. `bgra` selects B,G,R,A byte order instead of R,G,B,A. Returns `false`
+on invalid arguments. This is the platform-neutral copy the Android bridge
+uses and the host test verifies.
+
+---
+
 ### Audio
 
 #### `ezcore_audio_drain`
@@ -1058,6 +1122,11 @@ The Flutter layer checks all return values and surfaces errors to the user.
 | `ezcore_clear_buttons` | Not thread-safe (emulation thread) |
 | `ezcore_frame_size` | Not thread-safe (emulation thread) |
 | `ezcore_frame_pixels_copy` | Not thread-safe (emulation thread) |
+| `ezcore_video_attach` | Not thread-safe (call before the session runs) |
+| `ezcore_video_detach` | Not thread-safe (call after the session stops) |
+| `ezcore_video_present` | Not thread-safe (emulation thread) |
+| `ezcore_video_stats` | Thread-safe (snapshot behind a lock) |
+| `ezcore_video_blit_rows` | Thread-safe (operates on caller buffers) |
 | `ezcore_audio_drain_copy` | Not thread-safe (serialise against `ezcore_run_frame`) |
 | `ezcore_audio_pending` | Not thread-safe (emulation thread) |
 | `ezcore_cheat_reset` | Not thread-safe |

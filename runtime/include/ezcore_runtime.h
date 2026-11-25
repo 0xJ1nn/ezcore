@@ -89,6 +89,34 @@ void ezcore_frame_size(ezcore_session *s, unsigned *w, unsigned *h);
 /* Returns const pointer to latest frame (XRGB8888). Do NOT free. Fast read access. */
 const uint32_t *ezcore_frame_pixels(ezcore_session *s, unsigned *w, unsigned *h);
 
+/* --- Video texture bridge (Android) ---
+ * A Flutter SurfaceProducer owns an android.view.Surface. Its ANativeWindow is
+ * attached to a session here, and each completed frame is blitted into the
+ * window (CPU-core path). HW-render cores hand an EGL surface to the bridge in
+ * later work; this path is the RGBA blit both use for presentation. The same
+ * calls work with a fake window handle on a host for state tests, but only an
+ * Android build can present into a real ANativeWindow. */
+typedef struct {
+  uint64_t presents;       /* frames copied into the window */
+  uint64_t failed_presents;/* present calls with no frame or no window */
+  unsigned width;          /* geometry set at attach time */
+  unsigned height;
+  bool attached;
+} ezcore_video_statistics;
+
+bool ezcore_video_attach(ezcore_session *s, void *window, unsigned width,
+                         unsigned height);
+void ezcore_video_detach(ezcore_session *s);
+bool ezcore_video_present(ezcore_session *s);
+bool ezcore_video_stats(ezcore_session *s, ezcore_video_statistics *out);
+
+/* Copies XRGB8888 [src] into 32-bit [dst] rows of [dst_stride] bytes. When
+ * [bgra] is true the byte order is B,G,R,A; otherwise R,G,B,A. Alpha is 255.
+ * Platform-neutral so the copy can be verified without an Android device. */
+bool ezcore_video_blit_rows(uint8_t *dst, size_t dst_stride,
+                            const uint32_t *src, unsigned width,
+                            unsigned height, bool bgra);
+
 /* --- Native audio device ---
  * One process-wide playback device, fed by the current session's libretro
  * audio callbacks. It owns the lock-free frame ring, the resampler and the

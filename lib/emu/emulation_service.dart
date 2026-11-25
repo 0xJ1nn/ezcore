@@ -85,6 +85,19 @@ class EmulationService {
 
   void runFrame() => runtime.runFrame(_active);
   Uint8List? frameBytes() => runtime.frameBytes(_active);
+
+  /// Attaches the Flutter surface's ANativeWindow and presents frames into it.
+  /// The runtime owns the window handle until [detachVideo].
+  bool attachVideo(int window, int width, int height) =>
+      runtime.videoAttach(_active, window, width, height);
+
+  bool presentVideo() => runtime.videoPresent(_active);
+
+  void detachVideo() {
+    final session = _session;
+    if (session != null) runtime.videoDetach(session);
+  }
+
   void setButton(int port, int button, bool pressed) =>
       runtime.setButton(_active, port, button, pressed);
   void setAnalog(int port, int stick, int axis, int value) =>

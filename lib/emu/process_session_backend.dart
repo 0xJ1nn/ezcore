@@ -77,6 +77,11 @@ class ProcessSessionBackend implements CoreSessionBackend {
   static const _opAnalog = 12, _opMouseMove = 13, _opMouseBtn = 14;
   static const _opKey = 15, _opPointer = 16;
 
+  /// The supervised host cannot own a Flutter surface: it runs in another
+  /// process. The desktop path keeps the decoded-image presentation.
+  @override
+  Future<bool> attachVideo(int window, int width, int height) async => false;
+
   Future<void> _ensureStarted() async {
     if (_process != null || lastExit != null) return;
     final p = await Process.start(

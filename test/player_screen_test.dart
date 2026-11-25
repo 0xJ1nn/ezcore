@@ -69,6 +69,8 @@ class _FixedSaves extends SaveSyncProvider {
 /// A session backend that answers a scripted save; the preview never opens
 /// a real core, so only the save path is exercised.
 class _SaveBackend implements CoreSessionBackend {
+  @override
+  Future<bool> attachVideo(int window, int width, int height) async => false;
   int saves = 0;
 
   @override

@@ -40,6 +40,7 @@ endif()
 add_library(ezcore_runtime SHARED
   src/runtime.c
   src/ezcore_audio.c
+  src/ezcore_video.c
   src/ezcore_loop.c
   src/ezcore_gpu.c
   src/ezcore_gpu_vulkan.c
@@ -65,6 +66,13 @@ endif()
 if(APPLE)
   set_target_properties(ezcore_runtime PROPERTIES SUFFIX ".dylib")
 endif()
+
+# Android video texture bridge: the pure row blit and the attach/present state
+# machine run on every host; only ANativeWindow locking is Android-specific.
+add_executable(test_video_blit test/test_video_blit.c)
+target_link_libraries(test_video_blit PRIVATE ezcore_runtime)
+target_include_directories(test_video_blit PRIVATE include)
+add_test(NAME video_blit COMMAND test_video_blit)
 
 # --- Synthetic test core (deterministic, no ROMs needed) ---
 add_library(synth_libretro SHARED

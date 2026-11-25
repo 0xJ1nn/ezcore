@@ -115,6 +115,16 @@ class EmulationWorker implements CoreSessionBackend {
     return value == null ? null : Map<String, dynamic>.from(value as Map);
   }
 
+  /// Attaches the Flutter surface's native window in the isolate that owns the
+  /// session; the runtime then writes each frame straight into it.
+  @override
+  Future<bool> attachVideo(int window, int width, int height) async =>
+      await _request('attachVideo', {
+        'window': window,
+        'width': width,
+        'height': height,
+      }) as bool;
+
   @override
   Future<void> pause(bool value) async {
     await _request('pause', value);
@@ -256,16 +266,25 @@ Future<void> _workerMain(SendPort ready) async {
                 active.drainAudio(active.audioPending, chunk);
                 if (value == 1) pcm.add(chunk.takeBytes());
               }
-              final rgba = active.frameBytes();
-              if (rgba != null) {
+              final presented = active.presentVideo();
+              final rgba = presented ? null : active.frameBytes();
+              if (rgba != null || presented) {
                 result = {
                   'width': active.frameWidth,
                   'height': active.frameHeight,
                   'rgba': rgba,
                   'pcm': pcm.takeBytes(),
+                  'presented': presented,
                 };
               }
             }
+          case 'attachVideo':
+            final args = value as Map;
+            result = active.attachVideo(
+              args['window'] as int,
+              args['width'] as int,
+              args['height'] as int,
+            );
           case 'pause':
             paused = value as bool;
             if (paused) {
@@ -344,6 +363,7 @@ Future<void> _workerMain(SendPort ready) async {
               args['value'] as String,
             );
           case 'close':
+            active.detachVideo();
             active.close();
           default:
             throw StateError('Unknown worker command: $command');
