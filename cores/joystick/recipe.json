@@ -1,0 +1,57 @@
+{
+  "build": {
+    "args": {
+      "android-arm64": [
+        "PTHREAD_FLAGS="
+      ],
+      "default": []
+    },
+    "dir": "src/os/libretro",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "joystick",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "stella2023_libretro.so",
+    "ios-arm64": "stella2023_libretro_ios.dylib",
+    "linux-x64": "stella2023_libretro.so",
+    "macos-arm64": "stella2023_libretro.dylib",
+    "windows-x64": "stella2023_libretro.dll"
+  },
+  "patches": [],
+  "pin": "ba52c43b9eda950eb0c0eec69cda9b17dee8c39b",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "stella2023",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/stella2023.git"
+}

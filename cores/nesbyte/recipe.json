@@ -1,0 +1,54 @@
+{
+  "build": {
+    "args": {
+      "default": []
+    },
+    "dir": "Libretro",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "nesbyte",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "mesen_libretro.so",
+    "ios-arm64": "mesen_libretro_ios.dylib",
+    "linux-x64": "mesen_libretro.so",
+    "macos-arm64": "mesen_libretro.dylib",
+    "windows-x64": "mesen_libretro.dll"
+  },
+  "patches": [],
+  "pin": "0102910c39ad1a62bc3f784466f3f67ca9eae335",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "Mesen",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/Mesen.git"
+}

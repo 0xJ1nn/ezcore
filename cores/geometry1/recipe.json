@@ -1,0 +1,52 @@
+{
+  "build": {
+    "args": {
+      "default": []
+    },
+    "dir": "",
+    "jobs": 4,
+    "makefile": "Makefile.libretro",
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "geometry1",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "swanstation_libretro_ios.dylib",
+    "linux-x64": "swanstation_libretro.so",
+    "macos-arm64": "swanstation_libretro.dylib",
+    "windows-x64": "swanstation_libretro.dll"
+  },
+  "patches": [],
+  "pin": "631f0fb31b809e0f889d7c551fe695788e39c1d3",
+  "pin_verified": false,
+  "pinned_targets": [
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "swanstation",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/swanstation.git"
+}
