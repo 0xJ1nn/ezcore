@@ -1087,6 +1087,21 @@ NULL.
 
 **Returns:** `true` on success, `false` if the index is out of range.
 
+#### `ezcore_get_legacy_memory`
+
+```c
+bool ezcore_get_legacy_memory(ezcore_session *s, unsigned id,
+                              void **ptr, size_t *size);
+```
+
+Fallback for cores with no `SAVE_RAM`-flagged memory-map descriptor: reads the
+legacy `retro_get_memory_data`/`retro_get_memory_size` entry points for the
+requested libretro memory id. The returned pointer aliases core-owned memory
+valid for the session lifetime. Empty regions and cores without the optional
+entry points return `false`.
+
+**Returns:** `true` when a non-empty legacy memory region is available.
+
 ---
 
 ## Error Handling
@@ -1142,6 +1157,7 @@ The Flutter layer checks all return values and surfaces errors to the user.
 | `ezcore_get_controller_port_count` | Not thread-safe (reads session-owned storage) |
 | `ezcore_get_memory_descriptor_count` | Not thread-safe (reads session-owned storage) |
 | `ezcore_get_memory_descriptor` | Not thread-safe (reads session-owned storage) |
+| `ezcore_get_legacy_memory` | Not thread-safe (aliases core-owned memory) |
 
 **Typical usage:** One thread owns the session and runs `ezcore_run_frame` in a loop. Everything else — audio drain, input, cheats, save states — happens on that thread, or between frames with the caller serialising. The runtime has no internal locks; the frontend owns the concurrency.
 

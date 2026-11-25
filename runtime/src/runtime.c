@@ -107,6 +107,9 @@ struct ezcore_session {
   /* Optional in practice (NULL-checked): where cores flush battery saves and
    * caches as a game closes. */
   void (*retro_unload_game)(void);
+  /* Legacy memory API: some cores expose SRAM only through these. */
+  void *(*retro_get_memory_data)(unsigned);
+  size_t (*retro_get_memory_size)(unsigned);
   /* Optional cheat entry points: NULL-checked at every call. */
   void (*retro_cheat_reset)(void);
   void (*retro_cheat_set)(unsigned, bool, const char *);
@@ -979,6 +982,8 @@ ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len) {
   LOAD_SYM(s, retro_run, "retro_run");
   LOAD_SYM(s, retro_reset, "retro_reset");
   s->retro_unload_game = ez_dyn_sym(s->handle, "retro_unload_game");
+  s->retro_get_memory_data = ez_dyn_sym(s->handle, "retro_get_memory_data");
+  s->retro_get_memory_size = ez_dyn_sym(s->handle, "retro_get_memory_size");
   /* Cheat entry points are core-optional; cores without cheat support still
    * need to load for video, audio, input, and save-state functionality. */
   s->retro_cheat_reset = ez_dyn_sym(s->handle, "retro_cheat_reset");
@@ -1442,6 +1447,18 @@ bool ezcore_get_controller_port_type(ezcore_session *s, unsigned port,
 
 unsigned ezcore_get_memory_descriptor_count(ezcore_session *s) {
   return s ? s->num_mem_descs : 0;
+}
+
+bool ezcore_get_legacy_memory(ezcore_session *s, unsigned id,
+                              void **ptr, size_t *size) {
+  if (!s || !s->game_loaded || !s->retro_get_memory_data ||
+      !s->retro_get_memory_size) return false;
+  void *p = s->retro_get_memory_data(id);
+  size_t n = s->retro_get_memory_size(id);
+  if (!p || !n || n > (16u * 1024u * 1024u)) return false;
+  if (ptr) *ptr = p;
+  if (size) *size = n;
+  return true;
 }
 
 bool ezcore_get_memory_descriptor(ezcore_session *s, unsigned index,

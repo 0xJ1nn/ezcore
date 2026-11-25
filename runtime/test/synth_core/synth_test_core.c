@@ -49,6 +49,14 @@ static struct synth_state g_state = {0, 0, 0, 0x53594E54};
 static bool g_cheat_reset_seen;
 static bool g_cheat_set_seen;
 
+/* EZCORE_SYNTH_LEGACY_SRAM exposes battery RAM only through the legacy
+ * retro_get_memory_data/size entry points, with no memory-map descriptors.
+ * EZCORE_SYNTH_LEGACY_SRAM_ZERO fills it with zeros so a harness must not
+ * treat a zero-filled region as proof of a battery save. */
+#if defined(EZCORE_SYNTH_LEGACY_SRAM)
+static unsigned char g_legacy_sram[4096];
+#endif
+
 static void render_frame(uint32_t *buf) {
     uint8_t r = (uint8_t)(g_state.frame_counter & 0xFF);
     uint8_t g = (uint8_t)((g_state.frame_counter / 2) & 0x3F);
@@ -140,6 +148,15 @@ bool retro_load_game(const struct retro_game_info *game) {
     g_state.audio_sample_counter = 0;
     g_cheat_reset_seen = false;
     g_cheat_set_seen = false;
+#if defined(EZCORE_SYNTH_LEGACY_SRAM)
+    memset(g_legacy_sram,
+#if defined(EZCORE_SYNTH_LEGACY_SRAM_ZERO)
+           0x00,
+#else
+           0xA5,
+#endif
+           sizeof(g_legacy_sram));
+#endif
     return true;
 }
 
@@ -147,8 +164,22 @@ void retro_unload_game(void) { }
 
 unsigned retro_get_region(void) { return RETRO_REGION_NTSC; }
 
-void *retro_get_memory_data(unsigned id) { (void)id; return NULL; }
-size_t retro_get_memory_size(unsigned id) { (void)id; return 0; }
+void *retro_get_memory_data(unsigned id) {
+#if defined(EZCORE_SYNTH_LEGACY_SRAM)
+    if (id == RETRO_MEMORY_SAVE_RAM) return g_legacy_sram;
+#else
+    (void)id;
+#endif
+    return NULL;
+}
+size_t retro_get_memory_size(unsigned id) {
+#if defined(EZCORE_SYNTH_LEGACY_SRAM)
+    if (id == RETRO_MEMORY_SAVE_RAM) return sizeof(g_legacy_sram);
+#else
+    (void)id;
+#endif
+    return 0;
+}
 
 void retro_reset(void) {
     g_state.frame_counter = 0;
