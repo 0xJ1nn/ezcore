@@ -74,10 +74,24 @@ fetch_header() {
 }
 
 build_runtime() {
-  local platform
+  local platform ext staged
   platform="$(host_platform)"
+  case "$platform" in
+    linux) ext=so ;;
+    macos) ext=dylib ;;
+    windows) ext=dll ;;
+  esac
   echo "Building the $platform host runtime"
   bash "$ROOT/scripts/build_runtime.sh" "$platform"
+
+  # The test path policy treats any runtime/build-<platform> directory as a
+  # built bridge and runs the staged-core tests against it. Stage only the
+  # library at the host path those tests read, and drop the build tree.
+  staged="runtime/build-host/libezcore_runtime.$ext"
+  mkdir -p "$ROOT/runtime/build-host"
+  cp "$ROOT/runtime/build-$platform/libezcore_runtime.$ext" "$ROOT/$staged"
+  rm -rf "$ROOT/runtime/build-$platform"
+  echo "OK: host runtime staged at $staged"
 }
 
 check() {
@@ -94,7 +108,7 @@ check() {
     macos) ext=dylib ;;
     windows) ext=dll ;;
   esac
-  lib="runtime/build-$platform/libezcore_runtime.$ext"
+  lib="runtime/build-host/libezcore_runtime.$ext"
   [ -f "$ROOT/$lib" ] || die "missing built runtime at $lib; run scripts/setup_test_prerequisites.sh"
   echo "OK: test prerequisites are provisioned (libretro.h, $lib)"
 }
