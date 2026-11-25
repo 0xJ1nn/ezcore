@@ -14,11 +14,8 @@ void main() {
 
   const activeCoreIds = {
     'pocketbit',
-    'gambatte',
     'advancebit',
     'nesbyte',
-    'superfx',
-    'blastproc',
     'joystick',
     'realmode',
     'cardcon',
@@ -29,7 +26,6 @@ void main() {
     'dreamarc',
     'powercube',
     'twinsh',
-    'coinbox',
     'pointclick',
     'lrps2',
     'dualvu',
@@ -103,12 +99,9 @@ void main() {
   /// unknown-system fallback predates that set, so it is not listed here.
   const renderedFromDesign = <String>{
     'advancebit',
-    'blastproc',
     'cardcon',
-    'coinbox',
     'dreamarc',
     'dualscreen',
-    'gambatte',
     'geometry1',
     'joystick',
     'lrps2',
@@ -119,7 +112,6 @@ void main() {
     'powercube',
     'rcp64',
     'realmode',
-    'superfx',
     'twinsh',
   };
 
@@ -168,7 +160,7 @@ void main() {
     );
     expect(
       hardwareArtworkAsset('future-arcade-core', systems: ['neogeo']),
-      'assets/core_art/coinbox.webp',
+      'assets/core_art/generic.webp',
     );
     expect(
       hardwareArtworkAsset('future-pc-core', systems: ['dos']),

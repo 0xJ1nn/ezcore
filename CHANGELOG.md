@@ -6,11 +6,22 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- Removed four catalog cores that were build recipes only: three used
+  non-commercial upstream licences and one used a GPL-2.0-only licence that
+  cannot be combined with the application. Their manifests, build recipes,
+  catalog entries, artwork and matrix rows are gone. No binary from them was
+  ever distributed. [ios, android, macos, linux, windows]
+
 ### Added
 
+- The player can hand frame pacing to the runtime-owned run thread when the loaded runtime provides both the loop and a video bridge. Input goes into the loop's atomics and the display reads a two-per-second statistics stream; the original per-frame timer remains available through a hidden setting for one release. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
 - A desktop video bridge that presents the runtime's latest frame as a Flutter texture on Linux and Windows. Three snapshots keep the picture stable while the core keeps running, and the player falls back to decoded frames wherever the native texture is unavailable. [linux, windows]
+- The play harness finds its runtime beside the executable, so it runs when staged with the runtime and a core on another device. [android, linux, macos]
+
 
 ### Release process
 

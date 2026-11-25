@@ -87,9 +87,9 @@ The known top-level field set is fixed at these 23 keys by the validator (`kKnow
 
 **`gated_reason`** — Present only on license-gated cores. A gated core builds but has `delivery: absent` on every platform and is never shipped.
 
-### 2.3 The three real shapes
+### 2.3 The manifest shapes
 
-The tables below show the distinguishing fields across the three manifest shapes committed in this repository. Full files: `cores/nesbyte/manifest.json`, `cores/gambatte/manifest.json`, `cores/citra_hold/manifest.json`.
+The tables below show the distinguishing fields across the manifest shapes committed in this repository. Full files: `cores/nesbyte/manifest.json` and `cores/citra_hold/manifest.json`.
 
 **Bundled core — `cores/nesbyte/manifest.json`**
 
@@ -108,23 +108,6 @@ The tables below show the distinguishing fields across the three manifest shapes
 | `provenance` | present (`built_from`, `upstream_license`, `relationship`) |
 | `blocked_reason` | absent |
 | `gated_reason` | absent |
-
-**Gated core — `cores/gambatte/manifest.json`**
-
-| Field | Value |
-|---|---|
-| `id` / `name` | `gambatte` / `Gambatte` |
-| `version` | `0.5.0` |
-| `license` | `GPL-2.0-only` |
-| `systems` | `["gb", "gbc"]` |
-| `delivery` | all platforms: `absent` |
-| `artifacts` | 3 pins (`macos-arm64`, `android-arm64`, `linux-x64`) |
-| `execution` | all platforms: `interpreter` |
-| `bios_required` | `false` |
-| `bios_files` | `[]` |
-| `provenance` | present (`built_from`, `upstream_license`, `relationship`, `modifications`) |
-| `gated_reason` | `"GPL-2.0-ONLY upstream…cannot form a combined work with the GPL-3.0-only app"` |
-| `blocked_reason` | absent |
 
 **Hold core — `cores/citra_hold/manifest.json`**
 
@@ -273,7 +256,6 @@ The following files were read and checked against this specification:
 
 - **`lib/services/core_package_validator.dart`** — `kKnownManifestFields` (23 fields); `_idRegex` (L156); `_pinRegex` (L157); `_allowedDelivery` = `{bundled, download, absent}` (L162–166, rejects `on-demand` by design L158–161); `validate()` id presence (L182), id regex (L185), id–dir match (L188–195); artifact pin check (L199–214); delivery check (L217–232); BIOS warning (L234–242); manifest size cap `defaultMaxManifestBytes` = 1 MiB (L78, L127–131); package size cap `defaultMaxPackageBytes` = 512 MiB (L75, L270–277); symlink rejection via `Link` with `followLinks: false` (L255–261); error/warning collection model (L56–153).
 - **`cores/nesbyte/manifest.json`** — bundled core reference shape; `delivery: bundled` on all platforms; 3 artifact pins; `bios_files: ["disksys.rom"]`; provenance present.
-- **`cores/gambatte/manifest.json`** — gated core; `gated_reason` present; `delivery: absent` on all platforms; 3 artifact pins despite being gated.
 - **`cores/citra_hold/manifest.json`** — hold core; `blocked_reason` present; `artifacts: {}`; `bios_required: true` with `bios_files: []` (triggers §3.6 warning); `execution` absent.
 - **`lib/services/retro_info_parser.dart`** — `.info` grammar: `key = "value"` (L9), `#` comments (L148), `\` line continuation (L101–106, `_isContinuation` L134–142), `\"`/`\\` escapes (L186–198), lenient parse (L93–129), typed getters (`corename`, `systemname`, `supported_extensions`, `firmware_count`, L49–86).
 - **`lib/models/core_manifest.dart`** — Model fields (L7–42); `delivery` iOS rule in `toJson` note (L87–88) and `validate()` (L106–108); execution `interpreter\|dynarec` (L40–42, L112–119); blocked-core-no-artifacts (L109–111); required-field checks in `validate()` (L100–105).
