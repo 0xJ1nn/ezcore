@@ -86,6 +86,19 @@ if(APPLE)
 endif()
 
 # Variants used to verify that optional libretro entry points may be absent.
+add_library(synth_audio_head_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_audio_head_libretro PRIVATE
+  EZCORE_SYNTH_AUDIO_HEAD_ONLY
+)
+target_include_directories(synth_audio_head_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_audio_head_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 add_library(synth_no_cheat_libretro SHARED
   test/synth_core/synth_test_core.c
 )
