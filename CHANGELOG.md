@@ -38,6 +38,7 @@ All notable changes to ezCORE are documented here. The format follows
 ### Documentation and release preparation
 
 - Rewrote the core matrix as a short level reference and a one-word table with a last-verified date per row; the detailed evidence is kept by the maintainers. [ios, android, macos, linux, windows]
+- Tightened the documentation test so the core matrix must keep exactly five release targets, a dated row for every core, a level ladder ending in PLAYS, and no private evidence or internal notes in the public text.
 - Added a privacy policy and terms of use. The policy records that the library,
   saves, settings and tip tally stay on the device, and that the only requests
   leaving it are the store's purchase check and the optional daily update
