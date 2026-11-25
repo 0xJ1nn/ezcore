@@ -6,6 +6,14 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- Removed four catalog cores that were build recipes only: three used
+  non-commercial upstream licences and one used a GPL-2.0-only licence that
+  cannot be combined with the application. Their manifests, build recipes,
+  catalog entries, artwork and matrix rows are gone. No binary from them was
+  ever distributed. [ios, android, macos, linux, windows]
+
 ### Added
 
 - Android presents emulator video through a Flutter surface texture: the runtime writes each frame into the surface, and frame-time statistics are logged while the player runs. [android]

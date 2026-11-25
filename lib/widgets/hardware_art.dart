@@ -43,7 +43,7 @@ String hardwareArtworkAsset(
   } else if (_containsAny(normalized, const {'gba', 'gameboyadvance'})) {
     family = 'advancebit';
   } else if (_containsAny(normalized, const {'gbc', 'gameboycolor'})) {
-    family = 'gambatte';
+    family = 'pocketbit';
   } else if (_containsAny(normalized, const {'gb', 'gameboy'})) {
     family = 'pocketbit';
   } else if (_containsAny(normalized, const {
@@ -56,13 +56,6 @@ String hardwareArtworkAsset(
     family = 'geometry1';
   } else if (_containsAny(normalized, const {'n64', 'nintendo64'})) {
     family = 'rcp64';
-  } else if (_containsAny(normalized, const {
-    'arcade',
-    'neogeo',
-    'mame',
-    'fbneo',
-  })) {
-    family = 'coinbox';
   } else if (_containsAny(normalized, const {'scumm', 'scummvm', 'amiga'})) {
     family = 'pointclick';
   } else if (_containsAny(normalized, const {
@@ -103,17 +96,6 @@ String hardwareArtworkAsset(
     'pcecd',
   })) {
     family = 'cardcon';
-  } else if (_containsAny(normalized, const {
-    'genesis',
-    'megadrive',
-    'sms',
-    'gg',
-    'sg1000',
-    'scd',
-  })) {
-    family = 'blastproc';
-  } else if (_containsAny(normalized, const {'snes', 'supernes'})) {
-    family = 'superfx';
   } else if (_containsAny(normalized, const {'nes', 'fds', 'famicom'})) {
     family = 'nesbyte';
   }
@@ -123,11 +105,8 @@ String hardwareArtworkAsset(
 
 const _directArtwork = <String, String>{
   'pocketbit': 'pocketbit',
-  'gambatte': 'gambatte',
   'advancebit': 'advancebit',
   'nesbyte': 'nesbyte',
-  'superfx': 'superfx',
-  'blastproc': 'blastproc',
   'joystick': 'joystick',
   'realmode': 'realmode',
   'cardcon': 'cardcon',
@@ -138,7 +117,6 @@ const _directArtwork = <String, String>{
   'dreamarc': 'dreamarc',
   'powercube': 'powercube',
   'twinsh': 'twinsh',
-  'coinbox': 'coinbox',
   'pointclick': 'pointclick',
   'lrps2': 'lrps2',
   // DualVU is a PS2 core. The design's PS2 hardware art is exported into the

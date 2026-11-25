@@ -63,7 +63,7 @@ void main() {
 
   final results = [
     ready('Games/GBA/ember-circuit.gba', 'gba', 'advancebit', 16 * mb),
-    ready('Games/SNES/riverlight (USA).sfc', 'snes', 'superfx', 4 * mb),
+    ready('Games/NES/Riverlight (USA).nes', 'nes', 'nesbyte', 4 * mb),
     ready('Games/NDS/paper_lunar.nds', 'nds', 'dualscreen', 128 * mb),
     duplicate('Games/GBA/starfall_courier.gba'),
     noCore('Games/GC/tide-engine.iso', 'gc'),
@@ -75,7 +75,7 @@ void main() {
     await tester.runAsync(() async {
       await state.load();
       installCore(state, 'advancebit');
-      installCore(state, 'superfx');
+      installCore(state, 'nesbyte');
       installCore(state, 'dualscreen');
       await state.addRomFolder('/Games');
     });
@@ -158,7 +158,7 @@ void main() {
     expect(find.text('Skipped'), findsOneWidget);
     // The region tag is metadata, not part of the title.
     expect(find.text('Riverlight'), findsOneWidget);
-    expect(find.text('riverlight (USA).sfc'), findsNothing);
+    expect(find.text('riverlight (USA).nes'), findsNothing);
     expect(find.textContaining('One file was already in your collection'),
         findsOneWidget);
     expect(tester.takeException(), isNull);

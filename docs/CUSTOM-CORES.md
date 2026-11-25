@@ -59,7 +59,6 @@ any other top-level key fails validation.
 | `execution` | object | optional | Per-OS strategy: `interpreter` or `dynarec` |
 | `provenance` | object | optional | `built_from`, `upstream_license`, `relationship` |
 | `blocked_reason` | string | hold cores | Why a core is under a legal or IP hold |
-| `gated_reason` | string | gated cores | Why the project distributes only the recipe |
 | `notes` | string | optional | Free-form operator notes |
 | `default_options` | object | optional | Starting values for the core's own options |
 | `system_data` | string[] | optional | Core-owned folders supplied under `system/` |
@@ -273,11 +272,9 @@ failed validation stages nothing.
 
 Cores installed this way are labelled **Unverified**. The project has not
 reviewed them, they never update themselves, and they run only because you chose
-to install them. A core with `blocked_reason` is refused. A core with
-`gated_reason` can be installed from your own build with a warning: the project
-distributes its recipe only, and you are responsible for the rights to the
-build. iOS does not support installing native code at runtime; its cores are
-built into the app.
+to install them. A core with `blocked_reason` is refused. You are responsible
+for the rights to any core you build yourself. iOS does not support installing
+native code at runtime; its cores are built into the app.
 
 ## Crash containment and the runtime host protocol
 
@@ -352,8 +349,6 @@ first-party cores that may not be extracted or redistributed.
 
 - Cores with `blocked_reason` are legal holds. They are never built, pinned,
   shipped or installed. The 3DS and Switch slots are held under project policy.
-- Cores with `gated_reason` build but have `delivery: absent` on every platform
-  and are not distributed by the project.
 - A package may not contain a ROM, BIOS, firmware, key, box art or commercial
   game title. Firmware fields name files; they never carry content.
 - The app never compiles cores on the device.
