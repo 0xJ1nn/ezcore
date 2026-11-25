@@ -76,7 +76,6 @@ it.
    answers "no" to almost everything a core asks.
 
 **The keystone gap (verified 2026-09-26; count re-verified 2026-11-25 — 102 was
-
 the number of unique `RETRO_ENVIRONMENT_*` defines in the vendored
 `runtime/external/libretro-common/include/libretro.h` at the last recorded
 check):** `env_cb` implements **22 of the 102** `RETRO_ENVIRONMENT_*` commands;

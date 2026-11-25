@@ -6,9 +6,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Name shared with the Linux and Windows runners.
-const String videoChannelName = 'ezcore/video';
-
 /// The Android video texture: a Flutter `SurfaceProducer` registered by the
 /// platform side, whose `ANativeWindow` the runtime writes into. Only the
 /// texture id crosses into Dart; every frame stays on the native side.
@@ -151,6 +148,9 @@ class FrameStats {
       'p50=${p50Ms.toStringAsFixed(2)}ms p95=${p95Ms.toStringAsFixed(2)}ms '
       'p99=${p99Ms.toStringAsFixed(2)}ms max=${maxMs.toStringAsFixed(2)}ms';
 }
+
+/// Name shared with the Linux and Windows runners.
+const String videoChannelName = 'ezcore/video';
 
 /// Access to the native frame texture on the desktop targets.
 ///

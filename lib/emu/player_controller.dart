@@ -57,11 +57,9 @@ class PlayerController extends ChangeNotifier {
   NativeLoopStats? get loopStats => _loop?.lastStats;
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
-
-  /// Keeps the Android surface composited while the runtime owns frame pacing,
-  /// and publishes run-loop frames into the desktop Flutter texture. The timer
-  /// path marks the texture in [_tick]; the run loop needs the same nudge at
-  /// display rate instead.
+  /// Keeps the composited textures current while the runtime owns frame
+  /// pacing: the Android surface producer and the desktop bridge both need a
+  /// nudge at display rate, while the timer path marks them in [_tick].
   Timer? _videoTimer;
   void _startVideoPump() {
     _videoTimer?.cancel();
@@ -73,11 +71,10 @@ class PlayerController extends ChangeNotifier {
     _videoTimer = Timer.periodic(
       Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
       (_) {
-        if (!_closed && !paused && !_disposed) {
-          if (usingTexture) unawaited(video.markFrame());
-          if (videoTexture.textureId != null) {
-            unawaited(videoTexture.frameReady());
-          }
+        if (_closed || paused || _disposed) return;
+        if (usingTexture) unawaited(video.markFrame());
+        if (videoTexture.textureId != null) {
+          unawaited(videoTexture.frameReady());
         }
       },
     );
@@ -155,12 +152,10 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
-    canSaveStates = info['canSave'] as bool? ?? true;
     await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
         (info['height'] as num?)?.toInt() ?? 0);
     final address = info['sessionAddress'] as int? ?? 0;
     if (address != 0) await videoTexture.open(address);
-
 
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
@@ -191,6 +186,8 @@ class PlayerController extends ChangeNotifier {
       }
     }
 
+    // Video is attached once above. The runtime-owned loop presents through
+    // its own bridge; the timer loop nudges the surface and desktop textures.
 
     await _startAudio();
     running = true;
@@ -227,6 +224,7 @@ class PlayerController extends ChangeNotifier {
       placeholder.complete,
     );
     if (!_closed) frame = await placeholder.future;
+
   }
 
   Future<void> _startAudio() async {
@@ -257,6 +255,9 @@ class PlayerController extends ChangeNotifier {
         if (last != null) frameStats.sample(now.difference(last));
         _lastFrameAt = now;
 
+        if (videoTexture.textureId != null) {
+          await videoTexture.frameReady();
+        }
         if (usingTexture && packet['presented'] == true) {
           // The runtime wrote the frame into the surface. Flutter only needs a
           // nudge to composite it; no pixel copy crosses into Dart.
@@ -266,7 +267,6 @@ class PlayerController extends ChangeNotifier {
           }
           _notify();
         } else {
-          await videoTexture.frameReady();
           final data = packet['rgba'] as Uint8List?;
           if (data != null) {
             final completer = Completer<ui.Image>();
