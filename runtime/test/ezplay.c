@@ -466,31 +466,57 @@ static bool resolve_button(const char *name, bool *is_key, unsigned *id) {
  * cheap first line of defence against a foreign dump being scored by the
  * wrong spec; a core that accepts the wrong bytes still cannot pass the
  * video/audio checks that follow. */
-static bool content_matches(const char *system, const char *content) {
-  const char *exts = NULL;
-  if (!strcmp(system, "nes") || !strcmp(system, "fds")) exts = " nes ";
-  else if (!strcmp(system, "gb") || !strcmp(system, "gbc")) exts = " gb gbc ";
-  else if (!strcmp(system, "gba")) exts = " gba ";
-  else if (!strcmp(system, "synth")) exts = " synth ";
-  else if (!strcmp(system, "genesis")) exts = " md genesis bin ";
-  else if (!strcmp(system, "snes")) exts = " snes sfc ";
-  else if (!strcmp(system, "psx")) exts = " cue bin chd ";
-  else if (!strcmp(system, "n64")) exts = " n64 z64 v64 ";
-  else if (!strcmp(system, "nds")) exts = " nds ";
-  else if (!strcmp(system, "psp")) exts = " iso cso pbp ";
-  else if (!strcmp(system, "pce")) exts = " pce ";
-  else if (!strcmp(system, "atari2600")) exts = " bin a26 ";
-  else if (!strcmp(system, "dos")) exts = " exe zip com bat ";
-  else if (!strcmp(system, "scumm")) exts = " zip scumm ";
-  else if (!strcmp(system, "watara")) exts = " bin wav ";
-  else if (!strcmp(system, "lcdhandheld")) exts = " mgw ";
-  if (!exts) return true;                  /* unknown system: no extension gate */
+static const char *content_extensions(const char *system) {
+  if (!strcmp(system, "nes") || !strcmp(system, "fds")) return " nes ";
+  if (!strcmp(system, "gb") || !strcmp(system, "gbc")) return " gb gbc ";
+  if (!strcmp(system, "gba")) return " gba ";
+  if (!strcmp(system, "synth")) return " synth ";
+  if (!strcmp(system, "genesis")) return " md genesis bin ";
+  if (!strcmp(system, "snes")) return " snes sfc ";
+  if (!strcmp(system, "psx")) return " cue bin chd ";
+  if (!strcmp(system, "n64")) return " n64 z64 v64 ";
+  if (!strcmp(system, "nds")) return " nds ";
+  if (!strcmp(system, "psp")) return " iso cso pbp ";
+  if (!strcmp(system, "pce")) return " pce ";
+  if (!strcmp(system, "atari2600")) return " bin a26 ";
+  if (!strcmp(system, "dos")) return " exe zip com bat ";
+  if (!strcmp(system, "scumm")) return " zip scumm ";
+  if (!strcmp(system, "watara")) return " bin wav ";
+  if (!strcmp(system, "lcdhandheld")) return " mgw ";
+  return NULL;                             /* unknown system: no extension gate */
+}
+
+static void content_extension(const char *content, char *out, size_t len) {
+  out[0] = '\0';
   const char *dot = strrchr(content, '.');
-  if (!dot) return false;
-  char want[16] = {0};
+  if (!dot) return;
   size_t n = 0;
-  for (const char *p = dot + 1; *p && n < sizeof(want) - 1; p++)
-    want[n++] = (char)tolower((unsigned char)*p);
+  for (const char *p = dot + 1; *p && n + 1 < len; p++)
+    out[n++] = (char)tolower((unsigned char)*p);
+  out[n] = '\0';
+}
+
+static void describe_extensions(const char *exts, char *out, size_t len) {
+  out[0] = '\0';
+  size_t used = 0;
+  for (const char *p = exts; *p;) {
+    while (*p == ' ') p++;
+    if (!*p) break;
+    const char *start = p;
+    while (*p && *p != ' ') p++;
+    int written = snprintf(out + used, len - used, "%s.%.*s",
+                           used ? ", " : "", (int)(p - start), start);
+    if (written < 0 || (size_t)written >= len - used) break;
+    used += (size_t)written;
+  }
+}
+
+static bool content_matches(const char *system, const char *content) {
+  const char *exts = content_extensions(system);
+  if (!exts) return true;
+  char want[16];
+  content_extension(content, want, sizeof(want));
+  if (!want[0]) return false;
   char needle[24];
   snprintf(needle, sizeof(needle), " %s ", want);
   return strstr(exts, needle) != NULL;
@@ -1215,10 +1241,21 @@ int main(int argc, char **argv) {
   result.save_verdict = sp.save_state_na ? "SKIP" : NULL;
 
   if (!content_matches(sp.system, content)) {
-    snprintf(result.error, sizeof(result.error),
-             "content does not match the spec system '%s'", sp.system);
+    const char *exts = content_extensions(sp.system);
+    char ext[16] = "(none)", accepted[160];
+    content_extension(content, ext, sizeof(ext));
+    if (!ext[0]) snprintf(ext, sizeof(ext), "(none)");
+    describe_extensions(exts ? exts : "", accepted, sizeof(accepted));
+    if (exts)
+      snprintf(result.error, sizeof(result.error),
+               "unsupported content '.%s' for system '%s': expected %s; "
+               "provide a compatible dump", ext, sp.system, accepted);
+    else
+      snprintf(result.error, sizeof(result.error),
+               "unsupported content '.%s' for system '%s'", ext, sp.system);
     result.verdict = "FAIL";
     result.exit_code = 12;
+    fprintf(stderr, "ezplay: %s\n", result.error);
     print_result(stdout, &result);
     return 12;
   }

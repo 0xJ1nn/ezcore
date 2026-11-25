@@ -148,6 +148,7 @@ final class PcmAudioSink {
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let audio = PcmAudioSink()
   private var gamepad: GamepadBridge?
+  private var video: EzcoreVideoTextureBridge?
 
   override func application(
     _ application: UIApplication,
@@ -158,6 +159,19 @@ final class PcmAudioSink {
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+
+    // One Swift bridge serves both Apple targets. The runner only supplies
+    // the registry calls; the IOSurface pool and channel live in the shared
+    // source so iOS and macOS cannot present different frames.
+    let registrar = engineBridge.applicationRegistrar
+    let textures = registrar.textures()
+    video = EzcoreVideoTextureBridge(
+      messenger: registrar.messenger(),
+      register: { texture in textures.registerTexture(texture) },
+      frameAvailable: { id in textures.textureFrameAvailable(id) },
+      unregister: { id in textures.unregisterTexture(id) }
+    )
+
     let channel = FlutterMethodChannel(name: "ezcore/audio",
                                        binaryMessenger: engineBridge.applicationRegistrar.messenger())
     channel.setMethodCallHandler { [weak self] call, result in
