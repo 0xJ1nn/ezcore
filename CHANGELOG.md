@@ -16,6 +16,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- An IOSurface-backed video texture bridge on iOS and macOS. One shared Swift source presents emulator frames through Flutter's texture registry, with a video channel for CPU frames and a locked-buffer entry point for hardware-rendered cores. [ios, macos]
 - The player can hand frame pacing to the runtime-owned run thread when the loaded runtime provides both the loop and a video bridge. Input goes into the loop's atomics and the display reads a two-per-second statistics stream; the original per-frame timer remains available through a hidden setting for one release. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
