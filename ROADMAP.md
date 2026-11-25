@@ -94,7 +94,7 @@ the whole product.
 > so verify before quoting them):
 >
 > ```bash
-> # commands DEFINED by the vendored libretro header (98 at the last recorded check).
+> # commands DEFINED by the vendored libretro header (102 at the last recorded check).
 > # Anchor on the #define: a plain substring grep also matches doc-comment
 > # references like \ref RETRO_ENVIRONMENT_GET_ASSET_DIRECTORY, which are not
 > # real commands — that is what produced the earlier, wrong "96".
