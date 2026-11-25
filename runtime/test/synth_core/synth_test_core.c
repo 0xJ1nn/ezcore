@@ -25,6 +25,7 @@
  */
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "libretro.h"
@@ -160,17 +161,50 @@ bool retro_load_game(const struct retro_game_info *game) {
 #endif
            sizeof(g_legacy_sram));
 #if !defined(EZCORE_SYNTH_LEGACY_SRAM_ZERO) && \
-    !defined(EZCORE_SYNTH_LEGACY_SRAM_ERASED)
+    !defined(EZCORE_SYNTH_LEGACY_SRAM_ERASED) && \
+    !defined(EZCORE_SYNTH_LEGACY_SRAM_INPUT)
     /* Simulate a game writing battery RAM: the region now holds two
      * distinct byte values, which is the smallest honest save evidence. */
     g_legacy_sram[0] = 0x5A;
     g_legacy_sram[sizeof(g_legacy_sram) - 1] = 0x5A;
 #endif
+#if defined(EZCORE_SYNTH_LEGACY_SRAM_INPUT)
+    /* This fixture starts uniform and only writes battery RAM when the
+     * scripted button is pressed. Only the short battery round-trip session
+     * flushes the save file; the long evidence session deliberately does not,
+     * so the test isolates what the battery check itself exercised. */
+    const char *save_dir = NULL;
+    if (env_cb && env_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_dir) &&
+        save_dir && g_state.frame_counter < 200) {
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/synth-input-sram.bin", save_dir);
+        FILE *f = fopen(path, "rb");
+        if (f) {
+            size_t got = fread(g_legacy_sram, 1, sizeof(g_legacy_sram), f);
+            (void)got;
+            fclose(f);
+        }
+    }
+#endif
 #endif
     return true;
 }
 
-void retro_unload_game(void) { }
+void retro_unload_game(void) {
+#if defined(EZCORE_SYNTH_LEGACY_SRAM_INPUT)
+    const char *save_dir = NULL;
+    if (env_cb && env_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &save_dir) &&
+        save_dir && g_state.frame_counter < 200) {
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/synth-input-sram.bin", save_dir);
+        FILE *f = fopen(path, "wb");
+        if (f) {
+            fwrite(g_legacy_sram, 1, sizeof(g_legacy_sram), f);
+            fclose(f);
+        }
+    }
+#endif
+}
 
 unsigned retro_get_region(void) { return RETRO_REGION_NTSC; }
 
@@ -233,6 +267,10 @@ void retro_run(void) {
         g_state.button_state = mask;
 #endif
     }
+
+#if defined(EZCORE_SYNTH_LEGACY_SRAM_INPUT)
+    if (g_state.button_state) g_legacy_sram[0] = 0x5A;
+#endif
 
     g_state.frame_counter++;
 

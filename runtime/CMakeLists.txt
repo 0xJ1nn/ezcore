@@ -200,10 +200,21 @@ target_compile_definitions(synth_legacy_sram_erased_libretro PRIVATE
 target_include_directories(synth_legacy_sram_erased_libretro PRIVATE
   external/libretro-common/include
 )
+# Battery RAM that only appears after the spec's scripted button press.
+add_library(synth_input_sram_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_input_sram_libretro PRIVATE
+  EZCORE_SYNTH_LEGACY_SRAM EZCORE_SYNTH_LEGACY_SRAM_INPUT
+)
+target_include_directories(synth_input_sram_libretro PRIVATE
+  external/libretro-common/include
+)
 if(APPLE)
   set_target_properties(synth_legacy_sram_libretro PROPERTIES SUFFIX ".dylib")
   set_target_properties(synth_legacy_sram_zero_libretro PROPERTIES SUFFIX ".dylib")
   set_target_properties(synth_legacy_sram_erased_libretro PROPERTIES SUFFIX ".dylib")
+  set_target_properties(synth_input_sram_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
 # --- Synthetic core that exercises core-options & capability env calls ---
@@ -550,6 +561,7 @@ if(PYTHON3_EXECUTABLE)
             test_ezplay.EzplayTest.test_battery_reads_legacy_sram
             test_ezplay.EzplayTest.test_zero_filled_sram_is_not_battery_evidence
             test_ezplay.EzplayTest.test_erased_flash_is_not_battery_evidence
+            test_ezplay.EzplayTest.test_battery_session_runs_scripted_input
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test)
   set_tests_properties(ezplay_legacy_sram PROPERTIES
     ENVIRONMENT "EZPLAY_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}")
