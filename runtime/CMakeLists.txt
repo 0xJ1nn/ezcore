@@ -155,8 +155,8 @@ if(APPLE)
 endif()
 
 # Battery RAM exposed only through the legacy libretro memory API, with no
-# memory-map descriptors. The harness must read it; a zero-filled variant must
-# not be mistaken for a real save. Neither fixture contains game content.
+# memory-map descriptors. The harness must read it; zero-filled and erased
+# variants must not be mistaken for real saves. No fixture contains content.
 add_library(synth_legacy_sram_libretro SHARED
   test/synth_core/synth_test_core.c
 )
@@ -175,9 +175,19 @@ target_compile_definitions(synth_legacy_sram_zero_libretro PRIVATE
 target_include_directories(synth_legacy_sram_zero_libretro PRIVATE
   external/libretro-common/include
 )
+add_library(synth_legacy_sram_erased_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_legacy_sram_erased_libretro PRIVATE
+  EZCORE_SYNTH_LEGACY_SRAM EZCORE_SYNTH_LEGACY_SRAM_ERASED
+)
+target_include_directories(synth_legacy_sram_erased_libretro PRIVATE
+  external/libretro-common/include
+)
 if(APPLE)
   set_target_properties(synth_legacy_sram_libretro PROPERTIES SUFFIX ".dylib")
   set_target_properties(synth_legacy_sram_zero_libretro PROPERTIES SUFFIX ".dylib")
+  set_target_properties(synth_legacy_sram_erased_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
 # --- Synthetic core that exercises core-options & capability env calls ---
@@ -516,13 +526,14 @@ add_test(NAME ezplay_watara_sv
     --spec ${CMAKE_CURRENT_SOURCE_DIR}/test/ezplay_spec_watara.json)
 
 # Battery RAM read path: a core that exposes SRAM only through the legacy
-# libretro memory API must round-trip, and a zero-filled region must not count
-# as battery evidence. The synthetic cores carry no game content.
+# libretro memory API must round-trip; zero-filled and erased-flash regions
+# must not count as battery evidence. The synthetic cores carry no content.
 if(PYTHON3_EXECUTABLE)
   add_test(NAME ezplay_legacy_sram
     COMMAND ${PYTHON3_EXECUTABLE} -m unittest
             test_ezplay.EzplayTest.test_battery_reads_legacy_sram
             test_ezplay.EzplayTest.test_zero_filled_sram_is_not_battery_evidence
+            test_ezplay.EzplayTest.test_erased_flash_is_not_battery_evidence
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test)
   set_tests_properties(ezplay_legacy_sram PROPERTIES
     ENVIRONMENT "EZPLAY_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}")
