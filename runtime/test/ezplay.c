@@ -779,6 +779,9 @@ static int run_main_session(const context_t *ctx, result_t *r) {
     if (i == 60) unpaced_start = now_ns();
     apply_input(s, &input[i], prev_keys);
     ezcore_run_frame(s);
+    /* The play spec measures audio from the last event's release frame, not
+     * from boot/menu audio. Discard the earlier window at that boundary. */
+    if (i == F) memset(&acc, 0, sizeof(acc));
     drain_audio(s, &acc);
 
     if (!frame_digest(s, all + (size_t)i * 65, &cols[i])) {

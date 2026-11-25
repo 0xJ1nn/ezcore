@@ -233,6 +233,11 @@ void retro_run(void) {
     int16_t sample = (int16_t)(0x1000 ^ btn_lo);
 #endif
 
+#if defined(EZCORE_SYNTH_AUDIO_HEAD_ONLY)
+    /* Frames 0..45 only: the play spec's last event releases at frame 46.
+     * Audio after that must be silent so the measured RMS window is exact. */
+    if (g_state.frame_counter >= 46) sample = 0;
+#endif
     static int16_t audio_buf[2048];
     for (size_t i = 0; i < AUDIO_FRAMES_PER_RUN; i++) {
         audio_buf[i * 2]     = sample;
