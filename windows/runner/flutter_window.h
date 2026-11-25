@@ -8,7 +8,9 @@
 
 #include "win32_window.h"
 
-// A window that does nothing but host a Flutter view.
+class VideoChannel;
+
+// A window that hosts a Flutter view and its video texture.
 class FlutterWindow : public Win32Window {
  public:
   // Creates a new FlutterWindow hosting a Flutter view running |project|.
@@ -28,6 +30,9 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+
+  // Registers the frame texture once the engine exists.
+  std::unique_ptr<VideoChannel> video_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

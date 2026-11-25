@@ -6,6 +6,7 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include "video_channel.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -84,6 +85,10 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_realize(GTK_WIDGET(view));
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
+
+  // The frame texture is registered on the engine once the view exists. The
+  // player asks for it over the video channel when a session starts.
+  ezcore_video_channel_setup(view);
 
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }

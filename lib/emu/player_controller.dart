@@ -17,10 +17,12 @@ class PlayerController extends ChangeNotifier {
   PlayerController({
     PcmOutput? audio,
     VideoTextureController? video,
+    DesktopVideoTexture? videoTexture,
     NativeLoopProbe? nativeLoopProbe,
     Map<String, dynamic> settings = const {},
   })  : audio = audio ?? createPlatformPcm(),
         video = video ?? VideoTextureController(),
+        videoTexture = videoTexture ?? DesktopVideoTexture(),
         _loopProbe = nativeLoopProbe ?? probeNativeLoop,
         _settings = Map<String, dynamic>.from(settings);
   final PcmOutput audio;
@@ -30,6 +32,11 @@ class PlayerController extends ChangeNotifier {
   final VideoTextureController video;
   final FrameStats frameStats = FrameStats();
   bool get usingTexture => video.active;
+
+  /// Native desktop texture; null until a session attaches to it.
+  final DesktopVideoTexture videoTexture;
+
+  int? get textureId => videoTexture.textureId;
 
   /// Runtime-owned emulation, when both the loop and a video bridge are
   /// present. The per-frame timer is kept as the fallback for one release.
@@ -51,16 +58,27 @@ class PlayerController extends ChangeNotifier {
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
 
-  /// Keeps the Android surface composited while the runtime owns frame pacing.
+  /// Keeps the Android surface composited while the runtime owns frame pacing,
+  /// and publishes run-loop frames into the desktop Flutter texture. The timer
+  /// path marks the texture in [_tick]; the run loop needs the same nudge at
+  /// display rate instead.
   Timer? _videoTimer;
   void _startVideoPump() {
     _videoTimer?.cancel();
     _videoTimer = null;
-    if (!_usingNativeLoop || !running || paused || !usingTexture) return;
+    if (!_usingNativeLoop || !running || paused ||
+        (!usingTexture && videoTexture.textureId == null)) {
+      return;
+    }
     _videoTimer = Timer.periodic(
       Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
       (_) {
-        if (!_closed && !paused && !_disposed) unawaited(video.markFrame());
+        if (!_closed && !paused && !_disposed) {
+          if (usingTexture) unawaited(video.markFrame());
+          if (videoTexture.textureId != null) {
+            unawaited(videoTexture.frameReady());
+          }
+        }
       },
     );
   }
@@ -140,11 +158,12 @@ class PlayerController extends ChangeNotifier {
     canSaveStates = info['canSave'] as bool? ?? true;
     await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
         (info['height'] as num?)?.toInt() ?? 0);
+    final address = info['sessionAddress'] as int? ?? 0;
+    if (address != 0) await videoTexture.open(address);
 
 
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
-    final address = info['sessionAddress'] as int? ?? 0;
     if (!legacyFrameLoopRequested(_settings)) {
       NativeLoopSession? candidate;
       try {
@@ -247,6 +266,7 @@ class PlayerController extends ChangeNotifier {
           }
           _notify();
         } else {
+          await videoTexture.frameReady();
           final data = packet['rgba'] as Uint8List?;
           if (data != null) {
             final completer = Completer<ui.Image>();
