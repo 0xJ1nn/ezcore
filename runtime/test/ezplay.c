@@ -946,6 +946,29 @@ static memblob collect_memory(ezcore_session *s, uint64_t want_flag) {
     memcpy(b.data + b.len, ptr, len);
     b.len += len;
   }
+  /* Many cores expose battery RAM only through the legacy libretro memory API
+   * and either register no memory maps or leave SAVE_RAM unflagged. Use it as
+   * a fallback, but never label a region battery-backed that the core does
+   * not report as SAVE_RAM. */
+  if (!b.len && want_flag == RETRO_MEMDESC_SAVE_RAM) {
+    void *legacy = NULL;
+    size_t legacy_len = 0;
+    if (ezcore_get_legacy_memory(s, RETRO_MEMORY_SAVE_RAM, &legacy,
+                                 &legacy_len) && legacy_len <= MAX_SRAM_BYTES) {
+      b.data = malloc(legacy_len);
+      if (b.data) {
+        memcpy(b.data, legacy, legacy_len);
+        b.len = legacy_len;
+      }
+    }
+  }
+  /* A zero-filled SRAM region is not proof that gameplay wrote battery
+   * memory; reject it instead of reporting a false PASS. */
+  if (want_flag == RETRO_MEMDESC_SAVE_RAM && b.len) {
+    bool any = false;
+    for (size_t i = 0; i < b.len; i++) if (b.data[i]) { any = true; break; }
+    if (!any) { free(b.data); b.data = NULL; b.len = 0; }
+  }
   return b;
 }
 

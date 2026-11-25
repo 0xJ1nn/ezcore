@@ -319,6 +319,12 @@ bool ezcore_get_memory_descriptor(ezcore_session *s, unsigned index,
                                   size_t *select, size_t *disconnect,
                                   size_t *len, const char **addrspace);
 
+/* Legacy libretro SRAM access. Cores that register no memory-map descriptors
+ * (or leave SAVE_RAM unflagged) still expose battery RAM here. Returns false
+ * when the core lacks the optional entry points or the region is empty. */
+bool ezcore_get_legacy_memory(ezcore_session *s, unsigned id,
+                              void **ptr, size_t *size);
+
 #ifdef __cplusplus
 }
 #endif

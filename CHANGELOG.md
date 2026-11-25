@@ -30,6 +30,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The play harness now reads battery RAM exposed through the legacy libretro memory API when a core registers no SAVE_RAM memory map, and rejects a zero-filled region as save evidence. [ios, android, macos, linux, windows]
 - The dual-screen core build recipe now uses the live upstream repository and checks out a fixed revision, so a rebuild does not silently move to a different upstream tree. Checks now verify every build source and confirm that cores under legal hold have no build recipe. [ios, android, macos, linux, windows]
 - The play harness now reports the content format it received and the formats the spec accepts when it rejects a dump, in both its diagnostic output and its result. [ios, android, macos, linux, windows]
 
