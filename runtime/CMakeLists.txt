@@ -482,6 +482,10 @@ configure_file(test/ezplay_spec_synth.json
                "${CMAKE_CURRENT_BINARY_DIR}/ezplay_spec_synth.json" COPYONLY)
 configure_file(test/ezplay_content.synth
                "${CMAKE_CURRENT_BINARY_DIR}/ezplay_content.synth" COPYONLY)
+configure_file(test/ezplay_spec_watara.json
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_spec_watara.json" COPYONLY)
+configure_file(test/ezplay_content.synth
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_content.sv" COPYONLY)
 add_test(NAME ezplay
   COMMAND ezplay
     --core $<TARGET_FILE:synth_libretro>
@@ -490,6 +494,13 @@ add_test(NAME ezplay
     --save-dir ${CMAKE_CURRENT_BINARY_DIR}/ezplay-save
     --spec ${CMAKE_CURRENT_SOURCE_DIR}/test/ezplay_spec_synth.json
     --cheat 0101ABCD)
+add_test(NAME ezplay_watara_sv
+  COMMAND ezplay
+    --core $<TARGET_FILE:synth_libretro>
+    --content ${CMAKE_CURRENT_BINARY_DIR}/ezplay_content.sv
+    --system-dir ${CMAKE_CURRENT_BINARY_DIR}/ezplay-system
+    --save-dir ${CMAKE_CURRENT_BINARY_DIR}/ezplay-save
+    --spec ${CMAKE_CURRENT_SOURCE_DIR}/test/ezplay_spec_watara.json)
 
 # Battery RAM read path: a core that exposes SRAM only through the legacy
 # libretro memory API must round-trip, and a zero-filled region must not count

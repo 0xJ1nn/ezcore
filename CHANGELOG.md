@@ -6,6 +6,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The play harness accepts `.sv` Supervision cartridges for Watara, matching the extensions published in the core manifest. Other file types remain refused. [ios, android, macos, linux, windows]
+
 ### Removed
 
 - Removed four catalog cores that were build recipes only: three used

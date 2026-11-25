@@ -1,0 +1,19 @@
+{
+  "system": "watara",
+  "core": "synth",
+  "frames": 120,
+  "input": [
+    {"at": 20, "press": ["a"], "hold": 6},
+    {"at": 40, "press": ["start"], "hold": 6}
+  ],
+  "checks": {
+    "video_changes_after_input": true,
+    "min_colours": 1,
+    "audio_rms_min": 0.005,
+    "speed_min": 0.97,
+    "save_state_roundtrip": true,
+    "battery_save_roundtrip": "n/a",
+    "fast_forward": {"2x": 1.8, "4x": 3.4},
+    "cheat": "optional"
+  }
+}
