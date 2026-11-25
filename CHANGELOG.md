@@ -16,6 +16,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- A self-check mode for debug and profile builds: a named play spec runs through the native harness and writes a result that records the evidence behind each claim. A passing synthetic run is reported as a runtime check, not a game boot; release builds and targets without the harness report the check as unavailable. [ios, android, macos, linux, windows]
 - An IOSurface-backed video texture bridge on iOS and macOS. One shared Swift source presents emulator frames through Flutter's texture registry, with a video channel for CPU frames and a locked-buffer entry point for hardware-rendered cores. [ios, macos]
 - The player can hand frame pacing to the runtime-owned run thread when the loaded runtime provides both the loop and a video bridge. Input goes into the loop's atomics and the display reads a two-per-second statistics stream; the original per-frame timer remains available through a hidden setting for one release. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
