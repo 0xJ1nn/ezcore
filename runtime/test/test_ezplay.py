@@ -284,6 +284,28 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(result["verdict"], "FAIL")
         self.assertIn("unsupported content", result["error"].lower())
 
+    def test_snes_cartridge_suffix_is_accepted(self):
+        """The harness must accept the widespread .smc cartridge suffix."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        spec = RUNTIME / "test" / "ezplay_spec_snes_suffix.json"
+        self.assertTrue(spec.is_file(), "the suffix spec fixture is missing")
+        with tempfile.TemporaryDirectory() as d:
+            content = Path(d) / "fixture.smc"
+            content.write_text("Synthetic harness fixture. Not game content.\n")
+            proc = subprocess.run(
+                [str(ezplay_bin()),
+                 "--core", str(synth_core()),
+                 "--content", str(content),
+                 "--system-dir", d,
+                 "--save-dir", d,
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=120)
+        self.assertNotEqual(proc.returncode, 12,
+                            f"harness refused a .smc cartridge: {proc.stdout[-800:]}"
+                            f"\n{proc.stderr[-800:]}")
+        result = json.loads(proc.stdout)
+        self.assertNotIn("unsupported content", (result.get("error") or "").lower())
+
     def test_bad_arguments_are_rejected(self):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
         proc = subprocess.run([str(ezplay_bin()), "--core", "x"],

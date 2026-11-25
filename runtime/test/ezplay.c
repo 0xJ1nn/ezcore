@@ -472,7 +472,7 @@ static const char *content_extensions(const char *system) {
   if (!strcmp(system, "gba")) return " gba ";
   if (!strcmp(system, "synth")) return " synth ";
   if (!strcmp(system, "genesis")) return " md genesis bin ";
-  if (!strcmp(system, "snes")) return " snes sfc ";
+  if (!strcmp(system, "snes")) return " snes sfc smc ";
   if (!strcmp(system, "psx")) return " cue bin chd ";
   if (!strcmp(system, "n64")) return " n64 z64 v64 ";
   if (!strcmp(system, "nds")) return " nds ";
