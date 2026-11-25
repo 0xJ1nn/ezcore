@@ -17,10 +17,17 @@ All notable changes to ezCORE are documented here. The format follows
 ### Added
 
 - A declarative build recipe and pinned upstream commit for each shippable core, with one validation and packaging driver that checks the pins before delegating the build to the existing core script. [ios, android, macos, linux, windows]
+- An IOSurface-backed video texture bridge on iOS and macOS. One shared Swift source presents emulator frames through Flutter's texture registry, with a video channel for CPU frames and a locked-buffer entry point for hardware-rendered cores. [ios, macos]
 - The player can hand frame pacing to the runtime-owned run thread when the loaded runtime provides both the loop and a video bridge. Input goes into the loop's atomics and the display reads a two-per-second statistics stream; the original per-frame timer remains available through a hidden setting for one release. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
+- A runtime-owned run thread for each session: frames paced by the audio clock, triple-buffered video, lock-free input, a control queue for pause, speed, saves and cheats, and frame-time statistics. [ios, android, macos, linux, windows]
 - The play harness finds its runtime beside the executable, so it runs when staged with the runtime and a core on another device. [android, linux, macos]
+
+### Fixed
+
+- The dual-screen core build recipe now uses the live upstream repository and checks out a fixed revision, so a rebuild does not silently move to a different upstream tree. Checks now verify every build source and confirm that cores under legal hold have no build recipe. [ios, android, macos, linux, windows]
+- The play harness now reports the content format it received and the formats the spec accepts when it rejects a dump, in both its diagnostic output and its result. [ios, android, macos, linux, windows]
 
 ### Release process
 

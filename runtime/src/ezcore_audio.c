@@ -311,5 +311,6 @@ bool ezcore_audio_stats(ezcore_audio *audio, ezcore_audio_statistics *out) {
   out->volume = (float)load32(&audio->volume_milli) / 1000.0f;
   out->muted = load32(&audio->muted) != 0;
   out->device_running = load32(&audio->running) != 0;
+  out->output_sample_rate = audio->device.sampleRate;
   return true;
 }

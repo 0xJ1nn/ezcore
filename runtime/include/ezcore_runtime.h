@@ -123,6 +123,7 @@ typedef struct {
   float volume;
   bool muted;
   bool device_running;
+  uint32_t output_sample_rate; /* device rate; used to pace the run loop */
 } ezcore_audio_statistics;
 
 ezcore_audio *ezcore_audio_open(const ezcore_audio_config *config, char *err,
@@ -131,6 +132,74 @@ void ezcore_audio_close(ezcore_audio *audio);
 void ezcore_audio_set_volume(ezcore_audio *audio, float volume);
 void ezcore_audio_set_muted(ezcore_audio *audio, bool muted);
 bool ezcore_audio_stats(ezcore_audio *audio, ezcore_audio_statistics *out);
+
+/* --- Native run loop ---
+ * The runtime owns one thread per session. It calls retro_run paced by the
+ * audio device clock (or a monotonic clock when no device is open), publishes
+ * frames into a three-slot buffer where the newest complete frame wins, and
+ * applies input and control changes written from any thread without waiting
+ * for a frame. Used both in-process and by the supervised host process. */
+typedef struct ezcore_loop ezcore_loop;
+
+typedef struct {
+  uint32_t target_fps;       /* pacing rate; 0 uses the core's geometry fps */
+  uint32_t histogram_buckets;/* frame-time histogram size; 0 selects 16 */
+  double histogram_max_ms;   /* widest bucket; 0 selects 40 ms */
+} ezcore_loop_config;
+
+typedef struct {
+  uint64_t frames_run;         /* frames completed by the loop thread */
+  uint64_t dropped_frames;     /* frames replaced before a reader pinned them */
+  uint64_t control_applied;    /* controls applied so far */
+  uint64_t control_pending;    /* controls waiting at the time of the snapshot */
+  uint64_t audio_underruns;    /* device underruns sampled from the audio device */
+  double frame_last_ms;        /* duration of the last frame's work */
+  double frame_mean_ms;
+  double frame_p50_ms;
+  double frame_p95_ms;
+  double frame_p99_ms;
+  double frame_max_ms;
+  size_t histogram_len;        /* number of buckets in histogram */
+  const uint32_t *histogram;   /* bucket i counts frames under (i+1)*max/len ms */
+} ezcore_loop_statistics;
+
+/* Starts the run thread for a loaded session. Fails when the session is NULL
+ * or a second loop is already running for it. Stops joins the thread. */
+ezcore_loop *ezcore_loop_start(ezcore_session *s, const ezcore_loop_config *config,
+                               char *err, size_t err_len);
+void ezcore_loop_stop(ezcore_loop *loop);
+
+/* Pins the newest complete frame for reading: returns XRGB8888 pixels and
+ * their dimensions, or NULL when no frame has been published yet. The slot
+ * cannot be overwritten until ezcore_loop_frame_release. Never free or keep
+ * the pointer past the release. */
+const uint32_t *ezcore_loop_frame(ezcore_loop *loop, unsigned *w, unsigned *h);
+void ezcore_loop_frame_release(ezcore_loop *loop);
+
+/* Input written from Dart through FFI. The loop copies these atomics into the
+ * session immediately before each retro_run, so no frame round trip is needed. */
+void ezcore_loop_set_button(ezcore_loop *loop, unsigned port, unsigned button,
+                            bool pressed);
+void ezcore_loop_clear_buttons(ezcore_loop *loop, unsigned port);
+void ezcore_loop_set_analog(ezcore_loop *loop, unsigned port, unsigned stick,
+                            unsigned axis, int16_t value);
+
+/* Control queue. Each call returns a token (0 means the queue was full) and
+ * is applied on the loop thread between two frames. Wait with a timeout in
+ * milliseconds; *result receives whether the core accepted the control. */
+uint64_t ezcore_loop_control_pause(ezcore_loop *loop, bool paused);
+uint64_t ezcore_loop_control_fast_forward(ezcore_loop *loop, uint32_t factor);
+uint64_t ezcore_loop_control_save(ezcore_loop *loop, void *out, size_t size);
+uint64_t ezcore_loop_control_load(ezcore_loop *loop, const void *data, size_t size);
+uint64_t ezcore_loop_control_reset(ezcore_loop *loop);
+uint64_t ezcore_loop_control_cheat_reset(ezcore_loop *loop);
+uint64_t ezcore_loop_control_cheat_set(ezcore_loop *loop, unsigned index,
+                                        bool enabled, const char *code);
+uint64_t ezcore_loop_control_option(ezcore_loop *loop, const char *key,
+                                     const char *value);
+bool ezcore_loop_control_wait(ezcore_loop *loop, uint64_t token,
+                              uint32_t timeout_ms, bool *result);
+bool ezcore_loop_stats(ezcore_loop *loop, ezcore_loop_statistics *out);
 
 /* Audio: frames appended by the audio batch callback; drained by player. */
 size_t ezcore_audio_drain(ezcore_session *s, int16_t *out, size_t frames);
