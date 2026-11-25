@@ -23,11 +23,13 @@ class EmulationService {
   Pointer<Void>? _session;
 
   bool get isRunning => _session != null;
+
   Pointer<Void> get _active =>
       _session ?? (throw StateError('No active emulation session'));
 
-  /// Address of the loaded native session. The player binds the runtime-owned
-  /// loop to this session without opening a second one.
+  /// Native address of the live session. Desktop textures read the latest
+  /// frame on the render thread without copying pixels through Dart, and the
+  /// runtime-owned loop binds here instead of opening a second session.
   int get sessionAddress => _active.address;
 
   String get coreName => runtime.coreName(_active);

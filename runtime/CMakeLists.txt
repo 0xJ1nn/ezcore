@@ -14,11 +14,14 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/libretro-common/include/libr
     "libretro.h not vendored. Run scripts/build_core.sh --fetch-headers first.")
 endif()
 
-# Platform seam: exactly one dynload implementation per target OS.
+# Platform seams: exactly one dynamic loader and one video-lock implementation
+# per target OS. The video lock is used only by the desktop texture bridge.
 if(WIN32)
   set(EZCORE_DYNLOAD_SRC src/dynload_win32.c)
+  set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_win32.c)
 else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
+  set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_posix.c)
 endif()
 
 # GPU render context (the GPU render-context design). ezcore_gpu.c is the only file that
@@ -40,6 +43,8 @@ add_library(ezcore_runtime SHARED
   src/ezcore_loop.c
   src/ezcore_gpu.c
   src/ezcore_gpu_vulkan.c
+  src/ezcore_video_texture.c
+  ${EZCORE_VIDEO_LOCK_SRC}
   ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
 )
@@ -218,6 +223,15 @@ target_include_directories(test_abi PRIVATE include)
 add_executable(test_core_player test/test_core_player.c)
 target_link_libraries(test_core_player PRIVATE ezcore_runtime)
 target_include_directories(test_core_player PRIVATE include)
+
+# Desktop video texture bridge: measured snapshot/copy regression using both
+# synthetic RGBA frames and a real core frame from the runtime.
+add_executable(test_video_texture_bridge test/test_video_texture_bridge.c)
+target_link_libraries(test_video_texture_bridge PRIVATE ezcore_runtime)
+target_include_directories(test_video_texture_bridge PRIVATE include)
+add_dependencies(test_video_texture_bridge synth_libretro)
+add_test(NAME video_texture_bridge
+  COMMAND test_video_texture_bridge $<TARGET_FILE:synth_libretro>)
 
 # Optional libretro entry points must not make a core unloadable.
 add_executable(test_optional_cheats test/test_optional_cheats.c)
@@ -428,6 +442,12 @@ elseif(UNIX)
 endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ezplay-system"
                     "${CMAKE_CURRENT_BINARY_DIR}/ezplay-save")
+# The app's self-check reads its plan and synthetic fixture from the harness
+# build directory, so a built harness needs no source tree beside it.
+configure_file(test/ezplay_spec_synth.json
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_spec_synth.json" COPYONLY)
+configure_file(test/ezplay_content.synth
+               "${CMAKE_CURRENT_BINARY_DIR}/ezplay_content.synth" COPYONLY)
 add_test(NAME ezplay
   COMMAND ezplay
     --core $<TARGET_FILE:synth_libretro>
