@@ -50,6 +50,20 @@ class PlayerController extends ChangeNotifier {
   NativeLoopStats? get loopStats => _loop?.lastStats;
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
+  /// Keeps the Android surface composited while the runtime owns frame pacing.
+  Timer? _videoTimer;
+  void _startVideoPump() {
+    _videoTimer?.cancel();
+    _videoTimer = null;
+    if (!_usingNativeLoop || !running || paused || !usingTexture) return;
+    _videoTimer = Timer.periodic(
+      Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
+      (_) {
+        if (!_closed && !paused && !_disposed) unawaited(video.markFrame());
+      },
+    );
+  }
+
 
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
@@ -122,6 +136,9 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
+    await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
+        (info['height'] as num?)?.toInt() ?? 0);
+
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
     final address = info['sessionAddress'] as int? ?? 0;
@@ -152,20 +169,20 @@ class PlayerController extends ChangeNotifier {
       }
     }
 
-    // The runtime-owned loop presents through its own video bridge. The
-    // Flutter surface texture is the presentation path for the timer loop,
-    // including Android when no native loop is available.
-    if (!_usingNativeLoop) {
-      await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
-          (info['height'] as num?)?.toInt() ?? 0);
-    }
+    // Video is attached once above. The runtime-owned loop presents through
+    // its own bridge; the timer loop uses the Flutter surface texture.
+
     await _startAudio();
     running = true;
     // Frame times start at session start, so the first presented frame is
     // measured like every other one and stats keep pace with presentations.
     _lastFrameAt = DateTime.now();
     _notify();
-    if (!_usingNativeLoop) _schedule(Duration.zero);
+    if (!_usingNativeLoop) {
+      _schedule(Duration.zero);
+    } else {
+      _startVideoPump();
+    }
   }
 
   /// Creates the Android surface and hands its native window to the session.
@@ -274,6 +291,7 @@ class PlayerController extends ChangeNotifier {
     if (_closed || !running) return;
     paused = value;
     _timer?.cancel();
+    if (value) _videoTimer?.cancel();
     await _inFlight;
     if (_usingNativeLoop) {
       final loop = _loop!;
@@ -293,7 +311,12 @@ class PlayerController extends ChangeNotifier {
     } else {
       await _startAudio();
       _lastFrameAt = DateTime.now();
-      if (!_usingNativeLoop) _schedule(Duration.zero);
+      if (!_usingNativeLoop) {
+        _schedule(Duration.zero);
+      } else {
+        _startVideoPump();
+      }
+
     }
     _notify();
   }
@@ -408,6 +431,7 @@ class PlayerController extends ChangeNotifier {
     _closed = true;
     running = false;
     _timer?.cancel();
+    _videoTimer?.cancel();
     await _inFlight;
     final loop = _loop;
     _loop = null;
