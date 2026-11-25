@@ -17,10 +17,12 @@ class PlayerController extends ChangeNotifier {
   PlayerController({
     PcmOutput? audio,
     VideoTextureController? video,
+    DesktopVideoTexture? videoTexture,
     NativeLoopProbe? nativeLoopProbe,
     Map<String, dynamic> settings = const {},
   })  : audio = audio ?? createPlatformPcm(),
         video = video ?? VideoTextureController(),
+        videoTexture = videoTexture ?? DesktopVideoTexture(),
         _loopProbe = nativeLoopProbe ?? probeNativeLoop,
         _settings = Map<String, dynamic>.from(settings);
   final PcmOutput audio;
@@ -30,6 +32,11 @@ class PlayerController extends ChangeNotifier {
   final VideoTextureController video;
   final FrameStats frameStats = FrameStats();
   bool get usingTexture => video.active;
+
+  /// Native desktop texture; null until a session attaches to it.
+  final DesktopVideoTexture videoTexture;
+
+  int? get textureId => videoTexture.textureId;
 
   /// Runtime-owned emulation, when both the loop and a video bridge are
   /// present. The per-frame timer is kept as the fallback for one release.
@@ -50,16 +57,25 @@ class PlayerController extends ChangeNotifier {
   NativeLoopStats? get loopStats => _loop?.lastStats;
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
-  /// Keeps the Android surface composited while the runtime owns frame pacing.
+  /// Keeps the composited textures current while the runtime owns frame
+  /// pacing: the Android surface producer and the desktop bridge both need a
+  /// nudge at display rate, while the timer path marks them in [_tick].
   Timer? _videoTimer;
   void _startVideoPump() {
     _videoTimer?.cancel();
     _videoTimer = null;
-    if (!_usingNativeLoop || !running || paused || !usingTexture) return;
+    if (!_usingNativeLoop || !running || paused ||
+        (!usingTexture && videoTexture.textureId == null)) {
+      return;
+    }
     _videoTimer = Timer.periodic(
       Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
       (_) {
-        if (!_closed && !paused && !_disposed) unawaited(video.markFrame());
+        if (_closed || paused || _disposed) return;
+        if (usingTexture) unawaited(video.markFrame());
+        if (videoTexture.textureId != null) {
+          unawaited(videoTexture.frameReady());
+        }
       },
     );
   }
@@ -138,10 +154,11 @@ class PlayerController extends ChangeNotifier {
     canSaveStates = info['canSave'] as bool? ?? true;
     await _attachVideo((info['width'] as num?)?.toInt() ?? 0,
         (info['height'] as num?)?.toInt() ?? 0);
+    final address = info['sessionAddress'] as int? ?? 0;
+    if (address != 0) await videoTexture.open(address);
 
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
-    final address = info['sessionAddress'] as int? ?? 0;
     if (!legacyFrameLoopRequested(_settings)) {
       NativeLoopSession? candidate;
       try {
@@ -170,7 +187,7 @@ class PlayerController extends ChangeNotifier {
     }
 
     // Video is attached once above. The runtime-owned loop presents through
-    // its own bridge; the timer loop uses the Flutter surface texture.
+    // its own bridge; the timer loop nudges the surface and desktop textures.
 
     await _startAudio();
     running = true;
@@ -207,6 +224,7 @@ class PlayerController extends ChangeNotifier {
       placeholder.complete,
     );
     if (!_closed) frame = await placeholder.future;
+
   }
 
   Future<void> _startAudio() async {
@@ -237,6 +255,9 @@ class PlayerController extends ChangeNotifier {
         if (last != null) frameStats.sample(now.difference(last));
         _lastFrameAt = now;
 
+        if (videoTexture.textureId != null) {
+          await videoTexture.frameReady();
+        }
         if (usingTexture && packet['presented'] == true) {
           // The runtime wrote the frame into the surface. Flutter only needs a
           // nudge to composite it; no pixel copy crosses into Dart.
@@ -316,7 +337,6 @@ class PlayerController extends ChangeNotifier {
       } else {
         _startVideoPump();
       }
-
     }
     _notify();
   }

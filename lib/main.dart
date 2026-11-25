@@ -22,6 +22,7 @@ import 'screens/import_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/vault_screen.dart';
+import 'selftest/selftest_startup.dart';
 import 'theme/accessibility.dart';
 import 'theme/layout.dart';
 import 'theme/tokens.dart';
@@ -35,6 +36,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Pins the mobile app-support dir before anything resolves paths.
   final dirProvider = await PlatformLocalDataDirProvider.resolve();
+  // A self-check replaces the shell in debug and profile builds. Release
+  // builds and ordinary launches take the same path on every platform.
+  if (await runStartupSelftest(dirProvider) != null) return;
   // Best-effort daily check for download builds. Store builds do nothing.
   UpdateService.instance.maybeCheckAtStartup();
   runApp(EmuApp(dirProvider: dirProvider));
