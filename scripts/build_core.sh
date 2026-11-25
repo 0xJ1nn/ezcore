@@ -343,12 +343,19 @@ build_nesbyte() {
   stage nesbyte "$SRC_DIR/Mesen/Libretro/$out"
 }
 
+# The libretro melonDS source is mirrored under several retired names; this
+# repository builds from the live upstream and checks out the exact revision
+# the shipped core was built from.
+DUALSCREEN_SHA=66b5d2634cd0a79030562811e6e05f5532f800ba
 build_dualscreen() {
-  clone https://github.com/libretro/melonDS.git "$SRC_DIR/melonDS-libretro"
-  core_reset "$SRC_DIR/melonDS-libretro"
+  clone https://github.com/libretro/melonDS.git "$SRC_DIR/melonDS"
+  core_reset "$SRC_DIR/melonDS"
+  git -C "$SRC_DIR/melonDS" cat-file -e "$DUALSCREEN_SHA^{commit}" 2>/dev/null \
+    || git -C "$SRC_DIR/melonDS" fetch --depth 1 origin "$DUALSCREEN_SHA"
+  git -C "$SRC_DIR/melonDS" checkout -q --detach "$DUALSCREEN_SHA"
   require_interpreter_ios dualscreen
-  core_make "$SRC_DIR/melonDS-libretro"
-  stage dualscreen "$SRC_DIR/melonDS-libretro/melonds_libretro.$LIB_SUFFIX"
+  core_make "$SRC_DIR/melonDS"
+  stage dualscreen "$SRC_DIR/melonDS/melonds_libretro.$LIB_SUFFIX"
 }
 
 build_joystick() {
