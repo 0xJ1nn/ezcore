@@ -21,6 +21,11 @@ All notable changes to ezCORE are documented here. The format follows
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
 - The play harness finds its runtime beside the executable, so it runs when staged with the runtime and a core on another device. [android, linux, macos]
 
+### Fixed
+
+- The dual-screen core build recipe now uses the live upstream repository and checks out a fixed revision, so a rebuild does not silently move to a different upstream tree. Checks now verify every build source and confirm that cores under legal hold have no build recipe. [ios, android, macos, linux, windows]
+- The play harness now reports the content format it received and the formats the spec accepts when it rejects a dump, in both its diagnostic output and its result. [ios, android, macos, linux, windows]
+
 ### Release process
 
 - Documented the release loop, the separate version schemes for the app and core sets, and who may perform each release step. A hygiene check now requires a changelog entry with every change to shipped code, and `scripts/release.sh --notes` prints the unreleased entries as draft release notes. [ios, android, macos, linux, windows]

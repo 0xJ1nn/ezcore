@@ -117,6 +117,32 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(result["verdict"], "FAIL")
         self.assertIn("content", result["error"].lower())
 
+    def test_unsupported_content_names_the_accepted_formats(self):
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        spec = RUNTIME / "test" / "ezplay_spec_psx_reject.json"
+        self.assertTrue(spec.is_file(), "the disc-system spec fixture is missing")
+        with tempfile.TemporaryDirectory() as d:
+            unsupported = Path(d) / "program.exe"
+            unsupported.write_text("Synthetic harness fixture. Not game content.\n")
+            proc = subprocess.run(
+                [str(ezplay_bin()),
+                 "--core", str(synth_core()),
+                 "--content", str(unsupported),
+                 "--system-dir", d,
+                 "--save-dir", d,
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 12,
+                         f"ezplay output: {proc.stdout[-1000:]}\n{proc.stderr[-1000:]}")
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["verdict"], "FAIL")
+        diagnostic = result.get("error", "") + " " + proc.stderr
+        self.assertIn("unsupported", diagnostic.lower())
+        self.assertIn(".exe", diagnostic)
+        self.assertIn("psx", diagnostic)
+        for accepted in (".cue", ".bin", ".chd"):
+            self.assertIn(accepted, diagnostic)
+
     def test_bad_arguments_are_rejected(self):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
         proc = subprocess.run([str(ezplay_bin()), "--core", "x"],
