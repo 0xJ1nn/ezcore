@@ -33,11 +33,8 @@ JIT_NO_IOS = {k: v for k, v in JIT_DESKTOP.items() if k != "ios"}
 
 EXECUTION = {
     "pocketbit": INTERP_ALL,
-    "gambatte": INTERP_ALL,
     "advancebit": JIT_DESKTOP,
     "nesbyte": INTERP_ALL,
-    "superfx": INTERP_ALL,
-    "blastproc": INTERP_ALL,
     "joystick": INTERP_ALL,
     "realmode": INTERP_ALL,  # ARM/PPC ships the normal core; see MATRIX.md
     "cardcon": INTERP_ALL,
@@ -51,7 +48,6 @@ EXECUTION = {
     # Verified 2026-09-18: USE_CYCLONE=0 by default and only enabled for
     # 32-bit ARM (rpi1/rpi2/rpi3-32); all 64-bit builds use the Musashi C
     # interpreter. No JIT anywhere we ship.
-    "coinbox": INTERP_ALL,
     "pointclick": INTERP_ALL,
     "lrps2": JIT_DESKTOP,  # built without dynarec on iOS
     # Newly verified license-clean cores. Both are interpreters with no
@@ -73,25 +69,23 @@ CHEATS = {
 # iOS is never `download` (App Review 2.5.2/4.7; see CoreManifest.validate)
 # and desktop/mobile apps otherwise carry their tier, verified by MATRIX.md.
 _TIER_DESKTOP = [
-    "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
-    "joystick", "cardcon", "twinsh", "coinbox", "pointclick",
+    "pocketbit", "advancebit", "nesbyte",
+    "joystick", "cardcon", "twinsh", "pointclick",
     "realmode", "geometry1", "rcp64", "dualscreen", "portcomp",
     "dreamarc", "powercube",
     "potator", "gw",
 ]
 _TIER_ANDROID = [
-    "pocketbit", "advancebit", "nesbyte", "superfx", "blastproc",
-    "joystick", "cardcon", "realmode", "pointclick", "coinbox",
+    "pocketbit", "advancebit", "nesbyte",
+    "joystick", "cardcon", "realmode", "pointclick",
 ]
 _TIER_IOS = [
-    "pocketbit", "nesbyte", "superfx", "blastproc",
+    "pocketbit", "nesbyte",
     "joystick", "cardcon", "realmode", "pointclick",
     # Interpreter-only iOS builds, verified with the explicit interpreter
     # flags in scripts/build_core.sh (App Review 2.5.2/4.7: no JIT).
     "advancebit", "geometry1", "dualscreen", "rcp64",
     "dreamarc", "dualvu", "lrps2", "twinsh", "portcomp", "powercube",
-    # fbneo excluded: its gated_reason requires IP-lawyer review +
-    # compat-allowlist + no-CHD posture first (see manifest + MATRIX.md).
 ]
 
 # Hybrid download set (hybrid core delivery): staged giants (>= ~25 MB — pointclick
@@ -101,10 +95,6 @@ _TIER_IOS = [
 # even the giants bundled (heuristic: ship built-in while the APK stays
 # reasonable; no android download assets are published yet). iOS keeps its
 # tier value — never `download` (App Review 2.5.2/4.7).
-# gambatte is in NO tier anywhere: GPL-2.0-only cannot combine with this
-# GPL-3.0-only app, so its manifest delivery is absent on every OS
-# (b1bb9d9); re-adding it without a license re-clear reopens the
-# violation license_audit rejects.
 _DOWNLOAD_DESKTOP = {
     "pointclick", "dreamarc", "powercube",
     # Conservative first release for the new license-clean cores: on-demand
@@ -133,17 +123,6 @@ def _delivery(cid: str) -> "dict[str, str] | None":
         return None
     if cid in _PLATFORM_LIMITED:
         return dict(_PLATFORM_LIMITED[cid])
-    if cid in ("coinbox", "superfx", "blastproc"):
-        # Non-commercial upstream licenses: never distributed in any binary,
-        # free or paid — kept as build recipes only. See gated_reason in each
-        # manifest and the licensing policy.
-        return {
-            "macos": "absent",
-            "windows": "absent",
-            "linux": "absent",
-            "android": "absent",
-            "ios": "absent",
-        }
     ships = {
         "macos": "bundled" if cid in _TIER_DESKTOP else "absent",
         "windows": "bundled" if cid in _TIER_DESKTOP else "absent",

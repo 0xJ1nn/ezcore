@@ -7,13 +7,40 @@ import '../models/cheat.dart';
 import '../state/save_sync.dart';
 import 'core_session_backend.dart';
 import 'emulation_worker.dart';
+import 'native_loop_session.dart';
 import 'pcm_output.dart';
 
 /// Frame scheduling/presentation only; native sessions belong to the worker.
 /// One outstanding frame bounds memory even when rendering is slower than emulation.
 class PlayerController extends ChangeNotifier {
-  PlayerController({PcmOutput? audio}) : audio = audio ?? createPlatformPcm();
+  PlayerController({
+    PcmOutput? audio,
+    NativeLoopProbe? nativeLoopProbe,
+    Map<String, dynamic> settings = const {},
+  })  : audio = audio ?? createPlatformPcm(),
+        _loopProbe = nativeLoopProbe ?? probeNativeLoop,
+        _settings = Map<String, dynamic>.from(settings);
   final PcmOutput audio;
+
+  /// Runtime-owned emulation, when both the loop and a video bridge are
+  /// present. The per-frame timer is kept as the fallback for one release.
+  final NativeLoopProbe _loopProbe;
+  Map<String, dynamic> _settings;
+
+  /// Applies the persisted hidden setting before [open]. No screen exposes it;
+  /// it is a release-time escape hatch, not a user preference.
+  void applyFrameLoopSetting(Map<String, dynamic> settings) {
+    if (running) throw StateError('Cannot change the frame loop of a live session');
+    _settings = settings;
+  }
+  NativeLoopSession? _loop;
+  StreamSubscription<NativeLoopStats>? _loopStatsSub;
+  bool _usingNativeLoop = false;
+
+  bool get usingNativeLoop => _usingNativeLoop;
+  NativeLoopStats? get loopStats => _loop?.lastStats;
+  Stream<NativeLoopStats> get loopStatsStream =>
+      _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
 
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
@@ -28,7 +55,17 @@ class PlayerController extends ChangeNotifier {
   ui.Image? frame;
   String? error;
   String? audioError;
-  bool paused = false, fastForward = false, running = false;
+  bool paused = false, running = false;
+  bool _fastForward = false;
+
+  /// Fast-forward runs the native loop at [ffFrames] frames per tick, or asks
+  /// the timer path for that many frames per request.
+  bool get fastForward => _fastForward;
+  set fastForward(bool value) {
+    if (_fastForward == value) return;
+    _fastForward = value;
+    if (_usingNativeLoop) _loop?.fastForward(value ? ffFrames : 1);
+  }
 
   /// False when the core has no save states at all (the LCD-handheld core
   /// reports a zero serialize size). The pause menu then hides the snapshot
@@ -75,10 +112,41 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
+
+    // A native session only runs here when the loaded runtime exposes both
+    // the run loop and a video bridge. Anything else keeps the timer path.
+    final address = info['sessionAddress'] as int? ?? 0;
+    if (!legacyFrameLoopRequested(_settings)) {
+      NativeLoopSession? candidate;
+      try {
+        candidate = _loopProbe(
+          runtimeRef: runtimeRef,
+          sessionAddress: address,
+          fps: _fps,
+        );
+      } on Object {
+        // A runtime that cannot be opened for the optional symbols is not a
+        // failed game: keep the timer path.
+        candidate = null;
+      }
+      if (candidate != null) {
+        try {
+          candidate.start();
+          _loop = candidate;
+          _usingNativeLoop = true;
+          _loopStatsSub = candidate.statsStream.listen((_) => _notify());
+          if (_fastForward) candidate.fastForward(ffFrames);
+        } on Object {
+          // A loop that cannot start is not a failed game: keep the timer.
+          candidate.dispose();
+        }
+      }
+    }
+
     await _startAudio();
     running = true;
     _notify();
-    _schedule(Duration.zero);
+    if (!_usingNativeLoop) _schedule(Duration.zero);
   }
 
   Future<void> _startAudio() async {
@@ -93,7 +161,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   void _schedule(Duration delay) {
-    if (_closed || paused || !running) return;
+    if (_closed || paused || !running || _usingNativeLoop) return;
     _timer = Timer(delay, () {
       _inFlight = _tick();
     });
@@ -146,13 +214,23 @@ class PlayerController extends ChangeNotifier {
     paused = value;
     _timer?.cancel();
     await _inFlight;
-    await worker.pause(value);
+    if (_usingNativeLoop) {
+      final loop = _loop!;
+      if (value) {
+        for (var port = 0; port < kControllerPorts; port++) {
+          loop.clearButtons(port);
+        }
+      }
+      loop.pause(value);
+    } else {
+      await worker.pause(value);
+    }
     if (value) {
       if (_audioReady) await audio.stop();
       _audioReady = false;
     } else {
       await _startAudio();
-      _schedule(Duration.zero);
+      if (!_usingNativeLoop) _schedule(Duration.zero);
     }
     _notify();
   }
@@ -162,7 +240,11 @@ class PlayerController extends ChangeNotifier {
   /// unchanged; a second gamepad routes through `port: 1`.
   Future<void> button(int id, bool pressed, {int port = 0}) async {
     if (running && !paused && !_closed) {
-      await worker.button(id, pressed, port: port);
+      if (_usingNativeLoop) {
+        _loop!.setButton(port, id, pressed);
+      } else {
+        await worker.button(id, pressed, port: port);
+      }
     }
   }
 
@@ -170,7 +252,12 @@ class PlayerController extends ChangeNotifier {
 
   /// Analog stick axis for [port]: [stick] 0 left / 1 right, [axis] 0 x / 1 y.
   Future<void> analog(int port, int stick, int axis, int value) async {
-    if (_live) await worker.analog(port, stick, axis, value);
+    if (!_live) return;
+    if (_usingNativeLoop) {
+      _loop!.setAnalog(port, stick, axis, value);
+    } else {
+      await worker.analog(port, stick, axis, value);
+    }
   }
 
   Future<void> mouseMove(int dx, int dy) async {
@@ -201,14 +288,29 @@ class PlayerController extends ChangeNotifier {
     if (_live) await worker.pointer(x, y, pressed);
   }
 
+  /// Serialisation and cheat hooks are not thread-safe with the run loop, so
+  /// they run while it is paused and resume it afterwards.
+  Future<T> _whileLoopPaused<T>(Future<T> Function() operation) async {
+    final loop = _usingNativeLoop ? _loop : null;
+    if (loop == null || paused) return operation();
+    loop.pause(true);
+    try {
+      return await operation();
+    } finally {
+      loop.pause(false);
+    }
+  }
+
   /// Applies [entries] to the live session (reset-first). Returns the
   /// indices the runtime could not dispatch to a core hook. No-op when no
   /// session is running.
   Future<List<int>> applyCheats(List<CheatEntry> entries) async {
     if (!running || _closed) return [];
-    return worker.applyCheats([
-      for (final e in entries) [e.index, e.enabled, joinCheatCode(e.code)],
-    ]);
+    return _whileLoopPaused(
+      () => worker.applyCheats([
+        for (final e in entries) [e.index, e.enabled, joinCheatCode(e.code)],
+      ]),
+    );
   }
 
   /// Scales stereo s16 [pcm] by [volume] (0-100). 100+ passes through.
@@ -227,12 +329,15 @@ class PlayerController extends ChangeNotifier {
     return out;
   }
 
-  Future<void> save(SaveSyncProvider saves, String game, String slot) async =>
-      saves.upload(game, slot, await worker.save());
+  Future<void> save(SaveSyncProvider saves, String game, String slot) =>
+      _whileLoopPaused(() async {
+        await saves.upload(game, slot, await worker.save());
+      });
+
   Future<void> restore(SaveSyncProvider saves, String game, String slot) async {
     final bytes = await saves.download(game, slot);
     if (bytes == null) throw StateError('No state in this slot');
-    await worker.restore(bytes);
+    await _whileLoopPaused(() => worker.restore(bytes));
   }
 
   Future<void> close() => _closeFuture ??= _close();
@@ -241,6 +346,12 @@ class PlayerController extends ChangeNotifier {
     running = false;
     _timer?.cancel();
     await _inFlight;
+    final loop = _loop;
+    _loop = null;
+    _usingNativeLoop = false;
+    await _loopStatsSub?.cancel();
+    _loopStatsSub = null;
+    loop?.dispose();
     try {
       await worker.close();
     } finally {

@@ -25,15 +25,11 @@ a core that is reserved but never built.
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Last verified |
 |---|---|---|---|---|---|---|
 | pocketbit | BUILT | BUILT | BUILT | RENDERS | — | 2026-11-22 |
-| gambatte | BUILT | BUILT | BUILT | IDENTIFIES | — | 2026-11-22 |
 | advancebit | BUILT | — | BUILT | RENDERS | — | 2026-11-22 |
 | nesbyte | IDENTIFIES | BUILT | BUILT | RENDERS | — | 2026-11-22 |
-| superfx | IDENTIFIES | BUILT | BUILT | IDENTIFIES | — | 2026-11-22 |
-| blastproc | IDENTIFIES | BUILT | BUILT | BUILT | — | — |
 | joystick | IDENTIFIES | BUILT | BUILT | RENDERS | — | 2026-11-22 |
 | cardcon | IDENTIFIES | BUILT | BUILT | BUILT | — | 2026-11-22 |
 | realmode | IDENTIFIES | BUILT | BUILT | BUILT | — | 2026-11-22 |
-| coinbox | IDENTIFIES | BUILT | BUILT | IDENTIFIES | — | 2026-11-22 |
 | pointclick | IDENTIFIES | — | BUILT | BUILT | — | 2026-09-19 |
 | geometry1 | IDENTIFIES | — | — | BOOTS | — | 2026-11-21 |
 | rcp64 | IDENTIFIES | — | — | RENDERS | — | 2026-11-22 |

@@ -25,7 +25,7 @@ void main() {
 
   test('all manifests validate clean', () {
     final manifests = loadManifests();
-    expect(manifests.length, greaterThanOrEqualTo(21));
+    expect(manifests.length, greaterThanOrEqualTo(20));
     for (final m in manifests) {
       expect(m.validate(), isEmpty, reason: m.id);
     }
