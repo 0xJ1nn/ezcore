@@ -89,6 +89,9 @@ class PlayerController extends ChangeNotifier {
         (info['height'] as num?)?.toInt() ?? 0);
     await _startAudio();
     running = true;
+    // Frame times start at session start, so the first presented frame is
+    // measured like every other one and stats keep pace with presentations.
+    _lastFrameAt = DateTime.now();
     _notify();
     _schedule(Duration.zero);
   }
@@ -204,8 +207,10 @@ class PlayerController extends ChangeNotifier {
     if (value) {
       if (_audioReady) await audio.stop();
       _audioReady = false;
+      _lastFrameAt = null;
     } else {
       await _startAudio();
+      _lastFrameAt = DateTime.now();
       _schedule(Duration.zero);
     }
     _notify();
