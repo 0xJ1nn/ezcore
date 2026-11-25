@@ -481,7 +481,7 @@ static const char *content_extensions(const char *system) {
   if (!strcmp(system, "atari2600")) return " bin a26 ";
   if (!strcmp(system, "dos")) return " exe zip com bat ";
   if (!strcmp(system, "scumm")) return " zip scumm ";
-  if (!strcmp(system, "watara")) return " bin wav ";
+  if (!strcmp(system, "watara")) return " bin sv wav ";
   if (!strcmp(system, "lcdhandheld")) return " mgw ";
   return NULL;                             /* unknown system: no extension gate */
 }

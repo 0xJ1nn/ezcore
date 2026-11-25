@@ -195,6 +195,49 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(battery["bytes"], 0)
         self.assertEqual(result["checks"]["battery_save_roundtrip"], "FAIL")
 
+    def test_watara_sv_content_is_accepted(self):
+        """Supervision cartridges use .sv; the manifest lists it as supported."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        spec = RUNTIME / "test" / "ezplay_spec_watara.json"
+        self.assertTrue(spec.is_file(), "the watara spec fixture is missing")
+        with tempfile.TemporaryDirectory() as d:
+            content = Path(d) / "fixture.sv"
+            content.write_text("Synthetic harness fixture. Not game content.\n")
+            proc = subprocess.run(
+                [str(ezplay_bin()),
+                 "--core", str(synth_core()),
+                 "--content", str(content),
+                 "--system-dir", d,
+                 "--save-dir", d,
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=600)
+        self.assertEqual(proc.returncode, 0,
+                         f"ezplay refused a .sv cartridge: {proc.stdout[-1000:]}"
+                         f"\n{proc.stderr[-1000:]}")
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["system"], "watara")
+        self.assertEqual(result["verdict"], "PASS")
+
+    def test_watara_foreign_content_is_rejected(self):
+        """Adding .sv must not open the gate to unrelated cartridges."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        spec = RUNTIME / "test" / "ezplay_spec_watara.json"
+        with tempfile.TemporaryDirectory() as d:
+            wrong = Path(d) / "foreign.nes"
+            wrong.write_bytes(b"\x00" * 64)
+            proc = subprocess.run(
+                [str(ezplay_bin()),
+                 "--core", str(synth_core()),
+                 "--content", str(wrong),
+                 "--system-dir", d,
+                 "--save-dir", d,
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 12, proc.stdout[-1000:])
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["verdict"], "FAIL")
+        self.assertIn("unsupported content", result["error"].lower())
+
     def test_bad_arguments_are_rejected(self):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
         proc = subprocess.run([str(ezplay_bin()), "--core", "x"],
