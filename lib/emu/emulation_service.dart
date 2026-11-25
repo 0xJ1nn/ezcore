@@ -26,6 +26,10 @@ class EmulationService {
   Pointer<Void> get _active =>
       _session ?? (throw StateError('No active emulation session'));
 
+  /// Address of the loaded native session. The player binds the runtime-owned
+  /// loop to this session without opening a second one.
+  int get sessionAddress => _active.address;
+
   String get coreName => runtime.coreName(_active);
   ({int w, int h, double fps}) get geometry => runtime.geometry(_active);
   double get sampleRate => runtime.sampleRate(_active);

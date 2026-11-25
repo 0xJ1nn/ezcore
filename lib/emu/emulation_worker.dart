@@ -248,6 +248,7 @@ Future<void> _workerMain(SendPort ready) async {
           'height': geo.h,
           'fps': geo.fps,
           'sampleRate': service.sampleRate,
+          'sessionAddress': service.sessionAddress,
           'rejectedOptions': service.rejectedCoreOptions,
           'canSave': service.canSaveState,
         };
