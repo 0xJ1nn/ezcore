@@ -1,0 +1,49 @@
+{
+  "build": {
+    "args": {
+      "default": []
+    },
+    "dir": "platform/libretro",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "potator",
+  "license_files": [
+    "LICENSE",
+    "COPYING"
+  ],
+  "outputs": {
+    "android-arm64": "potator_libretro.so",
+    "linux-x64": "potator_libretro.so",
+    "macos-arm64": "potator_libretro.dylib",
+    "windows-x64": "potator_libretro.dll"
+  },
+  "patches": [],
+  "pin": "227c5f6f3ce74d32e9002ce24c1420288559a860",
+  "pin_verified": true,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "potator",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/potator.git"
+}

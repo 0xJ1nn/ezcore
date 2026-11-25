@@ -1,0 +1,56 @@
+{
+  "build": {
+    "args": {
+      "default": []
+    },
+    "dir": "",
+    "jobs": 1,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [
+    "sameboy_gnu_make4_serial"
+  ],
+  "id": "pocketbit",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "sameboy_libretro.so",
+    "ios-arm64": "sameboy_libretro_ios.dylib",
+    "linux-x64": "sameboy_libretro.so",
+    "macos-arm64": "sameboy_libretro.dylib",
+    "windows-x64": "sameboy_libretro.dll"
+  },
+  "patches": [],
+  "pin": "ea667ad79aa28409f034b1fd6da7304e1844750d",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "SameBoy",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/LIJI32/SameBoy.git"
+}

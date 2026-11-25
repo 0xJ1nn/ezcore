@@ -1,0 +1,23 @@
+{
+  "cores": {
+    "advancebit": "7a12d6d4b9acb14c0ae62c9166b6a2f3d08007f6",
+    "cardcon": "4cf066e22533186d0cfad85a0fec2aced93e4e29",
+    "dreamarc": "eddf2635867f0f16f64bebd3185db151c99c551c",
+    "dualscreen": "4081e8358e66f1ea11879560be6b813dfeaab75a",
+    "dualvu": "d44bfa1814b729d4a3ed3c6c3a945432d5ee5bbe",
+    "geometry1": "631f0fb31b809e0f889d7c551fe695788e39c1d3",
+    "gw": "91d599b951e7bfe7e040347f58667cba20074adc",
+    "joystick": "ba52c43b9eda950eb0c0eec69cda9b17dee8c39b",
+    "lrps2": "cac1c32c7d4c2ad00edd6f4ba756340cefb39dd3",
+    "nesbyte": "0102910c39ad1a62bc3f784466f3f67ca9eae335",
+    "pocketbit": "ea667ad79aa28409f034b1fd6da7304e1844750d",
+    "pointclick": "ee707c5451a47ed5fef872ac06ec6fb370e56b41",
+    "portcomp": "2e6fd06ed6c77db467dea5fb3f67abd93457da20",
+    "potator": "227c5f6f3ce74d32e9002ce24c1420288559a860",
+    "powercube": "fad480aced85403350597c5914540a97f6f53549",
+    "rcp64": "8623e490a8773fcb6c10f424cebbdb0ac44e88ea",
+    "realmode": "e39497e7c2a32c67c26e6598dd14f6d58c384bfd",
+    "twinsh": "7126d65b83b65b4316736434ecca2f5ff4f1a3dd"
+  },
+  "schema": 1
+}

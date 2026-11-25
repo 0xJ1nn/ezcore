@@ -1,0 +1,63 @@
+{
+  "build": {
+    "args": {
+      "android-arm64": [
+        "SYSTEM_ZLIB=1",
+        "LDLIBS=",
+        "ISMAC="
+      ],
+      "default": [
+        "SYSTEM_ZLIB=1"
+      ]
+    },
+    "dir": "",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [
+    "android_librt_stub"
+  ],
+  "id": "cardcon",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "android-arm64": "mednafen_pce_fast_libretro.so",
+    "ios-arm64": "mednafen_pce_fast_libretro_ios.dylib",
+    "linux-x64": "mednafen_pce_fast_libretro.so",
+    "macos-arm64": "mednafen_pce_fast_libretro.dylib",
+    "windows-x64": "mednafen_pce_fast_libretro.dll"
+  },
+  "patches": [],
+  "pin": "4cf066e22533186d0cfad85a0fec2aced93e4e29",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "beetle-pce",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/beetle-pce-fast-libretro.git"
+}
