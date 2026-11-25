@@ -8,6 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The play harness keeps collecting frame, colour and audio evidence when a core cannot write a snapshot, and reports only the save-state check as failed. Previously the whole session stopped at that point and unrelated checks were reported without evidence. [ios, android, macos, linux, windows]
 - The play harness accepts the widespread `.smc` cartridge extension for Super Nintendo content in addition to `.snes` and `.sfc`. Other file types remain refused. [ios, android, macos, linux, windows]
 - The play harness accepts `.sv` Supervision cartridges for Watara, matching the extensions published in the core manifest. Other file types remain refused. [ios, android, macos, linux, windows]
 - Battery-save detection no longer treats an erased or otherwise uniform save-memory region as a gameplay write. A save must contain at least two distinct byte values to pass the round trip. [ios, android, macos, linux, windows]
