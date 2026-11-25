@@ -418,6 +418,14 @@ else()
   target_link_libraries(ezplay PRIVATE ezcore_runtime m)
 endif()
 target_include_directories(ezplay PRIVATE include external/libretro-common/include)
+# The adb driver stages ezplay with libezcore_runtime.so beside it. An absolute
+# build-tree rpath cannot exist on a device. CMake's Android platform drops
+# BUILD_RPATH, so pass the relative search path to the linker directly.
+if(APPLE)
+  target_link_options(ezplay PRIVATE "LINKER:-rpath,@loader_path")
+elseif(UNIX)
+  target_link_options(ezplay PRIVATE "LINKER:-rpath,$ORIGIN")
+endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ezplay-system"
                     "${CMAKE_CURRENT_BINARY_DIR}/ezplay-save")
 add_test(NAME ezplay

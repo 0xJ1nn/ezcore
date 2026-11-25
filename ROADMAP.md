@@ -86,7 +86,7 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers **22 of the 98** environment commands
+cores. The kernel currently answers **22 of the 102** environment commands
 (`env_cb` at `runtime/src/runtime.c:197`), which is the binding constraint on
 the whole product.
 
@@ -94,7 +94,7 @@ the whole product.
 > so verify before quoting them):
 >
 > ```bash
-> # commands DEFINED by the vendored libretro header (98 at the last recorded check).
+> # commands DEFINED by the vendored libretro header (102 at the last recorded check).
 > # Anchor on the #define: a plain substring grep also matches doc-comment
 > # references like \ref RETRO_ENVIRONMENT_GET_ASSET_DIRECTORY, which are not
 > # real commands — that is what produced the earlier, wrong "96".

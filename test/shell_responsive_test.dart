@@ -52,7 +52,7 @@ void main() {
       system: 'snes',
       filePath: '/games/smw.sfc',
       extension: 'sfc',
-      coreId: 'superfx',
+      coreId: 'nesbyte',
       fileSize: 524288,
       lastPlayedMs: 1758400000000,
       stateCount: 1,
@@ -64,7 +64,7 @@ void main() {
       system: 'genesis',
       filePath: '/games/sonic.md',
       extension: 'md',
-      coreId: 'blastproc',
+      coreId: 'twinsh',
     ),
     GameEntry(
       id: 'g4',
@@ -72,7 +72,7 @@ void main() {
       system: 'snes',
       filePath: '/games/zelda.sfc',
       extension: 'sfc',
-      coreId: 'superfx',
+      coreId: 'nesbyte',
       stateCount: 2,
     ),
   ];
@@ -483,7 +483,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Favorites'), findsOneWidget);
-    for (final core in ['powercube', 'superfx', 'blastproc']) {
+    for (final core in ['powercube', 'nesbyte', 'twinsh']) {
       expect(find.textContaining(core), findsNothing, reason: core);
     }
     await tester.tap(find.text('Favorites'));

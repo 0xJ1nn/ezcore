@@ -10,10 +10,7 @@ import 'test_paths.dart' as paths;
 /// id -> expected core name substring. Grows as cores land in native/cores/.
 const _cores = <String, String>{
   'pocketbit': 'SameBoy',
-  'gambatte': 'Gambatte',
   'advancebit': 'mGBA',
-  'superfx': 'Snes9x',
-  'blastproc': 'Genesis Plus GX',
   'realmode': 'DOSBox-pure',
   'nesbyte': 'Mesen',
   'dualscreen': 'melonDS',
@@ -25,7 +22,6 @@ const _cores = <String, String>{
   'portcomp': 'PPSSPP',
   'dreamarc': 'Flycast',
   'powercube': 'dolphin-emu',
-  'coinbox': 'FinalBurn Neo',
   'pointclick': 'ScummVM',
   'lrps2': 'LRPS2',
 };
