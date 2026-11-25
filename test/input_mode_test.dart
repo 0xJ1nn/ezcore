@@ -379,13 +379,13 @@ void main() {
         biosFiles: const [],
       );
       final nds = c('dualscreen', 'nds');
-      final snes = c('superfx', 'snes');
+      final nes = c('nesbyte', 'nes');
       s.registry.loadCatalog({
-        for (final core in [nds, snes])
+        for (final core in [nds, nes])
           core.id: jsonEncode(core.toJson()),
       });
       s.registry.install(nds, expectedSha256: 'pin');
-      s.registry.install(snes, expectedSha256: 'pin');
+      s.registry.install(nes, expectedSha256: 'pin');
       await t.pumpWidget(
         MaterialApp(
           theme: Tokens.theme(),
@@ -395,7 +395,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 1500));
       expect(find.text('Show games'), findsOneWidget);
       expect(find.text('Nintendo DS'), findsWidgets);
-      expect(find.text('Super Nintendo'), findsWidgets);
+      expect(find.text('Nintendo Entertainment System'), findsWidgets);
     });
 
     testWidgets('TV scanning keeps Stop scan and the readout on screen', (

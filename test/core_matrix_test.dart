@@ -52,7 +52,6 @@ List<String> _catalogIds() {
 /// once sourced; local-only paths until then — see docs/MATRIX.md).
 const _fullBoot = {
   'pocketbit': 'native/test-roms/cpu_instrs.gb',
-  'gambatte': 'native/test-roms/cpu_instrs.gb',
   'advancebit': 'native/test-roms/test.gba',
   'nesbyte': 'native/test-roms/ezcore_nes_minimal.nes',
 };
