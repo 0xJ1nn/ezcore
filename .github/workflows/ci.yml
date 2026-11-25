@@ -28,6 +28,11 @@ jobs:
       - run: python3 scripts/fill_manifest_data.py --check
       - run: python3 scripts/build_catalog.py
       - run: flutter pub get
+      - name: native test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+          scripts/setup_test_prerequisites.sh
       - run: flutter analyze lib/ test/
       - run: flutter test
       - run: bash scripts/banned_content_scan.sh
@@ -59,7 +64,7 @@ jobs:
       # Covered on macOS CI + MATRIX.md.
       - name: tier1 cores (unix, minus sameboy)
         run: |
-          for c in gambatte mgba snes9x genesis_plus_gx dosbox_pure; do
+          for c in advancebit realmode; do
             EZCORE_PLATFORM=linux scripts/build_core.sh $c
           done
       - name: core matrix (Dart-driven, fork-isolated harness)
@@ -114,7 +119,7 @@ jobs:
         shell: msys2 {0}
       - name: proof core (msys2 mingw, windows target)
         shell: msys2 {0}
-        run: EZCORE_PLATFORM=windows scripts/build_core.sh snes9x
+        run: EZCORE_PLATFORM=windows scripts/build_core.sh advancebit
       - run: flutter pub get
       - run: flutter analyze lib/ test/
       - run: flutter test
@@ -149,7 +154,7 @@ jobs:
       - name: runtime (NDK)
         run: scripts/build_runtime.sh android
       - name: tier1 core (NDK cross)
-        run: EZCORE_PLATFORM=android scripts/build_core.sh gambatte
+        run: EZCORE_PLATFORM=android scripts/build_core.sh pocketbit
       - run: flutter pub get
       - run: flutter build apk --debug
 

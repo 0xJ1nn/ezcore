@@ -47,8 +47,8 @@ case "$PLATFORM" in
   windows) LIB_SUFFIX=dll;   MAKE_PLATFORM="platform=windows"; PLAT_KEY="windows-$ARCH" ;;
   # Android make builds use plain `platform=unix` + the NDK clang from
   # android_toolchain: per-core `platform=android` branches are 32-bit
-  # ARMv7-era (gambatte/stella/snes9x fall through to windows; mupen64plus
-  # and ppsspp pin arm-linux-androideabi-gcc). CMake cores (mgba) use the
+  # ARMv7-era (stella falls through to windows; mupen64plus and ppsspp
+  # pin arm-linux-androideabi-gcc). CMake cores (mgba) use the
   # NDK toolchain file instead and ignore MAKE_PLATFORM.
   android) LIB_SUFFIX=so;    MAKE_PLATFORM="platform=unix"; PLAT_KEY="android-arm64" ;;
   # iOS defaults to ios-arm64: plain `platform=ios` means armv7 in every

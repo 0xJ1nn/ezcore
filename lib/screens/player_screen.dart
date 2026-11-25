@@ -193,6 +193,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void initState() {
     super.initState();
+    player.applyFrameLoopSetting(widget.state.settings);
     WidgetsBinding.instance.addObserver(this);
     _openedAt = DateTime.now();
     player.addListener(_refresh);

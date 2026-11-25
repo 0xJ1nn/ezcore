@@ -40,7 +40,7 @@ void main() {
       system: 'gb',
       filePath: 'Games/cinder.gb',
       extension: 'gb',
-      coreId: 'gambatte',
+      coreId: 'pocketbit',
       lastPlayedMs: now - 7 * 24 * 3600 * 1000,
     ),
     GameEntry(
