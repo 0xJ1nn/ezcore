@@ -86,6 +86,43 @@ class EzplayTest(unittest.TestCase):
         self.assertGreaterEqual(result["fast_forward"]["4x"], 1.0)
         self.assertEqual(result["verdict"], "PASS")
 
+    def test_serialize_failure_keeps_frame_and_audio_evidence(self):
+        """A failed snapshot is one check, not a reason to discard the session."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        core = build_dir() / "libsynth_save_fail_libretro.so"
+        self.assertTrue(core.is_file(), f"build the save-failing core: {core}")
+        spec = {
+            "system": "synth",
+            "frames": 120,
+            "input": [{"at": 20, "press": ["a"], "hold": 6},
+                      {"at": 40, "press": ["start"], "hold": 6}],
+            "checks": {"video_changes_after_input": False, "min_colours": 1,
+                       "audio_rms_min": 0.005, "speed_min": 0,
+                       "save_state_roundtrip": True,
+                       "battery_save_roundtrip": "n/a",
+                       "fast_forward": {}, "cheat": False},
+        }
+        with tempfile.TemporaryDirectory() as d:
+            spec_path = Path(d) / "spec.json"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            content = Path(d) / "fixture.synth"
+            content.write_text("Synthetic harness fixture. Not game content.\n",
+                               encoding="utf-8")
+            proc = subprocess.run(
+                [str(ezplay_bin()), "--core", str(core), "--content", str(content),
+                 "--system-dir", d, "--save-dir", d, "--spec", str(spec_path)],
+                capture_output=True, text=True, timeout=120)
+        result = json.loads(proc.stdout)
+        self.assertIn("retro_serialize() failed", result["save_state"]["reason"])
+        self.assertEqual(result["save_state"]["verdict"], "FAIL")
+        self.assertEqual(result["checks"]["save_state_roundtrip"], "FAIL")
+        # The rest of the session still produced real evidence.
+        self.assertTrue(result["frame_checkpoints"])
+        self.assertGreater(result["audio"]["total_samples"], 0)
+        self.assertGreater(result["audio"]["rms"], 0.0)
+        self.assertEqual(result["checks"]["min_colours"], "PASS")
+        self.assertEqual(result["verdict"], "FAIL")
+
     def test_audio_rms_uses_the_release_frame_window(self):
         """The spec measures RMS from the last event's release, not boot audio."""
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")

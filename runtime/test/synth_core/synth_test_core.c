@@ -278,9 +278,16 @@ size_t retro_serialize_size(void) {
 }
 
 bool retro_serialize(void *data, size_t size) {
+#if defined(EZCORE_SYNTH_SAVE_FAIL)
+    /* A core that reports a snapshot size but refuses to serialize. The
+     * harness must still collect frame and audio evidence from the session. */
+    (void)data; (void)size;
+    return false;
+#else
     if (size < sizeof(g_state)) return false;
     memcpy(data, &g_state, sizeof(g_state));
     return true;
+#endif
 }
 
 bool retro_unserialize(const void *data, size_t size) {

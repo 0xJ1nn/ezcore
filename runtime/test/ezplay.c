@@ -775,6 +775,7 @@ static int run_main_session(const context_t *ctx, result_t *r) {
 
   unsigned prev_keys[MAX_KEYS] = {0};
   int64_t unpaced_start = 0, unpaced_end = 0;
+  bool save_unavailable = false;
   for (int i = 0; i < frames; i++) {
     if (i == 60) unpaced_start = now_ns();
     apply_input(s, &input[i], prev_keys);
@@ -798,14 +799,17 @@ static int run_main_session(const context_t *ctx, result_t *r) {
      * under the same input, then compare every replayed frame hash. */
     if (sp->save_state && snap_size && snap && i == F) {
       if (!ezcore_serialize(s, snap, snap_size)) {
+        /* The save-state check fails, but the remaining frames and audio are
+         * still valid evidence for the other checks. Keep running instead of
+         * discarding the whole session. */
         r->save_verdict = "FAIL";
         r->save_reason = "retro_serialize() failed";
-        r->exit_code = 4;
-        goto done;
+        save_unavailable = true;
+      } else {
+        r->save_size = snap_size;
       }
-      r->save_size = snap_size;
     }
-    if (sp->save_state && snap_size && snap && i == replay_end) {
+    if (sp->save_state && snap_size && snap && !save_unavailable && i == replay_end) {
       if (!ezcore_unserialize(s, snap, snap_size)) {
         r->save_verdict = "FAIL";
         r->save_reason = "retro_unserialize() failed";
