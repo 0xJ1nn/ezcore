@@ -51,8 +51,9 @@ static bool g_cheat_set_seen;
 
 /* EZCORE_SYNTH_LEGACY_SRAM exposes battery RAM only through the legacy
  * retro_get_memory_data/size entry points, with no memory-map descriptors.
- * EZCORE_SYNTH_LEGACY_SRAM_ZERO fills it with zeros so a harness must not
- * treat a zero-filled region as proof of a battery save. */
+ * EZCORE_SYNTH_LEGACY_SRAM_ZERO fills it with zeros and _ERASED fills it with
+ * 0xFF, the erased state of flash save memory; neither is proof of a battery
+ * save. The default legacy fixture writes two distinct values. */
 #if defined(EZCORE_SYNTH_LEGACY_SRAM)
 static unsigned char g_legacy_sram[4096];
 #endif
@@ -152,10 +153,19 @@ bool retro_load_game(const struct retro_game_info *game) {
     memset(g_legacy_sram,
 #if defined(EZCORE_SYNTH_LEGACY_SRAM_ZERO)
            0x00,
+#elif defined(EZCORE_SYNTH_LEGACY_SRAM_ERASED)
+           0xFF,
 #else
            0xA5,
 #endif
            sizeof(g_legacy_sram));
+#if !defined(EZCORE_SYNTH_LEGACY_SRAM_ZERO) && \
+    !defined(EZCORE_SYNTH_LEGACY_SRAM_ERASED)
+    /* Simulate a game writing battery RAM: the region now holds two
+     * distinct byte values, which is the smallest honest save evidence. */
+    g_legacy_sram[0] = 0x5A;
+    g_legacy_sram[sizeof(g_legacy_sram) - 1] = 0x5A;
+#endif
 #endif
     return true;
 }

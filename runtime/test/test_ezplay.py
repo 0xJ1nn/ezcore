@@ -174,9 +174,10 @@ class EzplayTest(unittest.TestCase):
         for accepted in (".cue", ".bin", ".chd"):
             self.assertIn(accepted, diagnostic)
 
-    def _legacy_core(self, zero: bool = False) -> Path:
+    def _legacy_core(self, zero: bool = False, erased: bool = False) -> Path:
         suffix = {"darwin": ".dylib", "win32": ".dll"}.get(sys.platform, ".so")
-        name = "synth_legacy_sram_zero" if zero else "synth_legacy_sram"
+        name = ("synth_legacy_sram_erased" if erased else
+                "synth_legacy_sram_zero" if zero else "synth_legacy_sram")
         return build_dir() / f"lib{name}_libretro{suffix}"
 
     def _battery_spec(self, tmp: Path) -> Path:
@@ -217,6 +218,20 @@ class EzplayTest(unittest.TestCase):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
         core = self._legacy_core(zero=True)
         self.assertTrue(core.is_file(), f"build the zero-SRAM core first: {core}")
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            proc = self._run_legacy(core, self._battery_spec(tmp), tmp)
+        result = json.loads(proc.stdout)
+        battery = result["battery_save"]
+        self.assertEqual(battery["verdict"], "FAIL")
+        self.assertEqual(battery["bytes"], 0)
+        self.assertEqual(result["checks"]["battery_save_roundtrip"], "FAIL")
+
+    def test_erased_flash_is_not_battery_evidence(self):
+        """An all-0xFF save region is erased flash, not a gameplay write."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        core = self._legacy_core(erased=True)
+        self.assertTrue(core.is_file(), f"build the erased-SRAM core first: {core}")
         with tempfile.TemporaryDirectory() as d:
             tmp = Path(d)
             proc = self._run_legacy(core, self._battery_spec(tmp), tmp)

@@ -9,6 +9,7 @@ All notable changes to ezCORE are documented here. The format follows
 ### Fixed
 
 - The play harness accepts `.sv` Supervision cartridges for Watara, matching the extensions published in the core manifest. Other file types remain refused. [ios, android, macos, linux, windows]
+- Battery-save detection no longer treats an erased or otherwise uniform save-memory region as a gameplay write. A save must contain at least two distinct byte values to pass the round trip. [ios, android, macos, linux, windows]
 
 ### Removed
 

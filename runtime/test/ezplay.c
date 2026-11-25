@@ -965,12 +965,16 @@ static memblob collect_memory(ezcore_session *s, uint64_t want_flag) {
       }
     }
   }
-  /* A zero-filled SRAM region is not proof that gameplay wrote battery
-   * memory; reject it instead of reporting a false PASS. */
+  /* A uniform SRAM region is not proof that gameplay wrote battery memory.
+   * Flash save memory is erased to 0xFF and RAM may start zeroed; both are
+   * initial states, not a save. Require at least two distinct byte values. */
   if (want_flag == RETRO_MEMDESC_SAVE_RAM && b.len) {
-    bool any = false;
-    for (size_t i = 0; i < b.len; i++) if (b.data[i]) { any = true; break; }
-    if (!any) { free(b.data); b.data = NULL; b.len = 0; }
+    const unsigned char initial = b.data[0];
+    bool varied = false;
+    for (size_t i = 1; i < b.len; i++) {
+      if (b.data[i] != initial) { varied = true; break; }
+    }
+    if (!varied) { free(b.data); b.data = NULL; b.len = 0; }
   }
   return b;
 }
@@ -999,7 +1003,7 @@ static int check_battery(const context_t *ctx, result_t *r) {
   if (!first.len) {
     free(first.data);
     r->battery_verdict = "FAIL";
-    r->battery_reason = "core exposes no battery-backed save memory";
+    r->battery_reason = "core exposes no written battery-backed save memory";
     return 0;
   }
   s = open_session(ctx, &rc);
