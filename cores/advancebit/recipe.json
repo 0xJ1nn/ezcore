@@ -1,0 +1,64 @@
+{
+  "build": {
+    "args": {
+      "android-arm64": [
+        "-DCMAKE_C_FLAGS=-Wno-error=implicit-function-declaration -Wno-error=int-conversion"
+      ],
+      "default": [
+        "-DBUILD_LIBRETRO=ON",
+        "-DBUILD_QT=OFF",
+        "-DBUILD_SDL=OFF",
+        "-DBUILD_SUITE=OFF",
+        "-DBUILD_TEST=OFF",
+        "-DBUILD_PYTHON=OFF",
+        "-DBUILD_EXAMPLE=OFF",
+        "-DBUILD_PERF=OFF",
+        "-DBUILD_CINEMA=OFF",
+        "-DBUILD_HEADLESS=OFF"
+      ]
+    },
+    "cmake_build_dir": "build-{target}",
+    "dir": "",
+    "jobs": 4,
+    "system": "cmake",
+    "target": "mgba_libretro"
+  },
+  "hooks": [],
+  "id": "advancebit",
+  "license_files": [
+    "LICENSE"
+  ],
+  "outputs": {
+    "android-arm64": "build-android/mgba_libretro.so",
+    "linux-x64": "build-linux-x64/mgba_libretro.so",
+    "macos-arm64": "build-macos-arm64/mgba_libretro.dylib",
+    "windows-x64": "build-windows-x64/mgba_libretro.dll"
+  },
+  "patches": [],
+  "pin": "7a12d6d4b9acb14c0ae62c9166b6a2f3d08007f6",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "android-arm64",
+    "linux-x64",
+    "windows-x64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "mgba-libretro",
+  "strip": {
+    "android-arm64": "llvm-strip -g",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/mgba.git"
+}

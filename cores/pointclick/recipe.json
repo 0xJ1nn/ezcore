@@ -1,0 +1,62 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "DEBUG_ALLOW_DIRTY_SUBMODULES=1"
+      ],
+      "macos-arm64": [
+        "DEBUG_ALLOW_DIRTY_SUBMODULES=1",
+        "USE_SYSTEM_mad=1",
+        "USE_SYSTEM_png=1"
+      ]
+    },
+    "dir": "backends/platform/libretro",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [
+    "scummvm_makefile_fix",
+    "scummvm_engine_defines",
+    "scummvm_sdk_rot_fix"
+  ],
+  "id": "pointclick",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "scummvm_libretro_ios.dylib",
+    "linux-x64": "scummvm_libretro.so",
+    "macos-arm64": "scummvm_libretro.dylib",
+    "windows-x64": "scummvm_libretro.dll"
+  },
+  "patches": [],
+  "pin": "ee707c5451a47ed5fef872ac06ec6fb370e56b41",
+  "pin_verified": false,
+  "pinned_targets": [
+    "android-arm64",
+    "linux-x64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "scummvm",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/scummvm/scummvm.git"
+}

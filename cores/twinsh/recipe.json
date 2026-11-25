@@ -1,0 +1,51 @@
+{
+  "build": {
+    "args": {
+      "default": []
+    },
+    "dir": "",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "twinsh",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "mednafen_saturn_libretro_ios.dylib",
+    "linux-x64": "mednafen_saturn_libretro.so",
+    "macos-arm64": "mednafen_saturn_libretro.dylib",
+    "windows-x64": "mednafen_saturn_libretro.dll"
+  },
+  "patches": [],
+  "pin": "7126d65b83b65b4316736434ecca2f5ff4f1a3dd",
+  "pin_verified": false,
+  "pinned_targets": [
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "beetle-saturn",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/beetle-saturn-libretro.git"
+}

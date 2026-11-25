@@ -184,6 +184,73 @@ void main() {
       }
     });
 
+    test('the five release targets and the date column head the table', () {
+      final headerAt = lines.indexWhere(
+        (line) => line.startsWith('| Core |') && line.contains('Linux x64'),
+      );
+      expect(headerAt, isNonNegative, reason: 'the core table has a header');
+      expect(
+        _cells(lines[headerAt]),
+        equals([
+          'Core',
+          'macOS arm64',
+          'iOS arm64',
+          'Android arm64',
+          'Linux x64',
+          'Windows x64',
+          'Last verified',
+        ]),
+        reason: 'the table spans exactly the five release targets',
+      );
+    });
+
+    test('definitions read as a ladder with PLAYS at the top', () {
+      final tableAt = lines.indexWhere((line) => line.startsWith('| Core |'));
+      final order = <String>[];
+      for (final line in lines) {
+        final match = RegExp(r'^\| (BUILT|IDENTIFIES|BOOTS|RENDERS|PLAYS) \|')
+            .firstMatch(line);
+        if (match != null) order.add(match.group(1)!);
+      }
+      expect(
+        order,
+        equals(['BUILT', 'IDENTIFIES', 'BOOTS', 'RENDERS', 'PLAYS']),
+      );
+      final definitions = lines
+          .asMap()
+          .entries
+          .where(
+            (entry) =>
+                RegExp(r'^\| (BUILT|IDENTIFIES|BOOTS|RENDERS|PLAYS) \|')
+                    .hasMatch(entry.value),
+          )
+          .map((entry) => entry.key);
+      for (final at in definitions) {
+        expect(at, lessThan(tableAt), reason: 'definitions precede the table');
+      }
+    });
+
+    test('public text carries no private evidence or internal markers', () {
+      final forbidden = <RegExp, String>{
+        RegExp(r'docs/evidence/'): 'a private evidence path',
+        RegExp(r'github\.com/', caseSensitive: false): 'a repository link',
+        RegExp(r'\b(?:LP|ADR|PS)-\d+\b'): 'a task ID',
+        RegExp(
+          r'\b(?:agent|swarm|handoff|worker|assistant|hermes|claude|copilot|codex)\b',
+          caseSensitive: false,
+        ): 'an internal process name',
+        RegExp(r'~/|/home/|native/test-roms/|runtime/build-linux/'):
+            'a local path',
+      };
+      for (final entry in forbidden.entries) {
+        expect(
+          entry.key.hasMatch(matrix),
+          isFalse,
+          reason: 'the public matrix contains ${entry.value}',
+        );
+      }
+    });
+
     test('evidence stays with the maintainers', () {
       expect(matrix, contains('kept by the maintainers'));
       expect(matrix, isNot(contains('docs/evidence/')));

@@ -1,0 +1,68 @@
+{
+  "build": {
+    "args": {
+      "default": [
+        "SYSTEM_LIBPNG=1",
+        "SYSTEM_ZLIB=1"
+      ],
+      "linux-x64": [
+        "SYSTEM_LIBPNG=1",
+        "SYSTEM_ZLIB=1",
+        "HAVE_THR_AL=1",
+        "HAVE_PARALLEL_RSP=1",
+        "LLE=1"
+      ],
+      "windows-x64": [
+        "SYSTEM_LIBPNG=1",
+        "SYSTEM_ZLIB=1",
+        "HAVE_THR_AL=1",
+        "HAVE_PARALLEL_RSP=1",
+        "LLE=1"
+      ]
+    },
+    "dir": "",
+    "jobs": 4,
+    "system": "make",
+    "target": "libretro"
+  },
+  "hooks": [],
+  "id": "rcp64",
+  "license_files": [
+    "LICENSE",
+    "COPYING",
+    "LICENSE.md"
+  ],
+  "outputs": {
+    "ios-arm64": "mupen64plus_next_libretro_ios.dylib",
+    "linux-x64": "mupen64plus_next_libretro.so",
+    "macos-arm64": "mupen64plus_next_libretro.dylib",
+    "windows-x64": "mupen64plus_next_libretro.dll"
+  },
+  "patches": [],
+  "pin": "8623e490a8773fcb6c10f424cebbdb0ac44e88ea",
+  "pin_verified": false,
+  "pinned_targets": [
+    "linux-x64",
+    "macos-arm64"
+  ],
+  "platforms": [
+    "macos-arm64",
+    "ios-arm64",
+    "linux-x64",
+    "windows-x64",
+    "android-arm64"
+  ],
+  "schema": 1,
+  "sign": {
+    "macos-arm64": "adhoc-codesign"
+  },
+  "source_dir": "mupen64plus-nx",
+  "strip": {
+    "ios-arm64": "strip -x",
+    "linux-x64": "strip -g",
+    "macos-arm64": "strip -x",
+    "windows-x64": "llvm-strip -g"
+  },
+  "submodules": false,
+  "upstream": "https://github.com/libretro/mupen64plus-libretro-nx.git"
+}
