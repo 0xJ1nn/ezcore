@@ -9,18 +9,26 @@ import 'core_session_backend.dart';
 import 'emulation_worker.dart';
 import 'native_loop_session.dart';
 import 'pcm_output.dart';
+import 'video_texture.dart';
 
 /// Frame scheduling/presentation only; native sessions belong to the worker.
 /// One outstanding frame bounds memory even when rendering is slower than emulation.
 class PlayerController extends ChangeNotifier {
   PlayerController({
     PcmOutput? audio,
+    DesktopVideoTexture? videoTexture,
     NativeLoopProbe? nativeLoopProbe,
     Map<String, dynamic> settings = const {},
   })  : audio = audio ?? createPlatformPcm(),
+        videoTexture = videoTexture ?? DesktopVideoTexture(),
         _loopProbe = nativeLoopProbe ?? probeNativeLoop,
         _settings = Map<String, dynamic>.from(settings);
   final PcmOutput audio;
+
+  /// Native desktop texture; null until a session attaches to it.
+  final DesktopVideoTexture videoTexture;
+
+  int? get textureId => videoTexture.textureId;
 
   /// Runtime-owned emulation, when both the loop and a video bridge are
   /// present. The per-frame timer is kept as the fallback for one release.
@@ -41,6 +49,28 @@ class PlayerController extends ChangeNotifier {
   NativeLoopStats? get loopStats => _loop?.lastStats;
   Stream<NativeLoopStats> get loopStatsStream =>
       _loop?.statsStream ?? const Stream<NativeLoopStats>.empty();
+
+  /// Publishes run-loop frames into the Flutter texture while the runtime owns
+  /// frame pacing. The timer path marks the texture in [_tick]; the run loop
+  /// needs the same nudge at display rate instead.
+  Timer? _videoTimer;
+  void _startVideoPump() {
+    _videoTimer?.cancel();
+    _videoTimer = null;
+    if (!_usingNativeLoop || !running || paused ||
+        videoTexture.textureId == null) {
+      return;
+    }
+    _videoTimer = Timer.periodic(
+      Duration(microseconds: (1000000 / _fps).round().clamp(0, 1000000)),
+      (_) {
+        if (!_closed && !paused && !_disposed) {
+          unawaited(videoTexture.frameReady());
+        }
+      },
+    );
+  }
+
 
   /// Runs the core session. In-process by default; [useBackend] swaps in a
   /// separate-process backend (P6) before [open].
@@ -112,10 +142,13 @@ class PlayerController extends ChangeNotifier {
     if (!_fps.isFinite || _fps <= 0) _fps = 60;
     _rate = (info['sampleRate'] as num).toDouble();
     canSaveStates = info['canSave'] as bool? ?? true;
+    canSaveStates = info['canSave'] as bool? ?? true;
+    final address = info['sessionAddress'] as int? ?? 0;
+    if (address != 0) await videoTexture.open(address);
+
 
     // A native session only runs here when the loaded runtime exposes both
     // the run loop and a video bridge. Anything else keeps the timer path.
-    final address = info['sessionAddress'] as int? ?? 0;
     if (!legacyFrameLoopRequested(_settings)) {
       NativeLoopSession? candidate;
       try {
@@ -143,10 +176,15 @@ class PlayerController extends ChangeNotifier {
       }
     }
 
+
     await _startAudio();
     running = true;
     _notify();
-    if (!_usingNativeLoop) _schedule(Duration.zero);
+    if (!_usingNativeLoop) {
+      _schedule(Duration.zero);
+    } else {
+      _startVideoPump();
+    }
   }
 
   Future<void> _startAudio() async {
@@ -172,6 +210,7 @@ class PlayerController extends ChangeNotifier {
     try {
       final packet = await worker.frame(count: fastForward ? ffFrames : 1);
       if (packet != null && !_closed && !paused) {
+        await videoTexture.frameReady();
         final completer = Completer<ui.Image>();
         ui.decodeImageFromPixels(
           packet['rgba'] as Uint8List,
@@ -213,6 +252,7 @@ class PlayerController extends ChangeNotifier {
     if (_closed || !running) return;
     paused = value;
     _timer?.cancel();
+    if (value) _videoTimer?.cancel();
     await _inFlight;
     if (_usingNativeLoop) {
       final loop = _loop!;
@@ -230,7 +270,11 @@ class PlayerController extends ChangeNotifier {
       _audioReady = false;
     } else {
       await _startAudio();
-      if (!_usingNativeLoop) _schedule(Duration.zero);
+      if (!_usingNativeLoop) {
+        _schedule(Duration.zero);
+      } else {
+        _startVideoPump();
+      }
     }
     _notify();
   }
@@ -345,6 +389,7 @@ class PlayerController extends ChangeNotifier {
     _closed = true;
     running = false;
     _timer?.cancel();
+    _videoTimer?.cancel();
     await _inFlight;
     final loop = _loop;
     _loop = null;
