@@ -143,9 +143,10 @@ destination directories are gitignored and never committed, so a second
 checkout starts empty.
 
 Building cores therefore needs network access and enough disk for the upstream
-trees (PPSSPP and Dolphin are the large ones). Only **three** recipes pin a
-commit: `dualvu` (`d44bfa1`), `potator` (`227c5f6`) and `gw` (`91d599b`); they
-check out that SHA after cloning and fetch it when the shallow clone does not
+trees (PPSSPP and Dolphin are the large ones). Four recipes pin a commit:
+`dualscreen` (`66b5d26`), `dualvu` (`d44bfa1`), `potator` (`227c5f6`) and
+`gw` (`91d599b`); they check out that SHA after cloning and fetch it when the
+shallow clone does not
 have it. Every other recipe tracks the upstream default branch as of the day
 you build, so two builds weeks apart can produce different binaries and
 different `SHA256SUMS`. The sha256 pins in `cores/<id>/manifest.json` describe
