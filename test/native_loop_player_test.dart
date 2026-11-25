@@ -51,6 +51,9 @@ class _FakeBackend implements CoreSessionBackend {
   }
 
   @override
+  Future<bool> attachVideo(int window, int width, int height) async => false;
+
+  @override
   Future<Map<String, dynamic>?> frame({int count = 1}) async {
     frames++;
     return {
