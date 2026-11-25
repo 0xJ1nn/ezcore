@@ -112,18 +112,14 @@ are described in [`NATIVE_AUDIO.md`](NATIVE_AUDIO.md).
 | Tier | Cores | Platforms |
 |------|---------|-----------|
 | `--tier1` | GB/GBC, GBA, SNES, Genesis, DOS (5 cores) | All |
-| `--tier-desktop` | All desktop cores (17) | macOS, Linux, Windows |
-| `--tier-android` | Mobile tier (10 cores) | Android |
-| `--tier-ios` | Interpreter-only tier (9 cores) | iOS |
+| `--tier-desktop` | All desktop cores (14) | macOS, Linux, Windows |
+| `--tier-android` | Mobile tier (7 cores) | Android |
+| `--tier-ios` | Interpreter-only tier (6 cores) | iOS |
 
-`--tier1` is five cores, not six, and not all five are run-verified. On Linux
+The first tier has three cores, and not all three are run-verified. On Linux
 x64 `pocketbit` (GB/GBC) and `advancebit` (GBA) hold RENDERS against recorded
 frames. `realmode` (DOS) has a recorded boot that opens the DOS start menu, but
-it refuses to serialize until a program runs, so no frame was kept. `superfx`
-(SNES) has no Linux cell at all and stops at IDENTIFIES on macOS; `blastproc`
-(Genesis) is BUILT on Linux with no recorded frame. Both are non-commercial
-upstream, so no binary of either ever ships — those two recipes exist to prove
-the build.
+it refuses to serialize until a program runs, so no frame was kept.
 
 The same tier means different evidence on the other targets: Android cells
 are ELF and symbol checks on the built arm64 artifacts, with no on-device core
@@ -134,11 +130,11 @@ per-core record; read it before quoting a tier as proven on any platform.
 
 ## Fetching the emulator sources
 
-Cores are not vendored. `scripts/build_core.sh` clones **23 upstream
+Cores are not vendored. `scripts/build_core.sh` clones **19 upstream
 repositories** at build time — one for the libretro header (`--fetch-headers`,
-into `runtime/external/libretro-common`) plus one per core recipe — and six of
+into `runtime/external/libretro-common`) plus one per core recipe — and five of
 those recipes then run `git submodule update --init --recursive` (PPSSPP,
-Flycast, FBNeo, Dolphin, LRPS2, and Play!, which nests zstd/xxHash/zlib). Both
+Flycast, Dolphin, LRPS2, and Play!, which nests zstd/xxHash/zlib). Both
 destination directories are gitignored and never committed, so a second
 checkout starts empty.
 

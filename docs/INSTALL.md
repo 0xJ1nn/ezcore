@@ -117,8 +117,6 @@ with the catalog id in parentheses:
 | DS | DualScreen (`dualscreen`) | `bios7.bin`, `bios9.bin`, `firmware.bin` | optional — FreeBIOS fallback built in |
 | GameCube/Wii | PowerCube (`powercube`) | `IPL.bin` | optional (HLE default) |
 | NES (FDS) | NesByte (`nesbyte`) | `disksys.rom` | FDS titles only, optional |
-| Genesis/SMS | BlastProc (`blastproc`) | `bios_MD.bin`, `bios.gg`, `bios_U.sms` / `bios_E.sms` / `bios_J.sms`, Sega CD `bios_CD_U.bin` / `bios_CD_E.bin` / `bios_CD_J.bin` | optional |
-| Arcade/Neo Geo | CoinBox (`coinbox`) | `neogeo.zip` (+ per-board BIOS) | Neo Geo sets only — core held from v0.2.x |
 
 > **Mobile note (v0.2.x):** on Android and iOS the `system/` folder lives in
 > the app's private storage and is not reachable from a normal file manager.

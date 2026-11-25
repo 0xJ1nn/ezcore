@@ -6,6 +6,14 @@ All notable changes to ezCORE are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- Removed four catalog cores that were build recipes only: three used
+  non-commercial upstream licences and one used a GPL-2.0-only licence that
+  cannot be combined with the application. Their manifests, build recipes,
+  catalog entries, artwork and matrix rows are gone. No binary from them was
+  ever distributed. [ios, android, macos, linux, windows]
+
 ### Added
 
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]

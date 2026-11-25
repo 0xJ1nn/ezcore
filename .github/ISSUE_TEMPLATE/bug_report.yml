@@ -36,15 +36,11 @@ body:
       description: Which core is involved? Leave blank if not core-specific.
       options:
         - sameboy (GB/GBC)
-        - gambatte (GB/GBC)
         - mgba (GBA/GB/GBC)
         - mesen (NES/FDS)
-        - snes9x (SNES)
-        - genesis_plus_gx (Genesis/SMS/GG)
         - stella (Atari 2600)
         - beetle_pce (PCE/TG-16)
         - dosbox_pure (DOS)
-        - fbneo (Arcade/NeoGeo)
         - scummvm (SCUMM)
         - swanstation (PS1)
         - mupen64plus (N64)

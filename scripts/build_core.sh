@@ -48,7 +48,7 @@ stage() { # id file [destname]
   local dest="${3:-${id}_libretro.$LIB_SUFFIX}"
   mkdir -p "$OUT_DIR/$id"
   cp "$file" "$OUT_DIR/$id/$dest"
-  # Strip debug symbols (size: fbneo 81M->~20M). Dynamic symbols needed by
+  # Strip debug symbols (large cores shrink substantially). Dynamic symbols needed by
   # dlopen are preserved (-x/-g remove debug info only). Pinned bytes are
   # the stripped bytes — dev, pins and bundles all agree.
   case "$PLATFORM" in
@@ -165,16 +165,6 @@ build_pocketbit() {
   fi
 }
 
-build_gambatte() {
-  clone https://github.com/libretro/gambatte-libretro.git "$SRC_DIR/gambatte-libretro"
-  core_reset "$SRC_DIR/gambatte-libretro"
-  core_make "$SRC_DIR/gambatte-libretro" -f Makefile.libretro
-  # iOS link output carries the _ios infix (makefile TARGET rule).
-  out="gambatte_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="gambatte_libretro_ios.dylib"
-  stage gambatte "$SRC_DIR/gambatte-libretro/$out"
-}
-
 build_advancebit() {
   clone https://github.com/libretro/mgba.git "$SRC_DIR/mgba-libretro"
   core_reset "$SRC_DIR/mgba-libretro"
@@ -202,24 +192,6 @@ build_advancebit() {
     -DBUILD_PERF=OFF -DBUILD_CINEMA=OFF -DBUILD_HEADLESS=OFF
   cmake --build "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH" --target mgba_libretro -j"$JOBS"
   stage advancebit "$SRC_DIR/mgba-libretro/build-$PLATFORM-$ARCH/mgba_libretro.$LIB_SUFFIX"
-}
-
-build_superfx() {
-  clone https://github.com/snes9xgit/snes9x.git "$SRC_DIR/snes9x"
-  core_reset "$SRC_DIR/snes9x"
-  core_make "$SRC_DIR/snes9x/libretro"
-  out="snes9x_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="snes9x_libretro_ios.dylib"
-  stage superfx "$SRC_DIR/snes9x/libretro/$out"
-}
-
-build_blastproc() {
-  clone https://github.com/libretro/Genesis-Plus-GX.git "$SRC_DIR/Genesis-Plus-GX"
-  core_reset "$SRC_DIR/Genesis-Plus-GX"
-  core_make "$SRC_DIR/Genesis-Plus-GX" -f Makefile.libretro
-  out="genesis_plus_gx_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="genesis_plus_gx_libretro_ios.dylib"
-  stage blastproc "$SRC_DIR/Genesis-Plus-GX/$out"
 }
 
 build_realmode() {
@@ -474,20 +446,6 @@ build_dreamarc() {
     -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIBRETRO=ON $extra
   cmake --build "$SRC_DIR/flycast/build-$PLATFORM-$ARCH" -j"$JOBS"
   stage dreamarc "$SRC_DIR/flycast/build-$PLATFORM-$ARCH/flycast_libretro.$LIB_SUFFIX"
-}
-
-build_coinbox() {
-  clone https://github.com/libretro/FBNeo.git "$SRC_DIR/FBNeo"
-  core_reset "$SRC_DIR/FBNeo"
-  (cd "$SRC_DIR/FBNeo" && git submodule update --init --depth 1 --recursive)
-  # Android NDK has no libpthread (bionic libc covers it).
-  extra=""
-  [ "$PLATFORM" = android ] && extra="LDFLAGS="
-  # shellcheck disable=SC2086
-  core_make "$SRC_DIR/FBNeo/src/burner/libretro" $extra
-  out="fbneo_libretro.$LIB_SUFFIX"
-  [ "$PLATFORM" = ios ] && out="fbneo_libretro_ios.dylib"
-  stage coinbox "$SRC_DIR/FBNeo/src/burner/libretro/$out"
 }
 
 build_pointclick() {
@@ -760,16 +718,16 @@ hold() { echo "REFUSED: $1"; exit 4; }
 build_citra_hold()  { hold "3DS core is on hold (see cores/citra_hold/manifest.json)"; }
 build_switch_hold() { hold "Switch core is on hold (see cores/switch_hold/manifest.json)"; }
 
-TIER1="pocketbit advancebit superfx blastproc realmode"
+TIER1="pocketbit advancebit realmode"
 
 # Platform tiers (docs/MATRIX.md records per-core results).
 # Android: dynarec allowed; software + JIT-capable make/cmake cores.
-TIER_ANDROID="pocketbit advancebit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
+TIER_ANDROID="pocketbit advancebit nesbyte joystick cardcon realmode pointclick"
 # iOS: pure-interpreter make cores only. mgba/melonds/JIT-default cores stay
 # out until an explicit interpreter flag is verified (manifest rule).
-TIER_IOS="pocketbit nesbyte superfx blastproc joystick cardcon realmode pointclick coinbox"
+TIER_IOS="pocketbit nesbyte joystick cardcon realmode pointclick"
 # Desktop (linux/windows native): everything shippable.
-TIER_DESKTOP="pocketbit advancebit nesbyte superfx blastproc joystick cardcon twinsh coinbox pointclick realmode geometry1 rcp64 dualscreen portcomp dreamarc powercube"
+TIER_DESKTOP="pocketbit advancebit nesbyte joystick cardcon twinsh pointclick realmode geometry1 rcp64 dualscreen portcomp dreamarc powercube"
 
 cmd="${1:-}"
 case "$PLATFORM" in

@@ -32,7 +32,7 @@ void main() {
       system: 'snes',
       filePath: '~/Games/snes/mydump.sfc',
       extension: 'sfc',
-      coreId: 'superfx',
+      coreId: 'nesbyte',
     ),
   ];
 
