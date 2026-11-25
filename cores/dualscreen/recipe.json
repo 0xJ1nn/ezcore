@@ -40,7 +40,7 @@
   "sign": {
     "macos-arm64": "adhoc-codesign"
   },
-  "source_dir": "melonDS-libretro",
+  "source_dir": "melonDS",
   "strip": {
     "android-arm64": "llvm-strip -g",
     "ios-arm64": "strip -x",
