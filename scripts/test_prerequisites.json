@@ -1,0 +1,8 @@
+{
+  "libretro_header": {
+    "repository": "libretro/libretro-common",
+    "commit": "ae22debd425c33fe355ac2e51d9a140d7e8b3fa6",
+    "path": "include/libretro.h",
+    "sha256": "469b0fbe2919ca9f5372b48a94ff8af51f70ee00c364798ec70670ecf6b7f9da"
+  }
+}

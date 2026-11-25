@@ -94,6 +94,13 @@ and `flutter run -d <target>` names the device for that host (`linux`,
 `windows`, `android` or an attached iOS device). Building for iOS needs macOS
 and Xcode; Windows needs an MSYS2 host; Android needs the NDK.
 
+The Dart test suite needs the same two native inputs. On any host, run
+`scripts/setup_test_prerequisites.sh` once after cloning and before
+`flutter test`: it fetches the pinned `libretro.h`, builds the host runtime
+and verifies both. The command is safe to repeat, and `--check` verifies the
+inputs without network access. The continuous-integration Dart gate runs the
+same setup before the tests.
+
 ## Platform Build Commands
 
 | Target | Build host | Runtime | Cores | Flutter |

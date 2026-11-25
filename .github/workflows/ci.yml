@@ -28,6 +28,11 @@ jobs:
       - run: python3 scripts/fill_manifest_data.py --check
       - run: python3 scripts/build_catalog.py
       - run: flutter pub get
+      - name: native test prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+          scripts/setup_test_prerequisites.sh
       - run: flutter analyze lib/ test/
       - run: flutter test
       - run: bash scripts/banned_content_scan.sh
