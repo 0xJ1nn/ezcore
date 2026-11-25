@@ -119,6 +119,7 @@ final class BookmarkStore {
 class MainFlutterWindow: NSWindow {
   private let audio = PcmAudio()
   private let bookmarks = BookmarkStore()
+  private var video: EzcoreVideoTextureBridge?
   private var audioChannel: FlutterMethodChannel?
   private var gamepad: GamepadBridge?
   override func awakeFromNib() {
@@ -128,6 +129,19 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+
+    // The shared Swift bridge supplies the texture pool; this runner supplies
+    // the macOS registry calls. Frame layout and channel names stay identical
+    // to iOS because both targets compile the same source file.
+    let registrar = flutterViewController.registrar(forPlugin: "ezcore.video")
+    let textures = registrar.textures
+    video = EzcoreVideoTextureBridge(
+      messenger: flutterViewController.engine.binaryMessenger,
+      register: { texture in textures.registerTexture(texture) },
+      frameAvailable: { id in textures.textureFrameAvailable(id) },
+      unregister: { id in textures.unregisterTexture(id) }
+    )
+
     let channel = FlutterMethodChannel(name: "ezcore/audio", binaryMessenger: flutterViewController.engine.binaryMessenger)
     audioChannel = channel
     channel.setMethodCallHandler { [weak self] call, result in
