@@ -19,6 +19,7 @@ All notable changes to ezCORE are documented here. The format follows
 - The player can hand frame pacing to the runtime-owned run thread when the loaded runtime provides both the loop and a video bridge. Input goes into the loop's atomics and the display reads a two-per-second statistics stream; the original per-frame timer remains available through a hidden setting for one release. [ios, android, macos, linux, windows]
 - A native play harness that drives one core and dump from a play spec and reports frame hashes, input response, audio levels, speed, save states, battery saves, cheats and fast-forward as a JSON result. [ios, android, macos, linux, windows]
 - Native audio through one shared driver on every platform: a lock-free frame ring fed by the core's audio callback, resampling with dynamic rate control, volume and mute controls, and device statistics. [ios, android, macos, linux, windows]
+- A runtime-owned run thread for each session: frames paced by the audio clock, triple-buffered video, lock-free input, a control queue for pause, speed, saves and cheats, and frame-time statistics. [ios, android, macos, linux, windows]
 - The play harness finds its runtime beside the executable, so it runs when staged with the runtime and a core on another device. [android, linux, macos]
 
 ### Fixed
