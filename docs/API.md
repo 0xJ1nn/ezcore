@@ -68,6 +68,22 @@ ring capacity, initial gain and mute state, and the backend choice.
 and device state. `ezcore_audio_backend` is either `EZCORE_AUDIO_BACKEND_AUTO` for
 the platform device or `EZCORE_AUDIO_BACKEND_NULL` for the test device.
 
+### Native Run Loop
+
+```c
+typedef struct ezcore_loop ezcore_loop;
+```
+
+An opaque handle to the runtime-owned run thread for one session. Created by
+`ezcore_loop_start`, joined and destroyed by `ezcore_loop_stop`. The thread calls
+`retro_run` paced by the audio device clock, or by a monotonic clock when no
+device is open. Frames are published into a three-slot buffer where the newest
+complete frame wins; a reader pins one slot until it releases it.
+
+`ezcore_loop_config` selects the pacing rate and the frame-time histogram.
+`ezcore_loop_statistics` carries frame counts, dropped frames, control counts,
+device underruns, frame-time percentiles and the histogram.
+
 ---
 
 ## Functions
@@ -626,12 +642,185 @@ bool ezcore_audio_stats(ezcore_audio *audio, ezcore_audio_stats *out);
 
 Copies the device counters into `out`: frames written by the core, frames
 played, underruns, overruns, buffered frames, ring fill fraction, current
-resample ratio, volume, mute state and whether the device is running.
+resample ratio, volume, mute state, the device sample rate and whether the
+device is running.
 
 **Returns:** `false` when either argument is `NULL`, otherwise `true`.
 
 **Thread safety:** Safe to call while the device is running; the counters are
 atomic snapshots, not a single instant across all fields.
+
+---
+
+### Native Run Loop
+
+#### `ezcore_loop_start`
+
+```c
+ezcore_loop *ezcore_loop_start(ezcore_session *s, const ezcore_loop_config *config,
+                               char *err, size_t err_len);
+```
+
+Starts one run thread for a loaded session. `config` may be `NULL` for defaults
+(60 Hz pacing, 64 histogram buckets over 40 ms); a `target_fps` of zero uses the
+core's reported rate. A session can have only one run loop at a time.
+
+**Returns:** the loop handle, or `NULL` with a message in `err`.
+
+#### `ezcore_loop_stop`
+
+```c
+void ezcore_loop_stop(ezcore_loop *loop);
+```
+
+Asks the thread to stop, joins it and frees the loop. Safe after the session's
+core has crashed only if the loop thread is still alive.
+
+#### `ezcore_loop_frame`
+
+```c
+const uint32_t *ezcore_loop_frame(ezcore_loop *loop, unsigned *w, unsigned *h);
+```
+
+Pins and returns the newest complete XRGB8888 frame, with its dimensions in
+`w` and `h`. Returns `NULL` before the first frame or while another frame is
+pinned.
+
+**Thread safety:** Safe to call from the drawing thread. The pinned slot is not
+overwritten until `ezcore_loop_frame_release`.
+
+#### `ezcore_loop_frame_release`
+
+```c
+void ezcore_loop_frame_release(ezcore_loop *loop);
+```
+
+Releases the pinned frame. Never keep the pointer from `ezcore_loop_frame` past
+this call.
+
+#### `ezcore_loop_set_button`
+
+```c
+void ezcore_loop_set_button(ezcore_loop *loop, unsigned port, unsigned button,
+                            bool pressed);
+```
+
+Writes one RetroPad button state into an atomic slot. The run thread copies it
+into the session before the next `retro_run`, so the caller does not wait for a
+frame. `port` is 0-3 and `button` is a `RETRO_DEVICE_ID_JOYPAD_*` value.
+
+#### `ezcore_loop_clear_buttons`
+
+```c
+void ezcore_loop_clear_buttons(ezcore_loop *loop, unsigned port);
+```
+
+Clears every button on one port through the same atomic slot.
+
+#### `ezcore_loop_set_analog`
+
+```c
+void ezcore_loop_set_analog(ezcore_loop *loop, unsigned port, unsigned stick,
+                            unsigned axis, int16_t value);
+```
+
+Writes one analog axis into an atomic slot. `stick` is 0 (left) or 1 (right),
+`axis` is 0 (x) or 1 (y), and `value` is -32768 to 32767.
+
+#### `ezcore_loop_control_pause`
+
+```c
+uint64_t ezcore_loop_control_pause(ezcore_loop *loop, bool paused);
+```
+
+Queues a pause or resume to be applied between frames. Returns a token, or 0 if
+the queue is full.
+
+#### `ezcore_loop_control_fast_forward`
+
+```c
+uint64_t ezcore_loop_control_fast_forward(ezcore_loop *loop, uint32_t factor);
+```
+
+Queues a fast-forward factor of 1-8. The loop runs that many frames per audio
+period and mutes device audio until normal speed resumes.
+
+#### `ezcore_loop_control_save`
+
+```c
+uint64_t ezcore_loop_control_save(ezcore_loop *loop, void *out, size_t size);
+```
+
+Queues a save state. The run thread writes the state into `out` between frames;
+the caller keeps ownership of that buffer and must not read it before the token
+has completed.
+
+#### `ezcore_loop_control_load`
+
+```c
+uint64_t ezcore_loop_control_load(ezcore_loop *loop, const void *data, size_t size);
+```
+
+Queues a save state to load. The bytes are copied when the control is queued, so
+the caller may free them immediately.
+
+#### `ezcore_loop_control_reset`
+
+```c
+uint64_t ezcore_loop_control_reset(ezcore_loop *loop);
+```
+
+Queues a soft reset between frames.
+
+#### `ezcore_loop_control_cheat_reset`
+
+```c
+uint64_t ezcore_loop_control_cheat_reset(ezcore_loop *loop);
+```
+
+Queues a cheat reset between frames.
+
+#### `ezcore_loop_control_cheat_set`
+
+```c
+uint64_t ezcore_loop_control_cheat_set(ezcore_loop *loop, unsigned index,
+                                        bool enabled, const char *code);
+```
+
+Queues one cheat code. The code string is copied when queued.
+
+#### `ezcore_loop_control_option`
+
+```c
+uint64_t ezcore_loop_control_option(ezcore_loop *loop, const char *key,
+                                     const char *value);
+```
+
+Queues a core option change. Both strings are copied when queued. The control
+succeeds only when the loaded core registered that option.
+
+#### `ezcore_loop_control_wait`
+
+```c
+bool ezcore_loop_control_wait(ezcore_loop *loop, uint64_t token,
+                              uint32_t timeout_ms, bool *result);
+```
+
+Waits up to `timeout_ms` for a queued control to be applied and writes whether
+the core accepted it to `result`. Returns `false` on an unknown token or a
+timeout.
+
+#### `ezcore_loop_stats`
+
+```c
+bool ezcore_loop_stats(ezcore_loop *loop, ezcore_loop_statistics *out);
+```
+
+Copies a consistent statistics snapshot: frames run, frames dropped when every
+buffer slot was ready, controls applied and pending, device underruns, the last,
+mean, median, 95th and 99th percentile and maximum frame times, and the frame
+histogram. Returns `false` when either argument is `NULL`. Safe to poll at any
+rate.
 
 ---
 

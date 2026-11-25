@@ -38,6 +38,7 @@ add_library(ezcore_runtime SHARED
   src/runtime.c
   src/ezcore_audio.c
   src/ezcore_video.c
+  src/ezcore_loop.c
   src/ezcore_gpu.c
   src/ezcore_gpu_vulkan.c
   ${EZCORE_GPU_BACKEND}
@@ -345,6 +346,15 @@ target_include_directories(test_native_audio PRIVATE include)
 add_dependencies(test_native_audio synth_libretro)
 add_test(NAME native_audio
   COMMAND test_native_audio $<TARGET_FILE:synth_libretro>)
+
+# Runtime-owned run thread: monotonic and audio-paced runs, atomic input,
+# queued controls and a save/load round trip between frames.
+add_executable(test_native_loop test/test_native_loop.c)
+target_link_libraries(test_native_loop PRIVATE ezcore_runtime m)
+target_include_directories(test_native_loop PRIVATE include)
+add_dependencies(test_native_loop synth_libretro)
+add_test(NAME native_loop
+  COMMAND test_native_loop $<TARGET_FILE:synth_libretro>)
 
 # Core-options & capability surface test (uses synth_options_libretro)
 add_executable(test_core_options test/test_core_options.c)
