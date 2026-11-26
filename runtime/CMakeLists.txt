@@ -169,6 +169,22 @@ if(APPLE)
   set_target_properties(synth_no_save_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# A core that starts its emulation thread on the first frame and reports its
+# serialization size only after that frame. The harness must ask again once
+# the core is running, while a core that never reports a size still fails.
+add_library(synth_lazy_save_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_lazy_save_libretro PRIVATE
+  EZCORE_SYNTH_LAZY_SAVE
+)
+target_include_directories(synth_lazy_save_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_lazy_save_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # A core that reports a snapshot size but cannot serialize. The harness must
 # record the save-state failure without throwing away the frame and audio
 # evidence gathered before and after the failed snapshot.

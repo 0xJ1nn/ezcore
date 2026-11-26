@@ -48,6 +48,11 @@ struct synth_state {
 
 static struct synth_state g_state = {0, 0, 0, 0x53594E54};
 static bool g_cheat_reset_seen;
+#if defined(EZCORE_SYNTH_LAZY_SAVE)
+/* Some cores start their emulation thread on the first frame and only know
+ * their serialization size once that thread is running. */
+static bool g_serialization_ready;
+#endif
 static bool g_cheat_set_seen;
 #if defined(EZCORE_SYNTH_REQUIRE_DIR)
 static bool g_dir_ready;
@@ -289,6 +294,9 @@ static uint32_t poll_all_ports(void) {
 #endif
 
 void retro_run(void) {
+#if defined(EZCORE_SYNTH_LAZY_SAVE)
+    g_serialization_ready = true;
+#endif
     if (input_poll_cb) input_poll_cb();
 
     if (input_state_cb) {
@@ -360,6 +368,10 @@ size_t retro_serialize_size(void) {
      * the app must learn this from OPEN, not from a failed SAVE. */
     return 0;
 #else
+#if defined(EZCORE_SYNTH_LAZY_SAVE)
+    /* A core whose size is unavailable before the first frame. */
+    if (!g_serialization_ready) return 0;
+#endif
     return sizeof(g_state);
 #endif
 }
