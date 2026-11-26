@@ -210,6 +210,20 @@ build_realmode() {
   stage realmode "$SRC_DIR/dosbox-pure/$out"
 }
 
+# GPL-3.0 libretro core built from the pinned upstream commit. No delivery
+# pins are published: platform claims need their own verified builds.
+build_bsnes() {
+  local pin=79d7f9de218b6ffa65a80bbdc5828532bc239232
+  clone https://github.com/libretro/bsnes-mercury.git "$SRC_DIR/bsnes-mercury"
+  core_reset "$SRC_DIR/bsnes-mercury"
+  git -C "$SRC_DIR/bsnes-mercury" fetch -q --depth 1 origin "$pin"
+  git -C "$SRC_DIR/bsnes-mercury" checkout -q "$pin"
+  core_make "$SRC_DIR/bsnes-mercury" PROFILE=performance
+  out="bsnes_mercury_performance_libretro.$LIB_SUFFIX"
+  [ "$PLATFORM" = ios ] && out="bsnes_mercury_performance_libretro_ios.dylib"
+  stage bsnes "$SRC_DIR/bsnes-mercury/$out" "bsnes_libretro.$LIB_SUFFIX"
+}
+
 # ------------- TIER 2: scripted, awaiting first verified run -------------
 # Each exits 3 until its recipe has produced a dylib once on this machine.
 unverified() { echo "UNVERIFIED recipe: $1 — see script source"; exit 3; }
