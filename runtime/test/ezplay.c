@@ -659,6 +659,11 @@ static void apply_input(ezcore_session *s, const frame_input *in, unsigned *prev
 typedef struct {
   const char *core_path;
   const char *content_path;
+  /* The location handed to the core. It defaults to content_path, but a
+   * frontend may expand a container and hand the core the expanded location
+   * while --content still identifies the original bytes and satisfies the
+   * spec's format gate. */
+  const char *load_path;
   void *content;
   size_t content_size;
   const spec_t *spec;
@@ -679,7 +684,7 @@ static ezcore_session *open_session(const context_t *ctx, int *rc) {
     *rc = 1;
     return NULL;
   }
-  if (!ezcore_load_game(s, ctx->content_path, ctx->content, ctx->content_size)) {
+  if (!ezcore_load_game(s, ctx->load_path, ctx->content, ctx->content_size)) {
     fprintf(stderr, "ezplay: load_game failed\n");
     ezcore_unload(s);
     *rc = 2;
@@ -1244,18 +1249,20 @@ static int do_work(const context_t *ctx, result_t *r, FILE *out) {
 
 static void usage(void) {
   fprintf(stderr, "usage: ezplay --core <core> --content <dump> --system-dir <dir> "
-                  "--save-dir <dir> --spec <json> [--cheat <code>]\n");
+                  "--save-dir <dir> --spec <json> [--load-path <location>] "
+                  "[--cheat <code>]\n");
 }
 
 int main(int argc, char **argv) {
   const char *core = NULL, *content = NULL, *sysdir = NULL, *savedir = NULL,
-             *specpath = NULL, *cheat = NULL;
+             *specpath = NULL, *cheat = NULL, *load_path = NULL;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--core") && i + 1 < argc) core = argv[++i];
     else if (!strcmp(argv[i], "--content") && i + 1 < argc) content = argv[++i];
     else if (!strcmp(argv[i], "--system-dir") && i + 1 < argc) sysdir = argv[++i];
     else if (!strcmp(argv[i], "--save-dir") && i + 1 < argc) savedir = argv[++i];
     else if (!strcmp(argv[i], "--spec") && i + 1 < argc) specpath = argv[++i];
+    else if (!strcmp(argv[i], "--load-path") && i + 1 < argc) load_path = argv[++i];
     else if (!strcmp(argv[i], "--cheat") && i + 1 < argc) cheat = argv[++i];
     else { usage(); return 10; }
   }
@@ -1322,7 +1329,8 @@ int main(int argc, char **argv) {
   ezcore_set_dirs(sysdir, savedir);
   frame_input *input = expand_input(&sp);
   if (!input) { free(data); return 10; }
-  context_t ctx = {core, content, data, (size_t)size, &sp, input};
+  context_t ctx = {core, content, load_path ? load_path : content,
+                   data, (size_t)size, &sp, input};
 
 #ifdef _WIN32
   int code = do_work(&ctx, &result, stdout);
