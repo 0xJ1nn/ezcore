@@ -1,0 +1,18 @@
+{
+  "system": "atari2600",
+  "core": "joystick",
+  "frames": 90,
+  "input": [
+    {"at": 20, "press": ["start"], "hold": 6}
+  ],
+  "checks": {
+    "video_changes_after_input": false,
+    "min_colours": 1,
+    "audio_rms_min": "n/a",
+    "speed_min": 0,
+    "save_state_roundtrip": "n/a",
+    "battery_save_roundtrip": "n/a",
+    "fast_forward": {"2x": 0, "4x": 0},
+    "cheat": false
+  }
+}

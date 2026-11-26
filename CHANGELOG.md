@@ -8,6 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The cartridge core recognises snapshots whose filename ends with a copy index after the file type, so those copies reach the same play checks as any other file of that type. [ios, android, macos, linux, windows]
 - The play harness can hand a core a separate load location while still scoring the original file, so engines that need their data expanded can start from a container. [ios, android, macos, linux, windows]
 - The play harness allows a bounded settling window after loading a snapshot before it compares replayed frames. A core may keep part of a rendered frame outside the saved state, and such a frame was reported as a state mismatch. Comparison still covers the full set of frames required by the play spec, and a genuinely wrong restored state still fails. [ios, android, macos, linux, windows]
 - The play harness recognises the file type of snapshots whose filename ends with a copy index after the extension, instead of refusing them. Other file types remain refused. [ios, android, macos, linux, windows]

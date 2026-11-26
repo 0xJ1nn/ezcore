@@ -39,6 +39,13 @@ def synth_core() -> Path:
     return candidates[0]
 
 
+def joystick_core() -> Path:
+    override = os.environ.get("EZCORE_JOYSTICK_CORE")
+    if override:
+        return Path(override)
+    return APP / "native" / "cores-linux-x64" / "joystick" / "joystick_libretro.so"
+
+
 class EzplayTest(unittest.TestCase):
     def test_source_exists(self):
         self.assertTrue((RUNTIME / "test" / "ezplay.c").is_file(),
@@ -470,6 +477,37 @@ class EzplayTest(unittest.TestCase):
                             f"\n{proc.stderr[-800:]}")
         result = json.loads(proc.stdout)
         self.assertNotIn("unsupported content", (result.get("error") or "").lower())
+
+    def test_joystick_core_accepts_indexed_snapshot_name(self):
+        """A copy index after the file type must not stop the core loading."""
+        core = joystick_core()
+        if not core.is_file():
+            self.skipTest(f"build the joystick core first: {core}")
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        spec = RUNTIME / "test" / "ezplay_spec_atari_load.json"
+        self.assertTrue(spec.is_file(), "the core load spec fixture is missing")
+        with tempfile.TemporaryDirectory() as d:
+            content = Path(d) / "fixture.a26__0"
+            # Invented, silent image bytes: this checks filename handling,
+            # not the quality of any particular game.
+            content.write_bytes(bytes(4096))
+            proc = subprocess.run(
+                [str(ezplay_bin()),
+                 "--core", str(core),
+                 "--content", str(content),
+                 "--system-dir", d,
+                 "--save-dir", d,
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=180)
+        self.assertNotEqual(proc.returncode, 12,
+                            f"harness refused an indexed snapshot: {proc.stdout[-800:]}")
+        self.assertNotIn("unrecognized",
+                         (proc.stderr + (proc.stdout or "")).lower(),
+                         "the core rejected the copy index as a file type")
+        result = json.loads(proc.stdout)
+        self.assertTrue(result["core"], "the core never identified itself")
+        self.assertTrue(result["frame_checkpoints"],
+                        "no play checkpoints were produced after loading")
 
     def test_bad_arguments_are_rejected(self):
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")

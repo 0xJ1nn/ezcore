@@ -361,6 +361,16 @@ build_dualscreen() {
 build_joystick() {
   clone https://github.com/libretro/stella2023.git "$SRC_DIR/stella2023"
   core_reset "$SRC_DIR/stella2023"
+  # A numbered snapshot copy carries its index after the file type. The shim
+  # passes that whole name to the engine, which reads the final extension to
+  # classify the cartridge; drop the index so those copies load like any other
+  # file of the same type. Idempotent across incremental rebuilds.
+  local patch="$ROOT/patches/joystick/0001-libretro-copy-index.patch"
+  if git -C "$SRC_DIR/stella2023" apply --reverse --check "$patch" >/dev/null 2>&1; then
+    echo "-- patch already applied: $(basename "$patch")"
+  else
+    git -C "$SRC_DIR/stella2023" apply "$patch"
+  fi
   # Android NDK has no libpthread (pthread lives in bionic libc).
   extra=""
   [ "$PLATFORM" = android ] && extra="PTHREAD_FLAGS="
