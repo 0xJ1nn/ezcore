@@ -154,6 +154,22 @@ if(APPLE)
   set_target_properties(synth_no_save_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# A core that reports a snapshot size but cannot serialize. The harness must
+# record the save-state failure without throwing away the frame and audio
+# evidence gathered before and after the failed snapshot.
+add_library(synth_save_fail_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_save_fail_libretro PRIVATE
+  EZCORE_SYNTH_SAVE_FAIL
+)
+target_include_directories(synth_save_fail_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_save_fail_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # Battery RAM exposed only through the legacy libretro memory API, with no
 # memory-map descriptors. The harness must read it; zero-filled and erased
 # variants must not be mistaken for real saves. No fixture contains content.
