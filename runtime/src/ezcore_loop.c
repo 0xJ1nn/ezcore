@@ -837,18 +837,25 @@ bool ezcore_loop_control_wait(ezcore_loop *loop, uint64_t token,
 
 bool ezcore_loop_stats(ezcore_loop *loop, ezcore_loop_statistics *out) {
   if (!loop || !out) return false;
-  for (unsigned attempt = 0; attempt < 8; attempt++) {
+  /* The run thread publishes statistics between every frame and every control.
+   * A reader that races those updates must yield, not give up after a handful
+   * of back-to-back loads: under load the writer can change the sequence on
+   * every attempt. Bound the wait so a wedged loop cannot block a caller. */
+  const double deadline = ez_now_seconds() + 0.100;
+  for (;;) {
     unsigned before = atomic_load_explicit(&loop->stats_seq, memory_order_acquire);
-    if (before & 1u) continue;
-    /* The writer publishes into buffer (seq/2)&1 and then advances seq to
-     * seq+2, so an even sequence N describes the buffer written for N-2. */
-    unsigned buffer = before == 0 ? 0u : ((before / 2u) - 1u) & 1u;
-    ezcore_loop_statistics snapshot = loop->stats[buffer];
-    unsigned after = atomic_load_explicit(&loop->stats_seq, memory_order_acquire);
-    if (before == after) {
-      *out = snapshot;
-      return true;
+    if (!(before & 1u)) {
+      /* The writer publishes into buffer (seq/2)&1 and then advances seq to
+       * seq+2, so an even sequence N describes the buffer written for N-2. */
+      unsigned buffer = before == 0 ? 0u : ((before / 2u) - 1u) & 1u;
+      ezcore_loop_statistics snapshot = loop->stats[buffer];
+      unsigned after = atomic_load_explicit(&loop->stats_seq, memory_order_acquire);
+      if (before == after) {
+        *out = snapshot;
+        return true;
+      }
     }
+    if (ez_now_seconds() >= deadline) return false;
+    ez_nap_ms(1);
   }
-  return false;
 }

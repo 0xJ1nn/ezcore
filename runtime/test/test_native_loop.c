@@ -123,6 +123,16 @@ int main(int argc, char **argv) {
   CHECK(apply(loop, ezcore_loop_control_pause(loop, true), &result) && result,
         "pause control applied between frames");
 
+  /* A paused loop publishes statistics every millisecond. A reader must get a
+   * consistent snapshot even when the writer updates between its retries;
+   * an eight-attempt busy loop can give up and lose the caller's wait. */
+  unsigned stats_failures = 0;
+  for (unsigned i = 0; i < 2000000; i++) {
+    ezcore_loop_statistics probe;
+    if (!ezcore_loop_stats(loop, &probe)) stats_failures++;
+  }
+  CHECK(stats_failures == 0, "statistics survive a publishing run thread");
+
   unsigned char state[128];
   size_t state_size = ezcore_serialize_size(session);
   REQUIRE(state_size == sizeof(struct synth_state_for_test),

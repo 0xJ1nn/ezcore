@@ -495,8 +495,16 @@ static void content_extension(const char *content, char *out, size_t len) {
   const char *dot = strrchr(content, '.');
   if (!dot) return;
   size_t n = 0;
-  for (const char *p = dot + 1; *p && n + 1 < len; p++)
+  for (const char *p = dot + 1; *p && n + 1 < len; p++) {
+    /* Snapshot copies may carry a trailing __N index after the file type.
+     * It identifies the copy, not the format, so exclude it from the gate. */
+    if (*p == '_' && p[1] == '_' && isdigit((unsigned char)p[2])) {
+      const char *q = p + 2;
+      while (*q && isdigit((unsigned char)*q)) q++;
+      if (!*q) break;
+    }
     out[n++] = (char)tolower((unsigned char)*p);
+  }
   out[n] = '\0';
 }
 
