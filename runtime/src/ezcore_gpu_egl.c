@@ -214,6 +214,272 @@ static bool make_fbo(struct ezcore_gpu_gl_body *b,
   return true;
 }
 
+/* --- Desktop GL on X11 --------------------------------------------------
+ * An EGL context is invisible to GLX. Cores that initialise their own GL
+ * loader through GLX (and report "No GLX display" when it is missing) cannot
+ * use it even when the runtime considers the context valid. Desktop GL
+ * requests therefore prefer a GLX pbuffer context on X11; GLES and non-X11
+ * platforms keep the EGL path unchanged. The libraries are still opened at
+ * runtime: there is no link-time GL/X11 dependency in the runtime.
+ */
+#if defined(__linux__) && !defined(__ANDROID__)
+#define EZCORE_HAVE_GLX 1
+
+typedef void *EzGlxDisplay;
+typedef void *EzGlxConfig;
+typedef void *EzGlxContext;
+typedef unsigned long EzGlxDrawable;
+
+#define EZ_GLX_NONE 0
+#define EZ_GLX_DRAWABLE_TYPE 0x8010
+#define EZ_GLX_PBUFFER_BIT 0x00000001
+#define EZ_GLX_RENDER_TYPE 0x8011
+#define EZ_GLX_RGBA_BIT 0x00000001
+#define EZ_GLX_RED_SIZE 8
+#define EZ_GLX_DEPTH_SIZE 12
+#define EZ_GLX_STENCIL_SIZE 13
+#define EZ_GLX_PBUFFER_WIDTH 0x8042
+#define EZ_GLX_PBUFFER_HEIGHT 0x8043
+#define EZ_GLX_RGBA_TYPE 0x8014
+#define EZ_GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define EZ_GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
+#define EZ_GLX_CONTEXT_PROFILE_MASK_ARB 0x9126
+#define EZ_GLX_CONTEXT_CORE_PROFILE_BIT_ARB 0x00000001
+
+struct glx_api {
+  EzGlxDisplay (*OpenDisplay)(const char *);
+  int (*CloseDisplay)(EzGlxDisplay);
+  EzGlxConfig *(*ChooseFBConfig)(EzGlxDisplay, int, const int *, int *);
+  EzGlxDrawable (*CreatePbuffer)(EzGlxDisplay, EzGlxConfig, const int *);
+  EzGlxContext (*CreateNewContext)(EzGlxDisplay, EzGlxConfig, int,
+                                   EzGlxContext, int);
+  int (*MakeCurrent)(EzGlxDisplay, EzGlxDrawable, EzGlxDrawable, EzGlxContext);
+  void (*DestroyContext)(EzGlxDisplay, EzGlxContext);
+  void (*DestroyPbuffer)(EzGlxDisplay, EzGlxDrawable);
+  void *(*GetProcAddress)(const unsigned char *);
+  void *(*GetCurrentContext)(void);
+};
+
+static struct glx_api g_glx;
+static void *g_glx_lib;
+static void *g_x11_lib;
+static bool g_glx_probed;
+
+#define REQ_GLX(field, lib, name)                                       \
+  do {                                                                  \
+    *(void **)(&g_glx.field) = ez_dyn_sym(lib, name);                  \
+    if (!g_glx.field) {                                                 \
+      set_err(err, err_len, "GLX symbol missing: " name);               \
+      return false;                                                     \
+    }                                                                   \
+  } while (0)
+
+static bool probe_glx(char *err, size_t err_len) {
+  if (g_glx_probed) return g_glx_lib != NULL && g_x11_lib != NULL;
+  g_glx_probed = true;
+
+  char probe_err[128] = {0};
+  g_glx_lib = ez_dyn_open("libGLX.so.0", probe_err, sizeof(probe_err));
+  if (!g_glx_lib)
+    g_glx_lib = ez_dyn_open("libGL.so.1", probe_err, sizeof(probe_err));
+  g_x11_lib = ez_dyn_open("libX11.so.6", probe_err, sizeof(probe_err));
+  if (!g_glx_lib || !g_x11_lib) {
+    set_err(err, err_len, "GLX or X11 library not found");
+    return false;
+  }
+  REQ_GLX(ChooseFBConfig, g_glx_lib, "glXChooseFBConfig");
+  REQ_GLX(CreatePbuffer, g_glx_lib, "glXCreatePbuffer");
+  REQ_GLX(CreateNewContext, g_glx_lib, "glXCreateNewContext");
+  REQ_GLX(MakeCurrent, g_glx_lib, "glXMakeContextCurrent");
+  REQ_GLX(DestroyContext, g_glx_lib, "glXDestroyContext");
+  REQ_GLX(DestroyPbuffer, g_glx_lib, "glXDestroyPbuffer");
+  REQ_GLX(GetProcAddress, g_glx_lib, "glXGetProcAddress");
+  REQ_GLX(GetCurrentContext, g_glx_lib, "glXGetCurrentContext");
+  REQ_GLX(OpenDisplay, g_x11_lib, "XOpenDisplay");
+  REQ_GLX(CloseDisplay, g_x11_lib, "XCloseDisplay");
+  return true;
+}
+
+#undef REQ_GLX
+
+static void *glx_get_proc_shim(const char *name) {
+  return (void *)g_glx.GetProcAddress((const unsigned char *)name);
+}
+
+/* Version ladder for a core-profile request. The exact version the core
+ * asked for comes first; the ladder then steps down to versions a software
+ * driver is likely to accept, and finally drops the request altogether. */
+static const int kGlxCoreVersions[][2] = {
+    {4, 6}, {4, 5}, {4, 3}, {4, 0}, {3, 3}, {3, 2}};
+
+static enum ezcore_gpu_init_result glx_init(
+    struct ezcore_gpu_context **out, enum ezcore_gpu_api api,
+    unsigned version_major, unsigned version_minor, bool headless, char *err,
+    size_t err_len) {
+  (void)headless; /* the pbuffer is headless by construction */
+  if (!probe_glx(err, err_len)) return EZCORE_GPU_INIT_UNSUPPORTED;
+
+  EzGlxDisplay dpy = g_glx.OpenDisplay(NULL);
+  if (!dpy) {
+    set_err(err, err_len, "XOpenDisplay failed for a desktop GL context");
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+  /* Config attributes: an RGB pbuffer with a real depth/stencil buffer.
+
+   * EGL_OPENGL_BIT counterparts are GLX_RGBA_BIT and GLX_PBUFFER_BIT. */
+  const int cfg_attr[] = {EZ_GLX_DRAWABLE_TYPE,
+                          EZ_GLX_PBUFFER_BIT,
+                          EZ_GLX_RENDER_TYPE,
+                          EZ_GLX_RGBA_BIT,
+                          EZ_GLX_RED_SIZE,
+                          8,
+                          EZ_GLX_DEPTH_SIZE,
+                          24,
+                          EZ_GLX_STENCIL_SIZE,
+                          8,
+                          EZ_GLX_NONE};
+  int n = 0;
+  EzGlxConfig *cfgs = g_glx.ChooseFBConfig(dpy, 0, cfg_attr, &n);
+  if (!cfgs || n < 1) {
+    set_err(err, err_len, "glXChooseFBConfig found no matching config");
+    g_glx.CloseDisplay(dpy);
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+  const int pb_attr[] = {EZ_GLX_PBUFFER_WIDTH, 64, EZ_GLX_PBUFFER_HEIGHT, 64,
+                         EZ_GLX_NONE};
+  EzGlxDrawable pb = g_glx.CreatePbuffer(dpy, cfgs[0], pb_attr);
+  if (!pb) {
+    set_err(err, err_len, "glXCreatePbuffer failed");
+    g_glx.CloseDisplay(dpy);
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+
+  typedef EzGlxContext (*create_attribs_fn)(EzGlxDisplay, EzGlxConfig,
+                                            EzGlxContext, int, const int *);
+  create_attribs_fn create_attribs = (create_attribs_fn)g_glx.GetProcAddress(
+      (const unsigned char *)"glXCreateContextAttribsARB");
+
+  const bool want_core = api == EZCORE_GPU_OPENGL_CORE;
+  int attr[9];
+  EzGlxContext ctx = NULL;
+  int attempts = 0;
+  /* Exact request first, then the version ladder, then no attributes. */
+  for (int step = -1; step < (int)(sizeof(kGlxCoreVersions) /
+                                   sizeof(kGlxCoreVersions[0])) &&
+                      !ctx;
+       step++) {
+    int k = 0;
+    unsigned major = 0, minor = 0;
+    if (step == -1) {
+      major = version_major;
+      minor = version_minor;
+      /* A driver answers an out-of-range version with an X error, not just
+       * NULL. Clamp to the highest published desktop GL versions before
+       * putting the request on the wire. */
+      if (major > 4 || (major == 4 && minor > 6)) {
+        major = 4;
+        minor = 6;
+      } else if (major == 3 && minor > 3) {
+        minor = 3;
+      } else if (major == 2 && minor > 1) {
+        minor = 1;
+      }
+    } else if (want_core) {
+      major = (unsigned)kGlxCoreVersions[step][0];
+      minor = (unsigned)kGlxCoreVersions[step][1];
+    } else {
+      break; /* a plain GL request only tries its exact version and default */
+    }
+    bool skip = major == 0 && step == -1;
+    for (size_t v = 0; !skip && want_core && step >= 0 && v < (size_t)step; v++)
+      if (kGlxCoreVersions[v][0] == (int)major &&
+          kGlxCoreVersions[v][1] == (int)minor)
+        skip = true;
+    if (skip) continue;
+    if (major) {
+      attr[k++] = EZ_GLX_CONTEXT_MAJOR_VERSION_ARB;
+      attr[k++] = (int)major;
+      attr[k++] = EZ_GLX_CONTEXT_MINOR_VERSION_ARB;
+      attr[k++] = (int)minor;
+    }
+    if (want_core) {
+      attr[k++] = EZ_GLX_CONTEXT_PROFILE_MASK_ARB;
+      attr[k++] = EZ_GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+    }
+    attr[k] = EZ_GLX_NONE;
+    attempts++;
+    if (create_attribs)
+      ctx = create_attribs(dpy, cfgs[0], NULL, 1, attr);
+    else if (step == -1)
+      ctx = g_glx.CreateNewContext(dpy, cfgs[0], EZ_GLX_RGBA_TYPE, NULL, 1);
+  }
+  if (!ctx && create_attribs) {
+    attempts++;
+    ctx = create_attribs(dpy, cfgs[0], NULL, 1,
+                         (const int[]){EZ_GLX_NONE});
+  }
+  if (!ctx && !create_attribs)
+    ctx = g_glx.CreateNewContext(dpy, cfgs[0], EZ_GLX_RGBA_TYPE, NULL, 1);
+  if (!ctx) {
+    char msg[160];
+    snprintf(msg, sizeof(msg),
+             "GLX context creation failed after %d config/attribute attempts",
+             attempts);
+    set_err(err, err_len, msg);
+    g_glx.DestroyPbuffer(dpy, pb);
+    g_glx.CloseDisplay(dpy);
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+  if (!g_glx.MakeCurrent(dpy, pb, pb, ctx)) {
+    set_err(err, err_len, "glXMakeContextCurrent failed");
+    g_glx.DestroyContext(dpy, ctx);
+    g_glx.DestroyPbuffer(dpy, pb);
+    g_glx.CloseDisplay(dpy);
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+
+  struct ezcore_gpu_gl_body *b = calloc(1, sizeof(*b));
+  if (!b) {
+    set_err(err, err_len, "out of memory");
+    g_glx.DestroyContext(dpy, ctx);
+    g_glx.DestroyPbuffer(dpy, pb);
+    g_glx.CloseDisplay(dpy);
+    return EZCORE_GPU_INIT_FAILED;
+  }
+  b->head.backend = EZCORE_BACKEND_WINDOW;
+  b->head.api = api;
+  b->head.version_major = version_major ? version_major : 3;
+  b->head.version_minor = version_minor;
+  b->head.headless = headless;
+  b->glx = true;
+  b->display = (void *)dpy;
+  b->surface = (void *)(uintptr_t)pb; /* GLXPbuffer is an XID */
+  b->context = (void *)ctx;
+  b->get_proc_address_fn = glx_get_proc_shim;
+
+  if (!resolve_gl(glx_get_proc_shim, &b->gl, err, err_len)) {
+    g_glx.MakeCurrent(dpy, 0, 0, NULL);
+    g_glx.DestroyContext(dpy, ctx);
+    g_glx.DestroyPbuffer(dpy, pb);
+    g_glx.CloseDisplay(dpy);
+    free(b);
+    return EZCORE_GPU_INIT_UNSUPPORTED;
+  }
+  if (!make_fbo(b, &b->gl, 64, 64, true, err, err_len)) {
+    g_glx.MakeCurrent(dpy, 0, 0, NULL);
+    g_glx.DestroyContext(dpy, ctx);
+    g_glx.DestroyPbuffer(dpy, pb);
+    g_glx.CloseDisplay(dpy);
+    free(b);
+    return EZCORE_GPU_INIT_FAILED;
+  }
+  *out = &b->head;
+  return EZCORE_GPU_INIT_OK;
+}
+#else
+#define EZCORE_HAVE_GLX 0
+#endif
+
 #endif /* EZCORE_HAVE_EGL */
 
 /* ============================ public entry points ======================== */
@@ -247,6 +513,15 @@ enum ezcore_gpu_init_result ezcore_gpu_platform_init(
    * desktop-only functions resolved to NULL (Mupen64Plus-Next crashed in
    * glsm_ctl calling one). */
   const bool desktop = api == EZCORE_GPU_OPENGL || api == EZCORE_GPU_OPENGL_CORE;
+#if EZCORE_HAVE_GLX
+  /* Desktop GL first: a GLX-current context is the only kind a GLX-based
+   * core loader can use. If GLX is absent, keep the EGL path below. */
+  if (desktop) {
+    enum ezcore_gpu_init_result gr = glx_init(
+        out, api, version_major, version_minor, headless, err, err_len);
+    if (gr == EZCORE_GPU_INIT_OK) return gr;
+  }
+#endif
   g_egl.BindAPI(desktop ? EGL_OPENGL_API : EGL_OPENGL_ES_API);
 
   EGLint renderable = EGL_OPENGL_ES3_BIT;
@@ -358,6 +633,20 @@ void ezcore_gpu_platform_destroy(struct ezcore_gpu_context *ctx) {
 #if EZCORE_HAVE_EGL
   if (!ctx) return;
   struct ezcore_gpu_gl_body *b = (struct ezcore_gpu_gl_body *)ctx;
+#if EZCORE_HAVE_GLX
+  if (b->glx) {
+    EzGlxDisplay dpy = (EzGlxDisplay)b->display;
+    if (dpy) {
+      g_glx.MakeCurrent(dpy, 0, 0, NULL);
+      if (b->context) g_glx.DestroyContext(dpy, (EzGlxContext)b->context);
+      if (b->surface)
+        g_glx.DestroyPbuffer(dpy, (EzGlxDrawable)(uintptr_t)b->surface);
+      g_glx.CloseDisplay(dpy);
+    }
+    free(b);
+    return;
+  }
+#endif
   EGLDisplay dpy = (EGLDisplay)b->display;
   if (dpy != EGL_NO_DISPLAY) {
     g_egl.MakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
@@ -375,6 +664,10 @@ bool ezcore_gpu_platform_is_current(struct ezcore_gpu_context *ctx) {
 #if EZCORE_HAVE_EGL
   if (!ctx) return false;
   struct ezcore_gpu_gl_body *b = (struct ezcore_gpu_gl_body *)ctx;
+#if EZCORE_HAVE_GLX
+  if (b->glx)
+    return g_glx.GetCurrentContext() == (EzGlxContext)b->context;
+#endif
   EGLDisplay dpy = (EGLDisplay)b->display;
   return dpy != EGL_NO_DISPLAY &&
          g_egl.GetError() == EGL_SUCCESS;
