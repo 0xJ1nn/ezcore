@@ -49,6 +49,9 @@ struct synth_state {
 static struct synth_state g_state = {0, 0, 0, 0x53594E54};
 static bool g_cheat_reset_seen;
 static bool g_cheat_set_seen;
+#if defined(EZCORE_SYNTH_REQUIRE_DIR)
+static bool g_dir_ready;
+#endif
 
 /* EZCORE_SYNTH_LEGACY_SRAM exposes battery RAM only through the legacy
  * retro_get_memory_data/size entry points, with no memory-map descriptors.
@@ -150,6 +153,15 @@ bool retro_load_game(const struct retro_game_info *game) {
     g_state.audio_sample_counter = 0;
     g_cheat_reset_seen = false;
     g_cheat_set_seen = false;
+#if defined(EZCORE_SYNTH_REQUIRE_DIR)
+    g_dir_ready = false;
+    if (game && game->path && game->path[0]) {
+        char marker[1200];
+        snprintf(marker, sizeof(marker), "%s/SYNTH-DIR-MARKER", game->path);
+        FILE *f = fopen(marker, "rb");
+        if (f) { fclose(f); g_dir_ready = true; }
+    }
+#endif
 #if defined(EZCORE_SYNTH_LEGACY_SRAM)
     memset(g_legacy_sram,
 #if defined(EZCORE_SYNTH_LEGACY_SRAM_ZERO)
@@ -273,6 +285,19 @@ void retro_run(void) {
 #endif
 
     g_state.frame_counter++;
+
+#if defined(EZCORE_SYNTH_REQUIRE_DIR)
+    /* Without the expanded location the synthetic engine is stuck on a flat
+     * screen and produces no sound, just like an engine that found no data. */
+    if (!g_dir_ready) {
+        if (video_cb) {
+            static uint32_t flat[FRAME_CAP];
+            for (int i = 0; i < FRAME_CAP; i++) flat[i] = 0x00777777u;
+            video_cb(flat, WIDTH, HEIGHT, (size_t)WIDTH * 4);
+        }
+        return;
+    }
+#endif
 
 #if defined(EZCORE_SYNTH_ALL_PORTS)
     int16_t sample = (int16_t)(0x1000 ^ (g_state.button_state & 0xFF));

@@ -234,6 +234,35 @@ class EzplayTest(unittest.TestCase):
              "--spec", str(spec)],
             capture_output=True, text=True, timeout=600)
 
+    def test_directory_load_location_reaches_the_core(self):
+        """A container's expanded location must be handed to the core."""
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        core = build_dir() / ("libsynth_dir_libretro" +
+                              {"darwin": ".dylib", "win32": ".dll"}.get(sys.platform, ".so"))
+        self.assertTrue(core.is_file(), f"build the directory core first: {core}")
+        spec = json.loads((RUNTIME / "test" / "ezplay_spec_synth.json").read_text())
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            content = tmp / "fixture.synth"
+            content.write_text("Synthetic harness fixture. Not game content.\n",
+                               encoding="utf-8")
+            location = tmp / "expanded"
+            location.mkdir()
+            (location / "SYNTH-DIR-MARKER").write_text("ready\n", encoding="utf-8")
+            spec_path = tmp / "spec.json"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            proc = subprocess.run(
+                [str(ezplay_bin()), "--core", str(core), "--content", str(content),
+                 "--system-dir", str(tmp), "--save-dir", str(tmp),
+                 "--spec", str(spec_path), "--load-path", str(location)],
+                capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 0,
+                         f"ezplay did not use the expanded location: {proc.stderr[-1500:]}")
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["verdict"], "PASS")
+        self.assertGreater(result["audio"]["total_samples"], 0)
+        self.assertEqual(result["checks"]["min_colours"], "PASS")
+
     def test_battery_reads_legacy_sram(self):
         """SRAM exposed only via retro_get_memory_data must round-trip."""
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")

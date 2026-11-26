@@ -8,6 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The play harness can hand a core a separate load location while still scoring the original file, so engines that need their data expanded can start from a container. [ios, android, macos, linux, windows]
 - The play harness keeps collecting frame, colour and audio evidence when a core cannot write a snapshot, and reports only the save-state check as failed. Previously the whole session stopped at that point and unrelated checks were reported without evidence. [ios, android, macos, linux, windows]
 - The play harness accepts the widespread `.smc` cartridge extension for Super Nintendo content in addition to `.snes` and `.sfc`. Other file types remain refused. [ios, android, macos, linux, windows]
 - The play harness runs its battery-save check through the scripted input instead of stopping after the boot frames, so a save written after gameplay starts is verified. [ios, android, macos, linux, windows]

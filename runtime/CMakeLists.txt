@@ -138,6 +138,21 @@ if(APPLE)
   set_target_properties(synth_no_set_cheat_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# A synthetic core that only renders and produces audio when the frontend
+# hands it a directory containing a marker file. It verifies that a container
+# can be presented to a core as an expanded location while the original file
+# still supplies the harness's content identity.
+add_library(synth_dir_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_dir_libretro PRIVATE EZCORE_SYNTH_REQUIRE_DIR)
+target_include_directories(synth_dir_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_dir_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # A core with no save states at all (retro_serialize_size returns 0), like the
 # LCD-handheld core. The app must learn this from OPEN, so the snapshot
 # affordance can be withheld instead of failing after a tap.
