@@ -123,6 +123,46 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(result["checks"]["min_colours"], "PASS")
         self.assertEqual(result["verdict"], "FAIL")
 
+    def _save_state_result(self, core_name, spec_frames=120):
+        core = build_dir() / f"lib{core_name}_libretro.so"
+        self.assertTrue(core.is_file(), f"build the {core_name} core: {core}")
+        spec = {
+            "system": "synth",
+            "frames": spec_frames,
+            "input": [{"at": 20, "press": ["a"], "hold": 6},
+                      {"at": 40, "press": ["start"], "hold": 6}],
+            "checks": {"video_changes_after_input": False, "min_colours": 1,
+                       "audio_rms_min": 0.005, "speed_min": 0,
+                       "save_state_roundtrip": True,
+                       "battery_save_roundtrip": "n/a",
+                       "fast_forward": {}, "cheat": False},
+        }
+        with tempfile.TemporaryDirectory() as d:
+            spec_path = Path(d) / "spec.json"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            content = Path(d) / "fixture.synth"
+            content.write_text("Synthetic harness fixture. Not game content.\n",
+                               encoding="utf-8")
+            proc = subprocess.run(
+                [str(ezplay_bin()), "--core", str(core), "--content", str(content),
+                 "--system-dir", d, "--save-dir", d, "--spec", str(spec_path)],
+                capture_output=True, text=True, timeout=120)
+        return json.loads(proc.stdout)
+
+    def test_first_frame_after_snapshot_load_may_settle(self):
+        """A render surface outside the snapshot may differ on one frame."""
+        result = self._save_state_result("synth_volatile_frame")
+        self.assertEqual(result["save_state"]["verdict"], "PASS",
+                         result["save_state"]["reason"])
+        self.assertEqual(result["save_state"]["mismatches"], 0)
+        self.assertGreaterEqual(result["save_state"]["frames_compared"], 60)
+
+    def test_settling_frame_does_not_hide_a_wrong_state(self):
+        """Sixty compared frames must still catch a genuinely wrong snapshot."""
+        result = self._save_state_result("synth_save_diverge")
+        self.assertEqual(result["save_state"]["verdict"], "FAIL")
+        self.assertGreater(result["save_state"]["mismatches"], 0)
+
     def test_audio_rms_uses_the_release_frame_window(self):
         """The spec measures RMS from the last event's release, not boot audio."""
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")

@@ -53,6 +53,15 @@ static bool g_cheat_set_seen;
 static bool g_dir_ready;
 #endif
 
+/* EZCORE_SYNTH_VOLATILE_FRAME renders one pixel differently on the first
+ * frame after a snapshot is loaded. The difference lives in a render surface
+ * that is not part of the serialized state, as with hardware-rendered cores;
+ * every later frame is identical. A save-state check must not report a real
+ * state divergence from this one-frame settling effect. */
+#if defined(EZCORE_SYNTH_VOLATILE_FRAME)
+static bool g_volatile_frame_after_load;
+#endif
+
 /* EZCORE_SYNTH_LEGACY_SRAM exposes battery RAM only through the legacy
  * retro_get_memory_data/size entry points, with no memory-map descriptors.
  * EZCORE_SYNTH_LEGACY_SRAM_ZERO fills it with zeros and _ERASED fills it with
@@ -72,6 +81,12 @@ static void render_frame(uint32_t *buf) {
     for (int i = 0; i < FRAME_CAP; i++) {
         buf[i] = pixel;
     }
+#if defined(EZCORE_SYNTH_VOLATILE_FRAME)
+    if (g_volatile_frame_after_load) {
+        buf[0] ^= 1u;
+        g_volatile_frame_after_load = false;
+    }
+#endif
 }
 
 static retro_video_refresh_t     video_cb;
@@ -356,6 +371,14 @@ bool retro_serialize(void *data, size_t size) {
 bool retro_unserialize(const void *data, size_t size) {
     if (size < sizeof(g_state)) return false;
     memcpy(&g_state, data, sizeof(g_state));
+#if defined(EZCORE_SYNTH_VOLATILE_FRAME)
+    g_volatile_frame_after_load = true;
+#endif
+#if defined(EZCORE_SYNTH_SAVE_DIVERGE)
+    /* A deliberately wrong snapshot: the loaded state really is different,
+     * so every replayed frame must differ even after the settling frame. */
+    g_state.frame_counter++;
+#endif
     return true;
 }
 

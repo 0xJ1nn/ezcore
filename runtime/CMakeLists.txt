@@ -185,6 +185,33 @@ if(APPLE)
   set_target_properties(synth_save_fail_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
+# A core whose first frame after loading a snapshot differs in one pixel
+# because the render surface is not part of the serialized state. The harness
+# must let that frame settle without excusing a real state divergence.
+add_library(synth_volatile_frame_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_volatile_frame_libretro PRIVATE
+  EZCORE_SYNTH_VOLATILE_FRAME
+)
+target_include_directories(synth_volatile_frame_libretro PRIVATE
+  external/libretro-common/include
+)
+# A core that really loads the wrong state. The settling frame may not hide it.
+add_library(synth_save_diverge_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_save_diverge_libretro PRIVATE
+  EZCORE_SYNTH_SAVE_DIVERGE
+)
+target_include_directories(synth_save_diverge_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_volatile_frame_libretro PROPERTIES SUFFIX ".dylib")
+  set_target_properties(synth_save_diverge_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
 # Battery RAM exposed only through the legacy libretro memory API, with no
 # memory-map descriptors. The harness must read it; zero-filled and erased
 # variants must not be mistaken for real saves. No fixture contains content.
