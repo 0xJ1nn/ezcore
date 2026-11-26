@@ -30,6 +30,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Added
 
+- A build recipe for a GPL-3 libretro core from a pinned upstream commit, with a Linux x64 artifact staged by the existing build script. No binary is published or pinned for download yet; the other release targets are untouched. [linux]
 - Android presents emulator video through a Flutter surface texture: the runtime writes each frame into the surface, and frame-time statistics are logged while the player runs. [android]
 - A declarative build recipe and pinned upstream commit for each shippable core, with one validation and packaging driver that checks the pins before delegating the build to the existing core script. [ios, android, macos, linux, windows]
 - A self-check mode for debug and profile builds: a named play spec runs through the native harness and writes a result that records the evidence behind each claim. A passing synthetic run is reported as a runtime check, not a game boot; release builds and targets without the harness report the check as unavailable. [ios, android, macos, linux, windows]
