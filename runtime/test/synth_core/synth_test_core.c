@@ -61,6 +61,9 @@ static bool g_dir_ready;
 #if defined(EZCORE_SYNTH_VOLATILE_FRAME)
 static bool g_volatile_frame_after_load;
 #endif
+#if defined(EZCORE_SYNTH_VOLATILE_FRAMES2)
+static unsigned g_volatile_frames_after_load;
+#endif
 
 /* EZCORE_SYNTH_LEGACY_SRAM exposes battery RAM only through the legacy
  * retro_get_memory_data/size entry points, with no memory-map descriptors.
@@ -85,6 +88,12 @@ static void render_frame(uint32_t *buf) {
     if (g_volatile_frame_after_load) {
         buf[0] ^= 1u;
         g_volatile_frame_after_load = false;
+    }
+#endif
+#if defined(EZCORE_SYNTH_VOLATILE_FRAMES2)
+    if (g_volatile_frames_after_load) {
+        buf[0] ^= 1u;
+        g_volatile_frames_after_load--;
     }
 #endif
 }
@@ -373,6 +382,9 @@ bool retro_unserialize(const void *data, size_t size) {
     memcpy(&g_state, data, sizeof(g_state));
 #if defined(EZCORE_SYNTH_VOLATILE_FRAME)
     g_volatile_frame_after_load = true;
+#endif
+#if defined(EZCORE_SYNTH_VOLATILE_FRAMES2)
+    g_volatile_frames_after_load = 2;
 #endif
 #if defined(EZCORE_SYNTH_SAVE_DIVERGE)
     /* A deliberately wrong snapshot: the loaded state really is different,
