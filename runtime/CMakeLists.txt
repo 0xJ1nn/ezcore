@@ -493,6 +493,14 @@ target_include_directories(test_gpu_context PRIVATE src)
 target_link_libraries(test_gpu_context PRIVATE ezcore_runtime)
 add_test(NAME gpu_context COMMAND test_gpu_context)
 
+# Desktop GL config selection: a core-profile request must produce a context
+# that is current in GLX as well as usable through the runtime. Skips when
+# there is no X display or no desktop GL backend on the host.
+add_executable(test_egl_config test/test_egl_config.c)
+target_include_directories(test_egl_config PRIVATE src)
+target_link_libraries(test_egl_config PRIVATE ezcore_runtime ${CMAKE_DL_LIBS})
+add_test(NAME egl_config COMMAND test_egl_config)
+
 # Native core lifecycle test (synthetic — deterministic, no copyrighted content)
 add_test(NAME core_player
   COMMAND test_core_player

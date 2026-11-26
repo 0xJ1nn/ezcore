@@ -33,6 +33,10 @@ struct ezcore_gpu_gl_body {
   unsigned depth_rb;    /* GLuint depth/stencil, 0 if none     */
   int width, height;
 
+  /* Desktop GL on X11 uses a GLX context so GLX-based core loaders can see
+   * it; GLES and non-X11 platforms keep the EGL path. */
+  bool glx;
+
   /* Resolved per context, never linked: the runtime must stay loadable on a
    * machine with no GPU (the GPU render-context design, PLATFORM.md §6). */
   void *(*get_proc_address_fn)(const char *);
