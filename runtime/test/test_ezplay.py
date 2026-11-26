@@ -156,6 +156,23 @@ class EzplayTest(unittest.TestCase):
                 capture_output=True, text=True, timeout=120)
         return json.loads(proc.stdout)
 
+    def test_save_size_is_available_after_the_first_frame(self):
+        """A core that starts its engine on frame one still has save states."""
+        result = self._save_state_result("synth_lazy_save")
+        self.assertEqual(result["save_state"]["verdict"], "PASS",
+                         result["save_state"]["reason"])
+        self.assertGreater(result["save_state"]["size"], 0)
+        self.assertEqual(result["save_state"]["mismatches"], 0)
+        self.assertGreaterEqual(result["save_state"]["frames_compared"], 60)
+        self.assertEqual(result["checks"]["save_state_roundtrip"], "PASS")
+
+    def test_core_without_serialization_still_fails(self):
+        """Asking later must not turn a core with no save states into a pass."""
+        result = self._save_state_result("synth_no_save")
+        self.assertEqual(result["save_state"]["verdict"], "FAIL")
+        self.assertIn("returned 0", result["save_state"]["reason"])
+        self.assertEqual(result["save_state"]["size"], 0)
+
     def test_first_frame_after_snapshot_load_may_settle(self):
         """A render surface outside the snapshot may differ on one frame."""
         result = self._save_state_result("synth_volatile_frame")
