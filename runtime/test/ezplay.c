@@ -990,7 +990,12 @@ static int check_battery(const context_t *ctx, result_t *r) {
     r->battery_verdict = "SKIP";
     return 0;
   }
-  int frames = ctx->spec->frames < 120 ? ctx->spec->frames : 120;
+  /* Battery memory is often written only after scripted input starts
+   * gameplay. Run through the last event's release frame instead of a fixed
+   * boot window, or a real save written after input looks absent. */
+  int frames = save_frame(ctx->spec) + 1;
+  if (frames > ctx->spec->frames) frames = ctx->spec->frames;
+  if (frames < 1) frames = 1;
   int rc = 0;
   ezcore_session *s = open_session(ctx, &rc);
   if (!s) { r->battery_verdict = "FAIL"; r->battery_reason = "session could not be opened"; return rc; }

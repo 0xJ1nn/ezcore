@@ -278,6 +278,35 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(battery["bytes"], 0)
         self.assertEqual(result["checks"]["battery_save_roundtrip"], "FAIL")
 
+    def test_battery_session_runs_scripted_input(self):
+        """Battery evidence must include the spec's scripted button presses.
+
+        This fixture's save RAM stays erased until the scripted button press
+        at frame 180. A battery check that stops at frame 120 cannot see it.
+        """
+        self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")
+        suffix = {"darwin": ".dylib", "win32": ".dll"}.get(sys.platform, ".so")
+        core = build_dir() / f"libsynth_input_sram_libretro{suffix}"
+        self.assertTrue(core.is_file(), f"build the input-SRAM core first: {core}")
+        spec = RUNTIME / "test" / "ezplay_spec_input_sram.json"
+        self.assertTrue(spec.is_file(), "the input-SRAM spec fixture is missing")
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d)
+            content = tmp / "fixture.synth"
+            content.write_text("Synthetic harness fixture. Not game content.\n",
+                               encoding="utf-8")
+            proc = subprocess.run(
+                [str(ezplay_bin()), "--core", str(core), "--content", str(content),
+                 "--system-dir", str(tmp), "--save-dir", str(tmp),
+                 "--spec", str(spec)],
+                capture_output=True, text=True, timeout=600)
+        result = json.loads(proc.stdout)
+        battery = result["battery_save"]
+        self.assertEqual(battery["verdict"], "PASS",
+                         f"battery check skipped the scripted input: {battery.get('reason')}")
+        self.assertGreater(battery["bytes"], 0)
+        self.assertEqual(result["checks"]["battery_save_roundtrip"], "PASS")
+
     def test_watara_sv_content_is_accepted(self):
         """Supervision cartridges use .sv; the manifest lists it as supported."""
         self.assertTrue(ezplay_bin().is_file(), f"build ezplay first: {ezplay_bin()}")

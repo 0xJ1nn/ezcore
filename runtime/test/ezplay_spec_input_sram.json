@@ -1,0 +1,22 @@
+{
+  "system": "synth",
+  "core": "synth",
+  "frames": 240,
+  "input": [
+    {
+      "at": 180,
+      "press": ["a"],
+      "hold": 6
+    }
+  ],
+  "checks": {
+    "video_changes_after_input": false,
+    "min_colours": 1,
+    "audio_rms_min": "n/a",
+    "speed_min": 0.97,
+    "save_state_roundtrip": "n/a",
+    "battery_save_roundtrip": true,
+    "fast_forward": false,
+    "cheat": false
+  }
+}
