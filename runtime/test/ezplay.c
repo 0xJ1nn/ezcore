@@ -48,6 +48,10 @@
 #define MAX_CHECKPOINTS 512
 #define AUDIO_BUF_FRAMES 4096
 #define SAVE_STATE_REPLAY_FRAMES 60
+/* A core may keep part of a rendered frame outside its serialized state.
+ * Allow a bounded settling window for that surface to converge, then still
+ * compare the full set of replay frames demanded by the spec. */
+#define SAVE_STATE_SETTLE_FRAMES 8
 #define NOMINAL_FPS 60.0
 #define MAX_SRAM_BYTES (16u * 1024u * 1024u)
 
@@ -764,13 +768,11 @@ static int run_main_session(const context_t *ctx, result_t *r) {
   snprintf(r->version, sizeof(r->version), "%s", ver ? ver : "");
 
   int F = save_frame(sp);
-  /* One extra frame is replayed after the snapshot is loaded. A core that
-   * renders through a hardware surface may not include that surface in its
-   * serialized state, so the first frame after loading can differ in pixels
-   * that are not core state. Let that frame settle, then compare the same
-   * sixty frames the spec asks for. A genuinely wrong state still diverges on
-   * every compared frame. */
-  int replay_end = F + SAVE_STATE_REPLAY_FRAMES + 1;
+  /* A snapshot need not include a core's render surface. Replay a bounded
+   * settling window, then compare the same sixty frames the spec asks for
+   * from the first frame that matches the original run. A wrong restored
+   * state never converges and still fails. */
+  int replay_end = F + SAVE_STATE_SETTLE_FRAMES + SAVE_STATE_REPLAY_FRAMES;
   if (replay_end >= frames) replay_end = frames - 1;
   size_t snap_size = sp->save_state ? ezcore_serialize_size(s) : 0;
   void *snap = snap_size ? malloc(snap_size) : NULL;
@@ -806,9 +808,10 @@ static int run_main_session(const context_t *ctx, result_t *r) {
       cols[i] = 0;
     }
 
-    /* Serialize at F, run 61 frames, load and replay those frames under the
-     * same input. The first replayed frame settles the render surface; the
-     * next sixty frame hashes must match the first run. */
+    /* Serialize at F, run the settling window plus the compared frames,
+     * load and replay under the same input. The render surface may need a
+     * frame or two after loading to match; comparison starts at the first
+     * frame that matches and still covers sixty frames. */
     if (sp->save_state && snap_size && snap && i == F) {
       if (!ezcore_serialize(s, snap, snap_size)) {
         /* The save-state check fails, but the remaining frames and audio are
@@ -831,34 +834,55 @@ static int run_main_session(const context_t *ctx, result_t *r) {
       /* Rewind to F by replaying from the loaded state. The frames from F
        * to replay_end are overwritten; the originals are kept in a copy.
        * The snapshot is taken after frame F ran, so unserialize puts the
-       * core at F: the first replayed retro_run produces frame F+1. Compare
-       * the sixty frames after that against the original hashes, since the
-       * first rendered frame may use a surface the snapshot does not hold. */
+       * core at F: the first replayed retro_run produces frame F+1. A core
+       * may need a few frames to rebuild a surface the snapshot does not
+       * contain; comparison starts at the first frame that matches and then
+       * covers the full sixty-frame window from there. */
       size_t window = (size_t)(replay_end - F);
       char *original = malloc(window * 65);
       memcpy(original, all + (size_t)(F + 1) * 65, window * 65);
       unsigned replay_keys[MAX_KEYS] = {0};
-      int mismatches = 0;
+      int mismatches = 0, compared = 0, last_f = F, settle_mismatches = 0;
+      bool settled = false;
       audio_acc replay_audio = {0};
-      for (int f = F; f < replay_end; f++) {
+      for (int f = F; f < replay_end && compared < SAVE_STATE_REPLAY_FRAMES; f++) {
         apply_input(s, &input[f], replay_keys);
         ezcore_run_frame(s);
         drain_audio(s, &replay_audio);
-        /* The first frame after loading may use a render surface that the
-         * serialized state does not include. Run it, but do not compare it. */
-        if (f == F) continue;
         char digest[65];
-        if (!frame_digest(s, digest, NULL) ||
-            strcmp(digest, original + (size_t)(f - F) * 65)) {
-          mismatches++;
+        bool matches = frame_digest(s, digest, NULL) &&
+                       !strcmp(digest, original + (size_t)(f - F) * 65);
+        if (!settled) {
+          /* Bounded settling: unrendered surface pixels are not core state. */
+          if (!matches) {
+            settle_mismatches++;
+            continue;
+          }
+          settled = true;
         }
+        if (!matches) mismatches++;
+        compared++;
+        last_f = f;
       }
       free(original);
-      r->save_frames = replay_end > F ? replay_end - F - 1 : 0;
-      r->save_mismatches = mismatches;
-      r->save_verdict = mismatches ? "FAIL" : "PASS";
-      if (mismatches) r->save_reason = "replayed frame hash differs from the first run";
-      if (mismatches) r->exit_code = 6;
+      /* Catch up to replay_end without a second replay trigger: the main
+       * loop must resume after this boundary, not re-enter it. */
+      for (int f = last_f + 1; f < replay_end; f++) {
+        apply_input(s, &input[f], replay_keys);
+        ezcore_run_frame(s);
+        drain_audio(s, &replay_audio);
+      }
+      r->save_frames = compared;
+      r->save_mismatches = settled ? mismatches : settle_mismatches;
+      if (!settled) {
+        r->save_verdict = "FAIL";
+        r->save_reason = "replayed frames did not settle within the settling window";
+        r->exit_code = 6;
+      } else {
+        r->save_verdict = mismatches ? "FAIL" : "PASS";
+        if (mismatches) r->save_reason = "replayed frame hash differs from the first run";
+        if (mismatches) r->exit_code = 6;
+      }
       i = replay_end;   /* the emulation state is back at replay_end */
     }
   }

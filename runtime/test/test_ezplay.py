@@ -157,6 +157,14 @@ class EzplayTest(unittest.TestCase):
         self.assertEqual(result["save_state"]["mismatches"], 0)
         self.assertGreaterEqual(result["save_state"]["frames_compared"], 60)
 
+    def test_settling_window_handles_two_volatile_frames(self):
+        """A bounded settling window covers more than one transient frame."""
+        result = self._save_state_result("synth_volatile_frames2")
+        self.assertEqual(result["save_state"]["verdict"], "PASS",
+                         result["save_state"]["reason"])
+        self.assertEqual(result["save_state"]["mismatches"], 0)
+        self.assertGreaterEqual(result["save_state"]["frames_compared"], 60)
+
     def test_settling_frame_does_not_hide_a_wrong_state(self):
         """Sixty compared frames must still catch a genuinely wrong snapshot."""
         result = self._save_state_result("synth_save_diverge")

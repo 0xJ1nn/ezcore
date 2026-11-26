@@ -197,7 +197,18 @@ target_compile_definitions(synth_volatile_frame_libretro PRIVATE
 target_include_directories(synth_volatile_frame_libretro PRIVATE
   external/libretro-common/include
 )
-# A core that really loads the wrong state. The settling frame may not hide it.
+# A core whose first two frames after loading a snapshot differ for the same
+# reason. The harness must settle a bounded window, not a fixed single frame.
+add_library(synth_volatile_frames2_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_volatile_frames2_libretro PRIVATE
+  EZCORE_SYNTH_VOLATILE_FRAMES2
+)
+target_include_directories(synth_volatile_frames2_libretro PRIVATE
+  external/libretro-common/include
+)
+# A core that really loads the wrong state. The settling frames may not hide it.
 add_library(synth_save_diverge_libretro SHARED
   test/synth_core/synth_test_core.c
 )
@@ -209,6 +220,7 @@ target_include_directories(synth_save_diverge_libretro PRIVATE
 )
 if(APPLE)
   set_target_properties(synth_volatile_frame_libretro PROPERTIES SUFFIX ".dylib")
+  set_target_properties(synth_volatile_frames2_libretro PROPERTIES SUFFIX ".dylib")
   set_target_properties(synth_save_diverge_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
