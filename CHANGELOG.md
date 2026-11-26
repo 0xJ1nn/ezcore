@@ -8,6 +8,7 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The play harness asks for the snapshot size after starting the first frame, so a core that initialises its engine on that frame can be checked for save states instead of being reported as having none. A core that still reports no snapshot size remains a failure. [ios, android, macos, linux, windows]
 - Desktop OpenGL requests now receive a context that is current in GLX, so cores that initialise their own GL loader through GLX can use it. When a requested context version is unavailable, the runtime steps down to a supported version and finally to a default context; mobile and GLES contexts are unchanged. [linux]
 - The cartridge core recognises snapshots whose filename ends with a copy index after the file type, so those copies reach the same play checks as any other file of that type. [ios, android, macos, linux, windows]
 - The play harness can hand a core a separate load location while still scoring the original file, so engines that need their data expanded can start from a container. [ios, android, macos, linux, windows]

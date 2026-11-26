@@ -782,17 +782,11 @@ static int run_main_session(const context_t *ctx, result_t *r) {
    * state never converges and still fails. */
   int replay_end = F + SAVE_STATE_SETTLE_FRAMES + SAVE_STATE_REPLAY_FRAMES;
   if (replay_end >= frames) replay_end = frames - 1;
-  size_t snap_size = sp->save_state ? ezcore_serialize_size(s) : 0;
-  void *snap = snap_size ? malloc(snap_size) : NULL;
-  if (snap_size && !snap) {
-    ezcore_unload(s); free(all); free(cols); free(mark);
-    snprintf(r->error, sizeof(r->error), "out of memory for save state");
-    return 10;
-  }
-  if (sp->save_state && snap_size == 0) {
-    r->save_verdict = "FAIL";
-    r->save_reason = "retro_serialize_size() returned 0";
-  }
+  /* Some cores start their emulation thread on the first frame and only know
+   * their serialization size once that thread is running. Probe after frame
+   * zero, not before it; a core still reporting zero has no save states. */
+  size_t snap_size = 0;
+  void *snap = NULL;
 
   unsigned prev_keys[MAX_KEYS] = {0};
   int64_t unpaced_start = 0, unpaced_end = 0;
@@ -801,6 +795,20 @@ static int run_main_session(const context_t *ctx, result_t *r) {
     if (i == 60) unpaced_start = now_ns();
     apply_input(s, &input[i], prev_keys);
     ezcore_run_frame(s);
+    if (sp->save_state && i == 0) {
+      snap_size = ezcore_serialize_size(s);
+      if (snap_size == 0) {
+        r->save_verdict = "FAIL";
+        r->save_reason = "retro_serialize_size() returned 0";
+      } else {
+        snap = malloc(snap_size);
+        if (!snap) {
+          r->exit_code = 10;
+          snprintf(r->error, sizeof(r->error), "out of memory for save state");
+          goto done;
+        }
+      }
+    }
     /* The play spec measures audio from the last event's release frame, not
      * from boot/menu audio. Discard the earlier window at that boundary. */
     if (i == F) memset(&acc, 0, sizeof(acc));
