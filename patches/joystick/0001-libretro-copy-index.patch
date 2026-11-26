@@ -1,0 +1,30 @@
+diff --git i/src/os/libretro/libretro.cxx w/src/os/libretro/libretro.cxx
+index 6d82066..c818e98 100644
+--- i/src/os/libretro/libretro.cxx
++++ w/src/os/libretro/libretro.cxx
+@@ -6,6 +6,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stdarg.h>
++#include <string>
+ 
+ #ifdef _MSC_VER
+ #define snprintf _snprintf
+@@ -899,7 +900,16 @@ bool retro_load_game(const struct retro_game_info *info)
+     return false;
+   }
+ 
+-  stella.setROM(info->path, info->data, info->size);
++  // Snapshot copies can carry a numbered copy index after the file type.
++  // The final extension of the name is what classifies the cartridge, so give
++  // Stella the name without that index; the bytes stay untouched.
++  std::string rom_path = info->path ? info->path : "";
++  const std::string::size_type copy = rom_path.rfind("__");
++  if (copy != std::string::npos && copy + 2 < rom_path.size() &&
++      rom_path.find_first_not_of("0123456789", copy + 2) == std::string::npos)
++    rom_path.resize(copy);
++
++  stella.setROM(rom_path.c_str(), info->data, info->size);
+ 
+   return reset_system();
+ }
