@@ -133,11 +133,18 @@ bool ezcore_video_present(ezcore_session *s) {
   if (frame && w && h) {
     ANativeWindow_Buffer buffer;
     if (ANativeWindow_lock((ANativeWindow *)window, &buffer, NULL) == 0) {
-      if (buffer.width >= (int32_t)w && buffer.height >= (int32_t)h) {
-        const bool bgra = buffer.format == WINDOW_FORMAT_BGRA_8888;
+      /* Android's window buffer formats are RGBA-ordered only: there is no
+       * BGRA enum in native_window.h or hardware_buffer.h, so the producer we
+       * asked for in ezcore_video_attach hands back RGBA_8888/RGBX_8888 and
+       * the blit must not swap channels. Any other format (16-bit, or a
+       * consumer that replaced the geometry) is skipped rather than written
+       * with the wrong byte order. */
+      const bool rgba32 = buffer.format == WINDOW_FORMAT_RGBA_8888 ||
+                          buffer.format == WINDOW_FORMAT_RGBX_8888;
+      if (rgba32 && buffer.width >= (int32_t)w && buffer.height >= (int32_t)h) {
         ok = ezcore_video_blit_rows((uint8_t *)buffer.bits,
                                     (size_t)buffer.stride * 4u, frame, w, h,
-                                    bgra);
+                                    false);
       }
       ANativeWindow_unlockAndPost((ANativeWindow *)window);
     }

@@ -25,6 +25,7 @@
 
 #include "dynload.h"
 #include "ezcore_audio_internal.h"
+#include "ezcore_file_replace.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,6 +140,10 @@ struct ezcore_session {
   bool pointer_pressed;
   char name[128];
   char version[64];
+  /* Where this content's battery save lives, derived once from the game
+   * location and the save directory in ezcore_load_game. Empty means no
+   * persistence (no save directory, or content loaded without a path). */
+  char save_path[1024];
   bool game_loaded;
   bool inited;
   /* --- Core options & capability surface (host-owned deep copies) --- */
@@ -303,6 +308,120 @@ static void bridge_log(enum retro_log_level level, const char *fmt, ...) {
 void ezcore_set_dirs(const char *system_dir, const char *save_dir) {
   if (system_dir) snprintf(g_system_dir, sizeof(g_system_dir), "%s", system_dir);
   if (save_dir) snprintf(g_save_dir, sizeof(g_save_dir), "%s", save_dir);
+}
+
+/* ---- Battery-save persistence -------------------------------------------
+ *
+ * libretro puts battery files on the frontend: a core exposes its save RAM
+ * through retro_get_memory_data and expects the host to keep it, because the
+ * core itself has nowhere to write. A host that skips that step runs a game
+ * for an hour and loses the save.
+ *
+ * This is the small honest version of the contract: one file per game in the
+ * host's save directory, read back before the core's first frame and written
+ * when the session ends. A core with no battery RAM -- most of them -- sees
+ * nothing at all. */
+
+/* Same ceiling as ezcore_get_legacy_memory: a region larger than this is not
+ * believable save memory, and persisting it would be an unbounded allocation
+ * on a buggy core's say-so. */
+#define EZCORE_SAVE_RAM_MAX (16u * 1024u * 1024u)
+
+/* Writes this content's battery path into `out`, or an empty string when
+ * there is nowhere to put it. No save directory means no persistence:
+ * defaulting to the working directory would drop files next to whatever
+ * launched the process. The content's basename names the file, so the same
+ * dump stored at a different path keeps its save. */
+static void ezcore_save_path_for(char *out, size_t out_len, const char *rom_path) {
+  out[0] = '\0';
+  if (!rom_path || !rom_path[0] || !g_save_dir[0]) return;
+  const char *base = rom_path;
+  for (const char *p = rom_path; *p; p++)
+    if (*p == '/' || *p == '\\') base = p + 1;
+  if (!base[0]) return;
+  /* Replace the content extension (a dump's .gb, .gbc, .zip) so the file
+   * carries the .srm name battery saves use everywhere else. */
+  size_t stem = strlen(base);
+  for (size_t i = stem; i > 0; i--) {
+    if (base[i - 1] == '.') {
+      if (i > 1) stem = i - 1;
+      break;
+    }
+  }
+  if (stem > 200) stem = 200; /* leave room for the directory and suffix */
+  int n = snprintf(out, out_len, "%s/%.*s.srm", g_save_dir, (int)stem, base);
+  if (n < 0 || (size_t)n >= out_len) out[0] = '\0';
+}
+
+/* The session's battery-backed region, through whichever interface the core
+ * offers: the legacy pair is the documented battery path, and a core that
+ * only flags a memory descriptor keeps its save there instead. Callers own
+ * the "is a game loaded" question; the pointer is only valid while the core
+ * has the content loaded. */
+static bool ezcore_battery_region(ezcore_session *s, void **ptr, size_t *len) {
+  if (!s) return false;
+  if (s->retro_get_memory_data && s->retro_get_memory_size) {
+    void *p = s->retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    size_t n = s->retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+    if (p && n && n <= EZCORE_SAVE_RAM_MAX) {
+      *ptr = p;
+      *len = n;
+      return true;
+    }
+  }
+  for (unsigned i = 0; i < s->num_mem_descs; i++) {
+    const struct ezcore_mem_desc *md = &s->mem_descs[i];
+    if (!(md->flags & RETRO_MEMDESC_SAVE_RAM)) continue;
+    if (!md->ptr || !md->len || md->len > EZCORE_SAVE_RAM_MAX) continue;
+    *ptr = (char *)md->ptr + md->offset;
+    *len = md->len;
+    return true;
+  }
+  return false;
+}
+
+/* Copies a saved battery image into the core's save RAM. A file of the wrong
+ * size is a different cart revision or a damaged file: playing on from the
+ * core's own initial fill beats a half-restored save. */
+static void ezcore_battery_restore(ezcore_session *s, const char *path) {
+  void *p;
+  size_t n;
+  if (!path[0] || !ezcore_battery_region(s, &p, &n)) return;
+  FILE *f = fopen(path, "rb");
+  if (!f) return; /* no save yet: the first run of this content */
+  unsigned char *buf = (unsigned char *)malloc(n);
+  size_t got = buf ? fread(buf, 1, n, f) : 0;
+  bool exact = buf && got == n && fgetc(f) == EOF;
+  fclose(f);
+  if (exact)
+    memcpy(p, buf, n);
+  else if (buf)
+    fprintf(stderr, "[ezcore] ignoring battery save with the wrong size: %s\n", path);
+  free(buf);
+}
+
+/* Writes a battery image, atomically: a half-written file must never replace
+ * a good save, because the next load would splice two cart generations. The
+ * caller passes the bytes rather than the core pointer because a core frees
+ * its save buffer in retro_unload_game (SameBoy's GB_free releases mbc_ram),
+ * so the region cannot be read once teardown has begun. */
+static void ezcore_battery_write(const char *path, const unsigned char *data,
+                                 size_t len) {
+  if (!path[0] || !data || !len) return;
+  char tmp[1200];
+  int n = snprintf(tmp, sizeof(tmp), "%s.tmp", path);
+  if (n < 0 || (size_t)n >= sizeof(tmp)) return;
+  FILE *f = fopen(tmp, "wb");
+  if (!f) {
+    fprintf(stderr, "[ezcore] cannot write battery save: %s\n", path);
+    return;
+  }
+  bool ok = fwrite(data, 1, len, f) == len;
+  if (fclose(f) != 0) ok = false;
+  if (!ok || !ezcore_file_replace(tmp, path)) {
+    remove(tmp);
+    fprintf(stderr, "[ezcore] cannot write battery save: %s\n", path);
+  }
 }
 
 /* --- Free deep-copied capability storage in a session --- */
@@ -1078,7 +1197,27 @@ void ezcore_unload(ezcore_session *s) {
       s->hw_render_cb->context_destroy) {
     s->hw_render_cb->context_destroy();
   }
+  /* Battery bytes are copied out before retro_unload_game: the region belongs
+   * to the core and teardown frees it, so a copy is the only thing that is
+   * still readable afterwards. Persisting a save is the frontend's job in
+   * libretro, and no session is a save-less session -- an unmodified region
+   * writes back exactly what was restored, which is a no-op on disk. */
+  unsigned char *battery = NULL;
+  size_t battery_len = 0;
+  if (s->game_loaded && s->save_path[0]) {
+    void *region;
+    size_t len;
+    if (ezcore_battery_region(s, &region, &len)) {
+      battery = (unsigned char *)malloc(len);
+      if (battery) {
+        memcpy(battery, region, len);
+        battery_len = len;
+      }
+    }
+  }
   if (s->game_loaded && s->retro_unload_game) s->retro_unload_game();
+  if (battery_len) ezcore_battery_write(s->save_path, battery, battery_len);
+  free(battery);
   s->game_loaded = false;
   if (s->inited) {
     s->retro_deinit();
@@ -1132,6 +1271,15 @@ bool ezcore_load_game(ezcore_session *s, const char *rom_path, const void *data,
   struct retro_game_info info = {rom_path, data, size, NULL};
   bool ok = s->retro_load_game(&info);
   if (ok) clear_input(s);
+  /* Battery restore is part of loading, not something the caller remembers:
+   * the core has just allocated its save memory and has not run a frame, so
+   * this is the one moment where the saved image is still authoritative. */
+  if (ok) {
+    ezcore_save_path_for(s->save_path, sizeof(s->save_path), rom_path);
+    ezcore_battery_restore(s, s->save_path);
+  } else {
+    s->save_path[0] = '\0';
+  }
   /* A GPU core renders into our framebuffer; size it to the largest frame
    * the core can produce, now that it can say (SET_HW_RENDER came during
    * load, before the geometry was known). */

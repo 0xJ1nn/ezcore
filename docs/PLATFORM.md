@@ -98,10 +98,11 @@ Related, same audit (since resolved by P3: analog, mouse, keyboard and
 pointer devices are answered): input was **digital only** — `RETRO_DEVICE_JOYPAD` was the
 only handled device (`runtime.c:181-190`); the Dart layer sends **port 0 only**
 (`lib/emu/emulation_worker.dart:171-172`) although the runtime holds 4 ports;
-there is no `RETRO_MEMORY_*` support, so battery saves are not round-tripped;
-and cores run **in-process**, which the worker itself states
-(`lib/emu/emulation_worker.dart:11-12`): *"This is NOT process isolation: a
-native core crash can still terminate the application."*
+battery saves were not round-tripped (since resolved: the runtime reads
+`RETRO_MEMORY_SAVE_RAM` before a core's first frame and writes it back on
+unload, `runtime.c`); and cores run **in-process**, which the worker itself
+states (`lib/emu/emulation_worker.dart:11-12`): *"This is NOT process
+isolation: a native core crash can still terminate the application."*
 
 ---
 
@@ -280,7 +281,7 @@ listed here rather than silently corrected in passing.
 | File | Defect | Severity |
 |---|---|---|
 | `docs/ARCHITECTURE.md:44-46` | "Every core speaks the runtime ABI" — false; cores speak libretro | High — misleads every third-party author |
-| `docs/ARCHITECTURE.md:23` | claims "SRAM handoff" as a runtime feature; `RETRO_MEMORY_*` is absent from the runtime | High — claims a feature that does not exist |
+| `docs/ARCHITECTURE.md:23` | claimed "SRAM handoff" as a runtime feature while `RETRO_MEMORY_*` was absent from the runtime | Closed — the runtime now persists battery saves; the row stays recorded as history |
 | `docs/API.md:42-46` | documents `EZCORE_PIXEL_XRGB8888`, `EZCORE_PIXEL_0RGB1555`, `EZCORE_PIXEL_RGB565` — **no such macro exists anywhere in the repository** | High — fabricated API |
 | `docs/API.md` | documents 15 of the 25 exported functions; `ezcore_reset`, `ezcore_set_button`, `ezcore_clear_buttons`, `ezcore_frame_size`, `ezcore_frame_pixels_copy`, `ezcore_audio_drain_copy`, `ezcore_audio_pending`, `ezcore_sample_rate` are undocumented | Medium |
 | `docs/API.md` | describes `ezcore_audio_drain` as thread-safe; it is an unsynchronised `memcpy`/`memmove` (`runtime.c:430-438`) | Medium — safety claim |

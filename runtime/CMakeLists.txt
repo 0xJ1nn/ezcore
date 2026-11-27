@@ -19,9 +19,11 @@ endif()
 if(WIN32)
   set(EZCORE_DYNLOAD_SRC src/dynload_win32.c)
   set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_win32.c)
+  set(EZCORE_FILE_REPLACE_SRC src/ezcore_file_replace_win32.c)
 else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
   set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_posix.c)
+  set(EZCORE_FILE_REPLACE_SRC src/ezcore_file_replace_posix.c)
 endif()
 
 # GPU render context (the GPU render-context design). ezcore_gpu.c is the only file that
@@ -48,6 +50,7 @@ add_library(ezcore_runtime SHARED
   ${EZCORE_VIDEO_LOCK_SRC}
   ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
+  ${EZCORE_FILE_REPLACE_SRC}
 )
 target_include_directories(ezcore_runtime PUBLIC
   include
@@ -65,6 +68,11 @@ else()
 endif()
 if(APPLE)
   set_target_properties(ezcore_runtime PROPERTIES SUFFIX ".dylib")
+endif()
+if(ANDROID)
+  # ANativeWindow_* lives in libandroid.so. Without it the shared library fails
+  # to link (--no-undefined) and the Android leg of the runtime build stops.
+  target_link_libraries(ezcore_runtime PRIVATE android)
 endif()
 
 # Android video texture bridge: the pure row blit and the attach/present state
@@ -483,6 +491,17 @@ target_link_libraries(test_unload_order PRIVATE ezcore_runtime)
 add_dependencies(test_unload_order synth_hw_core)
 add_test(NAME unload_order COMMAND test_unload_order
          $<TARGET_FILE:synth_hw_core> ${CMAKE_BINARY_DIR}/unload_order.txt)
+
+# Battery-save persistence: a session's save RAM reaches the host's save
+# directory and is restored before a later session's first frame.
+add_executable(test_battery_persist test/test_battery_persist.c)
+target_include_directories(test_battery_persist PRIVATE include
+  external/libretro-common/include)
+target_link_libraries(test_battery_persist PRIVATE ezcore_runtime)
+add_dependencies(test_battery_persist synth_legacy_sram_libretro)
+add_test(NAME battery_persist COMMAND test_battery_persist
+         $<TARGET_FILE:synth_legacy_sram_libretro>
+         ${CMAKE_BINARY_DIR}/battery_persist_work)
 
 # GPU context seam test (the GPU render-context design). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed

@@ -112,7 +112,7 @@ Sets host-owned content directories. Must be called before `ezcore_load` when co
 
 **Parameters:**
 - `system_dir` — path to system directory (BIOS, firmware, etc.)
-- `save_dir` — path to save directory (save states, SRAM, etc.)
+- `save_dir` — path to save directory (save states, SRAM, etc.). The runtime also uses it for battery saves: see `ezcore_load_game`.
 
 **Thread safety:** Not thread-safe. Call once at startup before any sessions are created.
 
@@ -147,6 +147,10 @@ void ezcore_unload(ezcore_session *s);
 ```
 
 Unloads a core session. Calls `retro_deinit`, dlcloses the handle, and frees all associated resources (frame buffer, audio ring).
+
+Battery-backed save RAM is copied out before `retro_unload_game` and written to
+the session's `.srm` file (see `ezcore_load_game`); a core frees its save buffer
+during teardown, so the copy has to happen first.
 
 **Parameters:**
 - `s` — session pointer (from `ezcore_load`)
@@ -205,6 +209,13 @@ Loads a game into the core. The ROM data is passed as a memory buffer (not read 
 - `size` — size of ROM data in bytes
 
 **Returns:** `true` on success, `false` on failure.
+
+**Battery saves:** on success the runtime derives `<save_dir>/<content basename>.srm`
+and, if that file exists and its length matches the core's save RAM exactly,
+copies it in before the first frame. `ezcore_unload` writes the region back, so
+a battery save survives the session without the host asking. A file of the
+wrong length is ignored rather than spliced into the core's memory; sessions
+started without a save directory persist nothing.
 
 **Note:** Several cores (e.g., mGBA) dereference the game info here and segfault if called before `retro_init`. The runtime handles this by calling `retro_init` first if not already done.
 
