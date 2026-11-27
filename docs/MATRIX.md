@@ -24,7 +24,7 @@ a core that is reserved but never built.
 
 | Core | macOS arm64 | iOS arm64 | Android arm64 | Linux x64 | Windows x64 | Last verified |
 |---|---|---|---|---|---|---|
-| pocketbit | BUILT | BUILT | BUILT | RENDERS | — | 2026-11-22 |
+| pocketbit | PLAYS | BUILT | BUILT | RENDERS | — | 2026-11-28 |
 | advancebit | BUILT | — | BUILT | RENDERS | — | 2026-11-22 |
 | nesbyte | IDENTIFIES | BUILT | BUILT | RENDERS | — | 2026-11-22 |
 | joystick | IDENTIFIES | BUILT | BUILT | RENDERS | — | 2026-11-22 |
