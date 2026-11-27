@@ -191,6 +191,19 @@ static ezcore_session *g_active = NULL;
 static char g_system_dir[1024] = {0};
 static char g_save_dir[1024] = {0};
 
+/* Rate the host's audio device runs at, in Hz. This is what a core is told
+ * when it asks for the frontend's target rate, so it can resample its own
+ * output instead of handing us its native clock.
+ *
+ * It matters because the fallback is not a default, it is the core's crystal:
+ * SameBoy computes GB_get_clock_rate()/2 and reports 2097152 Hz -- its APU
+ * sample clock -- when nobody answers. That is ~35 000 stereo frames per
+ * emulated frame against a ring that holds 8192, and every platform sink in
+ * the app rejects it as an invalid rate. Answering the question is the fix;
+ * the core then resamples to something a device will actually open. */
+#define EZCORE_DEFAULT_TARGET_SAMPLE_RATE 48000u
+static uint32_t g_target_sample_rate = EZCORE_DEFAULT_TARGET_SAMPLE_RATE;
+
 /* ---- GPU shims handed to the core through retro_hw_render_callback ----
  *
  * The core stores these pointers and calls them. They route to the session's
@@ -309,6 +322,20 @@ void ezcore_set_dirs(const char *system_dir, const char *save_dir) {
   if (system_dir) snprintf(g_system_dir, sizeof(g_system_dir), "%s", system_dir);
   if (save_dir) snprintf(g_save_dir, sizeof(g_save_dir), "%s", save_dir);
 }
+
+/* Sets the rate reported to a core that asks the frontend for its target
+ * sample rate. Call before ezcore_load_game: libretro asks while loading
+ * content, so a value set afterwards is ignored by cores that already queried.
+ * Out-of-range values are rejected rather than clamped -- a caller passing 0
+ * or 4 MHz has a bug, and silently substituting 48000 would hide it.
+ * Returns false for a rate a device cannot open, and leaves the current one. */
+bool ezcore_set_target_sample_rate(unsigned rate) {
+  if (rate < 8000u || rate > 192000u) return false;
+  g_target_sample_rate = rate;
+  return true;
+}
+
+unsigned ezcore_target_sample_rate(void) { return g_target_sample_rate; }
 
 /* ---- Battery-save persistence -------------------------------------------
  *
@@ -557,6 +584,18 @@ static bool env_cb(unsigned cmd, void *data) {
     case RETRO_ENVIRONMENT_GET_CORE_ASSETS_DIRECTORY:
       if (!g_system_dir[0]) snprintf(g_system_dir, sizeof(g_system_dir), ".");
       if (data) *(const char **)data = g_system_dir;
+      return true;
+    case RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE:
+      /* The device rate, so a core can resample to it itself. Answering this
+       * is not an optimisation: a core that is not answered falls back to its
+       * own hardware clock. SameBoy asks here and, on a false, samples its APU
+       * at GB_get_clock_rate()/2 = 2097152 Hz -- a rate no audio device in the
+       * app will open and ~35 000 stereo frames per emulated frame against a
+       * 8192-frame ring. The command carries the experimental bit; a core asks
+       * with the bit set and we compare the whole value, as libretro.h defines
+       * it. */
+      if (!data) return false;
+      *(unsigned *)data = g_target_sample_rate;
       return true;
     case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT: {
       enum retro_pixel_format fmt = *(const enum retro_pixel_format *)data;

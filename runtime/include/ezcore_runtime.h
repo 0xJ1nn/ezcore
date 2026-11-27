@@ -23,6 +23,18 @@ int ezcore_abi_version(void);
  * system/save paths (mupen64plus crashes without them). */
 void ezcore_set_dirs(const char *system_dir, const char *save_dir);
 
+/* The rate this host's audio device runs at, reported to cores that ask for
+ * the frontend's target sample rate (RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE).
+ * A core that is not answered resamples nothing and hands over its own
+ * hardware rate instead, which is usually wrong and sometimes unusable.
+ *
+ * Defaults to 48000 Hz. Set it before ezcore_load_game, because libretro asks
+ * while loading content (and again on reset). Returns false and leaves the
+ * current rate unchanged when `rate` is outside 8000..192000, the range every
+ * release target's audio device accepts. */
+bool ezcore_set_target_sample_rate(unsigned rate);
+unsigned ezcore_target_sample_rate(void);
+
 /* Lifecycle */
 ezcore_session *ezcore_load(const char *core_path, char *err, size_t err_len);
 void ezcore_unload(ezcore_session *s);

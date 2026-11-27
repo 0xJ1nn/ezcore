@@ -118,6 +118,41 @@ Sets host-owned content directories. Must be called before `ezcore_load` when co
 
 ---
 
+#### `ezcore_set_target_sample_rate`
+
+```c
+bool ezcore_set_target_sample_rate(unsigned rate);
+```
+
+Sets the rate this host's audio device runs at. The runtime reports it to any core that asks for the frontend's target sample rate
+(`RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE`); the core then resamples to it instead of handing over its own hardware rate.
+
+Answering that query is required, not cosmetic. A core that is refused falls back to its own clock — one real core reports
+2097152 Hz, which no platform sink will open and which is roughly thirty-five thousand stereo frames per emulated frame
+against a ring that holds 8192.
+
+**Parameters:**
+- `rate` — the device rate in Hz, `8000`..`192000`
+
+**Returns:** `true` when the rate was accepted and stored, `false` when it is outside that range (the current rate is left
+unchanged — the value is rejected, never clamped, because a caller passing `0` has a bug worth seeing).
+
+**Thread safety:** Not thread-safe. Call before `ezcore_load_game`, since libretro asks while loading content.
+
+---
+
+#### `ezcore_target_sample_rate`
+
+```c
+unsigned ezcore_target_sample_rate(void);
+```
+
+Returns the rate currently reported to cores that ask for the frontend target sample rate. Defaults to `48000`.
+
+**Thread safety:** Not thread-safe.
+
+---
+
 #### `ezcore_load`
 
 ```c
@@ -1132,6 +1167,8 @@ The Flutter layer checks all return values and surfaces errors to the user.
 |---|---|
 | `ezcore_abi_version` | Thread-safe |
 | `ezcore_set_dirs` | Not thread-safe (call once at startup) |
+| `ezcore_set_target_sample_rate` | Not thread-safe (call before `ezcore_load_game`) |
+| `ezcore_target_sample_rate` | Not thread-safe |
 | `ezcore_load` | Not thread-safe |
 | `ezcore_unload` | Not thread-safe |
 | `ezcore_init` | Not thread-safe |
