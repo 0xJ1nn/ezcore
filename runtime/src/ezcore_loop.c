@@ -37,6 +37,10 @@
 #endif
 
 #define EZCORE_CTRL_CAP 64u
+/* Completed controls stay waitable this many completions after they finish,
+ * independently of the slot they occupied, so recycling a slot cannot take a
+ * result away from a caller that is about to wait for it. */
+#define EZCORE_CTRL_HISTORY 128u
 #define EZCORE_HIST_MIN 8u
 #define EZCORE_HIST_MAX 256u
 #define EZCORE_HIST_DEFAULT 64u
@@ -196,6 +200,15 @@ typedef struct {
   char *text2;     /* OPTION value */
 } ctrl_slot;
 
+/* A completed control keeps its result available after its slot is returned to
+ * the free list. Tokens grow monotonically, so one entry can only ever describe
+ * one control. */
+typedef struct {
+  uint64_t token;
+  bool result;
+  bool valid;
+} ctrl_done_slot;
+
 /* ---- Triple-buffered frames ---- */
 
 typedef struct {
@@ -225,6 +238,9 @@ struct ezcore_loop {
   atomic_flag ctrl_lock;
   uint64_t next_token;
   _Atomic uint64_t controls_applied;
+  /* Results of controls whose slots were reused to make room for a new one. */
+  ctrl_done_slot done[EZCORE_CTRL_HISTORY];
+  uint64_t done_next;
 
   frame_slot slots[3];
   _Atomic int pinned; /* -1 when no frame is pinned */
@@ -242,7 +258,8 @@ struct ezcore_loop {
   double frame_last_ms;
   double frame_max_ms;
 
-  /* Seqlock: odd sequence means the writer is mid-update. */
+  /* Seqlock: odd sequence means the writer is mid-update. Exactly one thread
+   * writes at a time, so the sequence always returns to even. */
   _Atomic unsigned stats_seq;
   ezcore_loop_statistics stats[2];
 };
@@ -257,17 +274,35 @@ static uint64_t queue_control(ezcore_loop *loop, ctrl_type type,
   if (!loop) return 0;
   uint64_t token = 0;
   lock_spin(&loop->ctrl_lock);
+  ctrl_slot *slot = NULL;
+  ctrl_slot *oldest_done = NULL;
   for (unsigned i = 0; i < EZCORE_CTRL_CAP; i++) {
-    ctrl_slot *slot = &loop->controls[i];
-    if (atomic_load_explicit(&slot->state, memory_order_relaxed) != 0) continue;
+    ctrl_slot *candidate = &loop->controls[i];
+    unsigned state = atomic_load_explicit(&candidate->state, memory_order_acquire);
+    if (state == 0) {
+      slot = candidate;
+      break;
+    }
+    /* A finished control no longer needs its slot. Keep its result reachable
+     * for a caller that has not waited yet, then let the slot be reused. */
+    if (state == 3 && (!oldest_done || candidate->token < oldest_done->token))
+      oldest_done = candidate;
+  }
+  if (!slot && oldest_done) {
+    ctrl_done_slot *done = &loop->done[loop->done_next % EZCORE_CTRL_HISTORY];
+    loop->done_next++;
+    done->token = oldest_done->token;
+    done->result = oldest_done->result;
+    done->valid = true;
+    slot = oldest_done;
+  }
+  if (slot) {
     memset(slot, 0, sizeof(*slot));
     slot->type = type;
-    slot->state = 1;
     token = ++loop->next_token;
     slot->token = token;
     if (fill) fill(slot, ctx);
     atomic_store_explicit(&slot->state, 1, memory_order_release);
-    break;
   }
   unlock_spin(&loop->ctrl_lock);
   return token;
@@ -457,26 +492,41 @@ static void publish_frame(ezcore_loop *loop, const ezcore_session *session) {
     }
   }
   if (!target) return;
-  if (replaced)
-    atomic_fetch_add_explicit(&loop->dropped_frames, 1, memory_order_relaxed);
 
+  /* From here on the slot is claimed (state 3) and no reader can pin it. Every
+   * exit must hand it back, or the slot is lost for the lifetime of the loop
+   * and the picture eventually freezes once all three are gone. */
+  bool published = false;
   if (target->capacity < need) {
     uint32_t *bigger = (uint32_t *)realloc(target->pixels, need);
-    if (!bigger) return;
-    target->pixels = bigger;
-    target->capacity = need;
+    if (bigger) {
+      target->pixels = bigger;
+      target->capacity = need;
+    }
   }
-  unsigned tw = 0, th = 0;
-  const uint32_t *src = ezcore_frame_pixels((ezcore_session *)session, &tw, &th);
-  if (!src || tw != w || th != h) return;
-  memcpy(target->pixels, src, need);
-  target->w = w;
-  target->h = h;
-  atomic_store_explicit(&target->generation,
-                        atomic_fetch_add_explicit(&loop->frame_clock, 1,
-                                                  memory_order_relaxed) + 1,
-                        memory_order_relaxed);
-  atomic_store_explicit(&target->state, 1, memory_order_release);
+  if (target->pixels && target->capacity >= need) {
+    unsigned tw = 0, th = 0;
+    const uint32_t *src = ezcore_frame_pixels((ezcore_session *)session, &tw, &th);
+    if (src && tw == w && th == h) {
+      memcpy(target->pixels, src, need);
+      target->w = w;
+      target->h = h;
+      atomic_store_explicit(&target->generation,
+                            atomic_fetch_add_explicit(&loop->frame_clock, 1,
+                                                      memory_order_relaxed) + 1,
+                            memory_order_relaxed);
+      published = true;
+    }
+  }
+  if (published) {
+    if (replaced)
+      atomic_fetch_add_explicit(&loop->dropped_frames, 1, memory_order_relaxed);
+    atomic_store_explicit(&target->state, 1, memory_order_release);
+    return;
+  }
+  /* Nothing was written, so the slot still holds what it held before: an
+   * replaced slot is still a complete earlier frame, a fresh one is still empty. */
+  atomic_store_explicit(&target->state, replaced ? 1 : 0, memory_order_release);
 }
 
 static void record_frame_time(ezcore_loop *loop, double ms) {
@@ -503,6 +553,10 @@ static double percentile_ms(const ezcore_loop *loop, double fraction) {
   return loop->hist_max_ms;
 }
 
+/* Single writer by construction: the starting thread publishes the first
+ * snapshot before the run thread exists, and only the run thread publishes
+ * afterwards. A second concurrent writer would advance the sequence past the
+ * first writer's update and hand readers a torn snapshot. */
 static void publish_stats(ezcore_loop *loop) {
   unsigned seq = atomic_load_explicit(&loop->stats_seq, memory_order_relaxed);
   unsigned buffer = (seq / 2u) & 1u; /* the slot not read for this sequence */
@@ -659,6 +713,9 @@ ezcore_loop *ezcore_loop_start(ezcore_session *s, const ezcore_loop_config *conf
     return NULL;
   }
 
+  /* Publish the first snapshot here, while this is still the only thread, so
+   * the statistics sequence never has two writers. */
+  publish_stats(loop);
   if (!ez_thread_start(&loop->thread, run_loop, loop)) {
     free(loop->histogram);
     free(loop);
@@ -667,7 +724,6 @@ ezcore_loop *ezcore_loop_start(ezcore_session *s, const ezcore_loop_config *conf
     return NULL;
   }
   loop->thread_live = true;
-  publish_stats(loop);
   return loop;
 }
 
@@ -823,6 +879,17 @@ bool ezcore_loop_control_wait(ezcore_loop *loop, uint64_t token,
       done = atomic_load_explicit(&slot->state, memory_order_acquire) == 3;
       ok = slot->result;
       break;
+    }
+    if (!found) {
+      /* The slot was reused to queue a newer control; the result lives on in
+       * the history the recycler wrote before it cleared the slot. */
+      for (unsigned i = 0; i < EZCORE_CTRL_HISTORY; i++) {
+        if (!loop->done[i].valid || loop->done[i].token != token) continue;
+        found = true;
+        done = true;
+        ok = loop->done[i].result;
+        break;
+      }
     }
     unlock_spin(&loop->ctrl_lock);
     if (!found) return false;

@@ -8,6 +8,10 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- The run thread returns a control slot to the free pool when its request finishes, so pausing, changing speed, saving, loading, resetting and setting cheats keep working past the first sixty-four requests in a session. A caller still receives the result of a request whose slot was reused. [ios, android, macos, linux, windows]
+- A frame that the run thread claims and then cannot copy hands its slot back, so a failed publish no longer freezes the picture after three attempts while the session reports healthy frames. [ios, android, macos, linux, windows]
+- The run thread publishes its first statistics snapshot before the thread starts, leaving one writer for the sequence, so the speed, frame-time and underrun figures keep arriving instead of failing permanently after a torn read. [ios, android, macos, linux, windows]
+
 - The play harness asks for the snapshot size after starting the first frame, so a core that initialises its engine on that frame can be checked for save states instead of being reported as having none. A core that still reports no snapshot size remains a failure. [ios, android, macos, linux, windows]
 - Desktop OpenGL requests now receive a context that is current in GLX, so cores that initialise their own GL loader through GLX can use it. When a requested context version is unavailable, the runtime steps down to a supported version and finally to a default context; mobile and GLES contexts are unchanged. [linux]
 - The cartridge core recognises snapshots whose filename ends with a copy index after the file type, so those copies reach the same play checks as any other file of that type. [ios, android, macos, linux, windows]
