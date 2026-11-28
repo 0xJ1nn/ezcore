@@ -8,6 +8,8 @@ All notable changes to ezCORE are documented here. The format follows
 
 ### Fixed
 
+- Windows audio now describes its playback buffers with the full 48-byte `WAVEHDR`, including the driver-owned `lpNext` and `reserved` fields. The short struct let the driver write past the allocation, which made buffer preparation fail and left the game silent with an audio error it never recovered from. [windows]
+- Stopping Windows audio now resets the device before closing it, so queued buffers no longer make the close fail and strand the handle. Sound also pauses and resumes repeatedly without running out of devices, and a chunk the device cannot take is dropped instead of stalling the frame timer. [windows]
 - The run thread returns a control slot to the free pool when its request finishes, so pausing, changing speed, saving, loading, resetting and setting cheats keep working past the first sixty-four requests in a session. A caller still receives the result of a request whose slot was reused. [ios, android, macos, linux, windows]
 - A frame that the run thread claims and then cannot copy hands its slot back, so a failed publish no longer freezes the picture after three attempts while the session reports healthy frames. [ios, android, macos, linux, windows]
 - The run thread publishes its first statistics snapshot before the thread starts, leaving one writer for the sequence, so the speed, frame-time and underrun figures keep arriving instead of failing permanently after a torn read. [ios, android, macos, linux, windows]
