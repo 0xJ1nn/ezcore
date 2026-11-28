@@ -23,7 +23,18 @@ final class _WaveFormat extends Struct {
   external int extraSize;
 }
 
-final class _WaveHeader extends Struct {
+/// The Win32 `WAVEHDR` a driver reads and writes (mirrored at
+/// runtime/external/miniaudio/miniaudio.h:27134).
+///
+/// The last two fields belong to the driver, not to this sink:
+/// `waveOutWrite` stores a null `lpNext` and `waveOutPrepareHeader` writes
+/// driver data through `reserved`. Without them the struct is 32 bytes where
+/// Win32 expects 48, so the driver either writes 8 and 16 bytes past the
+/// allocation or rejects the header when it validates `cbwh`.
+///
+/// Layout on 64-bit Windows: 48 bytes, with `lpNext` at offset 32 and
+/// `reserved` at offset 40.
+final class WinmmWaveHeader extends Struct {
   external Pointer<Uint8> data;
   @Uint32()
   external int bufferLength;
@@ -35,31 +46,49 @@ final class _WaveHeader extends Struct {
   external int flags;
   @Uint32()
   external int loops;
+
+  /// `LPWAVEHDR lpNext`: the next header in the driver's queue.
+  external Pointer<WinmmWaveHeader> lpNext;
+
+  /// `DWORD_PTR reserved`: driver scratch space.
+  @UintPtr()
+  external int reserved;
 }
 
-/// Windows PCM sink over the classic waveOut API (winmm.dll, always
-/// present). Four 32 KiB buffers round-robin; a chunk whose buffer is
-/// still playing is dropped after a short wait instead of stalling the
-/// frame loop.
-class WinmmPcmOutput implements PcmOutput {
-  WinmmPcmOutput({this._lib});
+/// The winmm entry points this sink calls, bound lazily from `winmm.dll`.
+///
+/// It exists so the stop path can run on a host without winmm; the
+/// production binding is [WinmmPcmOutput]'s default and is unchanged.
+abstract interface class WinmmApi {
+  /// `waveOutOpen` on the wave mapper. [format] points at a `WAVEFORMATEX`;
+  /// [device] receives the handle.
+  int open(Pointer<IntPtr> device, Pointer<Uint8> format);
+
+  int prepare(int device, Pointer<WinmmWaveHeader> header);
+  int write(int device, Pointer<WinmmWaveHeader> header);
+  int unprepare(int device, Pointer<WinmmWaveHeader> header);
+
+  /// `waveOutReset`: stops playback and returns every queued buffer.
+  int reset(int device);
+
+  /// `waveOutClose`: refuses while buffers are still queued.
+  int close(int device);
+}
+
+/// winmm.dll binding. Symbols are looked up on first use, so constructing
+/// the sink off Windows never opens the library.
+final class _Winmm implements WinmmApi {
+  _Winmm(this._libOf);
+
+  final DynamicLibrary Function() _libOf;
   DynamicLibrary? _lib;
 
   static const _waveMapper = 0xFFFFFFFF;
   static const _callbackNull = 0;
-  static const _whdrDone = 0x00000001;
-  static const _bufferBytes = 32768;
-  static const _bufferCount = 4;
 
-  int _device = 0;
-  bool _open = false;
-  int _cursor = 0;
-  final List<Pointer<_WaveHeader>> _headers = [];
-  final List<Pointer<Uint8>> _buffers = [];
-
-  DynamicLibrary _libOf() {
+  DynamicLibrary _library() {
     var lib = _lib;
-    lib ??= _load();
+    lib ??= _libOf();
     _lib = lib;
     return lib;
   }
@@ -72,7 +101,7 @@ class WinmmPcmOutput implements PcmOutput {
     int,
     int,
   )
-  _openFn = _libOf()
+  _openFn = _library()
       .lookupFunction<
         Int32 Function(
           Pointer<IntPtr>,
@@ -84,27 +113,94 @@ class WinmmPcmOutput implements PcmOutput {
         ),
         int Function(Pointer<IntPtr>, int, Pointer<_WaveFormat>, int, int, int)
       >('waveOutOpen');
-  late final int Function(int, Pointer<_WaveHeader>, int) _prepare = _libOf()
-      .lookupFunction<
-        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-        int Function(int, Pointer<_WaveHeader>, int)
+  late final int Function(int, Pointer<WinmmWaveHeader>, int) _prepare =
+      _library().lookupFunction<
+        Int32 Function(IntPtr, Pointer<WinmmWaveHeader>, Int32),
+        int Function(int, Pointer<WinmmWaveHeader>, int)
       >('waveOutPrepareHeader');
-  late final int Function(int, Pointer<_WaveHeader>, int) _write = _libOf()
+  late final int Function(int, Pointer<WinmmWaveHeader>, int) _write = _library()
       .lookupFunction<
-        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-        int Function(int, Pointer<_WaveHeader>, int)
+        Int32 Function(IntPtr, Pointer<WinmmWaveHeader>, Int32),
+        int Function(int, Pointer<WinmmWaveHeader>, int)
       >('waveOutWrite');
-  late final int Function(int, Pointer<_WaveHeader>, int) _unprepare = _libOf()
-      .lookupFunction<
-        Int32 Function(IntPtr, Pointer<_WaveHeader>, Int32),
-        int Function(int, Pointer<_WaveHeader>, int)
+  late final int Function(int, Pointer<WinmmWaveHeader>, int) _unprepare =
+      _library().lookupFunction<
+        Int32 Function(IntPtr, Pointer<WinmmWaveHeader>, Int32),
+        int Function(int, Pointer<WinmmWaveHeader>, int)
       >('waveOutUnprepareHeader');
-  late final int Function(int) _close = _libOf()
+  late final int Function(int) _reset = _library().lookupFunction<
+    Int32 Function(IntPtr),
+    int Function(int)
+  >('waveOutReset');
+  late final int Function(int) _close = _library()
       .lookupFunction<Int32 Function(IntPtr), int Function(int)>(
         'waveOutClose',
       );
 
-  DynamicLibrary _load() {
+  @override
+  int open(Pointer<IntPtr> device, Pointer<Uint8> format) => _openFn(
+    device,
+    _waveMapper,
+    format.cast<_WaveFormat>(),
+    0,
+    0,
+    _callbackNull,
+  );
+
+  @override
+  int prepare(int device, Pointer<WinmmWaveHeader> header) =>
+      _prepare(device, header, sizeOf<WinmmWaveHeader>());
+
+  @override
+  int write(int device, Pointer<WinmmWaveHeader> header) =>
+      _write(device, header, sizeOf<WinmmWaveHeader>());
+
+  @override
+  int unprepare(int device, Pointer<WinmmWaveHeader> header) =>
+      _unprepare(device, header, sizeOf<WinmmWaveHeader>());
+
+  @override
+  int reset(int device) => _reset(device);
+
+  @override
+  int close(int device) => _close(device);
+}
+
+/// Windows PCM sink over the classic waveOut API (winmm.dll, always
+/// present). Four 32 KiB buffers round-robin; a chunk whose buffer is still
+/// playing is dropped and counted rather than stalling the frame loop.
+/// [stop] resets the device first, so queued buffers cannot make close fail
+/// with `WAVERR_STILLPLAYING` and leak the handle.
+class WinmmPcmOutput implements PcmOutput {
+  WinmmPcmOutput({DynamicLibrary? lib, WinmmApi? api})
+    : _api = api ?? _Winmm(() => lib ?? _load());
+
+  final WinmmApi _api;
+
+  static const _whdrDone = 0x00000001;
+  static const _bufferBytes = 32768;
+  static const _bufferCount = 4;
+
+  int _device = 0;
+  bool _open = false;
+  int _cursor = 0;
+  final List<Pointer<WinmmWaveHeader>> _headers = [];
+  final List<Pointer<Uint8>> _buffers = [];
+
+  /// Chunks dropped because no buffer was free, since construction. A rising
+  /// count is audio the device could not take; a caller can show it instead
+  /// of the drop being invisible.
+  int _droppedChunks = 0;
+  int get droppedChunks => _droppedChunks;
+
+  /// The last winmm call that failed where there was no caller to throw to.
+  ///
+  /// [stop] records here because pause and session close call it while
+  /// already unwinding. [start] throws it rather than open a second device
+  /// beside the handle a failed close left behind.
+  String? lastError;
+
+  static DynamicLibrary _load() {
     try {
       return DynamicLibrary.open('winmm.dll');
     } catch (_) {
@@ -118,6 +214,11 @@ class WinmmPcmOutput implements PcmOutput {
   @override
   Future<void> start(double sampleRate) async {
     await stop();
+    if (_open) {
+      // The retry above could not release the previous device; opening a
+      // second one beside it would leak the first.
+      throw StateError(lastError ?? 'waveOut device still open');
+    }
     if (!sampleRate.isFinite || sampleRate < 8000 || sampleRate > 192000) {
       throw ArgumentError('Invalid sample rate $sampleRate');
     }
@@ -133,9 +234,10 @@ class WinmmPcmOutput implements PcmOutput {
       fmt.blockAlign = 4;
       fmt.bitsPerSample = 16;
       fmt.extraSize = 0;
-      final rc = _openFn(devicePtr, _waveMapper, fmtPtr, 0, 0, _callbackNull);
+      final rc = _api.open(devicePtr, fmtPtr.cast<Uint8>());
       if (rc != 0) throw StateError('waveOutOpen failed (code $rc)');
       _device = devicePtr.value;
+      lastError = null;
     } finally {
       freeBytes(devicePtr);
       freeBytes(fmtPtr);
@@ -143,7 +245,8 @@ class WinmmPcmOutput implements PcmOutput {
     try {
       for (var i = 0; i < _bufferCount; i++) {
         final buf = mallocBytes(_bufferBytes);
-        final hdr = mallocBytes(sizeOf<_WaveHeader>()).cast<_WaveHeader>();
+        final hdr = mallocBytes(sizeOf<WinmmWaveHeader>())
+            .cast<WinmmWaveHeader>();
         hdr.ref.data = buf;
         hdr.ref.bufferLength = _bufferBytes;
         hdr.ref.flags = _whdrDone; // free until first prepared write
@@ -167,23 +270,23 @@ class WinmmPcmOutput implements PcmOutput {
     var remaining = stereoS16.length;
     while (remaining > 0) {
       final hdr = _headers[_cursor];
-      // Wait briefly for the buffer to finish playing, then drop.
-      var waited = 0;
-      while ((hdr.ref.flags & _whdrDone) == 0 && waited < 40) {
-        await Future<void>.delayed(const Duration(milliseconds: 2));
-        waited += 2;
+      // Never wait here: this runs on the frame timer, so sleeping would
+      // stutter the emulator. A busy buffer means the device is behind, and
+      // the chunk it would have played is dropped and counted.
+      if ((hdr.ref.flags & _whdrDone) == 0) {
+        _droppedChunks++;
+        return;
       }
-      if ((hdr.ref.flags & _whdrDone) == 0) return;
-      _unprepare(_device, hdr, sizeOf<_WaveHeader>());
+      _api.unprepare(_device, hdr);
       final chunk = remaining > _bufferBytes ? _bufferBytes : remaining;
       _buffers[_cursor]
           .asTypedList(_bufferBytes)
           .setRange(0, chunk, stereoS16, offset);
       hdr.ref.bufferLength = chunk;
       hdr.ref.flags = 0;
-      var rc = _prepare(_device, hdr, sizeOf<_WaveHeader>());
+      var rc = _api.prepare(_device, hdr);
       if (rc != 0) throw StateError('waveOutPrepareHeader failed ($rc)');
-      rc = _write(_device, hdr, sizeOf<_WaveHeader>());
+      rc = _api.write(_device, hdr);
       if (rc != 0) throw StateError('waveOutWrite failed ($rc)');
       _cursor = (_cursor + 1) % _bufferCount;
       offset += chunk;
@@ -191,15 +294,32 @@ class WinmmPcmOutput implements PcmOutput {
     }
   }
 
+  /// Releases the device and every buffer.
+  ///
+  /// Safe to call twice, and safe before [start]. Reset comes first because
+  /// close and unprepare both return `WAVERR_STILLPLAYING` while a buffer is
+  /// queued. If close still fails the device stays open and the buffers stay
+  /// allocated, so the handle is not leaked; [lastError] records why, and the
+  /// next [stop] or [start] retries.
   @override
   Future<void> stop() async {
-    if (_open) {
+    // _device alone counts too: a start whose buffer allocation failed never
+    // set _open, and its device must still be closed here.
+    if (_open || _device != 0) {
+      // Ignore the result: reset only fails on a dead handle, and close
+      // reports that case with a code this path already handles.
+      _api.reset(_device);
       for (final hdr in _headers) {
-        _unprepare(_device, hdr, sizeOf<_WaveHeader>());
+        _api.unprepare(_device, hdr);
       }
-      _close(_device);
+      final rc = _api.close(_device);
+      if (rc != 0) {
+        lastError = 'waveOutClose failed ($rc)';
+        return;
+      }
       _device = 0;
       _open = false;
+      lastError = null;
     }
     for (final hdr in _headers) {
       freeBytes(hdr);
