@@ -38,8 +38,9 @@ class PlayerController extends ChangeNotifier {
 
   int? get textureId => videoTexture.textureId;
 
-  /// Runtime-owned emulation, when both the loop and a video bridge are
-  /// present. The per-frame timer is kept as the fallback for one release.
+  /// Runtime-owned emulation for a build being checked against the loop. It is
+  /// only ever adopted on a target that can present what the loop renders;
+  /// every other target keeps the per-frame timer below.
   final NativeLoopProbe _loopProbe;
   Map<String, dynamic> _settings;
 
@@ -157,9 +158,11 @@ class PlayerController extends ChangeNotifier {
     final address = info['sessionAddress'] as int? ?? 0;
     if (address != 0) await videoTexture.open(address);
 
-    // A native session only runs here when the loaded runtime exposes both
-    // the run loop and a video bridge. Anything else keeps the timer path.
-    if (!legacyFrameLoopRequested(_settings)) {
+    // The runtime-owned run thread is opt-in. It paces frames itself and
+    // publishes into its own frame and audio rings, and the player has no
+    // consumer for either on a release build, so an unasked-for session stays
+    // on the per-frame timer where the picture and the sound come from.
+    if (nativeFrameLoopRequested(_settings)) {
       NativeLoopSession? candidate;
       try {
         candidate = _loopProbe(
@@ -186,8 +189,8 @@ class PlayerController extends ChangeNotifier {
       }
     }
 
-    // Video is attached once above. The runtime-owned loop presents through
-    // its own bridge; the timer loop nudges the surface and desktop textures.
+    // Video is attached once above. A loop-driven session is nudged by the
+    // video pump rather than by the frame timer, which is not running.
 
     await _startAudio();
     running = true;

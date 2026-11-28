@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 const Map<String, String?> _runtimeRef = {'kind': 'path', 'path': 'runtime'};
 
 class _SilentAudio implements PcmOutput {
+  int written = 0;
   @override
   String get sinkName => 'silent';
   @override
@@ -22,7 +23,7 @@ class _SilentAudio implements PcmOutput {
   @override
   Future<void> stop() async {}
   @override
-  Future<void> write(Uint8List pcm) async {}
+  Future<void> write(Uint8List pcm) async => written += pcm.length;
 }
 
 class _FakeBackend implements CoreSessionBackend {
@@ -59,7 +60,7 @@ class _FakeBackend implements CoreSessionBackend {
       'width': 2,
       'height': 2,
       'rgba': Uint8List.fromList(List<int>.filled(16, 255)),
-      'pcm': Uint8List(0),
+      'pcm': Uint8List.fromList(const [0, 0, 0, 0]),
     };
   }
 
@@ -156,9 +157,10 @@ PlayerController _player({
   required _FakeBackend backend,
   required NativeLoopProbe probe,
   Map<String, dynamic> settings = const {},
+  PcmOutput? audio,
 }) {
   final player = PlayerController(
-    audio: _SilentAudio(),
+    audio: audio ?? _SilentAudio(),
     nativeLoopProbe: probe,
     settings: settings,
   );
@@ -200,12 +202,13 @@ void main() {
     expect(binding.buttonsWritten, hasLength(2));
   });
 
-  test('the player runs on the loop and stops the per-frame timer', () async {
+  test('the player runs on the loop when it is asked for', () async {
     final backend = _FakeBackend();
     final binding = _FakeBinding();
     NativeLoopSession? session;
     final player = _player(
       backend: backend,
+      settings: const {kNativeFrameLoopSetting: 'loop'},
       probe: ({required runtimeRef, required sessionAddress, required fps}) {
         session = NativeLoopSession(
           binding: binding,
@@ -248,12 +251,37 @@ void main() {
     expect(binding.stops, 1);
   });
 
-  test('a hidden setting keeps the original timer path', () async {
+  test('a session shows frames and sound without asking for the loop', () async {
+    final backend = _FakeBackend();
+    final audio = _SilentAudio();
+    var probed = false;
+    final player = _player(
+      backend: backend,
+      audio: audio,
+      probe: ({required runtimeRef, required sessionAddress, required fps}) {
+        probed = true;
+        return null;
+      },
+    );
+    try {
+      await _open(player);
+      await _pump(80);
+      expect(probed, isFalse);
+      expect(player.usingNativeLoop, isFalse);
+      expect(backend.frames, greaterThan(0));
+      expect(audio.written, greaterThan(0));
+    } finally {
+      await player.close();
+      player.dispose();
+    }
+  });
+
+  test('the earlier timer spelling also keeps the timer path', () async {
     final backend = _FakeBackend();
     var probed = false;
     final player = _player(
       backend: backend,
-      settings: const {kLegacyFrameLoopSetting: 'timer'},
+      settings: const {kNativeFrameLoopSetting: 'timer'},
       probe: ({required runtimeRef, required sessionAddress, required fps}) {
         probed = true;
         return null;
@@ -271,6 +299,18 @@ void main() {
     }
   });
 
+  test('the loop gate needs a target that can present its frames', () {
+    final binding = _FakeBinding();
+    expect(nativeLoopReady(binding, 'linux'), isTrue);
+    expect(nativeLoopReady(binding, 'windows'), isTrue);
+    // Android presents into a surface only when the player drives the frame,
+    // and iOS and macOS have no on-demand publisher, so the loop would render
+    // frames that nothing can show.
+    expect(nativeLoopReady(binding, 'android'), isFalse);
+    expect(nativeLoopReady(binding, 'ios'), isFalse);
+    expect(nativeLoopReady(binding, 'macos'), isFalse);
+  });
+
   for (final target in const [
     'ios',
     'android',
@@ -285,6 +325,7 @@ void main() {
       final backend = _FakeBackend();
       final player = _player(
         backend: backend,
+        settings: const {kNativeFrameLoopSetting: 'loop'},
         probe: ({required runtimeRef, required sessionAddress, required fps}) =>
             nativeLoopReady(binding, target)
                 ? NativeLoopSession(
