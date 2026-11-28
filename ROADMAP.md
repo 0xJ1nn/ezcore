@@ -86,7 +86,7 @@ later item before its stated gate.**
 The platform direction rests on one verified fact: ezCORE cores are already
 **libretro** plugins (`runtime/src/runtime.c:216-225`), so the existing core
 ecosystem is reachable by finishing the kernel rather than by writing new
-cores. The kernel currently answers **22 of the 102** environment commands
+cores. The kernel currently answers **23 of the 102** environment commands
 (`env_cb` at `runtime/src/runtime.c:197`), which is the binding constraint on
 the whole product.
 
@@ -126,9 +126,10 @@ the whole product.
 > learn that a core *has* ports and nothing about what they accept.
 > `ezcore_get_controller_port_type_count` and
 > `ezcore_get_controller_port_type` (with Dart wrappers) close that, so
-> mouse and lightgun can be *offered* per port. `SET_MEMORY_MAPS` and
-> `GET_MEMORY_MAPS` were already complete — a plan draft claimed both were
-> missing, which was wrong.
+> mouse and lightgun can be *offered* per port. `SET_MEMORY_MAPS` has no
+> counterpart in libretro — cores publish descriptors, they cannot ask the
+> frontend for them, so there is no `GET_MEMORY_MAPS` call to implement; the
+> host reads descriptors through the ABI instead.
 >
 > **P3 progress (2026-09-29).** The port-0 hardcode is gone: the worker button
 > payload carries a port, defaults to 0, and pause releases all four
@@ -144,7 +145,20 @@ the whole product.
 > `RETRO_DEVICE_JOYPAD`, so P3's own exit condition is **not** met. Mouse
 > and lightgun are decoded but unrouted. The `forgetHeld` seam is wired on
 > Windows and Linux only.
-| **P4** | Control layouts, skins, battery saves, cheat packaging | [ ] Planned | Touch layouts are data files a third party can ship with no ezCORE code; battery saves round-trip | P2, P3 |
+| **P4** | Control layouts, skins, battery saves, cheat packaging | [~] Battery saves round-trip | Touch layouts are data files a third party can ship with no ezCORE code; battery saves round-trip | P2, P3 |
+
+> **P4 progress (2026-11-28).** Battery saves now round-trip through the
+> runtime. `ezcore_load_game` derives one file per content basename in the
+> save directory and copies it into the core's `RETRO_MEMORY_SAVE_RAM` before
+> the first frame; `ezcore_unload` copies the region out before
+> `retro_unload_game`, because a core frees its save buffer during teardown,
+> and writes it atomically through a temporary file. Restoring is
+> all-or-nothing: a file whose length does not match the region exactly — a
+> different cart revision, or a truncated write — is ignored with a message
+> rather than spliced into the core's memory. Cores with no battery RAM, and
+> sessions started without a save directory, see no change at all. Regression
+> coverage is `runtime/test/test_battery_persist.c`. Control layouts, skins
+> and cheat packaging remain open.
 | **P5** | ezCORE Verified list and trust tiers | [ ] Planned | Reviewed cores are labelled and updatable; unverified cores are opt-in and never auto-updated | P2, P6 |
 | **P6** | Crash containment — one supervised process per core session | [~] Seam only; no transport | A deliberately crashing core does not terminate the app; library and saves survive | **P1** |
 

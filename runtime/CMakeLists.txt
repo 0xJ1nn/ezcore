@@ -19,9 +19,11 @@ endif()
 if(WIN32)
   set(EZCORE_DYNLOAD_SRC src/dynload_win32.c)
   set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_win32.c)
+  set(EZCORE_FILE_REPLACE_SRC src/ezcore_file_replace_win32.c)
 else()
   set(EZCORE_DYNLOAD_SRC src/dynload_posix.c)
   set(EZCORE_VIDEO_LOCK_SRC src/ezcore_video_lock_posix.c)
+  set(EZCORE_FILE_REPLACE_SRC src/ezcore_file_replace_posix.c)
 endif()
 
 # GPU render context (the GPU render-context design). ezcore_gpu.c is the only file that
@@ -48,6 +50,7 @@ add_library(ezcore_runtime SHARED
   ${EZCORE_VIDEO_LOCK_SRC}
   ${EZCORE_GPU_BACKEND}
   ${EZCORE_DYNLOAD_SRC}
+  ${EZCORE_FILE_REPLACE_SRC}
 )
 target_include_directories(ezcore_runtime PUBLIC
   include
@@ -65,6 +68,11 @@ else()
 endif()
 if(APPLE)
   set_target_properties(ezcore_runtime PROPERTIES SUFFIX ".dylib")
+endif()
+if(ANDROID)
+  # ANativeWindow_* lives in libandroid.so. Without it the shared library fails
+  # to link (--no-undefined) and the Android leg of the runtime build stops.
+  target_link_libraries(ezcore_runtime PRIVATE android)
 endif()
 
 # Android video texture bridge: the pure row blit and the attach/present state
@@ -167,6 +175,23 @@ target_include_directories(synth_no_save_libretro PRIVATE
 )
 if(APPLE)
   set_target_properties(synth_no_save_libretro PROPERTIES SUFFIX ".dylib")
+endif()
+
+# A core with its own resampler: it asks the frontend for the device rate at
+# load time and reports its hardware clock when nobody answers. The colour
+# handheld core behaves exactly this way, and the unanswered case is not a
+# harmless default -- it produced a 2 MHz rate that no audio device opens.
+add_library(synth_target_rate_libretro SHARED
+  test/synth_core/synth_test_core.c
+)
+target_compile_definitions(synth_target_rate_libretro PRIVATE
+  EZCORE_SYNTH_TARGET_RATE
+)
+target_include_directories(synth_target_rate_libretro PRIVATE
+  external/libretro-common/include
+)
+if(APPLE)
+  set_target_properties(synth_target_rate_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 
 # A core that starts its emulation thread on the first frame and reports its
@@ -483,6 +508,31 @@ target_link_libraries(test_unload_order PRIVATE ezcore_runtime)
 add_dependencies(test_unload_order synth_hw_core)
 add_test(NAME unload_order COMMAND test_unload_order
          $<TARGET_FILE:synth_hw_core> ${CMAKE_BINARY_DIR}/unload_order.txt)
+
+# Battery-save persistence: a session's save RAM reaches the host's save
+# directory and is restored before a later session's first frame.
+add_executable(test_battery_persist test/test_battery_persist.c)
+target_include_directories(test_battery_persist PRIVATE include
+  external/libretro-common/include)
+target_link_libraries(test_battery_persist PRIVATE ezcore_runtime)
+add_dependencies(test_battery_persist synth_legacy_sram_libretro)
+add_test(NAME battery_persist COMMAND test_battery_persist
+         $<TARGET_FILE:synth_legacy_sram_libretro>
+         ${CMAKE_BINARY_DIR}/battery_persist_work)
+
+# The frontend must answer GET_TARGET_SAMPLE_RATE. A core that asks and is
+# refused reports its own crystal rate, which for one real core was 2097152 Hz:
+# unopenable on every platform and larger than the audio ring. The fixture asks
+# like such a core and falls back the same way, so the unanswered case is
+# visible instead of silent.
+add_executable(test_target_sample_rate test/test_target_sample_rate.c)
+target_include_directories(test_target_sample_rate PRIVATE include)
+target_link_libraries(test_target_sample_rate PRIVATE ezcore_runtime)
+add_dependencies(test_target_sample_rate synth_target_rate_libretro
+                 synth_libretro)
+add_test(NAME target_sample_rate COMMAND test_target_sample_rate
+         $<TARGET_FILE:synth_target_rate_libretro>
+         $<TARGET_FILE:synth_libretro>)
 
 # GPU context seam test (the GPU render-context design). Exercises a real GLES3 context
 # and a real Vulkan device where the host has them, and SKIPS with a printed

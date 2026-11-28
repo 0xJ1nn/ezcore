@@ -79,6 +79,17 @@ static unsigned g_volatile_frames_after_load;
 static unsigned char g_legacy_sram[4096];
 #endif
 
+/* EZCORE_SYNTH_TARGET_RATE models the one behaviour that made a real core
+ * unusable: it asks the frontend for the device rate while loading content and
+ * turns its own clock into samples only when nobody answers. SameBoy does
+ * exactly this with GB_get_clock_rate()/2, and the 2097152 Hz it produced is
+ * neither a rate any sink opens nor one the audio ring can hold. A host that
+ * answers gets a normal rate; a host that stays silent gets the crystal. */
+#ifdef EZCORE_SYNTH_TARGET_RATE
+#define SYNTH_CLOCK_RATE 4194304u
+static double g_reported_sample_rate = (double)(SYNTH_CLOCK_RATE / 2u);
+#endif
+
 static void render_frame(uint32_t *buf) {
     uint8_t r = (uint8_t)(g_state.frame_counter & 0xFF);
     uint8_t g = (uint8_t)((g_state.frame_counter / 2) & 0x3F);
@@ -134,7 +145,11 @@ void retro_get_system_av_info(struct retro_system_av_info *av) {
     av->geometry.max_height  = HEIGHT;
     av->geometry.aspect_ratio = (float)WIDTH / (float)HEIGHT;
     av->timing.fps            = FPS;
+#ifdef EZCORE_SYNTH_TARGET_RATE
+    av->timing.sample_rate    = g_reported_sample_rate;
+#else
     av->timing.sample_rate    = SAMPLE_RATE;
+#endif
 }
 
 bool retro_set_pixel_format(unsigned fmt) {
@@ -171,6 +186,16 @@ void retro_set_input_state(retro_input_state_t cb) { input_state_cb = cb; }
 
 bool retro_load_game(const struct retro_game_info *game) {
     (void)game;
+#ifdef EZCORE_SYNTH_TARGET_RATE
+    /* Ask the host for the device rate the way a core with its own resampler
+     * does. A false answer leaves the crystal rate in place, which is the
+     * behaviour this fixture exists to expose. */
+    unsigned target = 0;
+    if (env_cb && env_cb(RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE, &target) &&
+        target >= 8000u && target <= 192000u) {
+        g_reported_sample_rate = (double)target;
+    }
+#endif
     /* EZCORE_SYNTH_FAIL_LOAD: reject content-less loads so a test can drive
      * ezcore_load_game()'s failure path. Everything else behaves normally. */
 #ifdef EZCORE_SYNTH_FAIL_LOAD

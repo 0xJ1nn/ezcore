@@ -112,9 +112,44 @@ Sets host-owned content directories. Must be called before `ezcore_load` when co
 
 **Parameters:**
 - `system_dir` — path to system directory (BIOS, firmware, etc.)
-- `save_dir` — path to save directory (save states, SRAM, etc.)
+- `save_dir` — path to save directory (save states, SRAM, etc.). The runtime also uses it for battery saves: see `ezcore_load_game`.
 
 **Thread safety:** Not thread-safe. Call once at startup before any sessions are created.
+
+---
+
+#### `ezcore_set_target_sample_rate`
+
+```c
+bool ezcore_set_target_sample_rate(unsigned rate);
+```
+
+Sets the rate this host's audio device runs at. The runtime reports it to any core that asks for the frontend's target sample rate
+(`RETRO_ENVIRONMENT_GET_TARGET_SAMPLE_RATE`); the core then resamples to it instead of handing over its own hardware rate.
+
+Answering that query is required, not cosmetic. A core that is refused falls back to its own clock — one real core reports
+2097152 Hz, which no platform sink will open and which is roughly thirty-five thousand stereo frames per emulated frame
+against a ring that holds 8192.
+
+**Parameters:**
+- `rate` — the device rate in Hz, `8000`..`192000`
+
+**Returns:** `true` when the rate was accepted and stored, `false` when it is outside that range (the current rate is left
+unchanged — the value is rejected, never clamped, because a caller passing `0` has a bug worth seeing).
+
+**Thread safety:** Not thread-safe. Call before `ezcore_load_game`, since libretro asks while loading content.
+
+---
+
+#### `ezcore_target_sample_rate`
+
+```c
+unsigned ezcore_target_sample_rate(void);
+```
+
+Returns the rate currently reported to cores that ask for the frontend target sample rate. Defaults to `48000`.
+
+**Thread safety:** Not thread-safe.
 
 ---
 
@@ -147,6 +182,10 @@ void ezcore_unload(ezcore_session *s);
 ```
 
 Unloads a core session. Calls `retro_deinit`, dlcloses the handle, and frees all associated resources (frame buffer, audio ring).
+
+Battery-backed save RAM is copied out before `retro_unload_game` and written to
+the session's `.srm` file (see `ezcore_load_game`); a core frees its save buffer
+during teardown, so the copy has to happen first.
 
 **Parameters:**
 - `s` — session pointer (from `ezcore_load`)
@@ -205,6 +244,13 @@ Loads a game into the core. The ROM data is passed as a memory buffer (not read 
 - `size` — size of ROM data in bytes
 
 **Returns:** `true` on success, `false` on failure.
+
+**Battery saves:** on success the runtime derives `<save_dir>/<content basename>.srm`
+and, if that file exists and its length matches the core's save RAM exactly,
+copies it in before the first frame. `ezcore_unload` writes the region back, so
+a battery save survives the session without the host asking. A file of the
+wrong length is ignored rather than spliced into the core's memory; sessions
+started without a save directory persist nothing.
 
 **Note:** Several cores (e.g., mGBA) dereference the game info here and segfault if called before `retro_init`. The runtime handles this by calling `retro_init` first if not already done.
 
@@ -1121,6 +1167,8 @@ The Flutter layer checks all return values and surfaces errors to the user.
 |---|---|
 | `ezcore_abi_version` | Thread-safe |
 | `ezcore_set_dirs` | Not thread-safe (call once at startup) |
+| `ezcore_set_target_sample_rate` | Not thread-safe (call before `ezcore_load_game`) |
+| `ezcore_target_sample_rate` | Not thread-safe |
 | `ezcore_load` | Not thread-safe |
 | `ezcore_unload` | Not thread-safe |
 | `ezcore_init` | Not thread-safe |

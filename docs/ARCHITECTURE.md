@@ -20,7 +20,8 @@
 │                ezCore Runtime  (C11, ABI v1)                  │
 │  runtime/src/runtime.c        session lifecycle · frame loop  │
 │  runtime/src/dynload_*.c      dlopen / LoadLibrary seam       │
-│  AV buffers · input · save states · cheats                    │
+│  runtime/src/ezcore_file_replace_*.c   rename / MoveFileEx    │
+│  AV buffers · input · save states · battery saves · cheats    │
 │  Exports: runtime/include/ezcore_runtime.h                    │
 └──────────────────────────┬────────────────────────────────────┘
                            │ libretro C API

@@ -10,13 +10,26 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 
-/// The setting that keeps the per-frame timer path. It has no user interface;
-/// it exists so one release can opt out of the new path if a device misbehaves.
-const String kLegacyFrameLoopSetting = 'player.frameLoop';
-const String _legacyTimerValue = 'timer';
+/// The setting that hands frame pacing to the runtime-owned run thread. It has
+/// no user interface and it ships off.
+///
+/// The loop publishes into its own three-slot frame ring and its own audio
+/// ring. The per-frame timer is what reads a frame into a texture and hands a
+/// PCM packet to the audio sink, so on a target with no on-demand publisher the
+/// loop runs the emulator with nothing on screen and nothing audible. Only the
+/// desktop targets have such a publisher today, and only a build being checked
+/// against the loop should ask for it; see [kLoopTargets].
+const String kNativeFrameLoopSetting = 'player.frameLoop';
+const String _loopValue = 'loop';
 
-/// Targets this player can present a run-loop frame on.
-const Set<String> kLoopTargets = {'ios', 'android', 'macos', 'linux', 'windows'};
+/// Targets where the player can show a run-loop frame.
+///
+/// Linux and Windows have a desktop texture bridge that pulls the runtime's
+/// latest frame on demand. Android presents into a surface only when the player
+/// drives a frame itself, and iOS and macOS have no publisher at all, so none
+/// of the three can display what the loop renders. The loop's audio ring has no
+/// consumer on any target yet.
+const Set<String> kLoopTargets = {'linux', 'windows'};
 
 /// The target whose platform channel owns video presentation.
 String get currentLoopTarget => Platform.isIOS
@@ -103,7 +116,10 @@ class NativeLoopSession {
   int? _loop;
   NativeLoopStats? lastStats;
 
-  bool get supported => nativeLoopReady(binding);
+  /// Whether the loaded runtime exposes the loop. Presentation is not part of
+  /// this question: a caller that constructs a session has already decided the
+  /// target can show what the loop renders, which is [nativeLoopReady]'s job.
+  bool get supported => binding.symbolsPresent;
   bool get started => _loop != null;
 
   /// Two samples per second by default: enough for a display readout without
@@ -189,10 +205,11 @@ NativeLoopSession? probeNativeLoop({
   );
 }
 
-/// A persisted value that keeps the original per-frame timer path for one
-/// release. There is no user interface for it.
-bool legacyFrameLoopRequested(Map<String, dynamic> settings) =>
-    settings[kLegacyFrameLoopSetting] == _legacyTimerValue;
+/// Whether a persisted value asks for the runtime-owned run thread. Only the
+/// literal `loop` does; an absent value, the `timer` spelling earlier builds
+/// wrote, or anything else keeps the per-frame timer.
+bool nativeFrameLoopRequested(Map<String, dynamic> settings) =>
+    settings[kNativeFrameLoopSetting] == _loopValue;
 
 // --- optional native ABI -------------------------------------------------
 // Kept in step with the loop statistics layout published by the runtime:
