@@ -14,22 +14,21 @@ import 'dart:io';
 /// no user interface and it ships off.
 ///
 /// The loop publishes into its own three-slot frame ring and its own audio
-/// ring. Those rings have no consumer in the player on any release target: the
-/// picture comes from a texture the player feeds on demand and the sound from a
-/// per-frame PCM packet, and neither exists while the loop runs. A session on
-/// the loop therefore shows no picture and plays no sound, so the player keeps
-/// the per-frame timer unless a build of the app is being checked against the
-/// loop on purpose. Completing presentation and audio for the loop is tracked
-/// separately; until then this value is the only way in.
+/// ring. The per-frame timer is what reads a frame into a texture and hands a
+/// PCM packet to the audio sink, so on a target with no on-demand publisher the
+/// loop runs the emulator with nothing on screen and nothing audible. Only the
+/// desktop targets have such a publisher today, and only a build being checked
+/// against the loop should ask for it; see [kLoopTargets].
 const String kNativeFrameLoopSetting = 'player.frameLoop';
 const String _loopValue = 'loop';
 
-/// Targets where the player can show a run-loop frame and still play its audio.
+/// Targets where the player can show a run-loop frame.
 ///
 /// Linux and Windows have a desktop texture bridge that pulls the runtime's
 /// latest frame on demand. Android presents into a surface only when the player
 /// drives a frame itself, and iOS and macOS have no publisher at all, so none
-/// of the three can display what the loop renders.
+/// of the three can display what the loop renders. The loop's audio ring has no
+/// consumer on any target yet.
 const Set<String> kLoopTargets = {'linux', 'windows'};
 
 /// The target whose platform channel owns video presentation.
