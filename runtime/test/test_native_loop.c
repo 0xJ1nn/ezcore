@@ -186,6 +186,78 @@ int main(int argc, char **argv) {
   CHECK(apply(loop, ezcore_loop_control_fast_forward(loop, 1), &result) && result,
         "fast-forward restored to normal speed");
 
+  /* The control queue holds sixty-four requests. A finished request must give
+   * its slot back, otherwise the sixty-fifth call returns token 0 and every
+   * later control -- save, load, pause, reset -- silently fails for the rest of
+   * the session. */
+  uint64_t first = ezcore_loop_control_fast_forward(loop, 1);
+  REQUIRE(apply(loop, first, &result) && result, "first recyclable control applied");
+  unsigned queued = 0;
+  for (unsigned i = 0; i < 63; i++) {
+    if (!ezcore_loop_control_fast_forward(loop, 1)) break;
+    queued++;
+  }
+  REQUIRE(queued == 63, "queue accepted requests up to its capacity");
+  /* Every slot is held by a request. The next call must reuse the finished one
+   * instead of failing. */
+  uint64_t overflow = ezcore_loop_control_fast_forward(loop, 1);
+  CHECK(overflow != 0, "a full queue recycles a finished control instead of failing");
+  CHECK(apply(loop, overflow, &result) && result, "the recycled request applied");
+  CHECK(ezcore_loop_control_wait(loop, first, 2000, &result) && result,
+        "a recycled control's result is still waitable");
+
+  /* Sustained use must keep working: waiting for each request returns its own
+   * slot, so the queue refills indefinitely. */
+  unsigned sustained = 0;
+  for (unsigned i = 0; i < 200; i++) {
+    uint64_t token = ezcore_loop_control_fast_forward(loop, 1);
+    if (!token || !apply(loop, token, &result) || !result) break;
+    sustained++;
+  }
+  CHECK(sustained == 200, "two hundred further controls all found a slot");
+  CHECK(ezcore_loop_control_wait(loop, 900000000ull, 20, &result) == false,
+        "wait rejects a token that was never issued");
+
+  /* Publication churn: at speed, the producer replaces frames it has already
+   * claimed. A claimed slot that is never handed back strands the picture after
+   * three frames, so read one frame per iteration across several hundred
+   * publications and require every read to find one. */
+  CHECK(apply(loop, ezcore_loop_control_pause(loop, false), &result) && result,
+        "resumed for publication churn");
+  CHECK(apply(loop, ezcore_loop_control_fast_forward(loop, 4), &result) && result,
+        "fast-forward engaged for publication churn");
+  uint64_t base = 0;
+  {
+    ezcore_loop_statistics now;
+    REQUIRE(ezcore_loop_stats(loop, &now), "statistics readable before churn");
+    base = now.frames_run;
+  }
+  frames = wait_for_frames(loop, base + 300, 8.0, &elapsed);
+  CHECK(frames >= base + 300, "loop kept publishing frames under churn");
+  /* A read can legitimately miss while the producer holds every slot it is
+   * allowed to claim, so allow a short retry. What must never happen is a slot
+   * that is never handed back: then no retry ever finds a frame again. */
+  unsigned visible = 0;
+  for (unsigned i = 0; i < 40; i++) {
+    bool got = false;
+    for (unsigned attempt = 0; attempt < 100 && !got; attempt++) {
+      if (ezcore_loop_frame(loop, &w, &h) && w == EXPECTED_W && h == EXPECTED_H) {
+        ezcore_loop_frame_release(loop);
+        got = true;
+        break;
+      }
+      nap_ms(1);
+    }
+    if (!got) break;
+    visible++;
+    nap_ms(2);
+  }
+  CHECK(visible == 40, "every frame read during churn was published");
+  CHECK(apply(loop, ezcore_loop_control_fast_forward(loop, 1), &result) && result,
+        "fast-forward restored after churn");
+  CHECK(apply(loop, ezcore_loop_control_pause(loop, true), &result) && result,
+        "paused again for the statistics check");
+
   ezcore_loop_statistics stats;
   REQUIRE(ezcore_loop_stats(loop, &stats), "statistics snapshot available");
   CHECK(stats.control_applied >= 11 && stats.control_pending == 0,
